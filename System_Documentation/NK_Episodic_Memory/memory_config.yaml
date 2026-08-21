@@ -1,0 +1,25 @@
+# NK Episodic Memory System Configuration
+episodic_memory:
+  enabled: true
+  storage_root: "System_Documentation/NK_Episodic_Memory/"
+  domains:
+    - name: "01_Bug_Diagnostics"
+      target_agents: ["NK-Bug-Diagnostic-Engine", "NK-Oracle-Evaluator"]
+      token_budget_cap: 350
+    - name: "02_Development_Patterns"
+      target_agents: ["NK-Python-Async-Builder", "NK-Agent-Instruction-Forge", "NK-Backend-Architect", "NK-Delta-Architect"]
+      token_budget_cap: 350
+    - name: "03_Ideation_and_Decisions"
+      target_agents: ["NK-Ideator", "NK-App-UX-Architect", "NK-Master-Hub", "NK-Session-Controller", "NK-Plan-Aligner"]
+      token_budget_cap: 350
+    - name: "04_Governance_and_Rules"
+      target_agents: ["NK-Security-Auditor", "NK-Dynamic-Sandbox-StressTester", "NK-State-Router", "NK-Scribe"]
+      token_budget_cap: 350
+  max_episodes_per_domain: 500
+  recall_top_k: 3
+  similarity_threshold: 0.6
+  pruning_strategy: fifo
+  backup_circular_depth: 2
+  passive_data_wrap: true
+  local_cache_dir: "%TEMP%/nk_memory_"
+  lock_timeout_seconds: 10

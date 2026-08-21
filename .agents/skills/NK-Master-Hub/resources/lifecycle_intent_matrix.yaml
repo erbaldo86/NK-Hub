@@ -1,0 +1,26 @@
+intents:
+  - id: BUG_REPORT
+    description: "Identificazione, isolamento e risoluzione di un'anomalia"
+    handler: "NK-Bug-Diagnostic-Engine"
+    required_inputs: ["stack_trace", "steps_to_reproduce", "expected_behavior"]
+    triggers_dag_rebuild: false
+  - id: FEATURE_REQUEST
+    description: "Estensione del prodotto con nuovi requisiti"
+    handler: "NK-Delta-Architect"
+    required_inputs: ["feature_brief", "target_layer"]
+    triggers_dag_rebuild: true
+  - id: MODIFICATION
+    description: "Alterazione di logiche esistenti senza estensione perimetrale"
+    handler: "NK-Delta-Architect"
+    required_inputs: ["target_node", "change_description"]
+    triggers_dag_rebuild: true
+  - id: DEPRECATION
+    description: "Rimozione pianificata di un modulo"
+    handler: "NK-Master-Hub (router mode) -> NK-Delta-Architect"
+    required_inputs: ["target_node"]
+    triggers_dag_rebuild: true
+  - id: GENOME_AUDIT
+    description: "Ispezione e allineamento dello stato dell'ecosistema"
+    handler: "NK-State-Router"
+    required_inputs: ["target_dir", "audit_level"]
+    triggers_dag_rebuild: false

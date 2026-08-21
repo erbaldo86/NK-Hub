@@ -1,0 +1,7 @@
+drift_detection:
+  checksum_algorithm: "SHA-256"
+  trigger_on: ["BOOT", "PRE_COMMIT", "MANUAL_AUDIT"]
+  tolerance_level: "ZERO"
+  remediation:
+    if_human_drift: "Update human presentation in README.md from structural_tree.md"
+    if_machine_drift: "Trigger NK-State-Router for structural repair based on source code AST"

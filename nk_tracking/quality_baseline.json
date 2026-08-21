@@ -1,0 +1,30 @@
+{
+  "_version": "1.0",
+  "project": "NK_Project",
+  "baseline_date": "2026-08-20T22:45:00.000000",
+  "last_updated": "2026-08-20T22:45:00.000000",
+  "metrics": {
+    "skills_audited": 16,
+    "sast_l1_compliance_pct": 100.0,
+    "sast_l2_compliance_pct": 100.0,
+    "sast_l3_compliance_pct": 100.0,
+    "dast_dynamic_exit_code": 0,
+    "crv_macro_phases": 4,
+    "cold_review_gates": 5
+  },
+  "ratchet_rule": "no_metric_may_worsen",
+  "history": [
+    {
+      "timestamp": "2026-08-20T22:45:00.000000",
+      "metrics": {
+        "skills_audited": 16,
+        "sast_l1_compliance_pct": 100.0,
+        "sast_l2_compliance_pct": 100.0,
+        "sast_l3_compliance_pct": 100.0,
+        "dast_dynamic_exit_code": 0,
+        "crv_macro_phases": 4,
+        "cold_review_gates": 5
+      }
+    }
+  ]
+}

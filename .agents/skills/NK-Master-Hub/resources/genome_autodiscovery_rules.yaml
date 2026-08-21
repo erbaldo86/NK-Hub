@@ -1,0 +1,15 @@
+autodiscovery:
+  enabled: true
+  search_paths:
+    - "System_Documentation/.nk_system"
+    - ".nk_system"
+  target_directory: "System_Documentation/.nk_system"
+  required_files:
+    - "machine/nk_root_genome.json"
+    - "human/README.md"
+  on_success:
+    set_state: "WAIT_POST_RELEASE_INPUT"
+    enable_commands: ["/postrelease", "/bug", "/feature", "/modify", "/deprecate"]
+  on_missing:
+    set_state: "WAIT_INIT"
+    action: "Prompt for new project triage"

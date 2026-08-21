@@ -1,0 +1,866 @@
+<!-- [LOCK] NK-PRESERVATION-LOCK — Overwrite vietato, solo patch chirurgiche -->
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chronos & Kairos - Nodo 3: CE & SP Engine Deterministico</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <!-- FLOATING TOAST NOTIFICATION CONTAINER -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- TOP APP BAR -->
+  <header class="app-header">
+    <div class="header-brand">
+      <div class="brand-logo">⚡</div>
+      <div class="brand-titles">
+        <h1>Chronos & Kairos <span class="badge-version">Nodo 3 — Financial Engine</span></h1>
+        <p>Analisi Conto Economico & Stato Patrimoniale (Art. 2424 & 2425 C.C.)</p>
+      </div>
+    </div>
+
+    <div class="header-badges">
+      <span class="status-badge shield-badge" id="shieldStatus" onclick="togglePrivacyShield()">
+        <span class="badge-dot green"></span> Privacy Shield: GDPR Active
+      </span>
+    </div>
+
+    <div class="header-actions">
+            <button class="btn btn-amber btn-edit-mode" id="btnToggleEditMode" onclick="toggleEditMode()">
+        <span class="btn-icon">✏️</span> Modalità Modifica
+      </button>
+      <button class="btn btn-outline" id="btnToggleGuida" style="border-color: var(--accent-amber); color: var(--accent-amber);" onclick="toggleGuidaDrawer()">
+        <span class="btn-icon">💡</span> Guida Operativa (Espandi / Riduci)
+      </button>
+      <button class="btn btn-amber" id="btnIngestionHeader" onclick="switchTab('ingestion')">
+        <span class="btn-icon">📤</span> Ingestione Documenti ERP
+      </button>
+      <button class="btn btn-danger" onclick="globalResetSession()">
+        <span class="btn-icon">🧹</span> Reset Globale (Svuota Tutto)
+      </button>
+      <button class="btn btn-primary" onclick="openExportModal()">
+        <span class="btn-icon">📥</span> Esporta Bilancio
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="app-container">
+    
+    <!-- INLINE EXPANDABLE GUIDA ACCORDION DRAWER (NO CONTEXT LOSS) -->
+    <div class="guida-accordion-drawer" id="guidaAccordionDrawer">
+      <div class="guida-drawer-header">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <span style="font-size: 1.3rem;">💡</span>
+          <strong>Guida Operativa Contestuale — Leggi e Prova i Tasti in Tempo Reale</strong>
+        </div>
+        <button class="btn btn-xs btn-outline" onclick="toggleGuidaDrawer()">❌ Chiudi Guida</button>
+      </div>
+      <div class="guida-drawer-body">
+        <div class="guida-tabs">
+          <button class="guida-tab-btn active" onclick="switchGuidaTab('passi')">🚀 1. Primi Passi & Tasti Principali</button>
+          <button class="guida-tab-btn" onclick="switchGuidaTab('modifica')">✏️ 2. Modifica Dati & Allarme Capitale</button>
+          <button class="guida-tab-btn" onclick="switchGuidaTab('kpi')">📊 3. Rettangoli KPI & Co-Pilota ATECO</button>
+          <button class="guida-tab-btn" onclick="switchGuidaTab('formule')">📐 4. Formule & Calcolo Matematico</button>
+        </div>
+
+        <!-- SCHEDA 1: PRIMI PASSI & TASTI -->
+        <div class="guida-tab-content active" id="guida-tab-passi">
+          <div class="guida-step-grid">
+            <div class="guida-step-card">
+              <h4>📤 1. Pulsante "Ingestione Documenti ERP"</h4>
+              <p>Ti porta al centro di comando dove puoi trascinare da 1 a 4 file ERP (PDF, Excel, CSV, XML FatturaPA) per estrarre i 42 parametri civilistici.</p>
+            </div>
+            <div class="guida-step-card">
+              <h4>🧹 2. Pulsante "Reset Globale"</h4>
+              <p>Ripristina l'applicazione in uno stato pulito a <strong>€0</strong> (tabelle, grafici e rettangoli KPI azzerati). Guarda il tasto rosso accanto a Carica Documento!</p>
+            </div>
+            <div class="guida-step-card">
+              <h4>⚡ 3. Toggle "Override God Mode"</h4>
+              <p>Mette in pausa gli allarmi di legge della bancarotta/crisi per fare simulazioni di prova senza blocchi.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- SCHEDA 2: MODIFICA DATI & ALLARME CAPITALE -->
+        <div class="guida-tab-content" id="guida-tab-modifica">
+          <div class="guida-step-grid">
+            <div class="guida-step-card">
+              <h4>✏️ Come modificare un numero a mano?</h4>
+              <p>Fai <strong>doppio clic</strong> su qualsiasi riga con l'icona matita ✏️ nelle tabelle del Conto Economico o dello Stato Patrimoniale per cambiare un numero.</p>
+            </div>
+            <div class="guida-step-card">
+              <h4>🔴 Allarme Rosso: Capitale Sociale a €0</h4>
+              <p>Il Codice Civile italiano proibisce che una S.r.l. attiva abbia Capitale Sociale nullo. Se vedi l'allarme rosso, fai doppio clic o clicca sul pulsante rapido.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- SCHEDA 3: RETTANGOLI KPI & CO-PILOTA ATECO -->
+        <div class="guida-tab-content" id="guida-tab-kpi">
+          <div class="guida-step-grid">
+            <div class="guida-step-card">
+              <h4>📊 I 6 Rettangoli KPI in Alto</h4>
+              <p>Forniscono l'<em>Executive Summary</em> istantaneo: <strong>Ricavi Anno 5</strong>, <strong>EBITDA %</strong>, <strong>Utile Netto</strong>, <strong>Cassa In Banca</strong>, <strong>DSCR</strong> e <strong>ROE/ROI</strong>.</p>
+            </div>
+            <div class="guida-step-card">
+              <h4>🎯 Co-Pilota Finanziario & ATECO</h4>
+              <p>Seleziona il settore dal menu a tendina nella colonna di destra per adeguare i target di margine ed i giorni di incasso/pagamento.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- SCHEDA 4: FORMULE & CALCOLO MATEMATICO -->
+        <div class="guida-tab-content" id="guida-tab-formule">
+          <div class="guida-step-grid">
+            <div class="guida-step-card">
+              <h4>📐 Le Formule Matematiche del Bilancio (Zero Probabilità AI)</h4>
+              <p>Tutti i conti dell'applicazione vengono calcolati tramite formule matematiche fisse e trasparenti, senza affidarsi ai calcoli probabilistici dell'Intelligenza Artificiale:</p>
+              <div style="background: rgba(15, 23, 42, 0.6); padding: 0.75rem; border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: 0.78rem; color: var(--accent-amber); line-height: 1.6; margin-top: 0.5rem;">
+                • <strong>EBITDA</strong> = Valore Produzione - (OpEx + Personale + TFR)<br>
+                • <strong>EBIT</strong> = EBITDA - Ammortamenti (Software + Server HW)<br>
+                • <strong>EBT</strong> = EBIT + Proventi Finanziari - Oneri Finanziari<br>
+                • <strong>Utile Netto</strong> = EBT - Imposte (IRES 24% + IRAP 3.9%)<br>
+                • <strong>Cassa Netta</strong> = Cassa_Precedente + Utile + Ammortamenti - CapEx<br>
+                • <strong>Quadratura SP</strong>: Totale Attivo === Totale Passivo (Verificato in &lt;1ms)
+              </div>
+              <div class="guida-action-box" style="margin-top: 0.75rem;">
+                <span>👉 Vuoi vedere il prospetto matematico integrale?</span>
+                <button class="btn btn-xs btn-outline" onclick="openFormulaModal();">🔍 Apri Modale Formule Dettagliato</button>
+              </div>
+            </div>
+
+            <div class="guida-step-card">
+              <h4>⚙️ Flusso Logico dell'Algoritmo Deterministico ERP</h4>
+              <p>La pipeline di elaborazione in 4 passaggi per convertire i documenti grezzi in rendiconto finanziario:</p>
+              <div class="flowchart-visual-box" id="flowchartBox" style="margin-top: 0.75rem;">
+                <div class="flow-step">
+                  <span class="flow-icon">📄</span>
+                  <strong>1. Ingestione ERP</strong>
+                  <small>Parsing Visura & PDF</small>
+                </div>
+                <div class="flow-arrow">✖️</div>
+                <div class="flow-step">
+                  <span class="flow-icon">🏛️</span>
+                  <strong>2. Classificazione C.C.</strong>
+                  <small>Art. 2424 & 2425</small>
+                </div>
+                <div class="flow-arrow">✖️</div>
+                <div class="flow-step">
+                  <span class="flow-icon">⚡</span>
+                  <strong>3. Motore Deterministico</strong>
+                  <small>EBITDA, EBIT, EBT, Tassazione</small>
+                </div>
+                <div class="flow-arrow">✖️</div>
+                <div class="flow-step">
+                  <span class="flow-icon">🏆</span>
+                  <strong>4. Cash Walk & DSCR</strong>
+                  <small>Cassa Netta & Alert Crisi</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    
+
+    <!-- CRITICAL ERROR BANNER: CAPITALE SOCIALE A ZERO -->
+    <div class="capitale-warning-banner" id="capitaleWarningBanner" style="display: none;">
+      <div class="warning-banner-content">
+        <span class="banner-icon">🔴</span>
+        <div>
+          <strong>ALLARME CIVILISTICO: Capitale Sociale a €0 (Art. 2424 / 2463 C.C.)</strong>
+          <p>La normativa italiana vieta l'esistenza di una S.r.l. con Capitale Sociale nullo. <strong>Fai doppio clic sulla riga Capitale Sociale nello SP</strong> per inserire la quota societaria iniziale (es. €10.000) ed adeguare il bilancio.</p>
+        </div>
+      </div>
+      <button class="btn btn-sm btn-amber" onclick="quickFixCapitaleSociale()">✏️ Imposta €10.000 Ora</button>
+    </div>
+
+    <!-- KPI STATS TOOLBAR & GRID -->
+    <div class="kpi-header-toolbar" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.85rem; flex-wrap: wrap; gap: 0.75rem; background: var(--bg-card); padding: 0.6rem 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span style="font-size: 1.1rem;">📌</span>
+        <div>
+          <strong style="font-size: 0.88rem; color: var(--text-main);">Anteprima Sintetica KPI & Controlli Engine</strong>
+          <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">Seleziona Tassonomia, God Mode e Anno per aggiornare i KPI</span>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+        <!-- RELOCATED TAXONOMY SELECTOR (#atecoSelect) -->
+        <div class="benchmark-selector-inline" style="display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(15,23,42,0.7); padding: 0.25rem 0.65rem; border-radius: 20px; border: 1px solid var(--accent-amber);">
+          <label for="atecoSelect" style="font-size: 0.75rem; color: var(--accent-amber); font-weight: 700; white-space: nowrap;">🏛️ Tassonomia / ATECO:</label>
+          <select id="atecoSelect" onchange="updateBenchmarkInfo()" style="background: transparent; color: var(--text-main); border: none; font-size: 0.78rem; font-weight: 600; outline: none; cursor: pointer;">
+            <option value="saas" selected>Commerciale C.C. (SaaS B2B)</option>
+            <option value="university">🏛️ Università & Enti di Ricerca (MIUR)</option>
+            <option value="ets">🎗️ Terzo Settore ETS (RUNTS)</option>
+            <option value="ecommerce">Ecommerce B2C</option>
+            <option value="consulting">Consulenza IT & System Integrator</option>
+            <option value="manufacturing">Manifatturiero / Industria 4.0</option>
+          </select>
+        </div>
+
+        <!-- GOD MODE TOGGLE IN TOOLBAR -->
+        <div class="banner-controls-inline" style="display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(15,23,42,0.7); padding: 0.25rem 0.65rem; border-radius: 20px; border: 1px solid var(--border-color);">
+          <label class="toggle-switch" style="transform: scale(0.85);">
+            <input type="checkbox" id="godModeToggle" onchange="toggleGodMode()">
+            <span class="toggle-slider"></span>
+          </label>
+          <span class="toggle-label" style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Override God Mode</span>
+        </div>
+
+        <!-- KPI YEAR SELECTOR -->
+        <div class="kpi-year-selector" id="kpiYearButtonsContainer" style="display: inline-flex; gap: 0.25rem; align-items: center; background: rgba(15,23,42,0.7); padding: 0.2rem 0.5rem; border-radius: 20px; border: 1px solid var(--accent-blue);">
+          <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600; margin-right: 0.25rem;">📅 Anno:</span>
+        </div>
+      </div>
+    </div>
+
+    <section class="kpi-grid" id="kpiGrid">
+      <div class="kpi-card accent-blue">
+        <div class="kpi-header">
+          <span class="kpi-title" id="kpiTitleRicavi">Ricavi Anno 1 (A.1 + A.5)</span>
+          <span class="kpi-icon">📈</span>
+        </div>
+        <div class="kpi-value" id="kpiRicaviY5">€0</div>
+        <div class="kpi-subtext" id="kpiRicaviSub">Nessun dato ingestito</div>
+      </div>
+
+      <div class="kpi-card accent-green">
+        <div class="kpi-header">
+          <span class="kpi-title" id="kpiTitleMargin">EBITDA Margin Anno 1</span>
+          <span class="kpi-icon">💰</span>
+        </div>
+        <div class="kpi-value" id="kpiEbitdaMargin">0.0%</div>
+        <div class="kpi-subtext" id="kpiEbitdaSub">EBITDA Netto: €0</div>
+      </div>
+
+      <div class="kpi-card accent-purple">
+        <div class="kpi-header">
+          <span class="kpi-title" id="kpiTitleUtile">Utile Netto Anno 1</span>
+          <span class="kpi-icon">🏆</span>
+        </div>
+        <div class="kpi-value" id="kpiUtileY5">€0</div>
+        <div class="kpi-subtext" id="kpiUtileSub">IRES 24% + IRAP 3.9%</div>
+      </div>
+
+      <div class="kpi-card accent-emerald">
+        <div class="kpi-header">
+          <span class="kpi-title" id="kpiTitleCassa">Disponibilità Liquida Anno 1</span>
+          <span class="kpi-icon">🏦</span>
+        </div>
+        <div class="kpi-value" id="kpiCassaY5">€0</div>
+        <div class="kpi-subtext" id="kpiCassaSub">Cassa Netta Accumulata</div>
+      </div>
+
+      <div class="kpi-card accent-amber">
+        <div class="kpi-header">
+          <span class="kpi-title" id="kpiTitleDscr">Indice DSCR (Copertura Debito)</span>
+          <span class="kpi-icon">🛡️</span>
+        </div>
+        <div class="kpi-value" id="kpiDscr">0.00x</div>
+        <div class="kpi-subtext" id="kpiDscrSub">Codice Crisi d'Impresa (OIC)</div>
+      </div>
+
+      <div class="kpi-card accent-blue">
+        <div class="kpi-header">
+          <span class="kpi-title" id="kpiTitleRoeRoi">ROE / ROI Stimati (Anno 1)</span>
+          <span class="kpi-icon">📊</span>
+        </div>
+        <div class="kpi-value" id="kpiRoeRoi">0.0% / 0.0%</div>
+        <div class="kpi-subtext" id="kpiRoeSub">Redditività Capitale / Attivo</div>
+      </div>
+    </section>
+
+    <!-- WORKSPACE GRID -->
+    <div class="workspace-grid">
+      
+      <!-- LEFT CONTENT AREA -->
+      <section class="main-content">
+        
+        <!-- NAVIGATION TABS -->
+        <nav class="nav-tabs">
+          <button class="tab-btn active" onclick="switchTab('ce')">📖 Conto Economico (VA)</button>
+          <button class="tab-btn" onclick="switchTab('sp')">🏛️ Stato Patrimoniale</button>
+          <button class="tab-btn" onclick="switchTab('charts')">📊 Cash Walk & Visual Insights</button>
+          <button class="tab-btn" onclick="switchTab('ingestion')">📁 Ingestione Multi-File ERP</button>
+        </nav>
+
+        <!-- TAB 1: CONTO ECONOMICO -->
+        <div class="tab-content active" id="tab-ce">
+          <div class="table-container" id="ceTableContainer">
+            <div class="table-toolbar">
+              <span class="table-info" id="tableInfoCE">⚠️ <strong>Nessun Documento Caricato</strong>. Vai su "Ingestione Documenti ERP" per elaborare un bilancio.</span>
+              <div class="table-actions" style="display: flex; gap: 0.5rem; align-items: center;">
+                <div class="year-timeline-toolbar" style="display: inline-flex; gap: 0.4rem; align-items: center; background: rgba(15,23,42,0.7); padding: 0.2rem 0.6rem; border-radius: 20px; border: 1px solid var(--accent-blue); font-size: 0.75rem;">
+                  <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">📅 Anni Attivi:</span>
+                  <div id="activeYearsBadgesContainer" style="display: inline-flex; gap: 0.25rem; align-items: center;">
+                    <!-- Populated dynamically via JS -->
+                  </div>
+                  <button class="btn btn-xs btn-amber" id="btnAddYearColumn" onclick="window.promptAddTimelineYear()" title="Aggiungi una colonna anno (Storico / Previsione)">
+                    <span>➕ Aggiungi Anno</span>
+                  </button>
+                </div>
+                                <button class="btn btn-xs btn-outline btn-edit-mode" id="btnToggleEditModeToolbar" onclick="toggleEditMode()">✏️ Modalità Modifica</button>
+                <button class="btn btn-xs btn-outline" onclick="globalResetSession()">🧹 Reset Globale</button>
+              </div>
+            </div>
+            <table class="financial-table">
+              <thead>
+                <tr>
+                  <th>Voce Civilistica (Art. 2425 C.C.)</th>
+                  <th class="editable-col">Anno 1 (FY25) ✏️</th>
+                  <th>Anno 2 (FY26)</th>
+                  <th>Anno 3 (FY27)</th>
+                  <th>Anno 4 (FY28)</th>
+                  <th>Anno 5 (FY29)</th>
+                </tr>
+              </thead>
+              <tbody id="ceTableBody">
+                <!-- Populated via app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TAB 2: STATO PATRIMONIALE -->
+        <div class="tab-content" id="tab-sp">
+          <div class="table-container" id="spTableContainer">
+            <div class="balance-check-bar" id="balanceCheckBar">
+              <span class="check-icon">✅</span>
+              <span><strong>Quadratura Deterministica:</strong> TOTALE ATTIVO = TOTALE PASSIVO E NETTO (Verificato algebricamente per tutti i 5 anni)</span>
+            </div>
+            
+            <h3 class="section-subtitle">ATTIVO PATRIMONIALE (Art. 2424 C.C.)</h3>
+            <table class="financial-table">
+              <thead>
+                <tr>
+                  <th>Voce Attivo</th>
+                  <th>Anno 1</th>
+                  <th>Anno 2</th>
+                  <th>Anno 3</th>
+                  <th>Anno 4</th>
+                  <th>Anno 5</th>
+                </tr>
+              </thead>
+              <tbody id="spAttivoBody">
+                <!-- Populated via app.js -->
+              </tbody>
+            </table>
+
+            <h3 class="section-subtitle" style="margin-top: 2rem;">PASSIVO E PATRIMONIO NETTO (Art. 2424 C.C.)</h3>
+            <table class="financial-table">
+              <thead>
+                <tr>
+                  <th>Voce Passivo e Netto</th>
+                  <th class="editable-col">Anno 1 ✏️</th>
+                  <th>Anno 2</th>
+                  <th>Anno 3</th>
+                  <th>Anno 4</th>
+                  <th>Anno 5</th>
+                </tr>
+              </thead>
+              <tbody id="spPassivoBody">
+                <!-- Populated via app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TAB 3: CHARTS & VISUAL INSIGHTS -->
+        <div class="tab-content" id="tab-charts">
+          <div class="charts-container">
+            <div class="chart-card">
+              <h3>Traiettoria Ricavi vs EBITDA (5 Anni)</h3>
+              <p class="chart-hint">💡 Calcolo vettoriale deterministico (&lt;1ms). Passa il mouse per il tooltip</p>
+              <div class="chart-box" id="revenueEbitdaChart"></div>
+            </div>
+
+            <div class="chart-card">
+              <h3>Cash Walk Accumulata (€)</h3>
+              <p class="chart-hint">💡 Equazione Cassa: Cassa = Cassa_Prec + Utile + Ammortamenti - CapEx</p>
+              <div class="chart-box" id="cashWalkChart"></div>
+            </div>
+
+            <div class="chart-card">
+              <h3>Ripartizione Costi della Produzione (Anno 5)</h3>
+              <p class="chart-hint">💡 Confronto OpEx, Personale e Ammortamenti sul Valore della Produzione</p>
+              <div class="chart-box" id="costBreakdownChart"></div>
+            </div>
+
+            <div class="chart-card">
+              <h3>Solvibilità: Patrimonio Netto vs Debiti Totali</h3>
+              <p class="chart-hint">💡 Struttura di copertura finanziaria e grado di indebitamento (5 Anni)</p>
+              <div class="chart-box" id="solvencyChart"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 4: INGESTIONE MULTI-FILE ERP & INSERIMENTO MANUALE -->
+        <div class="tab-content" id="tab-ingestion">
+          <div class="ingestion-container">
+            <input type="file" id="fileInput" multiple accept=".pdf,.ods,.odt,.docx,.doc,.xlsx,.xls,.csv,.xml" style="display: none;" onchange="handleFileSelect(event)">
+            
+            <div class="ingestion-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+              <!-- COLONNA 1: DROPZONE MULTI-FILE ERP -->
+              <div class="ingestion-col">
+                <div class="dropzone" id="dropzone" onclick="triggerFileBrowser()">
+                  <div class="dropzone-icon">📤</div>
+                  <h3>Trascina qui da 1 a 4 file ERP (PDF / ODS / ODT / Word / Excel / CSV / XML FatturaPA)</h3>
+                  <p>Oppure fai clic su questo riquadro per aprire la finestra di selezione dei file</p>
+                  
+                  <div style="margin-top: 1rem; display: flex; align-items: center; justify-content: center; gap: 0.75rem; flex-wrap: wrap;" onclick="event.stopPropagation();">
+                    <div style="display: flex; align-items: center; gap: 0.4rem; background: var(--bg-card); padding: 0.3rem 0.6rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                      <label for="uploadYearSelector" style="font-size: 0.8rem; font-weight: 600; color: var(--accent-amber);">📅 Anno di Riferimento:</label>
+                      <select id="uploadYearSelector" class="form-control" style="width: auto; margin-bottom: 0; padding: 0.2rem 0.5rem; font-size: 0.85rem; font-weight: 700; color: var(--accent-amber);">
+                        <option value="2021">2021</option>
+                        <option value="2022">2022</option>
+                        <option value="2023">2023</option>
+                        <option value="2024">2024</option>
+                        <option value="2025" selected>2025 (Anno Base)</option>
+                        <option value="2026">2026</option>
+                        <option value="2027">2027</option>
+                        <option value="2028">2028</option>
+                        <option value="2029">2029</option>
+                        <option value="2030">2030</option>
+                      </select>
+                    </div>
+
+                    <button class="btn btn-amber" onclick="triggerFileBrowser();">
+                      <span class="btn-icon">📁</span> Sfoglia File sul Computer / Google Drive
+                    </button>
+                  </div>
+                </div>
+
+                <div class="uploaded-files-list" id="uploadedFilesList" style="display: none;">
+                  <h3>File Ingestiti nel Sistema:</h3>
+                  <div id="fileItemsContainer">
+                    <!-- Popolato dinamicamente da app.js con i file reali caricati dall'utente -->
+                  </div>
+                </div>
+              </div>
+
+              <!-- COLONNA 2: PANNELLO INSERIMENTO MANUALE SINGOLA VOCE -->
+              <div class="ingestion-col">
+                <div class="manual-entry-card" style="background: var(--bg-input); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem;">
+                  <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.6rem;">
+                    <span style="font-size: 1.3rem;">➕</span>
+                    <div>
+                      <h3 style="margin: 0; font-size: 0.95rem; color: var(--accent-amber);">Inserimento Manuale Singola Voce</h3>
+                      <p style="margin: 0; font-size: 0.75rem; color: var(--text-muted);">Aggiungi rapidamente un nuovo elemento al prospetto finanziario</p>
+                    </div>
+                  </div>
+
+                  <form id="formManualEntry" onsubmit="insertManualSubitem(event)" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <div>
+                      <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; font-weight: 600;">Nome / Descrizione Voce:</label>
+                      <input type="text" id="manualItemLabel" class="form-control" placeholder="Es. Licenze Software Cloud / Proventi Didattica" required style="margin-bottom: 0;">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                      <div>
+                        <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; font-weight: 600;">Prospetto:</label>
+                        <select id="manualItemSection" class="form-control" style="margin-bottom: 0;" onchange="updateManualCategoryOptions()">
+                          <option value="ce" selected>📖 Conto Economico</option>
+                          <option value="sp">🏛️ Stato Patrimoniale</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; font-weight: 600;">Macro-Categoria C.C.:</label>
+                        <select id="manualItemCategory" class="form-control" style="margin-bottom: 0;">
+                          <option value="ricavi">A.1/A.5 Ricavi & Proventi</option>
+                          <option value="opex" selected>B.6/B.7/B.8 Costi Operativi & Hosting</option>
+                          <option value="personale">B.9 Salari, Stipendi & Oneri</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                      <div>
+                        <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; font-weight: 600;">Anno Esercizio:</label>
+                        <select id="manualItemYear" class="form-control" style="margin-bottom: 0;">
+                          <option value="2021">2021</option>
+                          <option value="2022">2022</option>
+                          <option value="2023">2023</option>
+                          <option value="2024">2024</option>
+                          <option value="2025" selected>2025</option>
+                          <option value="2026">2026</option>
+                          <option value="2027">2027</option>
+                          <option value="2028">2028</option>
+                          <option value="2029">2029</option>
+                          <option value="2030">2030</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; font-weight: 600;">Importo (€):</label>
+                        <input type="number" step="any" id="manualItemAmount" class="form-control" placeholder="Es. 15000" required style="margin-bottom: 0;">
+                      </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-amber" style="margin-top: 0.5rem; justify-content: center;">
+                      <span class="btn-icon">➕</span> Inserisci Voce nel Bilancio
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+
+            <!-- SMART GUIDED RECONCILIATION HUB (REVIEW-BY-EXCEPTION HITL QUEUE) -->
+            <div class="reconciliation-hub" id="reconciliationHub" style="display: none; margin-top: 1.5rem;">
+              <div class="reconciliation-header">
+                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                  <span style="font-size: 1.4rem;">🤖</span>
+                  <div>
+                    <h3 style="margin: 0; color: var(--accent-amber);" id="reconciliationTitle">Assistente IA: Riconciliazione Limbo Queue (HITL Overhaul)</h3>
+                    <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">Revisione guidata, approvazione massiva in 1-Click & raggruppamento flessibile per categoria</p>
+                  </div>
+                </div>
+                <span class="badge-version" style="background: rgba(16, 185, 129, 0.2); color: var(--accent-emerald);">Mass Approval & HITL Override</span>
+              </div>
+
+              <div class="reconciliation-cards-grid" id="reconciliationCardsGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                <!-- Popolato dinamicamente da app.js solo se vi sono reali avvisi o eccezioni da verificare -->
+              </div>
+
+              <!-- DYNAMIC BATCH TOOLBAR & CATEGORY ACCORDIONS CONTAINER -->
+              <div id="exceptionsQueueContainer" style="margin-top: 1rem; display: none;">
+                <!-- Popolato dinamicamente da app.js -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- RIGHT CO-PILOT SIDEBAR -->
+      <aside class="sidebar-copilot">
+        
+        <!-- SAAS UNIT ECONOMICS & FINANCIAL RATIOS WIDGET -->
+        <div class="copilot-card saas-metrics-card">
+          <div class="copilot-header" style="display: flex; flex-direction: column; gap: 0.5rem; align-items: stretch;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <h3 style="margin: 0; font-size: 0.95rem;">📊 SaaS & Financial Ratios</h3>
+              <span class="badge-version" id="badgeSaasStatus">Svuotato</span>
+            </div>
+            
+            <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(15,23,42,0.6); padding: 0.25rem 0.5rem; border-radius: 6px; border: 1px solid var(--border-color);">
+              <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">📅 Seleziona Anno:</span>
+              <select id="saasYearSelect" onchange="setSidebarSelectedYear(parseInt(this.value))" style="background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.75rem; padding: 0.15rem 0.4rem; cursor: pointer;">
+                <option value="0">Anno 1 (FY25)</option>
+                <option value="1">Anno 2 (FY26)</option>
+                <option value="2">Anno 3 (FY27)</option>
+                <option value="3">Anno 4 (FY28)</option>
+                <option value="4">Anno 5 (FY29)</option>
+              </select>
+            </div>
+          </div>
+          <div class="saas-grid">
+            <div class="metric-box">
+              <span class="metric-lbl" id="lblMrr">MRR (Mese Y1)</span>
+              <strong class="metric-val" id="saasMrr">€0</strong>
+            </div>
+            <div class="metric-box">
+              <span class="metric-lbl" id="lblArr">ARR (Anno Y1)</span>
+              <strong class="metric-val" id="saasArr">€0</strong>
+            </div>
+            <div class="metric-box">
+              <span class="metric-lbl" id="lblCac">CAC / Dotazione</span>
+              <strong class="metric-val" id="saasCac">--</strong>
+            </div>
+            <div class="metric-box">
+              <span class="metric-lbl" id="lblLtv">LTV / Personale %</span>
+              <strong class="metric-val" id="saasLtv">--</strong>
+            </div>
+            <div class="metric-box">
+              <span class="metric-lbl">Payback Period</span>
+              <strong class="metric-val" id="saasPayback">--</strong>
+            </div>
+            <div class="metric-box">
+              <span class="metric-lbl">Net Retention (NRR)</span>
+              <strong class="metric-val" id="saasNrr">--</strong>
+            </div>
+            <div class="metric-box full-width">
+              <span class="metric-lbl">Churn Rate Mensile Stimato</span>
+              <strong class="metric-val" id="saasChurn">--</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="copilot-card">
+          <div class="copilot-header">
+            <h3>🎯 Co-Pilota & Target Benchmark</h3>
+            <span style="font-size: 0.72rem; color: var(--accent-amber); display: block; margin-top: 0.2rem;">(Tassonomia attiva configurata in Toolbar KPI)</span>
+          </div>
+          
+          <div class="benchmark-targets" id="benchmarkTargets" style="margin-top: 0.8rem;">
+            <div class="target-row"><span>Target EBITDA %:</span> <strong>50% - 70%</strong></div>
+            <div class="target-row"><span>DSO (Incassi):</span> <strong>30 Giorni</strong></div>
+            <div class="target-row"><span>DPO (Pagamenti):</span> <strong>30 Giorni</strong></div>
+          </div>
+        </div>
+      </aside>
+
+    </div>
+  </main>
+
+  <div class="chart-tooltip" id="chartTooltip"></div>
+
+  <!-- FORMULA MODAL -->
+  <div class="modal-overlay" id="formulaModal">
+    <div class="modal-card" style="max-width: 650px;">
+      <div class="modal-header">
+        <h3>📐 Formulario Matematico Deterministico (Zero LLM)</h3>
+        <button class="modal-close" onclick="closeFormulaModal()">&times;</button>
+      </div>
+      <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+        <p>Tutti i totali e i margini del bilancio sono calcolati tramite le seguenti equazioni matematiche fisse nel codice JavaScript/Python:</p>
+        
+        <div class="formula-group">
+          <h4>1. Conto Economico (Art. 2425 C.C.)</h4>
+          <pre class="formula-code">
+ValoreProduzione (A) = RicaviVendite + AltriRicavi
+OpexTotale (B.6..B.14) = MaterieHosting + ServiziMarketing + GodimentoBeni + OneriDiversi
+PersonaleTotale (B.9) = SalariStipendi + OneriSociali + QuotaTFR
+
+EBITDA = ValoreProduzione - (OpexTotale + PersonaleTotale)
+AmmortamentiTot = AmmImmateriali + AmmMateriali + SvalutazioneCrediti
+EBIT = EBITDA - AmmortamentiTot
+EBT = EBIT + ProventiFinanziari - OneriFinanziari
+
+IRES = max(0, EBT) * 0.24
+IRAP = max(0, EBITDA) * 0.039
+UTILE_NETTO = EBT - (IRES + IRAP)
+          </pre>
+        </div>
+
+        <div class="formula-group" style="margin-top: 1rem;">
+          <h4>2. Stato Patrimoniale & Cassa (Art. 2424 C.C.)</h4>
+          <pre class="formula-code">
+ImmobilizzazioniNette = (ImmaterialiLorde - FondoAmmImm) + (MaterialiLorde - FondoAmmMat) + Finanziarie
+AttivoCircolante = Cassa + CreditiClienti + CreditiTributari
+TOTALE_ATTIVO = ImmobilizzazioniNette + AttivoCircolante
+
+PatrimonioNetto = CapitaleSociale + RiservaLegale + RiserveUtili + UtileNetto
+TotaleDebiti = DebitiBanche + DebitiFornitori + DebitiTributari + DebitiINPS
+TOTALE_PASSIVO = PatrimonioNetto + FondiRischi + FondoTFR + TotaleDebiti
+
+QUADRATURA: TOTALE_ATTIVO === TOTALE_PASSIVO (Verificato &lt;1ms)
+          </pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFLICT RESOLUTION MODAL -->
+  <div class="modal-overlay" id="conflictModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>⚡ Rilevatore Conflitti Multi-File ERP</h3>
+        <button class="modal-close" onclick="closeConflictModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Il sistema ha rilevato due valori differenti per la voce <strong>Ricavi Anno 1</strong> tra i file caricati:</p>
+        <div class="conflict-comparison">
+          <div class="conflict-option">
+            <span class="source-label">Documento 1 (Conto Economico PDF)</span>
+            <div class="conflict-val">€65.000</div>
+            <button class="btn btn-sm btn-primary" onclick="resolveConflict(65000)">Usa questo valore</button>
+          </div>
+          <div class="conflict-option">
+            <span class="source-label">Documento 2 (Estratto SP Excel)</span>
+            <div class="conflict-val">€68.500</div>
+            <button class="btn btn-sm btn-secondary" onclick="resolveConflict(68500)">Usa questo valore</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXPORT MODAL -->
+  <div class="modal-overlay" id="exportModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>📥 Esporta Prospetto Finanziario 5 Anni</h3>
+        <button class="modal-close" onclick="closeExportModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="export-options">
+          <div class="export-type" onclick="triggerDownload('xlsx')">
+            <span class="export-icon">📊</span>
+            <strong>Microsoft Excel (.xlsx)</strong>
+            <p>Formato completo con formule matematiche</p>
+          </div>
+          <div class="export-type" onclick="triggerDownload('pdf')">
+            <span class="export-icon">📄</span>
+            <strong>Report PDF Stampabile</strong>
+            <p>Con grafici Mermaid e Audit Trail</p>
+          </div>
+          <div class="export-type" onclick="triggerDownload('md')">
+            <span class="export-icon">📝</span>
+            <strong>Markdown (.md)</strong>
+            <p>Formato tabellare per documentazione</p>
+          </div>
+          <div class="export-type" onclick="triggerDownload('csv')">
+            <span class="export-icon">📋</span>
+            <strong>CSV Dati Grezzi</strong>
+            <p>Per importazione in altri software</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SAFETY CONFIRMATION RESET MODAL (PARACADUTE DI SICUREZZA) -->
+  <div class="modal-overlay" id="resetConfirmModal">
+    <div class="modal-card" style="max-width: 520px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <span style="font-size: 1.6rem; color: var(--accent-amber);">⚠️</span>
+          <div>
+            <h3 style="margin: 0; color: var(--accent-amber);">Attenzione: Lavoro Non Esportato!</h3>
+            <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">Paracadute di sicurezza prima del reset globale</p>
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeResetConfirmModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <p style="font-size: 0.9rem; line-height: 1.5; margin-bottom: 1.25rem;">
+          Stai per eseguire il <strong>Reset Globale</strong> ed azzerare tutti i parametri del bilancio. 
+          Se non hai ancora esportato il prospetto in Excel o PDF, <strong>i dati correnti andranno persi!</strong>
+        </p>
+
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <button class="btn btn-primary" onclick="closeResetConfirmModal(); openExportModal();">
+            <span class="btn-icon">📥</span> Salva / Esporta Prima in Excel o PDF
+          </button>
+          
+          <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 0.5rem;">
+            <button class="btn btn-outline" onclick="closeResetConfirmModal()">❌ Annulla</button>
+            <button class="btn btn-danger" onclick="confirmGlobalReset()">🧹 Svuota Comunque (Cancella Tutto)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTUAL GUARD OVERWRITE CONFIRMATION MODAL (AUDIT FIX - CRITICAL) -->
+  <div class="modal-overlay" id="overwriteConfirmModal" style="display: none;">
+    <div class="modal-card" style="max-width: 520px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <span style="font-size: 1.6rem; color: #ef4444;">🛡️</span>
+          <div>
+            <h3 style="margin: 0; color: #ef4444;">Protezione Bilancio Depositato (Actual Guard)</h3>
+            <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">Attenzione: Tentativo di sovrascrittura consuntivo</p>
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeOverwriteConfirmModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <p style="font-size: 0.9rem; line-height: 1.5; margin-bottom: 1.25rem;" id="overwriteConfirmMessage">
+          Stai per caricare un documento sull'anno <strong id="overwriteYearSpan">2025</strong> che contiene già dati consuntivi depositati (Actual). 
+          <strong>Questa operazione sovrascriverà i dati esistenti per questo esercizio!</strong>
+        </p>
+
+        <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem;">
+          <button class="btn btn-outline" onclick="closeOverwriteConfirmModal()">❌ Annulla Upload</button>
+          <button class="btn btn-danger" id="confirmOverwriteBtn">⚠️ Sovrascrivi Comunque</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DUAL-YEAR COMPARATIVE CONFIRMATION MODAL (INTERACTIVE HITL) -->
+  <div class="modal-overlay" id="comparativeYearModal" style="display: none;">
+    <div class="modal-card" style="max-width: 580px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <span style="font-size: 1.6rem; color: var(--accent-amber);">📊</span>
+          <div>
+            <h3 style="margin: 0; color: var(--text-bright);">Bilancio Comparativo Rilevato (2025 vs 2024)</h3>
+            <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">Auto-detection di due colonne di esercizio nel documento ERP</p>
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeComparativeYearModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <p style="font-size: 0.9rem; line-height: 1.5; margin-bottom: 1rem;">
+          Il parser ha rilevato dati contabili per due esercizi consecutivi: <strong>Anno Corrente (2025)</strong> ed <strong>Anno Precedente (2024)</strong>.
+        </p>
+
+        <div style="background: rgba(15, 23, 42, 0.6); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.85rem;">
+            <span>🗓️ <strong>Esercizio Corrente (2025):</strong></span>
+            <span style="color: var(--accent-green); font-weight: 600;" id="compYearCurrentPreview">Caricato</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+            <span>🗓️ <strong>Esercizio Precedente (2024):</strong></span>
+            <span style="color: var(--accent-cyan); font-weight: 600;" id="compYearPrevPreview">Caricato</span>
+          </div>
+        </div>
+
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+          Desideri attivare il confronto bi-annuale a due colonne (2025 vs 2024 con Δ scostamento)?
+        </p>
+
+        <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem;">
+          <button class="btn btn-outline" id="btnKeepSingleYear" onclick="dismissComparativeMode()">Single-Year (Solo 2025)</button>
+          <button class="btn btn-primary" id="btnEnableComparative" onclick="enableComparativeMode()">📊 Attiva Confronto Bi-Annuale (2025 vs 2024)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIVOT YEAR Y0 ELECTION MODAL (SUPER BRIEF v1.0.0) -->
+  <div class="modal-overlay" id="pivotYearSelectionModal" style="display: none;">
+    <div class="modal-card" style="max-width: 600px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <span style="font-size: 1.6rem; color: var(--color-y0-pivot);">★</span>
+          <div>
+            <h3 style="margin: 0; color: var(--text-bright);">Elezione Anno di Riferimento Perno (Y0)</h3>
+            <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">Il documento caricato contiene dati per più esercizi contabili</p>
+          </div>
+        </div>
+        <button class="modal-close" onclick="closePivotYearSelectionModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <p style="font-size: 0.9rem; line-height: 1.5; margin-bottom: 1rem;">
+          Seleziona l'esercizio solare da impostare come <strong>Anno Perno (Y0)</strong> centrale per l'intera sessione analitica:
+        </p>
+
+        <div id="pivotOptionsContainer" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+          <!-- Dynamic Pivot Options -->
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem;">
+          <button class="btn btn-outline" onclick="closePivotYearSelectionModal()">Annulla</button>
+          <button class="btn btn-primary" id="btnConfirmPivotSelection" onclick="confirmPivotYearSelection()">★ Conferma Anno Perno (Y0)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- DATA LINEAGE GLASSMORPHISM TOOLTIP CONTAINER -->
+  <div class="lineage-tooltip" id="lineageTooltip" style="display: none;"></div>
+
+  <script type="module" src="modules/main.js" charset="UTF-8"></script>
+</body>
+
+</html>
+

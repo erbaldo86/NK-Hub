@@ -1,0 +1,2 @@
+{"ts": "2026-08-20T22:45:00Z", "act": "MASTER_BASELINE_INITIALIZED", "target": "NK Ecosystem v2.5", "detail": "Consolidamento della Baseline di Release Master (Protocollo v2.0/v2.5 Brief-Aware Handoff, Two-Stage Grounding, Auto-Brief Swarm FSM a 4 turni, CRV 4.0 a 3 Macro-Fasi).", "skill": "NK-Master-Hub", "status": "OK"}
+{"ts": "2026-08-22T00:10:00Z", "act": "OFFICIAL_RELEASE_1_0_STABILIZATION", "target": "NK Ecosystem v1.0", "detail": "Unificazione armonica di tutti i modelli, sigle e versioni alla Release v1.0.0 Master Baseline.", "skill": "NK-Master-Hub", "status": "OK"}

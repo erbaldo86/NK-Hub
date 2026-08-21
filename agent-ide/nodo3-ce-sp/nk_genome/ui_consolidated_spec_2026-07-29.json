@@ -1,0 +1,66 @@
+{
+  "schema_version": "1.0.0",
+  "timestamp": "2026-07-29T01:28:00Z",
+  "contract_lock": true,
+  "views": [
+    {
+      "view_id": "smart-inbox-modal",
+      "route": "/action-center/resolution",
+      "components": [
+        {
+          "component_id": "split-screen-resolution-ui",
+          "data_requirements": [
+            {
+              "field_name": "exceptionsQueue",
+              "type": "array",
+              "required": true,
+              "validation": "Array length >= 0",
+              "description": "Coda di eccezioni in stato PENDING"
+            },
+            {
+              "field_name": "targetCategoryCC",
+              "type": "string",
+              "required": true,
+              "validation": "^(B\\.7|B\\.8|A\\.1|B\\.6)$",
+              "description": "Macrovoce C.C. di destinazione"
+            },
+            {
+              "field_name": "customCategoryName",
+              "type": "string",
+              "required": false,
+              "validation": "Length >= 2",
+              "description": "Sottovoce analitica definita dall'utente"
+            }
+          ],
+          "api_endpoints": [
+            {
+              "endpoint_id": "resolve_exception",
+              "method": "PUT",
+              "path": "/api/v1/exceptions/{txId}/resolve",
+              "request_payload": {
+                "txId": "string",
+                "targetCategoryCC": "string",
+                "customCategoryName": "string (optional)"
+              },
+              "response_payload": {
+                "status": "string",
+                "resolved": "boolean"
+              },
+              "expected_status_codes": [200, 400, 500]
+            },
+            {
+              "endpoint_id": "pdf_stream",
+              "method": "GET",
+              "path": "/api/v1/document/{txId}/pdf_stream",
+              "request_payload": {},
+              "response_payload": {
+                "stream": "binary"
+              },
+              "expected_status_codes": [200, 404]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+# NK-Session-Controller Saturation Thresholds
+# Configurazione delle soglie per l'avviso di Handoff
+
+controller:
+  # Numero massimo di step nel transcript (USER_INPUT + PLANNER_RESPONSE)
+  max_transcript_steps: 80
+  
+  # Stima del limite di token cumulativi della conversazione
+  max_cumulative_tokens_estimate: 180000
+  
+  # Soglie di allarme (percentuali)
+  warning_threshold_pct: 75
+  critical_threshold_pct: 90
+  
+  # Gestione della memoria
+  auto_trimming_enabled: false
+
+worker:
+  # Il worker solitamente gestisce più chiamate tool/codice, quindi satura prima in token ma fa più step
+  max_transcript_steps: 100
+  max_cumulative_tokens_estimate: 200000
+  
+  # Soglie di allarme (percentuali) - Il worker ha soglie più conservative
+  warning_threshold_pct: 70
+  critical_threshold_pct: 85

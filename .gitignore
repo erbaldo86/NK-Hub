@@ -1,0 +1,36 @@
+# Python / Virtual Environment
+.venv/
+venv/
+ENV/
+__pycache__/
+*.py[cod]
+*.class
+.pytest_cache/
+
+# IDE / VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea/
+
+# Output di Lavoro e App prodotte (Non dell'Ecosistema NK)
+System_Documentation/Reports/*
+!System_Documentation/Reports/.gitkeep
+scratch/*
+!scratch/.gitkeep
+Output Business Keystone/
+Antigravity model/
+
+# Temp / Logs
+*.log
+
+# Large Binaries & Chrome dependencies
+*.zip
+agent-ide/nodo3-ce-sp/chrome/
+agent-ide/nodo3-ce-sp/test_suite/test_reports/
+
+# Staging area
+.staging/*
+!.staging/.gitkeep
+

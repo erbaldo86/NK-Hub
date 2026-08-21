@@ -1,0 +1,10 @@
+rejection_rules:
+  - rule: "Nuovo requisito"
+    condition: "Il comportamento descritto non è normato dal genome.yaml originale"
+    action: "Reject as FEATURE_REQUEST"
+  - rule: "UI/UX enhancement"
+    condition: "Richiesta puramente estetica o di posizionamento non prevista dal brief"
+    action: "Reject as MODIFICATION"
+  - rule: "Adaptive Triage Rejection Threshold"
+    condition: "Algoritmo di confidenza adattiva stima >85% probabilità di Shadow Feature"
+    action: "Reject as FEATURE_REQUEST"

@@ -1,0 +1,27 @@
+{
+  "timestamp": "2026-08-20T18:16:03.684011",
+  "project": "Nodo 3 (Chronos & Kairos - CE & SP Engine)",
+  "topology": "DECOUPLED_ACTOR_CRITIC (v4.1)",
+  "version": "0.8.0-GOLDEN-STATE",
+  "circuit_breaker": {
+    "correction_attempts": 0,
+    "max_allowed": 3,
+    "status": "HEALTHY_ALL_TESTS_PASS"
+  },
+  "current_state": "GOLDEN_STABLE_VERIFIED_CRV4_DDI",
+  "architecture_summary": {
+    "viewport_mode": "Adaptive Data-Driven (Only Active Years Shown by Default, e.g. 2024-2025)",
+    "on_demand_expansion": "Interactive + Aggiungi Anno button with Trash removal for manual columns",
+    "file_limiter_guard": "Max 4 active files hard limit (Client Dropzone + Server HTTP 422)",
+    "delta_ledger_replay": "Orthogonal CE+SP non-destructive merge and surgical badge eviction (INV-03 zero ghost data)"
+  },
+  "verification_status": {
+    "real_dataset_e2e": "5/5 PASS (10 export files in Downloads/Test/Risultato/)",
+    "hard_file_limiter_e2e": "3/3 PASS (HTTP 422 & 413)",
+    "delta_ledger_replay": "3/3 PASS (Surgical eviction & perfect replay)"
+  },
+  "servers_info": {
+    "backend_url": "http://127.0.0.1:8000/",
+    "frontend_url": "http://127.0.0.1:8080/"
+  }
+}
