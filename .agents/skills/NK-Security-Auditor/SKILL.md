@@ -37,8 +37,8 @@ Benvenuto nella documentazione operativa di **NK-Security-Auditor**. Questa Skil
 
 ### 3. Livello 3 (Full-App & Governance Governance) `--level 3`
 - **Ambito:** Applicazione applicativa completa (codice, schemi DB, API, UI).
-- **Tri-Agent Design:** Orchestrato dal `NK3_Supervisor` con Swarm Audit parallelo per restituire PASS netto [exit_code 0] o FAIL.
+- **Tri-Agent Design:** Orchestrato dal `NK-Security-Auditor` con Swarm Audit parallelo per restituire PASS netto [exit_code 0] o FAIL.
 
-## 🎨 Generazione Report & Registro SQLite
-Al termine dell'audit, formatta l'Artefatto Olografico `TAS_Report_L[1|2|3]_[target]_[TIMESTAMP].md` contenente Radar Chart Mermaid, Matrice del Caos ed Exploit Carousel. Registra l'esito nel database SQLite locale tramite lo script ausiliario `[SKILL_DIR]/db_helper.py`.
+## 🎨 Generazione Report & Storage Universale
+Al termine dell'audit, formatta l'Artefatto Olografico `TAS_Report_L[1|2|3]_[target]_[TIMESTAMP].md` contenente Radar Chart Mermaid, Matrice del Caos ed Exploit Carousel. Salva il report JSON standard in `nk_tracking/reports_and_briefs/` ed indicizza l'esito nella memoria Tier 1-3 (`scripts/memory_3tier_engine.py`).
 </directive>

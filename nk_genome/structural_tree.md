@@ -1,109 +1,92 @@
-# 🏛️ NK Genome: Structural Tree & Swarm Topology (Ecosistema NK — Release v1.0)
+# 🏛️ NK Genome: Structural Tree Master (Release v1.1.0-Universal)
 
-> **Badge di Certificazione:** 🛡️ [NK-BRIEF-STATUS: AUDITED_AND_OPTIMIZED 🟢]  
-> **Data Consolidamento:** 2026-08-20  
-> **Versione:** v1.0 (Official Baseline Release, Self-Cleaning Ecosystem, Brief-Aware Handoff, Actor-Critic & CRV 4.0 4-Phases)  
-> **Target System:** Ecosistema NK Multi-Agent Swarm Runtime
+> **Badge di Certificazione:** 🛡️ [NK-BRIEF-STATUS: AUDITED_AND_OPTIMIZED_FINAL 🟢]  
+> **Milestone Anchor Primaria:** `NK-MS-20260822-UNIVERSAL-STABILIZATION`  
+> **Data Consolidamento:** 2026-08-22  
+> **Versione Protocollo:** v1.1.0-Universal
 
 ---
 
-## 🌳 1. Struttura del Workspace & File di Governance
+## 🌳 Mappatura della Topologia del Repository
 
 ```
 G:/Il mio Drive/Antigravity/
 ├── .agents/
-│   ├── AGENTS.md                                 # Regolamento Master di Sistema v1.0 (Self-Cleaning)
-│   └── skills/                                   # 16 Skill Canoniche Attive (+ 6 Tombstone Stub)
-│       ├── NK-Session-Controller/               # Sovereign Critic & Supervisor
-│       │   ├── SKILL.md                          # Istruzioni del Critico v2.0
-│       │   └── resources/
-│       │       ├── clean_handoff_protocol.md     # Specifiche Template 8A/8B/9/10 v2.0
-│       │       ├── prompt_templates.md           # Prompt standard v2.0
-│       │       └── handoff_anchor_schema.md      # Schema JSON Manifest v2.0
-│       ├── NK-Delta-Architect/                   # Grounded Worker post-rilascio
-│       │   └── SKILL.md                          # Istruzioni Worker Two-Stage Grounding v2.0
-│       ├── NK-Master-Hub/                        # Sovereign L3 Orchestrator & Kahn DAG Router
-│       ├── NK-Ideator/                           # L0 Concept Ideation & STORM / SCAMPER
-│       ├── NK-App-UX-Architect/                  # L3 UX/UI & Concept Specifier
-│       ├── NK-Backend-Architect/                 # L2 Backend Topology & OpenAPI 3.0
-│       ├── NK-Agent-Instruction-Forge/           # L1 Unified System Instructions & Prompt Forge
-│       ├── NK-Python-Async-Builder/              # L2 Async & Pydantic v2 Builder
-│       ├── NK-Security-Auditor/                  # Audit TAS L1/L2/L3 Unificato
-│       ├── NK-Oracle-Evaluator/                  # Cold Auditor Deterministico (CRV 4.0)
-│       ├── NK-Dynamic-Sandbox-StressTester/      # Real DAST Concurrency Engine
-│       ├── NK-Bug-Diagnostic-Engine/             # RCA & False Bug Rejection
-│       ├── NK-Plan-Aligner/                      # Audit Allineamento Trittico 1:1 (Turn 4 FSM)
-│       ├── NK-State-Router/                      # Sincronizzazione Stato & Backup Circolare
-│       ├── NK-Scribe/                            # Manutenzione Changelog & Documentazione
-│       └── NK-Episodic-Memory-Engine/            # Memoria Episodica a Lungo Termine
-├── scripts/                                      # Script di governance deterministica
-│   ├── preflight_health_check.py                 # Pre-Flight Auto-Sanitizer (RULE-02.3.1)
-│   ├── quality_baseline_manager.py               # Ratchet Baseline Manager (RULE-01.9)
-│   └── semantic_ast_analyzer.py                  # Static AST Syntax Analyzer
-├── nk_genome/                                    # Documentazione concettuale (Trittico)
-│   ├── concept_map.md                            # Visione & Architettura Concettuale
-│   ├── structural_tree.md                        # Mappa Strutturale & Vocazioni
-│   └── implementation_plan.md                    # Piano Esecutivo & Milestone Anchor IDs
-├── nk_tracking/                                  # Audit, Tracciamento & Memoria
+│   ├── AGENTS.md                                # Costituzione e Governance di Sistema v1.1.0-Universal
+│   ├── rules/
+│   │   └── anti_crash_rules.md                  # Regole di protezione dai crash & Windows I/O
+│   └── skills/                                  # 16 Vocazioni Canoniche NK
+│       ├── NK-Agent-Instruction-Forge/
+│       ├── NK-App-UX-Architect/
+│       ├── NK-Backend-Architect/
+│       ├── NK-Bug-Diagnostic-Engine/
+│       ├── NK-Delta-Architect/
+│       ├── NK-Dynamic-Sandbox-StressTester/
+│       ├── NK-Episodic-Memory-Engine/
+│       ├── NK-Ideator/
+│       ├── NK-Master-Hub/
+│       ├── NK-Oracle-Evaluator/
+│       ├── NK-Plan-Aligner/
+│       ├── NK-Python-Async-Builder/
+│       ├── NK-Scribe/
+│       ├── NK-Security-Auditor/                 # Bonificato da NK3_Supervisor e db_helper
+│       ├── NK-Session-Controller/
+│       └── NK-State-Router/
+├── nk_genome/                                   # Single Source of Truth Concettuale
+│   ├── concept_map.md
+│   ├── structural_tree.md
+│   ├── implementation_plan.md
+│   ├── business_financial_domain_spec.md        # Preservazione Knowledge Base Nodi 0-4
+│   └── PATCH_NOTES.md                           # SSOT Changelog Ufficiale
+├── nk_tracking/                                 # Tracciamento e Baseline
 │   ├── anchor/
-│   │   └── session_anchor.jsonl                  # Registro deterministico azioni (SSOT)
-│   ├── reports_and_briefs/                       # Report di audit e handoff manifest (Rolling Window Max 3)
-│   ├── quality_baseline.json                     # Metriche di qualità e non-regressione
-│   └── nk_tas_roi.db                             # Database SQLite WAL
-├── .staging/                                     # Area di staging isolata (CRV 4.0)
-└── src_app/                                      # Codice sorgente applicativo
+│   │   └── session_anchor.jsonl                 # SSOT Activity Anchor
+│   ├── quality_baseline.json                    # Ratchet Baseline
+│   └── reports_and_briefs/                      # Audit Reports (Rolling Window max 3)
+├── scripts/                                     # Motori Core & Infrastruttura di Sistema
+│   ├── __init__.py
+│   ├── ast_guard_validator.py                   # Static AST Guard (PEP 634/695)
+│   ├── ast_repo_mapper.py                       # AST Topology & PageRank
+│   ├── dast_sandbox_runner.py                   # Real DAST Sandbox Runner & Line Tracer
+│   ├── invisible_healing_loop.py                # Autonomous Triage Fast-Loop (Max 3 cycles)
+│   ├── memory_3tier_engine.py                   # 3-Tier Memory Engine (Tier 1 <=350 tok, RRF k=60)
+│   ├── micro_hud_renderer.py                    # Micro-HUD Status Interface
+│   ├── preflight_health_check.py                # Boot Sanitizer & WAL TTL 60s Purge
+│   ├── quality_baseline_manager.py              # Baseline Compliance & Ratchet Check
+│   ├── safe_cleanup_dev_servers.py              # Safe Cleanup Dev Servers & Windows Anti-Lock Tool
+│   ├── sbfl_engine.py                           # Spectrum-Based Fault Localization (Ochiai/Def-Use)
+│   ├── win32_2pc_engine.py                      # Win32 Named Mutex & 2PC Atomic Engine
+│   └── schemas/                                 # Pydantic v2 Strict Mode Contracts
+│       ├── __init__.py
+│       ├── dual_ledgers.py                      # Immutable Task DAG & Append-Only Progress
+│       └── nk_ipc_contracts.py                  # Compact IPC Contracts (<80 tok)
+├── tests/                                       # Permanent Test Suite (49 Tests Inviolabili)
+│   ├── __init__.py
+│   ├── conftest.py
+│   ├── test_win32_2pc.py                        # 8 Tests
+│   ├── test_dast_sandbox.py                     # 6 Tests
+│   ├── test_sbfl_engine.py                      # 7 Tests
+│   ├── test_ast_repo_mapper.py                  # 6 Tests
+│   ├── test_ast_guard_validator.py              # 7 Tests
+│   ├── test_memory_3tier.py                     # 6 Tests
+│   ├── test_invisible_healing_loop.py           # 4 Tests
+│   └── test_schemas_and_contracts.py            # 5 Tests
+├── requirements.txt                             # Specifiche di dipendenze deterministiche
+├── README.md                                    # Presentazione ufficiale del framework
+└── PATCH_NOTES.md                               # Mirroring atomico di nk_genome/PATCH_NOTES.md
 ```
 
 ---
 
-## 🐝 2. Swarm Topology & Asymmetric Actor-Critic Architecture
+## 🔒 Progetti Esterni e Server Isolati `[EXTERNAL_ISOLATED_PROJECT]`
 
-```mermaid
-graph TD
-    User["Developer / User Interface"] <--> Critic["NK-Session-Controller (Sovereign Critic)"]
-    
-    subgraph Critic_Council["Critic Cognitive Council"]
-        Critic -->|invoke_subagent| DAST["DAST Investigator"]
-        Critic -->|invoke_subagent| Arch["Solution Architect"]
-        Critic -->|invoke_subagent| Skeptic["Skeptic Devil's Advocate"]
-        Critic -->|invoke_subagent| Gatekeeper["Transcript Gatekeeper"]
-    end
-    
-    Critic -->|Template 8A Brief-Aware| Worker["NK-Delta-Architect (Grounded Worker)"]
-    
-    subgraph Worker_Execution["Worker Isolation & Staging Area"]
-        Worker -->|Stage A Grounding| PlanDoc["implementation_plan.md"]
-        Worker -->|Stage B Grounding| CodeFiles["Physical Source Files"]
-        Worker -->|invoke_subagent| Builder["NK-Agent-Instruction-Forge / Async Builder"]
-        Builder -->|Write isolated| Staging[".staging/ Area"]
-        Worker -->|invoke_subagent| Oracle["NK-Oracle-Evaluator"]
-        Staging --> Oracle
-    end
-    
-    Oracle -->|PASS (exit_code: 0)| Worker
-    Worker -->|Worker Execution Receipt v2.0| Critic
-    Critic -->|Cold Review 5 Gates PASS| Commit["Atomic Commit (os.replace) via NK-Master-Hub"]
-```
+I seguenti percorsi risiedono nello storage ma sono **completamente isolati e disaccoppiati** dal core runtime di Nexus Keystone:
 
----
-
-## ⚙️ 3. Matrice delle Vocazioni & Permessi I/O (16 Skill Canoniche)
-
-| Ruolo / Sub-Agente | Livello / Vocazione | Trigger di Attivazione | Permessi I/O & Sandbox |
-| :--- | :--- | :--- | :--- |
-| `NK-Session-Controller` | Sovereign Critic & Orchestrator | Avvio sessione, handoff, cold review | Read-Only su codice; Scrittura su `nk_tracking/` e manifest |
-| `NK-Master-Hub` | Sovrano Infrastrutturale L3 | Boot IDE, commit atomico, Kahn DAG | Read-Only codice; Commit atomico da `.staging/` a `src_app/` |
-| `NK-Delta-Architect` | Grounded Worker & Post-Release Triage | Ricezione Template 8A (v2.0) | Read-Only diretto; Delega builder in `.staging/`; Ricevuta v2.0 |
-| `NK-Ideator` | L0 Ideazione & SCAMPER | Avvio ideazione, Turn 1 FSM | Strict Read-Only; Output `nk_genome/idea_canvas.md` |
-| `NK-App-UX-Architect` | L3 Macro-UX/UI & Design System | Design Bounded Context, Stitch prompt | Strict Read-Only; Output Trittico e `ui_consolidated_spec.json` |
-| `NK-Backend-Architect` | L2 Backend Topology & OpenAPI 3.0 | Progettazione rotte API e DB schemas | Strict Read-Only; Output specifiche tecniche tipizzate |
-| `NK-Agent-Instruction-Forge`| L1 Prompt & System Instructions Forge | Creazione e modifica prompt agenti | Scrittura ESCLUSIVAMENTE in `.staging/` |
-| `NK-Python-Async-Builder` | L2 Async, API & Pydantic v2 Builder | Sviluppo codice applicativo Python | Scrittura ESCLUSIVAMENTE in `.staging/` |
-| `NK-Security-Auditor` | Audit TAS L1/L2/L3 Unificato | Macro-Fase 2 CRV 4.0 / Pre-commit | Strict Read-Only su codice; Scrittura report in `nk_tracking/` |
-| `NK-Oracle-Evaluator` | Cold Auditor Deterministico (Gate 4) | Validazione patch pre-commit | Isolamento in `"%TEMP%/sandbox_[UUID]/"` |
-| `NK-Dynamic-Sandbox-StressTester` | Real DAST Concurrency Engine | Stress testing dinamico Macro-Fase 2 | Isolamento in `"%TEMP%/sandbox_[UUID]/"` |
-| `NK-Bug-Diagnostic-Engine` | RCA Engine & False Bug Rejection | Diagnosi anomalie pre-sviluppo | Strict Read-Only; Report RCA in `nk_tracking/` |
-| `NK-Plan-Aligner` | Allineamento 1:1 del Trittico 3/3 | Turn 4 dell'Auto-Brief Swarm FSM | Strict Read-Only su `nk_genome/`; Report in `nk_tracking/` |
-| `NK-State-Router` | Unified State Router & Kahn DAG | Rilevamento drift di stato | Sole Owner lock Backup Circolare v5.0 |
-| `NK-Scribe` | Tracking Sessione, Patch Notes & Git | Post-Commit Atomico Macro-Fase 3 | Scrittura su `session_anchor.jsonl`, `PATCH_NOTES.md`, `README.md` |
-| `NK-Episodic-Memory-Engine`| Memoria Episodica a Lungo Termine | Recall/Index frammenti di memoria | Scrittura in `System_Documentation/NK_Episodic_Memory/` |
+1. **`Antigravity model/` [EXTERNAL_ISOLATED_PROJECT]**
+   - Modello e artefatti di business sviluppati per progetto esterno correlato.
+   - Non referenziato dal runtime NK v1.1.0-Universal.
+2. **`Output Business Keystone/` [EXTERNAL_ISOLATED_PROJECT]**
+   - Repository di output e deliverable di business di progetto esterno correlato.
+   - Non referenziato dal runtime NK v1.1.0-Universal.
+3. **`google-docs-mcp/` [EXTERNAL_INTEGRATION_SERVER]**
+   - Server MCP attivo per integrazione Google Docs / Workspace.

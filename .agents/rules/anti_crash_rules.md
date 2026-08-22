@@ -9,7 +9,7 @@
 
 ### [GLOBAL-RULE-01] SHUTDOWN_BEFORE_EDIT
 * **Direttiva Mandatoria:** Prima di applicare modifiche fisiche a file di codice sorgente (`.py`, `.js`, `.ts`, `.html`, `.css`) o a schemi/dati, è fatto divieto assoluto di mantenere server/processi demone attivi in background con `reload=True` o file watcher aperti.
-* **Azione:** Verificare ed arrestare i processi attivi tramite `manage_task` (action: `kill`) o eseguire lo script di pulizia `safe_cleanup_dev_servers.py` prima dell'editing, per azzerare i conflitti `[WinError 32]` tipici del filesystem Windows NTFS e Google Drive virtuale.
+* **Azione:** Verificare ed arrestare i processi attivi tramite `manage_task` (action: `kill`) o eseguire lo script di pulizia `scripts/safe_cleanup_dev_servers.py` prima dell'editing, per azzerare i conflitti `[WinError 32]` tipici del filesystem Windows NTFS e Google Drive virtuale.
 
 ### [GLOBAL-RULE-02] STAGING_AND_ATOMIC_REPLACE
 * **Direttiva:** Per file critici o sensibili, utilizzare un pattern di scrittura atomica con staging buffer (`.staging/` o directory temporanea `%TEMP%`) e `os.replace` con retry a backoff esponenziale (max 3 tentativi, 100ms/300ms/1000ms), gestendo le latenze di sincronizzazione del client Google Drive.

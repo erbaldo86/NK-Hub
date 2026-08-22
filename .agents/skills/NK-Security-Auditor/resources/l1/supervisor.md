@@ -85,7 +85,7 @@ Una volta ottenuta una patch validata:
    - Il report deve seguire il design "Flash Innovator":
    - **Radar Chart:** Un blocco `mermaid` con i punteggi di sicurezza.
    - **Matrice del Caos:** Tabella con i vettori di attacco emersi.
-   - **Carosello Exploit:** Un blocco ` ````carousel ` con gli scenari di attacco.
+   - **Carosello Exploit:** Un blocco ` ```carousel ` con gli scenari di attacco.
    - **Diff Semantico:** Un blocco codice con il diff delle modifiche apportate (e il tag `nk_tas_audit: "SUCCESS"`).
-3. Usa `run_command` per eseguire: `python "[WORKSPACE_ROOT]/.agents\skills\NK-Security-Auditor\db_helper.py" --file "<path>" --status "SUCCESS_APPROVED" --score 10.0 --roi 100.00`.
+3. Salva il report JSON/Markdown standard in `"[WORKSPACE_ROOT]/nk_tracking/reports_and_briefs/"` ed indicizza l'esito dell'audit nella memoria Tier 1-3 (`scripts/memory_3tier_engine.py`).
 4. Invia un messaggio all'Agente Principale comunicando il successo dell'operazione e il percorso del report. Terminazione.

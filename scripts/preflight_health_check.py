@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """
 Pre-Flight Health Check & Auto-Sanitizer - Nexus Keystone Master Ecosystem
-Implements [RULE-02.3.1] HUB_PREFLIGHT_HEALTH_CHECK_DIRECTIVE & [RULE-05.4] ARTIFACT_LIFECYCLE_AND_ROLLING_WINDOW_RETENTION.
+Implements [RULE-02.3.1] HUB_PREFLIGHT_HEALTH_CHECK_DIRECTIVE, [RULE-05.4] ARTIFACT_LIFECYCLE_AND_ROLLING_WINDOW_RETENTION,
+and Direttiva 7: WAL TTL (60s) Auto-Purge.
 
 Executes deterministically at Hub boot to verify:
 1. SSOT Activity Anchor integrity
 2. Staging and temp folder hygiene (.staging, .commit_ready, .sandbox_tmp, .temp_sandbox)
 3. Python and test cache purging (__pycache__, .pytest_cache)
-4. Quality baseline consistency
-5. Rolling window retention on audit reports (max 3 per target)
+4. WAL TTL 60s purge (_check_and_purge_stale_wals)
+5. Quality baseline consistency
+6. Rolling window retention on audit reports (max 3 per target)
 """
 
 import json
@@ -56,7 +58,6 @@ def safe_remove_file(file_path: Path) -> bool:
 class PreflightHealthChecker:
     def __init__(self, workspace_root: Path = None):
         if workspace_root is None:
-            # Default to repo root (g:/Il mio Drive/Antigravity)
             self.workspace_root = Path(__file__).resolve().parent.parent
         else:
             self.workspace_root = Path(workspace_root).resolve()
@@ -95,11 +96,15 @@ class PreflightHealthChecker:
         cache_res = self._check_and_purge_caches(auto_fix)
         report["checks"]["cache_hygiene"] = cache_res
 
-        # 4. Rolling Window Retention on Reports
+        # 4. WAL Stale Purge (TTL 60s)
+        wal_res = self._check_and_purge_stale_wals(auto_fix, ttl_seconds=60.0)
+        report["checks"]["wal_hygiene"] = wal_res
+
+        # 5. Rolling Window Retention on Reports
         retention_res = self._enforce_report_retention(auto_fix)
         report["checks"]["report_retention"] = retention_res
 
-        # 5. Quality Baseline & Canonical Skills Alignment
+        # 6. Quality Baseline & Canonical Skills Alignment
         baseline_res = self._check_baseline_alignment()
         report["checks"]["baseline_alignment"] = baseline_res
         if not baseline_res["passed"]:
@@ -168,7 +173,6 @@ class PreflightHealthChecker:
         staging_dir = self.workspace_root / ".staging"
         if not staging_dir.exists() and auto_fix:
             staging_dir.mkdir(exist_ok=True)
-            # Add .gitkeep if empty
             gitkeep = staging_dir / ".gitkeep"
             gitkeep.touch(exist_ok=True)
 
@@ -179,7 +183,6 @@ class PreflightHealthChecker:
         purged = []
         if auto_fix:
             for root, dirs, _ in os.walk(self.workspace_root, topdown=False):
-                # Skip .venv
                 if ".venv" in root or "node_modules" in root:
                     continue
                 for d in dirs:
@@ -189,32 +192,76 @@ class PreflightHealthChecker:
                             purged.append(str(target_dir.relative_to(self.workspace_root)))
         return {"passed": True, "purged_count": len(purged), "purged_items": purged[:20]}
 
+    def _check_and_purge_stale_wals(self, auto_fix: bool, ttl_seconds: float = 60.0) -> Dict[str, Any]:
+        """
+        Direttiva 7: WAL TTL (60s) & Auto-Purge Normativo all'Avvio.
+        Scans workspace recursively for .wal files, .wal_2pc.jsonl, and .wal/ directories.
+        Purges any record with age > ttl_seconds.
+        """
+        now = time.time()
+        stale_wal_files: List[Path] = []
+        stale_wal_dirs: List[Path] = []
+
+        for root, dirs, files in os.walk(self.workspace_root):
+            if ".venv" in root or "node_modules" in root:
+                continue
+
+            for f in files:
+                if f.endswith(".wal") or f.endswith(".wal_2pc.jsonl"):
+                    f_path = Path(root) / f
+                    try:
+                        age = now - f_path.stat().st_mtime
+                        if age > ttl_seconds:
+                            stale_wal_files.append(f_path)
+                    except OSError:
+                        pass
+
+            for d in dirs:
+                if d == ".wal":
+                    d_path = Path(root) / d
+                    stale_wal_dirs.append(d_path)
+
+        purged_count = 0
+        if auto_fix:
+            for wf in stale_wal_files:
+                if safe_remove_file(wf):
+                    purged_count += 1
+            for wd in stale_wal_dirs:
+                # If directory is empty, remove it
+                try:
+                    if not any(wd.iterdir()):
+                        safe_remove_dir(wd)
+                except Exception:
+                    pass
+
+        return {
+            "passed": True,
+            "ttl_seconds": ttl_seconds,
+            "stale_wals_detected": len(stale_wal_files),
+            "purged_count": purged_count,
+        }
+
     def _enforce_report_retention(self, auto_fix: bool, max_per_target: int = 3) -> Dict[str, Any]:
         """Enforces rolling window retention (max 3 reports per target/skill)."""
         if not self.reports_dir.exists():
             return {"passed": True, "reports_pruned": 0}
 
         pruned_files = []
-        
-        # Scan all report files
         report_files: List[Path] = []
         for root, _, files in os.walk(self.reports_dir):
             for f in files:
                 if f.endswith((".md", ".json")) and not f.startswith("."):
                     report_files.append(Path(root) / f)
 
-        # Group by target pattern (e.g. TAS_Report_L1_NK-Scribe_20260820... -> TAS_Report_L1_NK-Scribe)
         groups: Dict[str, List[Path]] = {}
         for p in report_files:
             name = p.stem
-            # Strip timestamps or UUIDs at the end
             prefix = re.sub(r'_\d{8}[_\d]*$', '', name)
             prefix = re.sub(r'_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', '', prefix, flags=re.IGNORECASE)
             groups.setdefault(prefix, []).append(p)
 
         for prefix, p_list in groups.items():
             if len(p_list) > max_per_target:
-                # Sort by mtime descending (newest first)
                 p_list.sort(key=lambda x: x.stat().st_mtime, reverse=True)
                 excess = p_list[max_per_target:]
                 for old_f in excess:
@@ -239,13 +286,15 @@ class PreflightHealthChecker:
                 data = json.load(f)
             
             metrics = data.get("metrics", {})
-            skills_audited = metrics.get("skills_audited", 0)
-            crv_phases = metrics.get("crv_macro_phases", 0)
+            raw_skills = metrics.get("skills_audited", 0)
+            skills_audited = raw_skills.get("value", 0) if isinstance(raw_skills, dict) else raw_skills
+            raw_crv = metrics.get("crv_macro_phases", 0)
+            crv_phases = raw_crv.get("value", 0) if isinstance(raw_crv, dict) else raw_crv
             
             passed = (skills_audited == 16 and crv_phases == 4)
             return {
                 "passed": passed,
-                "version": data.get("_version", "2.0"),
+                "version": data.get("_version", "1.1.0-Universal"),
                 "skills_audited": skills_audited,
                 "crv_macro_phases": crv_phases,
                 "details": "Baseline perfectly aligned (16 canonical skills, CRV 4 Macro-Phases)" if passed else f"Discrepancy: skills={skills_audited}/16, crv_phases={crv_phases}/4"

@@ -25,10 +25,8 @@ Antigravity model/
 # Temp / Logs
 *.log
 
-# Large Binaries & Chrome dependencies
+# Large Binaries
 *.zip
-agent-ide/nodo3-ce-sp/chrome/
-agent-ide/nodo3-ce-sp/test_suite/test_reports/
 
 # Staging area
 .staging/*
