@@ -1,0 +1,318 @@
+{
+  "version": "1.2.0-Universal",
+  "registry_name": "LabNK Official Institutional Sources SSOT Registry",
+  "last_updated": "2026-09-02T22:00:00Z",
+  "total_sources": 31,
+  "sources": [
+    {
+      "source_id": "INVITALIA_NATIONAL",
+      "name": "Invitalia — Agenzia Nazionale per l'Attrazione degli Investimenti e lo Sviluppo d'Impresa",
+      "jurisdiction": "NAT",
+      "region": "Tutte",
+      "official_url": "https://www.invitalia.it",
+      "connector_type": "REST_API",
+      "description": "Smart&Start Italia, Resto al Sud, ON Oltre Nuove Imprese, Brevetti+, Digital Transformation, Contratti di Sviluppo.",
+      "active": true
+    },
+    {
+      "source_id": "MIMIT_NATIONAL",
+      "name": "MIMIT — Ministero delle Imprese e del Made in Italy",
+      "jurisdiction": "NAT",
+      "region": "Tutte",
+      "official_url": "https://www.mimit.gov.it",
+      "connector_type": "REST_API",
+      "description": "Transizione 5.0, Nuova Sabatini, Voucher Innovation Manager, IPCEI, Fondo PMI Made in Italy.",
+      "active": true
+    },
+    {
+      "source_id": "INAIL_NATIONAL",
+      "name": "INAIL — Istituto Nazionale Assicurazione Infortuni sul Lavoro",
+      "jurisdiction": "NAT",
+      "region": "Tutte",
+      "official_url": "https://www.inail.it",
+      "connector_type": "REST_API",
+      "description": "Bandi ISI (Sicurezza, Amianto, Agricoltura, Modelli Organizzativi).",
+      "active": true
+    },
+    {
+      "source_id": "SIMEST_NATIONAL",
+      "name": "SIMEST — Gruppo Cassa Depositi e Prestiti (Internazionalizzazione & Export)",
+      "jurisdiction": "NAT",
+      "region": "Tutte",
+      "official_url": "https://www.simest.it",
+      "connector_type": "REST_API",
+      "description": "Fondo 394 (Transizione Digitale ed Ecologica PMI, Fiere Internazionali, E-Commerce Export).",
+      "active": true
+    },
+    {
+      "source_id": "OPENCOESIONE_NATIONAL",
+      "name": "OpenCoesione — Portale Nazionale delle Politiche di Coesione",
+      "jurisdiction": "NAT",
+      "region": "Tutte",
+      "official_url": "https://opencoesione.gov.it",
+      "connector_type": "REST_API",
+      "description": "Monitoraggio progetti e bandi FESR, FSE+, FSC e PNRR su scala nazionale.",
+      "active": true
+    },
+    {
+      "source_id": "UNIONCAMERE_PID_NATIONAL",
+      "name": "Unioncamere & Rete Punti Impresa Digitale (PID)",
+      "jurisdiction": "NAT",
+      "region": "Tutte",
+      "official_url": "https://www.unioncamere.gov.it",
+      "connector_type": "RSS_FEED",
+      "description": "Voucher Digitali I4.0 camerali, Certificazione Parità di Genere, Bandi Doppia Transizione.",
+      "active": true
+    },
+    {
+      "source_id": "CDP_VENTURE_NATIONAL",
+      "name": "CDP Venture Capital SGR — Fondo Nazionale Innovazione",
+      "jurisdiction": "NAT",
+      "region": "Tutte",
+      "official_url": "https://www.cdpventurecapital.it",
+      "connector_type": "HTML_SCRAPER",
+      "description": "Programmi Accelerazione Nazionale, Fondo Boost Innovation, Deep Tech, Rilancio Startup.",
+      "active": true
+    },
+    {
+      "source_id": "GU_NATIONAL",
+      "name": "Gazzetta Ufficiale della Repubblica Italiana (5ª Serie Speciale)",
+      "jurisdiction": "NAT",
+      "region": "Tutte",
+      "official_url": "https://www.gazzettaufficiale.it",
+      "connector_type": "HTML_SCRAPER",
+      "description": "Decreti ministeriali di apertura sportelli e avvisi pubblici nazionali.",
+      "active": true
+    },
+    {
+      "source_id": "INCENTIVI_GOV_NATIONAL",
+      "name": "Incentivi.gov.it — Catalogo Nazionale delle Agevolazioni per le Imprese",
+      "jurisdiction": "NAT",
+      "region": "Tutte",
+      "official_url": "https://www.incentivi.gov.it",
+      "connector_type": "RSS_FEED",
+      "description": "Catalogo nazionale degli incentivi e bandi per le imprese promossi da Ministeri ed Enti pubblici (31ª fonte SSOT).",
+      "active": true
+    },
+    {
+      "source_id": "REG_ABRUZZO",
+      "name": "Regione Abruzzo — Portale FESR & Attività Produttive",
+      "jurisdiction": "REG",
+      "region": "Abruzzo",
+      "official_url": "https://coesione.regione.abruzzo.it/bandi-e-avvisi",
+      "connector_type": "HTML_SCRAPER",
+      "description": "Bandi PR FESR Abruzzo per innovazione PMI, efficientamento energetico e agroalimentare.",
+      "active": true
+    },
+    {
+      "source_id": "REG_BASILICATA",
+      "name": "Sviluppo Basilicata — Società In-House Regione Basilicata",
+      "jurisdiction": "REG",
+      "region": "Basilicata",
+      "official_url": "https://www.sviluppobasilicata.it",
+      "connector_type": "HTML_SCRAPER",
+      "description": "Bandi FESR Basilicata, Creazione d'Impresa e Fondo Microcredito.",
+      "active": true
+    },
+    {
+      "source_id": "REG_CALABRIA",
+      "name": "Fincalabra & Regione Calabria — Portale Bandi Calabria",
+      "jurisdiction": "REG",
+      "region": "Calabria",
+      "official_url": "https://calabriaeuropa.regione.calabria.it",
+      "connector_type": "HTML_SCRAPER",
+      "description": "Bandi PR FESR Calabria, Voucher Innovazione e Attrazione Investimenti.",
+      "active": true
+    },
+    {
+      "source_id": "REG_CAMPANIA",
+      "name": "Sviluppo Campania & Regione Campania — Ricerca e Innovazione",
+      "jurisdiction": "REG",
+      "region": "Campania",
+      "official_url": "https://bandi.sviluppocampania.it/",
+      "connector_type": "HTML_SCRAPER",
+      "description": "Bandi Campania Startup, Voucher AI & Deep Tech, FESR Campania Competitività.",
+      "active": true
+    },
+    {
+      "source_id": "REG_EMILIA_ROMAGNA",
+      "name": "Regione Emilia-Romagna — Imprese & Fondo Starter",
+      "jurisdiction": "REG",
+      "region": "Emilia-Romagna",
+      "official_url": "https://imprese.regione.emilia-romagna.it",
+      "connector_type": "HTML_SCRAPER",
+      "description": "Fondo Starter, Bandi Meccanica 4.0, R&D Filiere Strategiche e Attrattività Talenti.",
+      "active": true
+    },
+    {
+      "source_id": "REG_FRIULI_VG",
+      "name": "Regione Autonoma Friuli-Venezia Giulia — Direzione Attività Produttive",
+      "jurisdiction": "REG",
+      "region": "Friuli-Venezia Giulia",
+      "official_url": "https://www.regione.fvg.it/rafvg/cms/RAFVG/economia-imprese/industria/",
+      "connector_type": "HTML_SCRAPER",
+      "description": "Bandi Filiera Legno-Arredo, Digitalizzazione e Contributi R&D FVG.",
+      "active": true
+    },
+    {
+      "source_id": "REG_LAZIO",
+      "name": "Lazio Innova — Regione Lazio",
+      "jurisdiction": "REG",
+      "region": "Lazio",
+      "official_url": "https://www.lazioinnova.it",
+      "connector_type": "HTML_SCRAPER",
+      "description": "Bandi Riposizionamento Competitivo, Voucher Cyber & Cloud, Fare Lazio.",
+      "active": true
+    },
+    {
+      "source_id": "REG_LIGURIA",
+      "name": "FILSE — Finanziaria Ligure per lo Sviluppo Economico",
+      "jurisdiction": "REG",
+      "region": "Liguria",
+      "official_url": "https://www.filse.it",
+      "connector_type": "HTML_SCRAPER",
+      "description": "Bandi FESR Liguria, Blue Economy, Voucher Digitalizzazione e Artigianato Ligure.",
+      "active": true
+    },
+    {
+      "source_id": "REG_LOMBARDIA",
+      "name": "Regione Lombardia — Bandi e Servizi Online",
+      "jurisdiction": "REG",
+      "region": "Lombardia",
+      "official_url": "https://www.dati.lombardia.it/resource/725x-mbvw.json",
+      "connector_type": "REST_API",
+      "description": "Voucher Digitalizzazione PMI, Bando Ricerca & Innovazione, Linea Internazionalizzazione.",
+      "active": true
+    },
+    {
+      "source_id": "REG_MARCHE",
+      "name": "SVEM & Regione Marche — Sviluppo Europa Marche",
+      "jurisdiction": "REG",
+      "region": "Marche",
+      "official_url": "https://www.regione.marche.it/Entra-in-Regione/Bandi",
+      "connector_type": "HTML_SCRAPER",
+      "description": "Bandi Manifattura 4.0, Distretti Calzaturieri e Transizione Digitale Marche.",
+      "active": true
+    },
+    {
+      "source_id": "REG_MOLISE",
+      "name": "Sviluppo Italia Molise — Regione Molise",
+      "jurisdiction": "REG",
+      "region": "Molise",
+      "official_url": "https://www.sviluppoitaliamolise.it",
+      "connector_type": "HTML_SCRAPER",
+      "description": "Bandi PR FESR Molise, Attività Produttive e Autoimprenditorialità.",
+      "active": true
+    },
+    {
+      "source_id": "REG_PIEMONTE",
+      "name": "Finpiemonte & Regione Piemonte — Bandi Competitività",
+      "jurisdiction": "REG",
+      "region": "Piemonte",
+      "official_url": "https://www.finpiemonte.it",
+      "connector_type": "HTML_SCRAPER",
+      "description": "Fondo Automotive EV, Voucher Digitalizzazione, SC-UP Startup Piemonte.",
+      "active": true
+    },
+    {
+      "source_id": "REG_PUGLIA",
+      "name": "Puglia Sviluppo & Regione Puglia — Sistema Puglia",
+      "jurisdiction": "REG",
+      "region": "Puglia",
+      "official_url": "https://www.sistema.puglia.it",
+      "connector_type": "HTML_SCRAPER",
+      "description": "PIA Tech Aerospazio, NIDI Nuova Impresa, Titolo II Imprese, TecnoNidi.",
+      "active": true
+    },
+    {
+      "source_id": "REG_SARDEGNA",
+      "name": "Sardegna Ricerche & SFIRS — Regione Autonoma della Sardegna",
+      "jurisdiction": "REG",
+      "region": "Sardegna",
+      "official_url": "https://www.sardegnaricerche.it",
+      "connector_type": "HTML_SCRAPER",
+      "description": "Bandi R&D Sardegna, Aiuti alle Imprese e Voucher Startup Innovative.",
+      "active": true
+    },
+    {
+      "source_id": "REG_SICILIA",
+      "name": "EuroInfoSicilia & Regione Siciliana — Dipartimento Attività Produttive",
+      "jurisdiction": "REG",
+      "region": "Sicilia",
+      "official_url": "https://www.euroinfosicilia.it",
+      "connector_type": "HTML_SCRAPER",
+      "description": "PSR Sicilia Filiera Agroalimentare, Bando Transizione Energetica PMI, FESR Sicilia.",
+      "active": true
+    },
+    {
+      "source_id": "REG_TOSCANA",
+      "name": "Sviluppo Toscana & Regione Toscana — Portale Bandi",
+      "jurisdiction": "REG",
+      "region": "Toscana",
+      "official_url": "https://www.sviluppo.toscana.it",
+      "connector_type": "HTML_SCRAPER",
+      "description": "Bando Moda & Tessile, Scienze della Vita Biotech, Voucher Microimprese.",
+      "active": true
+    },
+    {
+      "source_id": "REG_TRENTINO_AA",
+      "name": "Trentino Sviluppo & IDM Südtirol — Trentino-Alto Adige",
+      "jurisdiction": "REG",
+      "region": "Trentino-Alto Adige",
+      "official_url": "https://www.trentinosviluppo.it",
+      "connector_type": "HTML_SCRAPER",
+      "description": "Incentivi Green Mobility, Meccatronica Rovereto, Bandi Innovazione Alto Adige.",
+      "active": true
+    },
+    {
+      "source_id": "REG_UMBRIA",
+      "name": "Sviluppumbria & Regione Umbria",
+      "jurisdiction": "REG",
+      "region": "Umbria",
+      "official_url": "https://www.sviluppumbria.it",
+      "connector_type": "HTML_SCRAPER",
+      "description": "Bandi PR FESR Umbria, Voucher Digitalizzazione e Imprenditoria Femminile.",
+      "active": true
+    },
+    {
+      "source_id": "REG_VALLE_AOSTA",
+      "name": "Finaosta — Regione Autonoma Valle d'Aosta",
+      "jurisdiction": "REG",
+      "region": "Valle d'Aosta",
+      "official_url": "https://www.finaosta.com",
+      "connector_type": "HTML_SCRAPER",
+      "description": "Bandi Innovazione Alpina, Sostegno PMI e Fondo Rotazione Imprese VDA.",
+      "active": true
+    },
+    {
+      "source_id": "REG_VENETO",
+      "name": "Veneto Sviluppo & Regione del Veneto — Bandi POR FESR",
+      "jurisdiction": "REG",
+      "region": "Veneto",
+      "official_url": "https://www.venetosviluppo.it",
+      "connector_type": "HTML_SCRAPER",
+      "description": "Fondo Turismo Veneto, Voucher Export Consorzi, Bando R&D Aggregazioni.",
+      "active": true
+    },
+    {
+      "source_id": "EU_SEDIA",
+      "name": "European Commission — Funding & Tenders Opportunities (SEDIA)",
+      "jurisdiction": "EU",
+      "region": "Tutte",
+      "official_url": "https://api.tech.ec.europa.eu/search-api/prod/rest/search",
+      "connector_type": "REST_API",
+      "description": "Horizon Europe (EIC Accelerator, Pathfinder, Transition), Digital Europe, Life.",
+      "active": true
+    },
+    {
+      "source_id": "EU_TED",
+      "name": "TED — Tenders Electronic Daily (European Public Procurement)",
+      "jurisdiction": "EU",
+      "region": "Tutte",
+      "official_url": "https://api.ted.europa.eu/v3/notices/search",
+      "connector_type": "REST_API",
+      "description": "Avvisi e gare d'appalto europee, Pre-Commercial Procurement per l'innovazione.",
+      "active": true
+    }
+  ]
+}

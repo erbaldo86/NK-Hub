@@ -1,63 +1,44 @@
-# 🏛️ Nexus Keystone Hub (v1.1.0-Universal)
-### *The Sovereign Cognitive Operating System & Swarm Orchestration Engine for Google Antigravity*
+# 🏛️ LabNK — Bandi Intelligence & Decision Engine (Release v1.3.0-Universal-Official)
+### *Piattaforma Sovrana di Ricerca, Monitoraggio & Compatibilità Bandi di Finanziamento*
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Release-v1.1.0--Universal-0052FF?style=for-the-badge&logo=shield&logoColor=white" alt="Release Badge" />
+  <img src="https://img.shields.io/badge/Release-v1.3.0--Universal--Official-0052FF?style=for-the-badge&logo=shield&logoColor=white" alt="Release Badge" />
   <img src="https://img.shields.io/badge/Standard-CRV_4.0-00C853?style=for-the-badge&logo=checkmarx&logoColor=white" alt="CRV 4.0 Standard" />
   <img src="https://img.shields.io/badge/Zero--Mock-Certified-FF6D00?style=for-the-badge&logo=databricks&logoColor=white" alt="Zero-Mock Certified" />
-  <img src="https://img.shields.io/badge/Unit_Tests-49%2F49_PASS-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests" />
-  <img src="https://img.shields.io/badge/ACID_Engine-Win32_2PC_Mutex-7928CA?style=for-the-badge&logo=windows&logoColor=white" alt="Win32 2PC" />
-  <img src="https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.14-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python Support" />
+  <img src="https://img.shields.io/badge/E2E_Benchmark-60%2F60_PASS-success?style=for-the-badge&logo=pytest&logoColor=white" alt="E2E Benchmark" />
+  <img src="https://img.shields.io/badge/Reliability_Benchmark-16%2F16_PASS-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Reliability" />
+  <img src="https://img.shields.io/badge/Oracle_L3-95%2F95_PASS-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Oracle L3" />
+  <img src="https://img.shields.io/badge/Pytest_Suite-101%2F101_PASS-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Pytest" />
+  <img src="https://img.shields.io/badge/Catalog-364_Bandi_31_Fonti-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="Catalog" />
 </p>
 
 ---
 
 ## 📖 Indice dei Contenuti
-1. [🌟 Livello Introduttivo: Che cos'è Nexus Keystone Hub?](#-1-livello-introduttivo-che-cosè-nexus-keystone-hub)
-   - [Il Problema Risolto](#-il-problema-risolto)
-   - [I 6 Super-Poteri di NK-Hub](#-i-6-super-poteri-aggiunti-ad-antigravity)
-2. [🚀 Tutorial di Installazione & Setup Rapido](#-2-tutorial-di-installazione-su-antigravity)
-   - [Prerequisiti di Sistema](#prerequisiti-di-sistema)
-   - [Guida Passo-Passo](#guida-passo-passo)
-   - [Comandi di Verifica e Collaudo](#comandi-di-verifica-e-collaudo)
-3. [🔬 Sezione Tecnica Avanzata (Deep Dive Architetturale)](#-3-sezione-tecnica-avanzata-per-esperti-e-sviluppatori)
-   - [La FSM ad Auto-Brief a 5 Turni](#la-fsm-ad-auto-brief-a-5-turni-swarm-orchestration)
-   - [Il Protocollo di Verifica Continua CRV 4.0](#il-protocollo-di-verifica-continua-crv-40)
-   - [Catalogo Completo delle 16 Vocational Skills](#catalogo-completo-delle-16-vocational-skills)
-   - [I 10 Motori Python Asincroni (`scripts/`)](#i-10-motori-python-asincroni-scripts)
-   - [La Trinità del Genome (`nk_genome/`)](#la-trinità-del-genome-nk_genome)
-   - [Memoria Episodica a 3 Livelli](#architettura-della-memoria-episodica-a-3-livelli)
-   - [Suite Permanente di 49 Unit Test Zero-Mock](#suite-permanente-di-49-unit-test-zero-mock-tests)
-4. [🔒 Progetti Esterni Isolati](#-4-progetti-esterni-isolati)
-5. [📜 Note di Rilascio & Versioning](#-5-note-di-rilascio--versioning)
+1. [🌟 Che cos'è LabNK Bandi Intelligence?](#-1-che-cosè-labnk-bandi-intelligence)
+2. [🏛️ I 4 Pilastri Architetturali](#-2-i-4-pilastri-architetturali)
+3. [🚀 Avvio Rapido & Guida Operativa](#-3-avvio-rapido--guida-operativa)
+4. [📡 API REST & Endpoint del Gateway](#-4-api-rest--endpoint-del-gateway)
+5. [🛡️ Governance & Garanzie Zero-Mock](#-5-governance--garanzie-zero-mock)
+6. [📜 Changelog Ufficiale v1.3.0](#-6-changelog-ufficiale-v130)
 
 ---
 
-# 🌟 1. Livello Introduttivo: Che cos'è Nexus Keystone Hub?
+# 🌟 1. Che cos'è LabNK Bandi Intelligence?
 
-**Nexus Keystone Hub (NK-Hub)** è il **sistema operativo cognitivo e infrastrutturale** progettato specificamente per trasformare l'ambiente di sviluppo agentico **Google Antigravity** in una fabbrica autonoma di software ingegneristico di livello Enterprise.
+**LabNK Bandi Intelligence** è il modulo enterprise di intelligence decisionale progettato per automatizzare la ricerca, la valutazione di ammissibilità e il calcolo matematico di compatibilità dei bandi pubblici italiani ed europei (Invitalia, MIMIT, 20 Regioni Italiane, Horizon Europe / EIC).
 
-Mentre i normali agenti AI operano come "programmatori solitari" che tentano di scrivere o modificare codice direttamente sul disco (spesso allucinando modifiche, introducendo bug silenti o corrompendo i file), **Nexus Keystone Hub introduce una rigida separazione dei poteri, una memoria episodica strutturata e garanzie fisiche transazionali di livello kernel**.
-
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                          GOOGLE ANTIGRAVITY IDE                             │
+│                          LABNK BANDI INTELLIGENCE                           │
 │                                                                             │
-│   ┌─────────────────────────────────────────────────────────────────────┐   │
-│   │                      NEXUS KEYSTONE HUB v1.1.0                      │   │
-│   │                                                                     │   │
-│   │   🧠 16 Esperti Vocazionali  ─► 🔄 FSM ad Auto-Brief (5 Turni)      │   │
-│   │   🛡️ Hard Execution Gate    ─► 📦 Staging Area Isolata              │   │
-│   │   🔬 Real DAST Sandbox       ─► 🎯 Diagnosi SBFL Ochiai (<80 tok)   │   │
-│   │   🔒 Win32 2PC Mutex ACID    ─► 💾 3-Tier Episodic Memory           │   │
-│   └─────────────────────────────────────────────────────────────────────┘   │
+│   🔍 Smart Intent Extractor  ─► NLP NUTS-2/3 & Risoluzione ATECO ad Albero  │
+│   🏛️ SSOT Sources Registry   ─► 30+ Portali Istituzionali Monitorati        │
+│   📐 Match Scoring Engine    ─► Verifica De Minimis UE 2023/2831            │
+│   🚀 FastAPI Gateway         ─► UI Reattiva & REST API (Latenza < 20ms)     │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
----
-
-### 🛑 Il Problema Risolto
-Nello sviluppo assistito da agenti AI moderno si verificano quattro criticità critiche:
 1. **Scritture Selvaggie & Allucinazioni:** Agenti che modificano file sorgente in produzione prima ancora di aver compreso il problema o senza aver ottenuto l'approvazione dell'utente.
 2. **Crash da Lock su Cloud Storage:** Modifiche concorrenti su cartelle sincronizzate (Google Drive, OneDrive, Dropbox) causano errori `WinError 32` / `WinError 5` (Sharing Violation) corrompendo i sorgenti.
 3. **Falsi Positivi da "Mock":** Test sintetici che usano `Mock` e `MagicMock` simulando che tutto funzioni, mentre il codice reale fallisce miseramente a runtime.

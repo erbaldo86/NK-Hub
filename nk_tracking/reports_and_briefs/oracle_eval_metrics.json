@@ -1,0 +1,1011 @@
+{
+  "timestamp": "2026-09-02T22:35:46.613154+00:00",
+  "ateco_nuts_tests": [
+    {
+      "test": "ATECO Normalization: 620100 -> 62.01.00",
+      "passed": true,
+      "actual": "62.01.00"
+    },
+    {
+      "test": "ATECO Normalization: 6201 -> 62.01",
+      "passed": true,
+      "actual": "62.01"
+    },
+    {
+      "test": "ATECO Normalization: 62 -> 62",
+      "passed": true,
+      "actual": "62"
+    },
+    {
+      "test": "ATECO Normalization: TUTTI -> TUTTI",
+      "passed": true,
+      "actual": "TUTTI"
+    },
+    {
+      "test": "ATECO Normalization: * -> TUTTI",
+      "passed": true,
+      "actual": "TUTTI"
+    },
+    {
+      "test": "ATECO Normalization: all -> TUTTI",
+      "passed": true,
+      "actual": "TUTTI"
+    },
+    {
+      "test": "ATECO Normalization:   72.19.09   -> 72.19.09",
+      "passed": true,
+      "actual": "72.19.09"
+    },
+    {
+      "test": "ATECO Normalization: 281100 -> 28.11.00",
+      "passed": true,
+      "actual": "28.11.00"
+    },
+    {
+      "test": "ATECO Compat: Division 62 matches subclass 62.01.00",
+      "bando_codes": [
+        "62"
+      ],
+      "company_codes": [
+        "62.01.00"
+      ],
+      "expected": true,
+      "actual": true,
+      "passed": true
+    },
+    {
+      "test": "ATECO Compat: Group 62.01 matches subclass 62.01.00",
+      "bando_codes": [
+        "62.01"
+      ],
+      "company_codes": [
+        "62.01.00"
+      ],
+      "expected": true,
+      "actual": true,
+      "passed": true
+    },
+    {
+      "test": "ATECO Compat: Subclass 62.01.00 matches division 62",
+      "bando_codes": [
+        "62.01.00"
+      ],
+      "company_codes": [
+        "62"
+      ],
+      "expected": true,
+      "actual": true,
+      "passed": true
+    },
+    {
+      "test": "ATECO Compat: TUTTI wildcard matches any code",
+      "bando_codes": [
+        "TUTTI"
+      ],
+      "company_codes": [
+        "01.11.00"
+      ],
+      "expected": true,
+      "actual": true,
+      "passed": true
+    },
+    {
+      "test": "ATECO Compat: E-commerce does not match Software directly",
+      "bando_codes": [
+        "47.91.10"
+      ],
+      "company_codes": [
+        "62.01.00"
+      ],
+      "expected": false,
+      "actual": false,
+      "passed": true
+    },
+    {
+      "test": "ATECO Compat: Manufacturing division matches subclass",
+      "bando_codes": [
+        "28.00.00"
+      ],
+      "company_codes": [
+        "28.11.00"
+      ],
+      "expected": true,
+      "actual": true,
+      "passed": true
+    },
+    {
+      "test": "ATECO Compat: Biotech R&D distinct from pharma manufacturing without cross-rule",
+      "bando_codes": [
+        "72.11.00"
+      ],
+      "company_codes": [
+        "21.20.00"
+      ],
+      "expected": false,
+      "actual": false,
+      "passed": true
+    },
+    {
+      "test": "NUTS Mapping for 'lombardia' -> Lombardia (ITC4)",
+      "passed": true,
+      "actual": "Lombardia (ITC4)"
+    },
+    {
+      "test": "NUTS Mapping for 'milano' -> Lombardia (ITC4C)",
+      "passed": true,
+      "actual": "Lombardia (ITC4C)"
+    },
+    {
+      "test": "NUTS Mapping for 'campania' -> Campania (ITF3)",
+      "passed": true,
+      "actual": "Campania (ITF3)"
+    },
+    {
+      "test": "NUTS Mapping for 'napoli' -> Campania (ITF33)",
+      "passed": true,
+      "actual": "Campania (ITF33)"
+    },
+    {
+      "test": "NUTS Mapping for 'salerno' -> Campania (ITF35)",
+      "passed": true,
+      "actual": "Campania (ITF35)"
+    },
+    {
+      "test": "NUTS Mapping for 'lazio' -> Lazio (ITI4)",
+      "passed": true,
+      "actual": "Lazio (ITI4)"
+    },
+    {
+      "test": "NUTS Mapping for 'roma' -> Lazio (ITI43)",
+      "passed": true,
+      "actual": "Lazio (ITI43)"
+    },
+    {
+      "test": "NUTS Mapping for 'piemonte' -> Piemonte (ITC1)",
+      "passed": true,
+      "actual": "Piemonte (ITC1)"
+    },
+    {
+      "test": "NUTS Mapping for 'torino' -> Piemonte (ITC11)",
+      "passed": true,
+      "actual": "Piemonte (ITC11)"
+    },
+    {
+      "test": "NUTS Mapping for 'veneto' -> Veneto (ITH3)",
+      "passed": true,
+      "actual": "Veneto (ITH3)"
+    },
+    {
+      "test": "NUTS Mapping for 'venezia' -> Veneto (ITH35)",
+      "passed": true,
+      "actual": "Veneto (ITH35)"
+    },
+    {
+      "test": "NUTS Mapping for 'emilia-romagna' -> Emilia-Romagna (ITH5)",
+      "passed": true,
+      "actual": "Emilia-Romagna (ITH5)"
+    },
+    {
+      "test": "NUTS Mapping for 'bologna' -> Emilia-Romagna (ITH55)",
+      "passed": true,
+      "actual": "Emilia-Romagna (ITH55)"
+    },
+    {
+      "test": "NUTS Mapping for 'toscana' -> Toscana (ITI1)",
+      "passed": true,
+      "actual": "Toscana (ITI1)"
+    },
+    {
+      "test": "NUTS Mapping for 'firenze' -> Toscana (ITI14)",
+      "passed": true,
+      "actual": "Toscana (ITI14)"
+    },
+    {
+      "test": "NUTS Mapping for 'puglia' -> Puglia (ITF4)",
+      "passed": true,
+      "actual": "Puglia (ITF4)"
+    },
+    {
+      "test": "NUTS Mapping for 'bari' -> Puglia (ITF47)",
+      "passed": true,
+      "actual": "Puglia (ITF47)"
+    },
+    {
+      "test": "NUTS Mapping for 'sicilia' -> Sicilia (ITG1)",
+      "passed": true,
+      "actual": "Sicilia (ITG1)"
+    },
+    {
+      "test": "NUTS Mapping for 'palermo' -> Sicilia (ITG12)",
+      "passed": true,
+      "actual": "Sicilia (ITG12)"
+    },
+    {
+      "test": "NUTS Mapping for 'calabria' -> Calabria (ITF6)",
+      "passed": true,
+      "actual": "Calabria (ITF6)"
+    },
+    {
+      "test": "NUTS Mapping for 'sardegna' -> Sardegna (ITG2)",
+      "passed": true,
+      "actual": "Sardegna (ITG2)"
+    },
+    {
+      "test": "NUTS Mapping for 'liguria' -> Liguria (ITC3)",
+      "passed": true,
+      "actual": "Liguria (ITC3)"
+    },
+    {
+      "test": "NUTS Mapping for 'marche' -> Marche (ITI3)",
+      "passed": true,
+      "actual": "Marche (ITI3)"
+    },
+    {
+      "test": "NUTS Mapping for 'abruzzo' -> Abruzzo (ITF1)",
+      "passed": true,
+      "actual": "Abruzzo (ITF1)"
+    },
+    {
+      "test": "NUTS Mapping for 'friuli' -> Friuli-Venezia Giulia (ITH4)",
+      "passed": true,
+      "actual": "Friuli-Venezia Giulia (ITH4)"
+    },
+    {
+      "test": "NUTS Mapping for 'trentino' -> Trentino-Alto Adige (ITH2)",
+      "passed": true,
+      "actual": "Trentino-Alto Adige (ITH2)"
+    },
+    {
+      "test": "NUTS Mapping for 'umbria' -> Umbria (ITI2)",
+      "passed": true,
+      "actual": "Umbria (ITI2)"
+    },
+    {
+      "test": "NUTS Mapping for 'basilicata' -> Basilicata (ITF5)",
+      "passed": true,
+      "actual": "Basilicata (ITF5)"
+    },
+    {
+      "test": "NUTS Mapping for 'molise' -> Molise (ITF2)",
+      "passed": true,
+      "actual": "Molise (ITF2)"
+    },
+    {
+      "test": "NUTS Mapping for 'valle d'aosta' -> Valle d'Aosta (ITC2)",
+      "passed": true,
+      "actual": "Valle d'Aosta (ITC2)"
+    }
+  ],
+  "nlp_scenarios": [
+    {
+      "id": "SCENARIO_01_AGRITECH",
+      "name": "Agritech & Precision Farming in Puglia",
+      "query": "Startup innovativa agritech a Bari cerca voucher a fondo perduto di 50 mila euro per sensoristica IoT e droni in agricoltura",
+      "inferred_region": "Puglia",
+      "inferred_nuts": "ITF47",
+      "inferred_ateco": [
+        "30.30.09",
+        "01.50.00",
+        "01.11.00",
+        "30.30.00",
+        "62.01.00",
+        "01.21.00"
+      ],
+      "inferred_beneficiary": [
+        "Startup_Innovative"
+      ],
+      "inferred_funding": [
+        "voucher",
+        "fondo_perduto"
+      ],
+      "inferred_budget": 50000.0,
+      "extracted_keywords": [
+        "startup",
+        "innovativa",
+        "agritech",
+        "bari",
+        "cerca",
+        "voucher",
+        "fondo",
+        "perduto",
+        "mila",
+        "euro",
+        "sensoristica",
+        "iot",
+        "droni",
+        "agricoltura"
+      ],
+      "checks": {
+        "region_ok": true,
+        "nuts_ok": true,
+        "ateco_ok": true,
+        "beneficiary_ok": true,
+        "funding_ok": true,
+        "budget_ok": true
+      },
+      "passed": true
+    },
+    {
+      "id": "SCENARIO_02_INDUSTRIA_40",
+      "name": "Manifattura 4.0 & Meccanica in Emilia-Romagna",
+      "query": "PMI manifatturiera a Bologna richiede finanziamento a tasso agevolato di 500k per macchinari industria 4.0 e robotica meccanica",
+      "inferred_region": "Emilia-Romagna",
+      "inferred_nuts": "ITH55",
+      "inferred_ateco": [
+        "28.00.00",
+        "30.00.00",
+        "25.62.00",
+        "25.00.00",
+        "28.11.00",
+        "62.01.00",
+        "28.99.00"
+      ],
+      "inferred_beneficiary": [
+        "PMI"
+      ],
+      "inferred_funding": [
+        "tasso_agevolato"
+      ],
+      "inferred_budget": 500000.0,
+      "extracted_keywords": [
+        "pmi",
+        "manifatturiera",
+        "bologna",
+        "richiede",
+        "finanziamento",
+        "tasso",
+        "agevolato",
+        "macchinari",
+        "industria",
+        "robotica",
+        "meccanica"
+      ],
+      "checks": {
+        "region_ok": true,
+        "nuts_ok": true,
+        "ateco_ok": true,
+        "beneficiary_ok": true,
+        "funding_ok": true,
+        "budget_ok": true
+      },
+      "passed": true
+    },
+    {
+      "id": "SCENARIO_03_BIOTECH",
+      "name": "Biotecnologie & Pharma in Toscana",
+      "query": "Ente di ricerca e spin-off biotecnologie a Firenze cerca contributo a fondo perduto per r&d su farmaci oncologici con budget 1.5 milioni euro",
+      "inferred_region": "Toscana",
+      "inferred_nuts": "ITI14",
+      "inferred_ateco": [
+        "72.19.09",
+        "72.11.00",
+        "21.20.00"
+      ],
+      "inferred_beneficiary": [
+        "Enti_Ricerca"
+      ],
+      "inferred_funding": [
+        "fondo_perduto"
+      ],
+      "inferred_budget": 1500000.0,
+      "extracted_keywords": [
+        "ente",
+        "ricerca",
+        "spin",
+        "off",
+        "biotecnologie",
+        "firenze",
+        "cerca",
+        "contributo",
+        "fondo",
+        "perduto",
+        "farmaci",
+        "oncologici",
+        "budget",
+        "milioni",
+        "euro"
+      ],
+      "checks": {
+        "region_ok": true,
+        "nuts_ok": true,
+        "ateco_ok": true,
+        "beneficiary_ok": true,
+        "funding_ok": true,
+        "budget_ok": true
+      },
+      "passed": true
+    },
+    {
+      "id": "SCENARIO_04_ECOMMERCE",
+      "name": "E-Commerce & Digital Commerce a Milano",
+      "query": "Piccola impresa commercio a Milano cerca voucher digitalizzazione ed e-commerce da 15 mila euro",
+      "inferred_region": "Lombardia",
+      "inferred_nuts": "ITC4C",
+      "inferred_ateco": [
+        "46.90.00",
+        "62.02.00",
+        "47.91.10",
+        "62.01.00"
+      ],
+      "inferred_beneficiary": [
+        "PMI"
+      ],
+      "inferred_funding": [
+        "voucher"
+      ],
+      "inferred_budget": 15000.0,
+      "extracted_keywords": [
+        "piccola",
+        "impresa",
+        "commercio",
+        "milano",
+        "cerca",
+        "voucher",
+        "digitalizzazione",
+        "commerce",
+        "mila",
+        "euro"
+      ],
+      "checks": {
+        "region_ok": true,
+        "nuts_ok": true,
+        "ateco_ok": true,
+        "beneficiary_ok": true,
+        "funding_ok": true,
+        "budget_ok": true
+      },
+      "passed": true
+    },
+    {
+      "id": "SCENARIO_05_CLOUD_CYBER",
+      "name": "Software Cloud & Cybersecurity a Torino",
+      "query": "PMI software e cloud a Torino cerca credito imposta e contributi per transizione digitale e cybersecurity da 120k euro",
+      "inferred_region": "Piemonte",
+      "inferred_nuts": "ITC11",
+      "inferred_ateco": [
+        "62.02.00",
+        "62.09.09",
+        "62.03.00",
+        "63.11.00",
+        "62.01.00",
+        "72.19.09",
+        "58.29.00"
+      ],
+      "inferred_beneficiary": [
+        "PMI"
+      ],
+      "inferred_funding": [
+        "credito_imposta"
+      ],
+      "inferred_budget": 120000.0,
+      "extracted_keywords": [
+        "pmi",
+        "software",
+        "cloud",
+        "torino",
+        "cerca",
+        "credito",
+        "imposta",
+        "contributi",
+        "transizione",
+        "digitale",
+        "cybersecurity",
+        "euro"
+      ],
+      "checks": {
+        "region_ok": true,
+        "nuts_ok": true,
+        "ateco_ok": true,
+        "beneficiary_ok": true,
+        "funding_ok": true,
+        "budget_ok": true
+      },
+      "passed": true
+    },
+    {
+      "id": "SCENARIO_06_GREEN_SOLAR",
+      "name": "Energia Rinnovabile & Fotovoltaico a Palermo",
+      "query": "PMI green a Palermo cerca fondo perduto per impianti fotovoltaici ed efficientamento energetico da 250k euro",
+      "inferred_region": "Sicilia",
+      "inferred_nuts": "ITG12",
+      "inferred_ateco": [
+        "38.21.00",
+        "43.21.01",
+        "39.00.00",
+        "35.11.00",
+        "71.12.10"
+      ],
+      "inferred_beneficiary": [
+        "PMI"
+      ],
+      "inferred_funding": [
+        "fondo_perduto"
+      ],
+      "inferred_budget": 250000.0,
+      "extracted_keywords": [
+        "pmi",
+        "green",
+        "palermo",
+        "cerca",
+        "fondo",
+        "perduto",
+        "impianti",
+        "fotovoltaici",
+        "efficientamento",
+        "energetico",
+        "euro"
+      ],
+      "checks": {
+        "region_ok": true,
+        "nuts_ok": true,
+        "ateco_ok": true,
+        "beneficiary_ok": true,
+        "funding_ok": true,
+        "budget_ok": true
+      },
+      "passed": true
+    },
+    {
+      "id": "SCENARIO_07_DEEP_TECH_EU",
+      "name": "Deep Tech Horizon Europe EIC Accelerator",
+      "query": "Startup innovativa cerca grant Horizon Europe EIC accelerator ed equity a livello europeo per 2.5 milioni euro",
+      "inferred_region": null,
+      "inferred_nuts": "EU",
+      "inferred_ateco": [
+        "72.19.09",
+        "TUTTI",
+        "62.01.00"
+      ],
+      "inferred_beneficiary": [
+        "Startup_Innovative"
+      ],
+      "inferred_funding": [
+        "fondo_perduto"
+      ],
+      "inferred_budget": 2500000.0,
+      "extracted_keywords": [
+        "startup",
+        "innovativa",
+        "cerca",
+        "grant",
+        "horizon",
+        "europe",
+        "eic",
+        "accelerator",
+        "equity",
+        "livello",
+        "europeo",
+        "milioni",
+        "euro"
+      ],
+      "checks": {
+        "region_ok": true,
+        "nuts_ok": true,
+        "ateco_ok": true,
+        "beneficiary_ok": true,
+        "funding_ok": true,
+        "budget_ok": true
+      },
+      "passed": true
+    },
+    {
+      "id": "SCENARIO_08_TURISMO",
+      "name": "Turismo & Ristorazione a Salerno",
+      "query": "Microimpresa turismo e ristorazione a Salerno cerca contributo a fondo perduto per riqualificazione alberghiera 100 mila euro",
+      "inferred_region": "Campania",
+      "inferred_nuts": "ITF35",
+      "inferred_ateco": [
+        "55.10.00",
+        "56.10.12",
+        "55.20.51",
+        "79.11.00",
+        "56.10.11"
+      ],
+      "inferred_beneficiary": [
+        "PMI"
+      ],
+      "inferred_funding": [
+        "fondo_perduto"
+      ],
+      "inferred_budget": 100000.0,
+      "extracted_keywords": [
+        "microimpresa",
+        "turismo",
+        "ristorazione",
+        "salerno",
+        "cerca",
+        "contributo",
+        "fondo",
+        "perduto",
+        "riqualificazione",
+        "alberghiera",
+        "mila",
+        "euro"
+      ],
+      "checks": {
+        "region_ok": true,
+        "nuts_ok": true,
+        "ateco_ok": true,
+        "beneficiary_ok": true,
+        "funding_ok": true,
+        "budget_ok": true
+      },
+      "passed": true
+    },
+    {
+      "id": "SCENARIO_09_CYBER_ROMA",
+      "name": "Cybersecurity & IT Infrastructure a Roma",
+      "query": "Startup cybersecurity a Roma cerca finanziamento a tasso agevolato da 80k per sicurezza cloud e consulenza",
+      "inferred_region": "Lazio",
+      "inferred_nuts": "ITI43",
+      "inferred_ateco": [
+        "84.30.00",
+        "62.02.00",
+        "71.20.00",
+        "62.09.09",
+        "62.03.00",
+        "69.20.10",
+        "70.22.09",
+        "63.11.00",
+        "71.12.10"
+      ],
+      "inferred_beneficiary": [
+        "Startup_Innovative"
+      ],
+      "inferred_funding": [
+        "tasso_agevolato"
+      ],
+      "inferred_budget": 80000.0,
+      "extracted_keywords": [
+        "startup",
+        "cybersecurity",
+        "roma",
+        "cerca",
+        "finanziamento",
+        "tasso",
+        "agevolato",
+        "sicurezza",
+        "cloud",
+        "consulenza"
+      ],
+      "checks": {
+        "region_ok": true,
+        "nuts_ok": true,
+        "ateco_ok": true,
+        "beneficiary_ok": true,
+        "funding_ok": true,
+        "budget_ok": true
+      },
+      "passed": true
+    },
+    {
+      "id": "SCENARIO_10_CONSULENZA_VENETO",
+      "name": "Consulenza Direzionale & Green a Venezia",
+      "query": "Società consulenza a Venezia cerca voucher digitalizzazione green da 30 mila euro",
+      "inferred_region": "Veneto",
+      "inferred_nuts": "ITH35",
+      "inferred_ateco": [
+        "38.21.00",
+        "62.02.00",
+        "39.00.00",
+        "69.20.10",
+        "70.22.09",
+        "62.01.00",
+        "35.11.00",
+        "71.12.10"
+      ],
+      "inferred_beneficiary": [
+        "PMI"
+      ],
+      "inferred_funding": [
+        "voucher"
+      ],
+      "inferred_budget": 30000.0,
+      "extracted_keywords": [
+        "consulenza",
+        "venezia",
+        "cerca",
+        "voucher",
+        "digitalizzazione",
+        "green",
+        "mila",
+        "euro"
+      ],
+      "checks": {
+        "region_ok": true,
+        "nuts_ok": true,
+        "ateco_ok": true,
+        "beneficiary_ok": true,
+        "funding_ok": true,
+        "budget_ok": true
+      },
+      "passed": true
+    },
+    {
+      "id": "SCENARIO_11_AGROALIMENTARE",
+      "name": "Agroalimentare & Food Processing in Abruzzo",
+      "query": "PMI agroalimentare in Abruzzo cerca fondo perduto per conservazione e trasformazione alimentare da 200 mila euro",
+      "inferred_region": "Abruzzo",
+      "inferred_nuts": "ITF1",
+      "inferred_ateco": [
+        "10.89.09",
+        "10.39.00"
+      ],
+      "inferred_beneficiary": [
+        "PMI"
+      ],
+      "inferred_funding": [
+        "fondo_perduto"
+      ],
+      "inferred_budget": 200000.0,
+      "extracted_keywords": [
+        "pmi",
+        "agroalimentare",
+        "abruzzo",
+        "cerca",
+        "fondo",
+        "perduto",
+        "conservazione",
+        "trasformazione",
+        "alimentare",
+        "mila",
+        "euro"
+      ],
+      "checks": {
+        "region_ok": true,
+        "nuts_ok": true,
+        "ateco_ok": true,
+        "beneficiary_ok": true,
+        "funding_ok": true,
+        "budget_ok": true
+      },
+      "passed": true
+    },
+    {
+      "id": "SCENARIO_12_MANIFATTURA_FRIULI",
+      "name": "Manifattura & Meccanica in Friuli",
+      "query": "Piccola impresa manifattura e meccanica in Friuli cerca credito imposta e contributi per macchinari da 350k euro",
+      "inferred_region": "Friuli-Venezia Giulia",
+      "inferred_nuts": "ITH4",
+      "inferred_ateco": [
+        "28.00.00",
+        "30.00.00",
+        "25.62.00",
+        "25.00.00",
+        "28.11.00",
+        "28.99.00"
+      ],
+      "inferred_beneficiary": [
+        "PMI"
+      ],
+      "inferred_funding": [
+        "credito_imposta"
+      ],
+      "inferred_budget": 350000.0,
+      "extracted_keywords": [
+        "piccola",
+        "impresa",
+        "manifattura",
+        "meccanica",
+        "friuli",
+        "cerca",
+        "credito",
+        "imposta",
+        "contributi",
+        "macchinari",
+        "euro"
+      ],
+      "checks": {
+        "region_ok": true,
+        "nuts_ok": true,
+        "ateco_ok": true,
+        "beneficiary_ok": true,
+        "funding_ok": true,
+        "budget_ok": true
+      },
+      "passed": true
+    }
+  ],
+  "scoring_math_tests": [
+    {
+      "test": "Super Eligible Startup with Max Premialities",
+      "expected_score": 100.0,
+      "actual_score": 100.0,
+      "is_eligible": true,
+      "passed": true
+    },
+    {
+      "test": "Exact Partial Score Decomposition (Plain PMI)",
+      "expected_score": 95.0,
+      "actual_score": 95.0,
+      "passed": true
+    },
+    {
+      "test": "De Minimis Ceiling Saturated (€300,000.00)",
+      "is_eligible": false,
+      "blocking_failures": [
+        "Plafond De Minimis triennale (€300,000.00) saturo rispetto al limite di legge (€300.000,00)."
+      ],
+      "passed": true
+    },
+    {
+      "test": "De Minimis Under Ceiling (€299,999.99)",
+      "is_eligible": true,
+      "passed": true
+    },
+    {
+      "test": "Territory Mismatch Gate (Lombardia vs Campania)",
+      "is_eligible": false,
+      "passed": true
+    },
+    {
+      "test": "ATECO Mismatch Gate (Bakery vs Software)",
+      "is_eligible": false,
+      "passed": true
+    },
+    {
+      "test": "Closed Bando Gate",
+      "is_eligible": false,
+      "passed": true
+    }
+  ],
+  "complex_cases_simulation": [
+    {
+      "case": "Multi-sector Enterprise (OmniGroup Holdings)",
+      "lombardia_voucher": {
+        "eligible": true,
+        "score": 97.5
+      },
+      "campania_ai": {
+        "eligible": false,
+        "score": 22.5
+      },
+      "national_mimit": {
+        "eligible": true,
+        "score": 78.2
+      },
+      "passed": true
+    },
+    {
+      "case": "Youth & Female Startup Innovativa (NeaBioTech)",
+      "eligible": true,
+      "score": 100.0,
+      "bonus_count": 3,
+      "passed": true
+    },
+    {
+      "case": "Traditional Micro with Saturated De Minimis",
+      "eligible": false,
+      "blocking_reasons": [
+        "Nessun codice ATECO aziendale ['28.11.00'] rientra nei settori ammessi ['62.01.00', '62.02.00', '47.91.10', '70.22.09']."
+      ],
+      "passed": true
+    }
+  ],
+  "dom_visual_tests": [
+    {
+      "check": "HTML5 Doctype",
+      "passed": true
+    },
+    {
+      "check": "Title Tag",
+      "passed": true
+    },
+    {
+      "check": "Meta Viewport",
+      "passed": true
+    },
+    {
+      "check": "KPI Grid Container",
+      "passed": true
+    },
+    {
+      "check": "KPI Bandi Monitorati",
+      "passed": true
+    },
+    {
+      "check": "KPI Dotazione Totale",
+      "passed": true
+    },
+    {
+      "check": "Tab NLP Search",
+      "passed": true
+    },
+    {
+      "check": "Tab Parametric",
+      "passed": true
+    },
+    {
+      "check": "Tab Catalog",
+      "passed": true
+    },
+    {
+      "check": "Quick Query Presets",
+      "passed": true
+    },
+    {
+      "check": "Preset Startup AI Napoli",
+      "passed": true
+    },
+    {
+      "check": "Preset Voucher PMI Lombardia",
+      "passed": true
+    },
+    {
+      "check": "Preset Transizione 5.0",
+      "passed": true
+    },
+    {
+      "check": "Preset Horizon EIC",
+      "passed": true
+    },
+    {
+      "check": "Intent Analysis Card",
+      "passed": true
+    },
+    {
+      "check": "Intent Region Element",
+      "passed": true
+    },
+    {
+      "check": "Intent ATECO Element",
+      "passed": true
+    },
+    {
+      "check": "Intent Beneficiaries Element",
+      "passed": true
+    },
+    {
+      "check": "Intent Funding Element",
+      "passed": true
+    },
+    {
+      "check": "Intent Keywords Element",
+      "passed": true
+    },
+    {
+      "check": "NLP Search Input",
+      "passed": true
+    },
+    {
+      "check": "Parametric Search Form",
+      "passed": true
+    },
+    {
+      "check": "JavaScript GRANTS_DATA JSON payload",
+      "passed": true
+    },
+    {
+      "check": "Interactive Script Functions (filterGrantsNLP)",
+      "passed": true
+    },
+    {
+      "check": "Interactive Script Functions (filterGrantsParametric)",
+      "passed": true
+    },
+    {
+      "check": "Interactive Script Functions (switchTab)",
+      "passed": true
+    },
+    {
+      "check": "CSS Responsive Grid Styles",
+      "passed": true
+    },
+    {
+      "check": "CSS Badges and Color Palette",
+      "passed": true
+    }
+  ],
+  "summary": {
+    "verdict": "PASS",
+    "total_checks_performed": 95,
+    "ateco_nuts_checks": 45,
+    "nlp_scenarios_evaluated": 12,
+    "nlp_accuracy_percent": 100.0,
+    "scoring_math_checks": 7,
+    "complex_simulations_count": 3,
+    "dom_visual_checks": 28,
+    "de_minimis_cap_compliance": "Regolamento UE 2023/2831 (€300.000,00) Verified",
+    "crv_zero_mock_compliance": "PASS"
+  }
+}
