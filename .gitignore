@@ -27,7 +27,6 @@ Antigravity model/
 
 # Large Binaries & Generated Artifacts
 *.zip
-!releases/*.zip
 dashboard.html
 nk_tracking/cockpit/
 .archive/

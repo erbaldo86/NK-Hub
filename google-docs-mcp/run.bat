@@ -1,3 +1,2 @@
 @echo off
-call "%~dp0..\.venv\Scripts\activate.bat"
-python "%~dp0server.py"
+"C:\Users\erbal\.gemini\antigravity\servers\google-docs-mcp\.venv\Scripts\python.exe" "%~dp0server.py"

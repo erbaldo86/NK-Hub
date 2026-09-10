@@ -1,11 +1,11 @@
-# 🏛️ Nexus Keystone Hub — Sovereign AI Agentic OS (v1.6.0-VibeEnhanced)
-### *Sistema Operativo per Sviluppo Agentico Sovrano, Vibe Coding ad Alta Velocità & Validazione Zero-Mock*
+# 🏛️ Lab NK Hub — Sovereign AI Agentic OS (v1.6.0-VibeEnhanced)
+### *The Sovereign Cognitive Operating System, Multi-Agent Swarm Orchestrator & Vibe Coding Engine for Google Antigravity*
 
 <p align="center">
   <img src="https://img.shields.io/badge/Release-v1.6.0--VibeEnhanced-0052FF?style=for-the-badge&logo=shield&logoColor=white" alt="Release Badge" />
   <img src="https://img.shields.io/badge/Standard-CRV_4.0_Universal-00C853?style=for-the-badge&logo=checkmarx&logoColor=white" alt="CRV 4.0 Standard" />
   <img src="https://img.shields.io/badge/Zero--Mock-100%25_Real_Certified-FF6D00?style=for-the-badge&logo=databricks&logoColor=white" alt="Zero-Mock Certified" />
-  <img src="https://img.shields.io/badge/Permanent_Tests-109%2F109_PASS-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Permanent Tests" />
+  <img src="https://img.shields.io/badge/Platform_Core_Tests-100%25_PASS-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Platform Tests" />
   <img src="https://img.shields.io/badge/Anti--Freeze-Pulse_Sentinel_Active-brightgreen?style=for-the-badge&logo=prometheus&logoColor=white" alt="Anti-Freeze Sentinel" />
   <img src="https://img.shields.io/badge/Vibe_Coding-Triple--Speed_Mode_C%2FB%2FA-9C27B0?style=for-the-badge&logo=speedtest&logoColor=white" alt="Triple Speed Vibe Coding" />
   <img src="https://img.shields.io/badge/Commit_Lock-Win32_2PC_Named_Mutex-E91E63?style=for-the-badge&logo=windows&logoColor=white" alt="Win32 2PC Mutex" />
@@ -13,231 +13,211 @@
 
 ---
 
-## 📦 Archivio Storico: Download & Info Versione Precedente
+## ⚡ Patch Notes & Novità v1.6.0-VibeEnhanced (Cosa è Migliorato e Potenziato)
 
-Per garantire la massima tracciabilità storica, l'intero codice, i dataset e la documentazione della versione precedente (**v1.3.0-Universal-Official / v1.1.0**) sono stati archiviati e compressi:
+> **In Primo Piano:** Se conosci già la versione precedente (**v1.1.0-Universal**), ecco il riassunto esecutivo delle modifiche, dei potenziamenti e delle ottimizzazioni introdotte in **v1.6.0-VibeEnhanced**:
 
-* 📄 **File Informativo Dettagliato (Cosa faceva la versione precedente):**  
-  👉 Leggi [`releases/LEGACY_VERSION_V1.3.0_INFO.txt`](releases/LEGACY_VERSION_V1.3.0_INFO.txt) per visualizzare l'architettura originaria, le fonti censite e le motivazioni della transizione.
-* 💾 **Download Pacchetto Zip Completo Versione Precedente:**  
-  👉 Scarica [`releases/Nexus_Keystone_Hub_v1.3.0_Legacy_Backup.zip`](releases/Nexus_Keystone_Hub_v1.3.0_Legacy_Backup.zip) (Archivio zip integrale conforme al tag git `v1.3.0-Universal-Official`).
+### 1. 💓 Anti-Freeze Pulse Sentinel ([`scripts/async_heartbeat_signaler.py`](scripts/async_heartbeat_signaler.py))
+- **Cosa c'era prima:** Durante task molto lunghe, benchmark o cicli complessi (>45 secondi), l'assenza di output continuo faceva congelare l'ambiente o l'interprete dell'agente. Inoltre, scrivere log diagnostici nella root sincronizzata da Google Drive scatenava errori `WinError 32` / `WinError 5` (Sharing Violation) e deadlock I/O.
+- **Cosa è stato potenziato:** Implementato un generatore di battito asincrono continuo (15-20s) con watchdog hard ceiling a 45s. Tutti i dump diagnostici e i file di stato transitori sono ora **rigorosamente isolati sul disco fisico locale in `%TEMP%\nk_diagnostics\`**, azzerando qualsiasi freeze o lock su filesystem cloud virtuali.
+
+### 2. ⚡ Tassonomia a Tripla Velocità per il Vibe Coding ([`scripts/vibe_sprint_router.py`](scripts/vibe_sprint_router.py))
+- **Cosa c'era prima:** L'*Hard Execution Gate* (`[RULE-00]`) era monolitico: richiedeva approvazione manuale preventiva per qualsiasi operazione di scrittura, rallentando pesantemente i task veloci di frontend, UI o piccoli script.
+- **Cosa è stato potenziato:** Introdotto il router a 3 velocità graduate:
+  - **⚡ Mode C (Vibe-Sprint / Fluid-Track):** Per modifiche UI, frontend o singoli script $\le 150$ LOC (AST Risk Score $\le 0.3$). Time-To-First-Render $<15$s in staging senza burocrazia e senza permission ping-pong.
+  - **🔧 Mode B (Fast-Track Staging):** Per bugfix chirurgici e micro-features su backend con validazione mirata pre-commit.
+  - **🏛️ Mode A (Sovereign CRV 4.0):** Per rilasci di release o modifiche architetturali profonde, con la piena FSM a 5 turni e audit formale a 4 macro-fasi.
+
+### 3. 🎯 Mandati Intrinseci `/implementation` e `/goal`
+- **`[RULE-01.11]` Intrinsic Implementation:** I trigger verbali di pianificazione (*"crea un piano"*, *"progetta"*, *"definisci l'architettura"*, *"scrivi il brief"*) attivano automaticamente il formato standard `/implementation` (`concept_map.md`, `structural_tree.md`, `implementation_plan.md`) senza bisogno di istruzioni manuali.
+- **`[RULE-01.12]` Intrinsic Goal:** Quando l'utente assegna un obiettivo (*"realizza"*, *"costruisci"*, *"implementa"*), l'agente attiva la condotta goal-driven ininterrotta e il self-healing loop in staging fino al raggiungimento verificato della *Definition of Done*.
+
+### 4. 👥 Armonizzazione Universale delle 16 Skill Vocazionali
+- Sincronizzate tutte le 16 skill vocazionali sullo standard universale **CRV 4.0** (4 Macro-Fasi: Build & Stage, 100% Strict Read-Only Audit, 2PC Commit, Teardown) e sulla **Swarm FSM a 5 Turni** (Draft, Attack, Refine, Alignment, Commit).
+- Formalizzata la gerarchia di sovranità: `NK-Session-Controller` detiene il potere di VETO logico, `NK-Master-Hub` è il proprietario esclusivo del commit su disco con Named Mutex Win32.
+
+### 5. 🛡️ Correzione Quality Ratchet & Bonifica Totale delle Scorie
+- **Correzione Inverted Ratchet (`nk_tracking/quality_baseline.json`):** Risolto il bug storico che impostava `"higher_is_better": true` sul tasso di fallimento dei test. Ora il ratchet impone che nessuna modifica possa degradare la qualità sotto il 100.0% PASS.
+- **Compatibilità Estensioni Binarie Windows / Dokan (`sitecustomize.py`):** Risolto il crash `WinError 998: Invalid access to memory location` generato da Python 3.14 quando caricava librerie native C/Rust (`.pyd`) da volumi virtuali cloud, tramite caching trasparente su storage locale NVMe.
+- **Separazione Netta Hub vs Creazioni:** Rimossa qualsiasi scoria legacy di vecchie applicazioni o benchmark orfani. Lab NK Hub è ora focalizzato al 100% come sistema operativo di sviluppo agentico.
 
 ---
 
-## ⚡ Patch Notes & Novità v1.6.0-VibeEnhanced (Cosa è Cambiato e Potenziato)
+## 🧩 La Filosofia Fondamentale: "L'Hub è la Fabbrica, le Applicazioni sono i Prodotti"
 
-La release **v1.6.0-VibeEnhanced** rappresenta il più importante salto generazionale dell'ecosistema: trasforma Antigravity da ambiente di controllo rigido in un **motore per il Vibe Coding fluido, ininterrotto e sicuro**.
+Uno dei principi cardine di **Lab NK Hub** è la **netta separazione tra l'infrastruttura di orchestrazione e le creazioni software prodotte**:
 
-Ecco cosa è stato introdotto, potenziato e corretto:
+```text
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                                LAB NK HUB (La Fabbrica)                                 │
+│  .agents/ (16 Skill)  │  scripts/ (14 Motori)  │  nk_genome/ (SSOT)  │  nk_tracking/    │
+└────────────────────────────────────────────┬────────────────────────────────────────────┘
+                                             │
+                       Crea, Collauda, Certifica & Archivia
+                                             │
+                                             ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                              LE CREAZIONI (I Prodotti)                                  │
+│                                                                                         │
+│   📁 Programmi di test/TestNK/     ──► Gestionale Imprese, ATECO & UE Size (Archiviato) │
+│   📁 Future Applicazioni / App X   ──► Portali, Microservizi, Bot (Cartelle Separate)   │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+```
 
-### 1. 💓 Anti-Freeze Pulse Sentinel ([`scripts/async_heartbeat_signaler.py`](scripts/async_heartbeat_signaler.py))
-- **Problema Risolto:** Durante elaborazioni prolungate o task asincroni (>45 secondi), l'assenza di output faceva congelare l'interfaccia o l'interprete dell'agente. Inoltre, scrivere log diagnostici su volumi sincronizzati da cloud (Google Drive) scatenava errori `WinError 32` / `WinError 5` (Sharing Violation) e deadlock I/O.
-- **Potenziamento:** Emette un impulso vitale (*heartbeat*) ogni 15-20s con un watchdog hard ceiling a 45s. Tutti i dump e i dati transitori sono rigorosamente isolati nella cartella fisica locale `%TEMP%\nk_diagnostics\`, azzerando i freeze e i lock su filesystem virtuali.
-
-### 2. ⚡ Tassonomia a Tripla Velocità per il Vibe Coding ([`scripts/vibe_sprint_router.py`](scripts/vibe_sprint_router.py))
-- **Problema Risolto:** Il precedente *Hard Execution Gate* (`[RULE-00]`) bloccava qualsiasi scrittura senza autorizzazione manuale preventiva, trasformando anche piccoli ritocchi UI o micro-script in un frustrante "permission ping-pong".
-- **Potenziamento:** Introdotte 3 modalità operative graduate:
-  - **⚡ Mode C (Vibe-Sprint / Fluid-Track):** Attivato per frontend, UI o modifiche rapide ($\le 150$ LOC, AST Risk Score $\le 0.3$). Time-To-First-Render $<15$s in staging senza burocrazia.
-  - **🔧 Mode B (Fast-Track Staging):** Per bugfix e micro-features su backend con validazione mirata pre-commit.
-  - **🏛️ Mode A (Sovereign CRV 4.0):** Riservato a rilasci di sistema, modifiche architetturali profonde e refactoring core con l'intera FSM a 5 turni.
-
-### 3. 🎯 Mandati Intrinseci `/implementation` e `/goal`
-- **`[RULE-01.11]` Intrinsic Implementation:** Non occorre più ricordare all'agente di strutturare i piani secondo lo standard `/implementation`. Qualsiasi richiesta di pianificazione, brief o architettura genera automaticamente il Trittico in `nk_genome/` (`concept_map.md`, `structural_tree.md`, `implementation_plan.md`).
-- **`[RULE-01.12]` Intrinsic Goal:** Quando l'utente esprime un obiettivo ("sviluppa la feature X", "risolvi questo bug"), l'agente attiva la modalità ininterrotta e il self-healing loop fino alla certificazione della *Definition of Done*.
-
-### 4. 👥 Armonizzazione Totale delle 16 Skill & FSM a 5 Turni
-- Tutte le 16 skill vocazionali sono state aggiornate allo standard **CRV 4.0** a 4 Macro-Fasi e allineate sulla **Swarm FSM a 5 Turni** (Turn 1: Draft, Turn 2: Attack/Stress, Turn 3: Refine/Build, Turn 4: Alignment 1:1, Turn 5: Commit & Handoff).
-- Formalizzata la gerarchia di sovranità: `NK-Session-Controller` detiene il potere di VETO logico, `NK-Master-Hub` è il gestore esclusivo del commit su disco.
-
-### 5. 🛡️ Bonifica Scorie, Correzione Ratchet e Protezione 109 Test
-- **Ratchet Non-Regressivo (`nk_tracking/quality_baseline.json`):** Corretto il bug che impostava `"higher_is_better": true` sul failure rate. Ora il ratchet protegge rigorosamente il 100% PASS su tutti i **109 test permanenti**.
-- **Bonifica Repository:** Eliminati file orfani con path hardcoded (`verify_benchmark_60.py`), ripulite directory effimere e archiviati i test legacy a 60 scenari.
-- **Compatibilità Windows / GoogleDriveFS (`sitecustomize.py`):** Risolto il crash `WinError 998: Invalid access to memory location` generato da Python 3.14 quando caricava librerie native compilate in Rust (`_rust.pyd` di `cryptography`) da volumi virtuali cloud, tramite caching trasparente su NVMe locale.
+* **Lab NK Hub** risiede nel repository GitHub: è la piattaforma che contiene le regole, le skill, i motori asincroni, i compilatori AST e i sistemi di sandboxing.
+* **Le Creazioni** (come il gestionale `TestNK` che abbiamo appena sviluppato, testato con 29 test e archiviato nella cartella `Programmi di test`, o future applicazioni) sono i prodotti finiti generati dall'Hub. Vengono collaudate in sandbox e archiviate nei rispettivi depositi dedicati, mantenendo l'Hub sempre pulito, leggero e pronto per nuove sfide.
 
 ---
 
 ## 📖 Indice dei Contenuti
-1. [🌟 Che cos'è Nexus Keystone Hub?](#-1-che-cosè-nexus-keystone-hub)
+1. [🌟 Che cos'è Lab NK Hub?](#-1-che-cosè-lab-nk-hub)
 2. [⚙️ Come Funziona e Come NON Funziona](#-2-come-funziona-e-come-non-funziona)
 3. [👥 Mappa Completa delle 16 Skill Vocazionali](#-3-mappa-completa-delle-16-skill-vocazionali)
-4. [🛠️ Guida Pratica: Come Utilizzarlo (Per Utenti Esperti e Non Esperti)](#-4-guida-pratica-come-utilizzarlo-per-utenti-esperti-e-non-esperti)
-5. [🔄 Scenario di Esempio End-to-End: Il Flusso di una Task Reale](#-5-scenario-di-esempio-end-to-end-il-flusso-di-una-task-reale)
+4. [🛠️ Guida Pratica: Come Bisognerebbe Utilizzarla](#-4-guida-pratica-come-bisognerebbe-utilizzarla)
+5. [🔄 Scenario di Esempio End-to-End: Come NK Hub Crea un'Applicazione](#-5-scenario-di-esempio-end-to-end-come-nk-hub-crea-unapplicazione)
 6. [🚀 Installazione Rapida & Verifiche di Piattaforma](#-6-installazione-rapida--verifiche-di-piattaforma)
 7. [📊 Matrice Ufficiale di Certificazione](#-7-matrice-ufficiale-di-certificazione)
 
 ---
 
-# 🌟 1. Che cos'è Nexus Keystone Hub?
+# 🌟 1. Che cos'è Lab NK Hub?
 
-**Nexus Keystone Hub (NK)** non è una semplice libreria e non è un set di prompt testuali: è un **Sistema Operativo Agentico Deterministico (Agentic OS)** progettato per governare gli assistenti di coding AI (come Google Antigravity e Claude) quando lavorano su codebase reali.
+**Lab NK Hub (Nexus Keystone)** è un **Sistema Operativo Agentico Deterministico (Agentic OS)** progettato per governare gli assistenti di intelligenza artificiale (come Google Antigravity e Claude) quando scrivono, modificano e collaudano codice software reale.
 
-```text
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                        NEXUS KEYSTONE v1.6.0-VIBEENHANCED                              │
-│                                                                                        │
-│   🗣️ Utente (Richiesta Naturale / Vibe Coding)                                         │
-│        │                                                                               │
-│        ▼                                                                               │
-│   🧠 NK-Session-Controller  ──► Auto-Brief Swarm FSM (5 Turni Concatenati)             │
-│        │                                                                               │
-│   ┌────┴───────────────────────────┬───────────────────────────┐                       │
-│   ▼                                ▼                           ▼                       │
-│ ⚡ Mode C (Vibe-Sprint)        🔧 Mode B (Fast-Track)      🏛️ Mode A (Sovereign CRV)   │
-│   (UI/Frontend, TTFR <15s)         (Bugfix & Micro-API)        (Release Core, Trittico)│
-│        │                                │                           │                  │
-│        └────────────────────────────────┴───────────────────────────┘                  │
-│                                │                                                       │
-│                                ▼                                                       │
-│   📦 Staging Isolato (.staging/) ──► Invisible Self-Healing Loop (AST + SBFL Ochiai)   │
-│                                │                                                       │
-│                                ▼                                                       │
-│   🔬 Dynamic Sandbox (%TEMP%\nk_sandbox_*) ──► Cold Audit 100% Strict Read-Only        │
-│                                │                                                       │
-│                                ▼ (Solo se 100% PASS)                                  │
-│   🔒 NK-Master-Hub Commit  ──► Win32 2PC Named Mutex + WAL SHA-256 + MoveFileExW       │
-│                                │                                                       │
-│                                ▼                                                       │
-│   💾 Memoria Episodica 3-Tier & Mirroring Changelog SSOT (NK-Scribe)                   │
-└────────────────────────────────────────────────────────────────────────────────────────┘
-```
+Quando si lavora con modelli LLM avanzati nel coding quotidiano, si manifestano frequentemente 4 grandi problemi:
+1. **Scritture Selvaggie & Allucinazioni:** L'agente modifica direttamente file di produzione prima ancora di aver compreso a fondo l'architettura o testato il codice, rompendo funzionalità esistenti.
+2. **Crash da File Lock su Cloud Storage:** Modifiche concorrenti su cartelle sincronizzate (Google Drive, Dropbox, OneDrive) generano collisioni `WinError 32` / `WinError 5` che corrompono i sorgenti.
+3. **Falsi Positivi da "Mock":** I test generati dall'AI usano spesso `MagicMock` e fuzzer in memoria che simulano il successo, ma quando il codice viene avviato su processi e database reali fallisce miseramente.
+4. **Saturazione & Amnesia di Contesto:** Task lunghe saturano la finestra di contesto (token context limit), facendo dimenticare all'agente le specifiche iniziali o congelando l'interfaccia.
 
-Nel coding tradizionale con AI, gli agenti tendono a:
-- Scrivere subito nei file di produzione rompendo codice funzionante;
-- Usare mock finti nei test che nascondono i bug reali;
-- Bloccarsi durante elaborazioni lunghe o provocare lock sui file condivisi;
-- Dimenticare le decisioni prese all'inizio della sessione.
-
-**Nexus Keystone Hub elimina radicalmente queste debolezze**, garantendo che ogni riga di codice prodotta sia testata matematicamente su processi reali prima di essere confermata.
+**Lab NK Hub risolve questi problemi alla radice**, trasformando l'AI da semplice "generatore di testo" a un'**equipe ingegneristica autonoma e disciplinata**.
 
 ---
 
 # ⚙️ 2. Come Funziona e Come NON Funziona
 
-Per sfruttare appieno l'Hub, è fondamentale comprendere i confini operativi del sistema:
-
 ### 🟢 Come Funziona (I 5 Pilastri Sovrani)
-1. **Staging Obbligatorio (`.staging/`):** Nessun costruttore scrive direttamente nei file di produzione (`src_app/`). Tutto viene generato in `.staging/` e validato preventivamente dall'AST Guard Validator.
-2. **Invisible Self-Healing Loop:** Se il codice in staging fallisce un test o ha un errore di sintassi, il sistema attiva fino a 3 iterazioni automatiche di auto-riparazione con localizzazione del guasto (SBFL Ochiai), senza interrompere l'utente per domande banali.
-3. **Audit Isolato 100% Strict Read-Only (Macro-Fase 2):** Durante l'audit, i validatori (`NK-Oracle-Evaluator`, `NK-Security-Auditor`) NON possono modificare il codice. Valutano la patch a freddo in una sandbox temporanea: al minimo difetto, scatta il VETO immediato.
-4. **Commit Atomico a 2 Fasi (Win32 2PC Mutex):** Solo dopo un PASS pieno, l'Hub Sovrano acquisisce un Named Mutex di Windows a livello di kernel, scrive il Write-Ahead Log (WAL) con hash crittografico SHA-256 e promuove i file in produzione con rename atomico (`MoveFileExW`).
-5. **Memoria Episodica a 3 Livelli:** Organizzata su 4 domini (`ARCH`, `SEC`, `OPS`, `DEVX`), mantiene la memoria di lavoro sotto i 350 token per dominio, garantendo sessioni lunghe senza saturazione del contesto.
+1. **Staging Isolato Obbligatorio (`.staging/`):** Nessun builder scrive mai direttamente nei sorgenti di produzione. Il codice viene generato in un'area di staging isolata e sottoposto a controllo sintattico AST ([`scripts/ast_guard_validator.py`](scripts/ast_guard_validator.py)).
+2. **Invisible Self-Healing Loop:** Se il codice in staging presenta errori, l'Hub attiva un ciclo di auto-riparazione a 3 iterazioni con localizzazione matematica del guasto (**SBFL Ochiai / Tarantula**, [`scripts/sbfl_engine.py`](scripts/sbfl_engine.py)), correggendo il bug prima che chiunque se ne accorga.
+3. **Audit Dinamico 100% Strict Read-Only:** Nella Macro-Fase 2, gli auditor di sicurezza e l'Oracolo ([`scripts/oracle_evaluator_l3.py`](scripts/oracle_evaluator_l3.py)) eseguono i test in sandbox temporanee (`%TEMP%\nk_sandbox_*`). Durante l'audit è vietato modificare il codice: se c'è un errore, scatta il VETO immediato.
+4. **Commit Atomico a 2 Fasi con Win32 Named Mutex:** Solo se tutti i test hanno esito PASS (100%), [`NK-Master-Hub`](.agents/skills/NK-Master-Hub/SKILL.md) acquisisce un Named Mutex di Windows a livello di kernel (`scripts/win32_2pc_engine.py`), scrive il Write-Ahead Log (WAL) crittografico SHA-256 e promuove i file con rename atomico `MoveFileExW` con Shadow Swap Fallback per dischi cloud.
+5. **Memoria Episodica a 3 Livelli:** Gestita da [`scripts/memory_3tier_engine.py`](scripts/memory_3tier_engine.py) su 4 domini (`ARCH`, `SEC`, `OPS`, `DEVX`), mantiene la memoria di lavoro entro un cap di 350 token per dominio, garantendo coerenza a lungo termine senza sovraccaricare il contesto.
 
-### 🔴 Come NON Funziona (Cosa l'Ecosistema VIETA Tassativamente)
-- ❌ **NON permette modifiche dirette a caldo:** Nessun agente può fare `write_to_file` su file di produzione senza passare dal ciclo di staging e audit.
-- ❌ **NON accetta mock o simulazioni (`[RULE-01.2]`):** È categoricamente vietato l'uso di `unittest.mock.MagicMock`. I test devono interrogare database SQLite reali, processi reali e API reali.
-- ❌ **NON fa "permission ping-pong" su task veloci:** In modalità Mode C o su script di supporto, l'agente non ti chiederà conferma per ogni singolo comando o file temporaneo, ma procederà fluidamente fino al risultato.
-- ❌ **NON degrada il passato (`[RULE-01.10]`):** Nessuna modifica può ridurre la percentuale di superamento della suite permanente di 109 test sotto il 100.0%.
+### 🔴 Come NON Funziona (I Divieti Tassativi del Regolamento)
+- ❌ **NON consente scritture non autorizzate (`[RULE-00]`):** Divieto assoluto di toccare file di produzione senza autorizzazione o senza passare per il ciclo di staging.
+- ❌ **NON accetta mock o simulazioni sintetiche (`[RULE-01.2]`):** Divieto categorico di `MagicMock`. Ogni test deve girare su processi reali, database reali su disco e connessioni HTTP reali.
+- ❌ **NON impone burocrazia su task veloci (`[RULE-01.8]`):** Per modifiche UI rapide o frontend, l'agente non fa "permission ping-pong" ad ogni riga, ma usa Mode C con Time-To-First-Render $<15$s.
+- ❌ **NON permette regressioni qualitative (`[RULE-01.10]`):** Nessuna modifica può abbassare il superamento della suite di test di piattaforma sotto il 100.0%.
 
 ---
 
 # 👥 3. Mappa Completa delle 16 Skill Vocazionali
 
-L'ecosistema scompone il ciclo di sviluppo su **16 agenti specializzati**, ciascuno con un ruolo preciso e vincoli ferrei:
+L'Hub orchestra uno sciame di **16 esperti vocazionali**, ciascuno confinato al proprio ruolo:
 
-| # | Skill | Ruolo & Vocazione | Macro-Fase CRV | Turno FSM | Modalità I/O |
-| :---: | :--- | :--- | :---: | :---: | :--- |
-| **1** | [`NK-Master-Hub`](.agents/skills/NK-Master-Hub/SKILL.md) | **Sovrano Infrastrutturale L3.** Central Change Router, Kahn DAG, lock Win32 Named Mutex e titolarità esclusiva del commit 2PC. | Macro 3 | Turno 5 | Full I/O (Sovereign Committer) |
-| **2** | [`NK-Session-Controller`](.agents/skills/NK-Session-Controller/SKILL.md) | **Sovrano Critico di Sessione.** Orchestratore dell'Auto-Brief Swarm FSM a 5 turni, gestore trigger `/implementation` e `/goal`, potere di VETO assoluto. | Tutte | Turno 1-5 | Strict Read-Only su `src_app/` |
-| **3** | [`NK-Ideator`](.agents/skills/NK-Ideator/SKILL.md) | **Ideatore Concettuale (L0).** Tecniche SCAMPER, benchmark analysis, stress concettuale e generazione della Concept Map in `nk_genome/`. | Macro 1 | Turno 1 | Write su `nk_genome/` |
-| **4** | [`NK-Plan-Aligner`](.agents/skills/NK-Plan-Aligner/SKILL.md) | **Allineatore 1:1.** Verifica corrispondenza esatta tra Brief concettuale, Albero Strutturale e Implementation Plan prima dello sviluppo. | Macro 1 | Turno 4 | Strict Read-Only su `src_app/` |
-| **5** | [`NK-Python-Async-Builder`](.agents/skills/NK-Python-Async-Builder/SKILL.md) | **Costruttore Core Backend.** Infrastrutture asincrone Python, Pydantic v2, OpenAPI 3.0 e sandboxing nativo. Scrive solo in `.staging/`. | Macro 1 | Turno 3 | Staging Writer |
-| **6** | [`NK-Delta-Architect`](.agents/skills/NK-Delta-Architect/SKILL.md) | **Architetto di Modifica & Patch.** Riceve prompt a 4 blocchi, esegue il Two-Stage Grounding e guida l'Invisible Self-Healing Loop. | Macro 1 | Turno 3 | Staging Writer |
-| **7** | [`NK-Backend-Architect`](.agents/skills/NK-Backend-Architect/SKILL.md) | **Progettista Topologie & API.** Modella schemi database, contratti OpenAPI e architetture scalabili. | Macro 1 | Turno 1-3 | Architecture Specifier (Read-Only) |
-| **8** | [`NK-App-UX-Architect`](.agents/skills/NK-App-UX-Architect/SKILL.md) | **Architetto UX/UI & Frontend.** Progetta interfacce responsive, dashboard accessibili e contratti DOM. | Macro 1 | Turno 1-3 | Strict Read-Only su `src_app/` |
-| **9** | [`NK-Oracle-Evaluator`](.agents/skills/NK-Oracle-Evaluator/SKILL.md) | **Oracolo Deterministico.** Cold Auditor per validazione patch in sandbox effimera, composite scoring triple-sample e verifiche matematiche. | Macro 2 | Turno 4 | Strict Read-Only (100%) |
-| **10** | [`NK-Security-Auditor`](.agents/skills/NK-Security-Auditor/SKILL.md) | **Auditor di Sicurezza Full-Stack.** Analisi vulnerabilità SAST/DAST L1/L2/L3, Dual-Shield Cascade e rilascio report olografici TAS. | Macro 2 | Turno 2 | Strict Read-Only (100%) |
-| **11** | [`NK-Dynamic-Sandbox-StressTester`](.agents/skills/NK-Dynamic-Sandbox-StressTester/SKILL.md) | **Stress Tester Runtime.** Esegue pen-testing, simulazioni di carico concorrente e DAST dinamico in sandbox isolate. | Macro 2 | Turno 2 | Sandbox Dynamic Execution |
-| **12** | [`NK-Bug-Diagnostic-Engine`](.agents/skills/NK-Bug-Diagnostic-Engine/SKILL.md) | **Motore Diagnostico RCA.** Localizzazione guasti SBFL (Ochiai, Tarantula) e scarto automatico di falsi bug. | Macro 1 | Turno 2 | Strict Read-Only |
-| **13** | [`NK-State-Router`](.agents/skills/NK-State-Router/SKILL.md) | **Gestore di Stato & Drift Detection.** Manutenzione del DAG strutturale, rilevamento drift del codice e backup circolari. | Macro 1-3 | Tutte | State Manager |
-| **14** | [`NK-Episodic-Memory-Engine`](.agents/skills/NK-Episodic-Memory-Engine/SKILL.md) | **Gestore Memoria a Lungo Termine.** Indicizzazione vettoriale, archiviazione JSONL e recupero semantico per i 4 domini NK. | Macro 3 | Turno 5 | Memory Engine |
-| **15** | [`NK-Agent-Instruction-Forge`](.agents/skills/NK-Agent-Instruction-Forge/SKILL.md) | **Generatore Istruzioni di Sistema.** Fonderia per la creazione di nuovi agenti e sub-agenti con schemi YAML validati. | Utility | On Demand | Instruction Specifier |
-| **16** | [`NK-Scribe`](.agents/skills/NK-Scribe/SKILL.md) | **Documentatore & Cronista Ufficiale.** Aggiorna il changelog SSOT (`PATCH_NOTES.md`), la telemetria di sessione e sincronizza la documentazione. | Macro 3 | Turno 5 | Doc Writer (Post-Pass) |
-
----
-
-# 🛠️ 4. Guida Pratica: Come Utilizzarlo (Per Utenti Esperti e Non Esperti)
-
-Nexus Keystone Hub è progettato per essere **immediato per chi non vuole complessità**, ma **estremamente potente per lo sviluppatore senior**.
-
-### 👶 Per l'Utente Non Esperto (Zero Burocrazia, Linguaggio Naturale)
-Non hai bisogno di conoscere la terminologia tecnica delle FSM o dei Mutex. Puoi semplicemente parlare in linguaggio naturale:
-
-1. **Se vuoi creare o prototipare qualcosa:**
-   > *"Voglio creare un'applicazione gestionale per registrare le mie attività, con il codice ATECO e il calcolo della dimensione aziendale."*  
-   *Cosa fa NK:* Attiva automaticamente la modalità intrinseca `/goal` e `/implementation`, definisce il piano, scrive il codice in staging, si auto-ripara se incontra errori e ti consegna l'applicazione funzionante.
-2. **Se vuoi sistemare un problema:**
-   > *"C'è un errore nella visualizzazione dei clienti quando la partita IVA inizia con zero. Correggilo."*  
-   *Cosa fa NK:* Attiva la diagnosi SBFL, localizza la riga del bug, valida la correzione in sandbox e applica la patch senza rompere gli altri test.
-3. **Se vuoi modificare l'aspetto grafico:**
-   > *"Rendi la dashboard con una grafica scura moderna e aggiungi un pulsante per esportare in Excel."*  
-   *Cosa fa NK:* Rileva che si tratta di una modifica UI $\le 150$ LOC, attiva la modalità **Mode C (Vibe-Sprint)** e aggiorna il frontend in pochi secondi senza pause burocratiche.
+| Skill | Ruolo & Vocazione | Macro-Fase CRV | Turno FSM | Modalità Operativa |
+| :--- | :--- | :---: | :---: | :--- |
+| [`NK-Master-Hub`](.agents/skills/NK-Master-Hub/SKILL.md) | **Sovrano Infrastrutturale L3.** Central Change Router, Kahn DAG, Named Mutex Win32 e titolarità esclusiva del commit atomico 2PC. | Macro 3 | Turno 5 | Sovereign Committer |
+| [`NK-Session-Controller`](.agents/skills/NK-Session-Controller/SKILL.md) | **Sovrano Critico di Sessione.** Regista della Swarm FSM a 5 turni, gestore trigger `/implementation` e `/goal`, potere di VETO assoluto. | Tutte | Turno 1-5 | Strict Read-Only |
+| [`NK-Ideator`](.agents/skills/NK-Ideator/SKILL.md) | **Ideatore Concettuale (L0).** Tecniche SCAMPER, benchmark analysis, stress concettuale e stesura del Concept Map in `nk_genome/`. | Macro 1 | Turno 1 | Spec Writer |
+| [`NK-Plan-Aligner`](.agents/skills/NK-Plan-Aligner/SKILL.md) | **Allineatore 1:1.** Verifica corrispondenza perfetta tra Brief, Albero Strutturale e Piano di Implementazione prima della scrittura. | Macro 1 | Turno 4 | Strict Read-Only |
+| [`NK-Python-Async-Builder`](.agents/skills/NK-Python-Async-Builder/SKILL.md) | **Costruttore Core Backend.** Generatore di codice asincrono Python, Pydantic v2, FastAPI e sandboxing nativo. Scrive solo in `.staging/`. | Macro 1 | Turno 3 | Staging Builder |
+| [`NK-Delta-Architect`](.agents/skills/NK-Delta-Architect/SKILL.md) | **Architetto di Modifica & Patch.** Riceve prompt a 4 blocchi, esegue Two-Stage Grounding e guida il self-healing loop in staging. | Macro 1 | Turno 3 | Staging Builder |
+| [`NK-Backend-Architect`](.agents/skills/NK-Backend-Architect/SKILL.md) | **Progettista Topologie & API.** Modella schemi database relazionali, contratti OpenAPI e architetture scalabili. | Macro 1 | Turno 1-3 | API Specifier |
+| [`NK-App-UX-Architect`](.agents/skills/NK-App-UX-Architect/SKILL.md) | **Architetto UX/UI & Frontend.** Progetta interfacce responsive, dashboard accessibili e contratti DOM. | Macro 1 | Turno 1-3 | UI Specifier |
+| [`NK-Oracle-Evaluator`](.agents/skills/NK-Oracle-Evaluator/SKILL.md) | **Oracolo Deterministico.** Cold Auditor per validazione patch in sandbox effimera, composite scoring triple-sample e verifiche formali. | Macro 2 | Turno 4 | Cold Auditor (100% RO) |
+| [`NK-Security-Auditor`](.agents/skills/NK-Security-Auditor/SKILL.md) | **Auditor di Sicurezza Full-Stack.** Analisi vulnerabilità SAST/DAST L1/L2/L3, Dual-Shield Cascade e rilascio report di audit TAS. | Macro 2 | Turno 2 | Security Auditor (100% RO) |
+| [`NK-Dynamic-Sandbox-StressTester`](.agents/skills/NK-Dynamic-Sandbox-StressTester/SKILL.md) | **Stress Tester Runtime.** Esegue pen-testing isolato, carichi concorrenti e DAST dinamico in sandbox temporanee. | Macro 2 | Turno 2 | Sandbox Runner |
+| [`NK-Bug-Diagnostic-Engine`](.agents/skills/NK-Bug-Diagnostic-Engine/SKILL.md) | **Motore Diagnostico RCA.** Localizzazione matematica del guasto SBFL (Ochiai, Tarantula) e scarto di falsi bug. | Macro 1 | Turno 2 | Strict Read-Only |
+| [`NK-State-Router`](.agents/skills/NK-State-Router/SKILL.md) | **Gestore di Stato & Drift Detection.** Rilevamento drift del codice sorgente, manutenzione del DAG e backup di consistenza. | Macro 1-3 | Tutte | State Engine |
+| [`NK-Episodic-Memory-Engine`](.agents/skills/NK-Episodic-Memory-Engine/SKILL.md) | **Motore Memoria a Lungo Termine.** Indicizzazione vettoriale, archiviazione JSONL e recupero semantico per i 4 domini NK. | Macro 3 | Turno 5 | Memory Engine |
+| [`NK-Agent-Instruction-Forge`](.agents/skills/NK-Agent-Instruction-Forge/SKILL.md) | **Fonderia Agenti.** Generatore formale di istruzioni di sistema e manifest YAML per nuovi sotto-agenti specializzati. | Utility | On Demand | Specifier |
+| [`NK-Scribe`](.agents/skills/NK-Scribe/SKILL.md) | **Cronista & Documentatore.** Aggiorna il changelog SSOT (`PATCH_NOTES.md`), i registri di sessione e sincronizza la documentazione. | Macro 3 | Turno 5 | Doc Writer (Post-Pass) |
 
 ---
 
-### 👨‍💻 Per l'Utente Esperto (Controllo Architetturale & CLI)
-Per gli sviluppatori avanzati, l'Hub offre un controllo granulare su metriche, porte e comandi di piattaforma:
+# 🛠️ 4. Guida Pratica: Come Bisognerebbe Utilizzarla
 
-* **Controllo Salute Preflight:**
+### 👶 Per l'Utente Non Esperto (Linguaggio Naturale)
+Non devi conoscere i dettagli dei Mutex Win32 o della localizzazione Ochiai. Parla semplicemente con il tuo assistente:
+
+1. **Creare un nuovo software o prototipo:**
+   > *"Voglio realizzare un'applicazione per gestire i preventivi dei clienti, con calcolo automatico dell'IVA e generazione di report in PDF."*  
+   *Comportamento di NK Hub:* Comprende l'obiettivo, attiva `/implementation` e `/goal`, definisce il piano, scrive il codice in staging isolato, collauda i calcoli in sandbox e ti notifica quando l'applicazione è funzionante e archiviata.
+2. **Riparare un bug:**
+   > *"Quando inserisco un importo negativo il programma va in crash invece di mostrare un errore."*  
+   *Comportamento di NK Hub:* Isola il punto esatto del codice difettoso tramite SBFL, applica la patch correttiva in sandbox e la promuove solo se tutti i test passano.
+3. **Modifiche grafiche veloci (Vibe Coding):**
+   > *"Aggiungi una modalità scura alla dashboard e metti un pulsante verde per esportare in CSV."*  
+   *Comportamento di NK Hub:* Riconosce una modifica frontend veloce ($\le 150$ LOC), attiva Mode C e applica il cambiamento in meno di 15 secondi senza bloccarti con continue conferme.
+
+---
+
+### 👨‍💻 Per lo Sviluppatore Esperto (Controllo Architetturale & CLI)
+Per gli ingegneri software che desiderano governare le verifiche da terminale:
+
+* **Preflight Health Check:**
   ```powershell
   & ".\.venv\Scripts\python.exe" scripts/preflight_health_check.py
   ```
-  Ispeziona i file WAL transazionali, la coerenza della SSOT Anchor e sanitizza le cache.
-* **Esecuzione Suite di Test Permanente (109 Test Zero-Mock):**
-  ```powershell
-  & ".\.venv\Scripts\pytest.exe" tests/ -v
-  ```
-* **Verifica AST su Tutti i Sorgenti:**
+  Verifica lo stato di salute dell'Hub, pulisce i file transazionali WAL aventi TTL $>60$s e verifica l'integrità della Session Anchor.
+* **Controllo Sintattico & AST Guard su Tutti i File:**
   ```powershell
   & ".\.venv\Scripts\python.exe" scripts/ast_guard_validator.py --target all
   ```
-* **Verifica del Quality Ratchet:**
+* **Esecuzione Suite di Test Permanente:**
+  ```powershell
+  & ".\.venv\Scripts\pytest.exe" tests/ -v
+  ```
+* **Verifica Baseline di Qualità & Ratchet Non-Regressivo:**
   ```powershell
   & ".\.venv\Scripts\python.exe" scripts/quality_baseline_manager.py --check
-  ```
-* **Stress Test Reale su 80 Scenari:**
-  ```powershell
-  & ".\.venv\Scripts\python.exe" scripts/run_stress_test_80.py --batch all
   ```
 
 ---
 
-# 🔄 5. Scenario di Esempio End-to-End: Il Flusso di una Task Reale
+# 🔄 5. Scenario di Esempio End-to-End: Come NK Hub Crea un'Applicazione
 
-Ecco la ricostruzione esatta di come le 16 skill hanno collaborato durante la creazione e il collaudo reale dell'applicazione di test **`TestNK`**:
+Ecco la ricostruzione dettagliata di come Lab NK Hub ha gestito una richiesta reale di sviluppo: la creazione da zero del gestionale **`TestNK`** (anagrafica imprese, validazione P.IVA Luhn, codici ATECO e calcolo dimensione UE 2003/361/CE):
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor User as Utente
     participant SC as NK-Session-Controller
-    participant ID as NK-Ideator & Backend-Arch
+    participant ID as NK-Ideator / Architetti
     participant BL as NK-Python-Async-Builder
     participant OR as NK-Oracle & Security-Auditor
     participant MH as NK-Master-Hub
-    participant SB as NK-Scribe
+    participant FS as Deposito Creazioni (Programmi di test)
 
     User->>SC: "Crea un gestionale anagrafica con ATECO, dimensione UE e bridge bandi"
     Note over SC: [Turno 1: Draft] Attiva /implementation intrinseco
-    SC->>ID: Genera Trittico (concept_map, structural_tree, plan)
-    ID-->>SC: Specifiche Bounded Context e contratti API
+    SC->>ID: Genera concept_map, structural_tree e piano
+    ID-->>SC: Specifiche Bounded Context e modelli dati pronti
     Note over SC: [Turno 2: Attack & Stress]
-    SC->>OR: Valuta rischi, concurrency e collisioni di memoria
-    OR-->>SC: Red-Team Report & mitigazioni identificate
+    SC->>OR: Analisi avversariale su lock concorrenziali e memory leak
+    OR-->>SC: Identificati requisiti di compatibilità e validazione Luhn
     Note over SC: [Turno 3: Build & Self-Healing]
-    SC->>BL: Scrivi codice esclusivamente in .staging/
-    Note over BL: Rilevato crash WinError 998 & Pydantic v2 mismatch
-    Note over BL: Invisible Self-Healing: genera sitecustomize.py e safe schemas
-    BL-->>SC: Build completata in staging con AST Check PASS
+    SC->>BL: Sviluppa in .staging/ con database SQLite reale
+    Note over BL: Rilevato crash encoding CP1252 e DLL Dokan WinError 998
+    Note over BL: Self-Healing: genera sitecustomize.py e safe logging
+    BL-->>SC: Build completata con AST Guard PASS (100%)
     Note over SC: [Turno 4: 1:1 Alignment & Cold Audit]
-    SC->>OR: Esegui 29 test in %TEMP%\nk_sandbox_* (100% Strict Read-Only)
-    OR-->>SC: VERDETTO: PASS (29/29 test, 0 regressioni)
-    Note over SC: [Turno 5: Commit & Governance]
-    SC->>MH: Autorizzazione atomica al commit
-    Note over MH: Acquisizione Win32 Named Mutex -> WAL SHA-256 -> Atomic Move
-    MH-->>SC: File promossi in produzione su disco reale
-    SC->>SB: Sincronizza PATCH_NOTES.md, README e memorie 3-tier
-    SB-->>User: Applicazione attiva su http://127.0.0.1:8050 e documentata!
+    SC->>OR: Esegui 29 test reali in sandbox effimera (Strict Read-Only)
+    OR-->>SC: VERDETTO: PASS (29/29 test, zero-mock verificato)
+    Note over SC: [Turno 5: Commit Atomico & Archiviazione]
+    SC->>MH: Esegui commit Win32 2PC Mutex
+    Note over MH: Acquisizione Named Mutex -> WAL crittografico SHA-256
+    MH->>FS: Archivia l'app in "Programmi di test/TestNK" con README dedicato
+    Note over MH: Bonifica la cartella di staging e rimuove i residui dall'Hub
+    MH-->>User: ✅ Applicazione creata, collaudata e archiviata! L'Hub rimane pulito.
 ```
+
+Questo flusso dimostra plasticamente la potenza dell'Hub:
+1. Ha gestito l'intero ciclo di vita senza intasare la conversazione principale;
+2. Ha risolto autonomamente problemi reali di compatibilità Windows a basso livello;
+3. Ha archiviato il software finito nella cartella dedicata [`Programmi di test/TestNK`](file:///G:/Il%20mio%20Drive/Programmi%20di%20test/TestNK/), lasciando il workspace di Lab NK Hub pulito, leggero e pronto per la prossima creazione.
 
 ---
 
@@ -245,43 +225,42 @@ sequenceDiagram
 
 ### Prerequisiti
 * **Sistema Operativo:** Windows 10 / 11 (64-bit) con PowerShell 7 o Windows PowerShell standard.
-* **Python:** Versione 3.10, 3.11, 3.12 o 3.14 (supporto nativo CTypes/Win32).
-* **Git:** Installato e disponibile nel PATH di sistema.
+* **Python:** Versione 3.10, 3.11, 3.12 o 3.14 (supporto nativo CTypes e Win32 API).
+* **Git:** Installato e configurato su PATH.
 
 ### Installazione in 3 Passaggi
 
 ```powershell
-# 1. Clona il repository ufficiale
+# 1. Clona il repository ufficiale di Lab NK Hub
 git clone https://github.com/erbaldo86/NK-Hub.git Antigravity
 cd Antigravity
 
-# 2. Esegui lo script di installazione unificato
+# 2. Esegui lo script di configurazione automatica dell'ambiente
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 
-# 3. Verifica lo stato di salute dell'Hub
+# 3. Verifica l'allineamento e la salute del sistema
 & ".\.venv\Scripts\python.exe" scripts/preflight_health_check.py
 ```
 
-Se l'output restituisce `{"status": "HEALTHY_GREEN"}`, l'intero ecosistema è configurato, le dipendenze sono allineate e il sistema è pronto a operare.
+Se il comando restituisce `{"status": "HEALTHY_GREEN"}`, la piattaforma è perfettamente operativa.
 
 ---
 
 # 📊 7. Matrice Ufficiale di Certificazione
 
-| Parametro / Test | Obiettivo | Risultato Certificato | Stato |
-| :--- | :--- | :---: | :---: |
-| **Suite Permanente Core & App** | 109 test unitari e di integrazione | **109 / 109 PASS** (100.0%) | 🟢 PASS |
-| **Stress Test 80 Scenari** | 40 query NLP + 40 filtri parametrici reali | **80 / 80 PASS** (100.0%) | 🟢 PASS |
-| **AST Syntactic & Scope Purity** | 85 file sorgente Python scansionati | **85 / 85 PASS** (0 errori) | 🟢 PASS |
-| **Preflight Health Check** | Cache, transazioni WAL e coerenza SSOT | **HEALTHY_GREEN** | 🟢 PASS |
-| **Quality Baseline Ratchet** | Conformità storica senza regressioni | **ZERO REGRESSIONS** | 🟢 PASS |
-| **Anti-Freeze Watchdog** | Liveness pulse <45s durante task pesanti | **ATTIVO & ISOLATO** | 🟢 PASS |
-| **Named Mutex 2PC Windows** | Concorrenza e integrità filesystem cloud | **VERIFICATO SU DISCO** | 🟢 PASS |
-| **Zero Mock Mandate** | Divieto categorico di mock in memoria | **100% PROCESSI REALI** | 🟢 PASS |
+| Controllo / Invariante | Metodo di Verifica | Esito Certificato |
+| :--- | :--- | :---: |
+| **Suite Test Motori Piattaforma** | `pytest tests/test_win32_2pc.py tests/test_dast_sandbox.py ...` | 🟢 **PASS (100.0%)** |
+| **AST Syntactic & Scope Purity** | `scripts/ast_guard_validator.py --target all` | 🟢 **PASS (0 violazioni)** |
+| **Preflight Health Check** | `scripts/preflight_health_check.py` | 🟢 **HEALTHY_GREEN** |
+| **Quality Baseline Ratchet** | `scripts/quality_baseline_manager.py --check` | 🟢 **ZERO REGRESSIONS** |
+| **Anti-Freeze Pulse Sentinel** | Keepalive cadenzato (15-20s) e watchdog (45s) | 🟢 **ATTIVO (%TEMP% ISOLATED)** |
+| **Win32 Named Mutex 2PC** | Commit atomico a livello di kernel con WAL SHA-256 | 🟢 **VERIFICATO SU DISCO** |
+| **Zero Mock Mandate** | Divieto assoluto di mock o simulazioni in memoria | 🟢 **100% PROCESSI REALI** |
 
 ---
 
 <p align="center">
-  <b>Nexus Keystone Hub v1.6.0-VibeEnhanced</b> — <i>Sovereign Agentic Engineering for the Modern AI Era.</i><br>
-  Progettato con rigore, testato sul campo, ottimizzato per la massima velocità di sviluppo.
+  <b>Lab NK Hub (Nexus Keystone v1.6.0-VibeEnhanced)</b> — <i>Sovereign Agentic Operating System.</i><br>
+  Costruito per governare l'AI, testato sul campo, ottimizzato per il vero Vibe Coding.
 </p>
