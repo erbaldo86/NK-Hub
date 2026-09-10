@@ -4,10 +4,16 @@ Nexus Keystone v1.1.0-Universal | LabNK Bandi Intelligence.
 
 import re
 import unicodedata
-from typing import List, Optional
-from pydantic import BaseModel, Field
+from functools import lru_cache
+from typing import Any, Dict, List, Optional, Tuple, Set
+from pydantic import BaseModel, Field, model_validator
 from ..models.cgm import CanonicalGrantModel, BandoStato
 from .ateco_tree import AtecoTree
+
+
+ALLOWED_SHORT_TOKENS: Set[str] = {
+    "ted", "ai", "ue", "ia", "5g", "3d", "4.0", "5.0", "h2", "eu", "ip", "it", "ict", "esg", "pmi", "zes"
+}
 
 
 def strip_accents(text: str) -> str:
@@ -16,6 +22,14 @@ def strip_accents(text: str) -> str:
         c for c in unicodedata.normalize("NFD", text)
         if unicodedata.category(c) != "Mn"
     )
+
+
+@lru_cache(maxsize=2048)
+def _get_words_and_stems(text_clean: str) -> Tuple[frozenset, frozenset]:
+    """Estrae e memorizza in cache le parole e gli stem per il matching morfologico."""
+    words = frozenset(re.findall(r"\b\w+\b", text_clean))
+    stems = frozenset(w[:-1] for w in words if len(w) >= 5)
+    return words, stems
 
 
 def match_token(tok: str, text: str) -> bool:
@@ -34,41 +48,97 @@ def match_token(tok: str, text: str) -> bool:
         if (t_clean.endswith("ico") or t_clean.endswith("ica") or t_clean.endswith("ici") or t_clean.endswith("iche")) and len(t_clean) >= 6:
             if t_clean[:-3] + "ic" in text_clean:
                 return True
-    # Controllo per singole parole del testo
-    words = re.findall(r"\b\w+\b", text_clean)
-    for w in words:
-        if len(w) >= 5 and len(t_clean) >= 5:
-            if w[:-1] == t_clean[:-1]:
+    # Caching e word boundary lookup
+    words, stems = _get_words_and_stems(text_clean)
+    if len(t_clean) >= 5:
+        stem = t_clean[:-1]
+        if stem in stems:
+            return True
+        if (t_clean.endswith("ico") or t_clean.endswith("ica") or t_clean.endswith("ici") or t_clean.endswith("iche")) and len(t_clean) >= 6:
+            ic_stem = t_clean[:-3] + "ic"
+            if any(w.startswith(ic_stem) for w in words):
                 return True
     return False
 
 
-def matches_tipo_agevolazione(requested: str, actual: Optional[str]) -> bool:
-    """Matching normalizzato e flessibile per tipologia di agevolazione."""
-    if not actual:
+def normalize_ateco_code_str(code: str) -> str:
+    """Rimuove prefissi di sezione alfabetici e punti iniziali (es. 'C.28' -> '28', 'J.62' -> '62')."""
+    if not code:
+        return ""
+    c = code.strip()
+    if re.match(r"^[A-Za-z]\.?[0-9]", c):
+        c = re.sub(r"^[A-Za-z]\.?", "", c)
+    return c
+
+
+def _normalize_tipo_text(text: Optional[str]) -> str:
+    """Normalizza testo per matching tipologia agevolazione: rimozione accenti, snake_case e apostrofi."""
+    if not text:
+        return ""
+    t = strip_accents(text.lower().replace("_", " ").strip())
+    # Normalizza 'credito d'imposta' o 'credito d imposta' -> 'credito imposta'
+    t = re.sub(r"\bd['’\s]?imposta\b", "imposta", t)
+    t = re.sub(r"['’]", " ", t)
+    return " ".join(t.split())
+
+
+def matches_tipo_agevolazione(
+    requested: str,
+    actual: Optional[str],
+    context_text: Optional[str] = None
+) -> bool:
+    """
+    Matching normalizzato e flessibile per tipologia di agevolazione:
+    - Normalizza snake_case ('_') e spazi.
+    - Gestisce apostrofi e accenti ('credito d'imposta' <-> 'credito imposta').
+    - Mappa 'fondo perduto' <-> 'grant', 'blended finance', 'blended equity', 'contributo', 'sovvenzione'.
+    - Mappa 'voucher' <-> 'voucher', 'ticket', e consenti match se context_text contiene 'brevetti', 'proprietà intellettuale' o 'voucher'.
+    - Mappa 'finanziamento agevolato' <-> 'finanziamento', 'tasso zero', 'tasso agevolato', 'rotazione', 'fondo rotativo'.
+    - Mappa 'credito imposta' <-> 'credito d'imposta', 'iperammortamento', 'superammortamento', 'tax credit'.
+    - Mappa 'grant ed equity' / 'blended'.
+    """
+    req = _normalize_tipo_text(requested)
+    act = _normalize_tipo_text(actual)
+
+    # 1. Mappa 'voucher' / 'ticket' e Brevetti Plus
+    if any(term in req for term in ["voucher", "ticket"]):
+        if any(term in act for term in ["voucher", "ticket"]):
+            return True
+        if "brevetti" in act:
+            return True
+        if context_text:
+            ctx_norm = strip_accents(context_text.lower()).replace("'", " ").replace("’", " ")
+            if any(term in ctx_norm for term in ["brevetti", "proprieta intellettuale", "voucher", "ticket"]):
+                return True
+
+    if not act:
         return False
-    req = requested.lower().strip()
-    act = actual.lower().strip()
 
-    if req in act:
+    # 2. Match diretto substring (dopo normalizzazione snake_case e apostrofi)
+    if req in act or act in req:
         return True
-    if "voucher" in req and "voucher" in act:
-        return True
-    if "finanziamento agevolato" in req or "tasso agevolato" in req:
-        if any(term in act for term in ["finanziamento", "tasso zero", "tasso agevolato", "agevolato"]):
+
+    # 3. Mappa 'grant ed equity' / 'blended'
+    if any(term in req for term in ["grant ed equity", "grant e equity", "equity", "blended"]):
+        if any(term in act for term in ["equity", "blended"]) or ("grant" in act and "equity" in act):
             return True
-    if "grant ed equity" in req or "grant e equity" in req or "equity" in req:
-        if "equity" in act or ("grant" in act and "equity" in act) or "blended" in act:
+
+    # 4. Mappa 'credito imposta' <-> 'credito d\'imposta', 'iperammortamento'
+    if any(term in req for term in ["credito imposta", "iperammortamento", "superammortamento", "tax credit"]):
+        if any(term in act for term in ["credito imposta", "iperammortamento", "superammortamento", "tax credit"]):
             return True
-    if "fondo perduto" in req and "fondo perduto" in act:
-        return True
-    if "credito d'imposta" in req or "credito imposta" in req:
-        if "credito d'imposta" in act or "credito imposta" in act:
+
+    # 5. Mappa 'finanziamento agevolato' <-> 'finanziamento', 'tasso zero', 'tasso agevolato', 'rotazione'
+    if any(term in req for term in ["finanziamento agevolato", "finanziamento", "tasso zero", "tasso agevolato", "rotazione", "agevolato"]):
+        if any(term in act for term in ["finanziamento", "tasso zero", "tasso agevolato", "agevolato", "rotazione", "fondo rotativo", "rotativo"]):
             return True
+
+    # 6. Mappa 'fondo perduto' <-> 'grant', 'blended finance', 'blended equity', 'contributo', 'sovvenzione'
+    if any(term in req for term in ["fondo perduto", "grant", "blended finance", "blended equity", "blended", "contributo", "sovvenzione"]):
+        if any(term in act for term in ["fondo perduto", "grant", "blended finance", "blended equity", "blended", "contributo", "sovvenzione"]):
+            return True
+
     return False
-
-
-from pydantic import BaseModel, Field, model_validator
 
 
 class ParametricFilterCriteria(BaseModel):
@@ -92,6 +162,9 @@ class ParametricFilterCriteria(BaseModel):
             # ateco_code -> ateco_codes
             if "ateco_code" in data and data["ateco_code"] and "ateco_codes" not in data:
                 data["ateco_codes"] = [data["ateco_code"]] if isinstance(data["ateco_code"], str) else data["ateco_code"]
+            # normalizza ateco_codes se presenti (es. 'C.28' -> '28')
+            if "ateco_codes" in data and isinstance(data["ateco_codes"], list):
+                data["ateco_codes"] = [normalize_ateco_code_str(c) for c in data["ateco_codes"] if c]
             # region -> regioni_target
             if "region" in data and data["region"] and "regioni_target" not in data:
                 reg_val = data["region"]
@@ -103,6 +176,9 @@ class ParametricFilterCriteria(BaseModel):
             # aid_type -> tipo_agevolazione
             if "aid_type" in data and data["aid_type"] is not None and "tipo_agevolazione" not in data:
                 data["tipo_agevolazione"] = data["aid_type"]
+            # normalizza tipo_agevolazione se presente (snake_case -> spazio)
+            if "tipo_agevolazione" in data and isinstance(data["tipo_agevolazione"], str):
+                data["tipo_agevolazione"] = data["tipo_agevolazione"].replace("_", " ").strip()
             # min_coverage -> min_percentuale_copertura
             if "min_coverage" in data and data["min_coverage"] is not None and "min_percentuale_copertura" not in data:
                 data["min_percentuale_copertura"] = data["min_coverage"]
@@ -128,11 +204,22 @@ class ParametricFilter:
 
             # 2. Filtro ATECO / Settori (compatibilità gerarchica a livello foglia e divisione 2 cifre)
             if criteria.ateco_codes:
+                clean_criteria_codes = [normalize_ateco_code_str(c) for c in criteria.ateco_codes if c]
                 bando_sectors = g.settori_beneficiari or ["TUTTI"]
-                matched_ateco = AtecoTree.is_code_compatible(bando_sectors, criteria.ateco_codes)
+                matched_ateco = AtecoTree.is_code_compatible(bando_sectors, clean_criteria_codes)
                 if not matched_ateco:
-                    div_criteria = [c.split('.')[0] for c in criteria.ateco_codes if '.' in c]
-                    div_bando = [s.split('.')[0] for s in bando_sectors if '.' in s]
+                    div_criteria = []
+                    for c in clean_criteria_codes:
+                        if '.' in c:
+                            div_criteria.append(c.split('.')[0])
+                        elif len(c) == 2 and c.isdigit():
+                            div_criteria.append(c)
+                    div_bando = []
+                    for s in bando_sectors:
+                        if '.' in s:
+                            div_bando.append(s.split('.')[0])
+                        elif len(s) == 2 and s.isdigit():
+                            div_bando.append(s)
                     if div_criteria and any(dc in div_bando for dc in div_criteria):
                         matched_ateco = True
                     elif div_criteria and AtecoTree.is_code_compatible(bando_sectors, div_criteria):
@@ -155,9 +242,14 @@ class ParametricFilter:
                 if not (set(b_types) & set(req_types)) and "pmi" not in b_types:
                     continue
 
-            # 5. Filtro Tipologia Agevolazione (matching flessibile)
+            # 5. Filtro Tipologia Agevolazione (matching flessibile con context_text)
             if criteria.tipo_agevolazione:
-                if not matches_tipo_agevolazione(criteria.tipo_agevolazione, g.tipo_agevolazione):
+                context_info = f"{g.titolo} {g.descrizione or ''}"
+                if not matches_tipo_agevolazione(
+                    criteria.tipo_agevolazione,
+                    g.tipo_agevolazione,
+                    context_text=context_info
+                ):
                     continue
 
             # 6. Filtro Budget Totale
@@ -173,11 +265,15 @@ class ParametricFilter:
                 if g.percentuale_copertura < criteria.min_percentuale_copertura:
                     continue
 
-            # 8. Filtro Testo Libero (matching morfologico flesso con stem e accenti)
+            # 8. Filtro Testo Libero (matching morfologico flesso con stem, accenti e token brevi)
             if criteria.search_text:
-                terms = [w.lower() for w in criteria.search_text.strip().split() if len(w) > 2]
+                raw_words = criteria.search_text.strip().split()
+                terms = [
+                    w.lower().strip() for w in raw_words
+                    if len(w.strip()) > 2 or w.lower().strip() in ALLOWED_SHORT_TOKENS or len(w.strip()) >= 2
+                ]
                 if terms:
-                    text_blob = f"{g.titolo} {g.ente_erogatore} {g.descrizione or ''} {g.tipo_agevolazione or ''}"
+                    text_blob = f"{g.titolo} {g.ente_erogatore} {g.descrizione or ''} {g.tipo_agevolazione or ''} {g.fonte_nome or ''} {g.bando_id or ''}"
                     if not any(match_token(t, text_blob) for t in terms):
                         continue
 

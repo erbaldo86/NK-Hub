@@ -1,0 +1,430 @@
+{
+  "timestamp": "2026-09-10T00:11:03Z",
+  "total_queries": 60,
+  "passed": 60,
+  "failed": 0,
+  "nlp_results": [
+    {
+      "id": "NLP_STRESS_01",
+      "status": "PASS",
+      "latency_ms": 40.89399999975285,
+      "count": 4,
+      "web_ground_truth": "\u2b50 PI\u00d9_RISULTATI (OTTIMO)"
+    },
+    {
+      "id": "NLP_STRESS_02",
+      "status": "PASS",
+      "latency_ms": 9.243099999366677,
+      "count": 3,
+      "web_ground_truth": "\u2b50 PI\u00d9_RISULTATI (OTTIMO)"
+    },
+    {
+      "id": "NLP_STRESS_03",
+      "status": "PASS",
+      "latency_ms": 8.514700000887387,
+      "count": 4,
+      "web_ground_truth": "\u2b50 PI\u00d9_RISULTATI (OTTIMO)"
+    },
+    {
+      "id": "NLP_STRESS_04",
+      "status": "PASS",
+      "latency_ms": 5.970700000034412,
+      "count": 1,
+      "web_ground_truth": "\ud83d\udfe2 STESSI_RISULTATI (OK)"
+    },
+    {
+      "id": "NLP_STRESS_05",
+      "status": "PASS",
+      "latency_ms": 6.0754000005545095,
+      "count": 5,
+      "web_ground_truth": "\u2b50 PI\u00d9_RISULTATI (OTTIMO)"
+    },
+    {
+      "id": "NLP_STRESS_06",
+      "status": "PASS",
+      "latency_ms": 7.153399999879184,
+      "count": 5,
+      "web_ground_truth": "\u2b50 PI\u00d9_RISULTATI (OTTIMO)"
+    },
+    {
+      "id": "NLP_STRESS_07",
+      "status": "PASS",
+      "latency_ms": 7.008099999438855,
+      "count": 1,
+      "web_ground_truth": "\ud83d\udfe2 STESSI_RISULTATI (OK)"
+    },
+    {
+      "id": "NLP_STRESS_08",
+      "status": "PASS",
+      "latency_ms": 7.293700000445824,
+      "count": 2,
+      "web_ground_truth": "\u2b50 PI\u00d9_RISULTATI (OTTIMO)"
+    },
+    {
+      "id": "NLP_STRESS_09",
+      "status": "PASS",
+      "latency_ms": 11.138300000311574,
+      "count": 1,
+      "web_ground_truth": "\ud83d\udfe2 STESSI_RISULTATI (OK)"
+    },
+    {
+      "id": "NLP_STRESS_10",
+      "status": "PASS",
+      "latency_ms": 5.853999999089865,
+      "count": 1,
+      "web_ground_truth": "\ud83d\udfe2 STESSI_RISULTATI (OK)"
+    },
+    {
+      "id": "NLP_STRESS_11",
+      "status": "PASS",
+      "latency_ms": 6.823899999290006,
+      "count": 3,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "NLP_STRESS_12",
+      "status": "PASS",
+      "latency_ms": 5.711799998607603,
+      "count": 1,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "NLP_STRESS_13",
+      "status": "PASS",
+      "latency_ms": 8.485700000164798,
+      "count": 2,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "NLP_STRESS_14",
+      "status": "PASS",
+      "latency_ms": 6.339300000036019,
+      "count": 6,
+      "web_ground_truth": "\u2b50 PI\u00d9_RISULTATI (OTTIMO)"
+    },
+    {
+      "id": "NLP_STRESS_15",
+      "status": "PASS",
+      "latency_ms": 5.9089999995194376,
+      "count": 2,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "NLP_STRESS_16",
+      "status": "PASS",
+      "latency_ms": 7.279700001163292,
+      "count": 1,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "NLP_STRESS_17",
+      "status": "PASS",
+      "latency_ms": 4.730600001494167,
+      "count": 2,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "NLP_STRESS_18",
+      "status": "PASS",
+      "latency_ms": 6.636299998717732,
+      "count": 1,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "NLP_STRESS_19",
+      "status": "PASS",
+      "latency_ms": 5.512499999895226,
+      "count": 2,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "NLP_STRESS_20",
+      "status": "PASS",
+      "latency_ms": 6.856300000436022,
+      "count": 9,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "NLP_STRESS_21",
+      "status": "PASS",
+      "latency_ms": 5.285500001264154,
+      "count": 1,
+      "web_ground_truth": "\ud83d\udfe2 STESSI_RISULTATI (OK)"
+    },
+    {
+      "id": "NLP_STRESS_22",
+      "status": "PASS",
+      "latency_ms": 6.103099998654216,
+      "count": 1,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "NLP_STRESS_23",
+      "status": "PASS",
+      "latency_ms": 5.696999998690444,
+      "count": 1,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "NLP_STRESS_24",
+      "status": "PASS",
+      "latency_ms": 5.478200000652578,
+      "count": 2,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "NLP_STRESS_25",
+      "status": "PASS",
+      "latency_ms": 6.302900001173839,
+      "count": 1,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "NLP_STRESS_26",
+      "status": "PASS",
+      "latency_ms": 5.742499999541906,
+      "count": 1,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "NLP_STRESS_27",
+      "status": "PASS",
+      "latency_ms": 4.35039999865694,
+      "count": 1,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "NLP_STRESS_28",
+      "status": "PASS",
+      "latency_ms": 7.1441999989474425,
+      "count": 4,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "NLP_STRESS_29",
+      "status": "PASS",
+      "latency_ms": 5.930799999987357,
+      "count": 0,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "NLP_STRESS_30",
+      "status": "PASS",
+      "latency_ms": 6.091499999456573,
+      "count": 1,
+      "web_ground_truth": "\ud83d\udfe2 STESSI_RISULTATI (OK)"
+    }
+  ],
+  "param_results": [
+    {
+      "id": "PARAM_STRESS_01",
+      "status": "PASS",
+      "latency_ms": 5.795400000351947,
+      "count": 1,
+      "web_ground_truth": "\ud83d\udfe2 STESSI_RISULTATI (OK)"
+    },
+    {
+      "id": "PARAM_STRESS_02",
+      "status": "PASS",
+      "latency_ms": 3.6847000010311604,
+      "count": 1,
+      "web_ground_truth": "\ud83d\udfe2 STESSI_RISULTATI (OK)"
+    },
+    {
+      "id": "PARAM_STRESS_03",
+      "status": "PASS",
+      "latency_ms": 3.962499999033753,
+      "count": 10,
+      "web_ground_truth": "\u2b50 PI\u00d9_RISULTATI (OTTIMO)"
+    },
+    {
+      "id": "PARAM_STRESS_04",
+      "status": "PASS",
+      "latency_ms": 4.038799999761977,
+      "count": 6,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "PARAM_STRESS_05",
+      "status": "PASS",
+      "latency_ms": 4.336399999374407,
+      "count": 0,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "PARAM_STRESS_06",
+      "status": "PASS",
+      "latency_ms": 3.5320999995747115,
+      "count": 5,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "PARAM_STRESS_07",
+      "status": "PASS",
+      "latency_ms": 4.299799998989329,
+      "count": 7,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "PARAM_STRESS_08",
+      "status": "PASS",
+      "latency_ms": 5.118300001413445,
+      "count": 1,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "PARAM_STRESS_09",
+      "status": "PASS",
+      "latency_ms": 3.8086000004113885,
+      "count": 5,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "PARAM_STRESS_10",
+      "status": "PASS",
+      "latency_ms": 3.4510999994381564,
+      "count": 1,
+      "web_ground_truth": "\ud83d\udfe2 STESSI_RISULTATI (OK)"
+    },
+    {
+      "id": "PARAM_STRESS_11",
+      "status": "PASS",
+      "latency_ms": 2.9614000013680197,
+      "count": 1,
+      "web_ground_truth": "\ud83d\udfe2 STESSI_RISULTATI (OK)"
+    },
+    {
+      "id": "PARAM_STRESS_12",
+      "status": "PASS",
+      "latency_ms": 4.729299998871284,
+      "count": 2,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "PARAM_STRESS_13",
+      "status": "PASS",
+      "latency_ms": 2.867799999876297,
+      "count": 9,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "PARAM_STRESS_14",
+      "status": "PASS",
+      "latency_ms": 4.616700000042329,
+      "count": 1,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "PARAM_STRESS_15",
+      "status": "PASS",
+      "latency_ms": 4.398100001708372,
+      "count": 1,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "PARAM_STRESS_16",
+      "status": "PASS",
+      "latency_ms": 3.084200001467252,
+      "count": 1,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "PARAM_STRESS_17",
+      "status": "PASS",
+      "latency_ms": 3.1720999995741295,
+      "count": 2,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "PARAM_STRESS_18",
+      "status": "PASS",
+      "latency_ms": 3.8789999998698477,
+      "count": 5,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "PARAM_STRESS_19",
+      "status": "PASS",
+      "latency_ms": 5.06159999895317,
+      "count": 2,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "PARAM_STRESS_20",
+      "status": "PASS",
+      "latency_ms": 3.232999999454478,
+      "count": 1,
+      "web_ground_truth": "\ud83d\udfe2 STESSI_RISULTATI (OK)"
+    },
+    {
+      "id": "PARAM_STRESS_21",
+      "status": "PASS",
+      "latency_ms": 4.4783000012103,
+      "count": 1,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "PARAM_STRESS_22",
+      "status": "PASS",
+      "latency_ms": 4.02849999954924,
+      "count": 5,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "PARAM_STRESS_23",
+      "status": "PASS",
+      "latency_ms": 3.979799999797251,
+      "count": 1,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "PARAM_STRESS_24",
+      "status": "PASS",
+      "latency_ms": 3.824999999778811,
+      "count": 1,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "PARAM_STRESS_25",
+      "status": "PASS",
+      "latency_ms": 3.41879999905359,
+      "count": 1,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "PARAM_STRESS_26",
+      "status": "PASS",
+      "latency_ms": 2.968200000395882,
+      "count": 6,
+      "web_ground_truth": "\u2b50 PI\u00d9_RISULTATI (OTTIMO)"
+    },
+    {
+      "id": "PARAM_STRESS_27",
+      "status": "PASS",
+      "latency_ms": 3.4730999996099854,
+      "count": 6,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "PARAM_STRESS_28",
+      "status": "PASS",
+      "latency_ms": 3.743699999176897,
+      "count": 0,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "PARAM_STRESS_29",
+      "status": "PASS",
+      "latency_ms": 2.994699998453143,
+      "count": 3,
+      "web_ground_truth": "OK"
+    },
+    {
+      "id": "PARAM_STRESS_30",
+      "status": "PASS",
+      "latency_ms": 3.5146000009262934,
+      "count": 10,
+      "web_ground_truth": "OK"
+    }
+  ]
+}

@@ -47,7 +47,7 @@ def get_pids_listening_on_ports(ports):
 def kill_pid_tree(pid):
     try:
         # Force terminate PID and its entire child process tree on Windows
-        res = subprocess.run(f"taskkill /F /T /PID {pid}", shell=True, capture_output=True, text=True)
+        res = subprocess.run(["taskkill", "/F", "/T", "/PID", str(pid)], capture_output=True, text=True)
         return res.returncode == 0
     except Exception as e:
         print(f"⚠️ Error killing PID {pid}: {e}", file=sys.stderr)

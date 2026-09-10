@@ -25,8 +25,14 @@ Antigravity model/
 # Temp / Logs
 *.log
 
-# Large Binaries
+# Large Binaries & Generated Artifacts
 *.zip
+!releases/*.zip
+dashboard.html
+nk_tracking/cockpit/
+.archive/
+.wal/
+.wal_2pc.jsonl
 
 # Staging area
 .staging/*

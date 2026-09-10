@@ -113,16 +113,53 @@ class SignatureCollector(ast.NodeVisitor):
             self.defined_globals.add(name)
         self.generic_visit(node)
 
+    def _extract_target_names(self, node: ast.AST, target_set: Set[str]) -> None:
+        if isinstance(node, ast.Name):
+            target_set.add(node.id)
+        elif isinstance(node, (ast.Tuple, ast.List)):
+            for elt in node.elts:
+                self._extract_target_names(elt, target_set)
+        elif isinstance(node, ast.Starred):
+            self._extract_target_names(node.value, target_set)
+
     def visit_Assign(self, node: ast.Assign) -> None:
         if self.current_class is None:
             for t in node.targets:
-                if isinstance(t, ast.Name):
-                    self.defined_globals.add(t.id)
+                self._extract_target_names(t, self.defined_globals)
         self.generic_visit(node)
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
-        if self.current_class is None and isinstance(node.target, ast.Name):
-            self.defined_globals.add(node.target.id)
+        if self.current_class is None:
+            self._extract_target_names(node.target, self.defined_globals)
+        self.generic_visit(node)
+
+    def visit_For(self, node: ast.For) -> None:
+        if self.current_class is None:
+            self._extract_target_names(node.target, self.defined_globals)
+        self.generic_visit(node)
+
+    def visit_AsyncFor(self, node: ast.AsyncFor) -> None:
+        if self.current_class is None:
+            self._extract_target_names(node.target, self.defined_globals)
+        self.generic_visit(node)
+
+    def visit_With(self, node: ast.With) -> None:
+        if self.current_class is None:
+            for item in node.items:
+                if item.optional_vars:
+                    self._extract_target_names(item.optional_vars, self.defined_globals)
+        self.generic_visit(node)
+
+    def visit_AsyncWith(self, node: ast.AsyncWith) -> None:
+        if self.current_class is None:
+            for item in node.items:
+                if item.optional_vars:
+                    self._extract_target_names(item.optional_vars, self.defined_globals)
+        self.generic_visit(node)
+
+    def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
+        if self.current_class is None and node.name:
+            self.defined_globals.add(node.name)
         self.generic_visit(node)
 
     def visit_TypeAlias(self, node: Any) -> None:
@@ -187,6 +224,19 @@ class SignatureCollector(ast.NodeVisitor):
 # SCOPE INTEGRITY VISITOR (PEP 634, PEP 695, Comprehensions, Walrus)
 # ============================================================================
 
+MODULE_DUNDERS: Set[str] = {
+    "__name__",
+    "__doc__",
+    "__file__",
+    "__package__",
+    "__loader__",
+    "__spec__",
+    "__annotations__",
+    "__builtins__",
+    "__cached__",
+}
+
+
 class ScopeIntegrityChecker(ast.NodeVisitor):
     """
     Checks that every referenced variable in Load context is defined in local scope,
@@ -196,10 +246,11 @@ class ScopeIntegrityChecker(ast.NodeVisitor):
     - PEP 695 Type Parameters (Function, AsyncFunction, Class type_params, TypeAlias).
     - Comprehensions (ListComp, SetComp, DictComp, GeneratorExp) with isolated sub-scopes.
     - Walrus operator (ast.NamedExpr :=) escaping comprehension scopes to enclosing scope.
+    - Lambda expressions and standard Python module attributes.
     """
 
     def __init__(self, global_names: Set[str]) -> None:
-        self.global_names = set(global_names)
+        self.global_names = set(global_names) | MODULE_DUNDERS
         self.builtins_set = set(dir(builtins))
         self.scope_stack: List[Set[str]] = [set(self.global_names)]
         self.violations: List[GuardViolation] = []
@@ -209,6 +260,18 @@ class ScopeIntegrityChecker(ast.NodeVisitor):
         for s in self.scope_stack:
             names.update(s)
         return names
+
+    def visit_Lambda(self, node: ast.Lambda) -> None:
+        local_scope: Set[str] = set()
+        for arg in getattr(node.args, "posonlyargs", []) + node.args.args + node.args.kwonlyargs:
+            local_scope.add(arg.arg)
+        if node.args.vararg:
+            local_scope.add(node.args.vararg.arg)
+        if node.args.kwarg:
+            local_scope.add(node.args.kwarg.arg)
+        self.scope_stack.append(local_scope)
+        self.generic_visit(node)
+        self.scope_stack.pop()
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         self.scope_stack[-1].add(node.name)
@@ -603,3 +666,64 @@ class ASTGuardValidator:
                         message=f"Return type annotation altered for '{name}'. Expected '{pre_sig.return_annotation}', got '{post_sig.return_annotation}'",
                     )
                 )
+
+
+def main() -> int:
+    import sys
+    from pathlib import Path
+
+    if len(sys.argv) < 2:
+        print("Usage: python scripts/ast_guard_validator.py <file_or_directory>")
+        return 0
+
+    target = Path(sys.argv[1])
+    if not target.exists():
+        print(f"[ERROR] Path does not exist: {target}")
+        return 1
+
+    py_files: List[Path] = []
+    if target.is_file() and target.suffix == ".py":
+        py_files = [target]
+    elif target.is_dir():
+        py_files = sorted([f for f in target.rglob("*.py") if "__pycache__" not in f.parts])
+    else:
+        print(f"[ERROR] No python files found in: {target}")
+        return 1
+
+    total_violations = 0
+    print("================================================================================")
+    print(f"AST GUARD VALIDATOR: Scanning {len(py_files)} files in {target}")
+    print("================================================================================")
+
+    for py_file in py_files:
+        try:
+            code = py_file.read_text(encoding="utf-8")
+        except Exception as e:
+            print(f"[FAIL] {py_file} - Could not read file: {e}")
+            total_violations += 1
+            continue
+
+        report = ASTGuardValidator.validate_code_edit(code, code, target_file=py_file.name)
+        rel_path = py_file.as_posix()
+        if not report.is_valid:
+            print(f"[FAIL] {rel_path} - {len(report.violations)} AST violation(s):")
+            for v in report.violations:
+                loc = f"L{v.line_number}:{v.column}" if v.line_number is not None else "GLOBAL"
+                print(f"       - [{v.violation_type.value}] {loc}: {v.message}")
+            total_violations += len(report.violations)
+        else:
+            print(f"[PASS] {rel_path} (Symbols: {report.post_symbol_count})")
+
+    print("================================================================================")
+    if total_violations == 0:
+        print(f"[RESULT] ALL {len(py_files)} FILES PASSED DETERMINISTIC AST GUARD VALIDATION.")
+        return 0
+    else:
+        print(f"[RESULT] FAILED: {total_violations} total violations detected across {len(py_files)} files.")
+        return 1
+
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(main())
+

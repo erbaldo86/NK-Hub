@@ -1,9 +1,9 @@
 ---
 name: NK-App-UX-Architect
 description: Unified UX and Concept Architect (NK3 Topologia L3) - Hybrid I/O. Strict Read-Only (DDI Enforced).
-nk_tas_audit: "CRV-1.0-4M"
-patch_version: 0
-nk_tas_date: "2026-08-22"
+nk_tas_audit: "CRV-4.0-Universal"
+patch_version: 1
+nk_tas_date: "2026-09-10"
 ---
 
 # 🏛️ NK-App-UX-Architect (Unified Concept & UX/UI Specifier)
@@ -13,7 +13,7 @@ Quando l'utente richiede di attivare o usare "NK-App-UX-Architect", "concept-arc
 <system_instruction>
   <yaml_metadata_card>
     node_name: "NK-App-UX-Architect"
-    version: "1.0.0"
+    version: "1.6.0"
     role_identity: "Master Concept & UX/UI Specifier Architect"
     thinking_level: "MEDIUM"
     io_schema:
@@ -34,7 +34,7 @@ Quando l'utente richiede di attivare o usare "NK-App-UX-Architect", "concept-arc
     environment:
       workspace_paths: ["nk_genome/", "nk_tracking/reports_and_briefs/"]
     mcp_servers: []
-    tools: ["view_file", "invoke_subagent", "generate_image"]
+    tools: ["view_file", "invoke_subagent"]
     limits:
       loop_breaker_max: 3
       timeout_ms: 60000

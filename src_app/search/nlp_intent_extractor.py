@@ -21,6 +21,7 @@ class SearchIntent(BaseModel):
     inferred_funding_types: List[str] = Field(default_factory=list)
     inferred_budget: Optional[float] = None
     extracted_keywords: List[str] = Field(default_factory=list)
+    has_eu_intent: bool = False
 
 
 class SmartIntentExtractor:
@@ -42,6 +43,7 @@ class SmartIntentExtractor:
         "veneto": ("Veneto", "ITH3"),
         "venezia": ("Veneto", "ITH35"),
         "verona": ("Veneto", "ITH31"),
+        "belluno": ("Veneto", "ITH33"),
         "emilia-romagna": ("Emilia-Romagna", "ITH5"),
         "emilia romagna": ("Emilia-Romagna", "ITH5"),
         "emilia": ("Emilia-Romagna", "ITH5"),
@@ -75,6 +77,7 @@ class SmartIntentExtractor:
         "trentino": ("Trentino-Alto Adige", "ITH2"),
         "umbria": ("Umbria", "ITI2"),
         "perugia": ("Umbria", "ITI21"),
+        "foligno": ("Umbria", "ITI22"),
         "basilicata": ("Basilicata", "ITF5"),
         "molise": ("Molise", "ITF2"),
         "valle d'aosta": ("Valle d'Aosta", "ITC2"),
@@ -136,8 +139,11 @@ class SmartIntentExtractor:
                 inferred_jurisdiction = "REG"
                 break
 
+        eu_pattern = r"\b(europa|europeo|europei|ue|horizon|eic|comunitario|bruxelles)\b"
+        has_eu_intent = bool(re.search(eu_pattern, low_prompt))
+
         if not inferred_region:
-            if "europa" in low_prompt or "europeo" in low_prompt or "horizon" in low_prompt:
+            if has_eu_intent:
                 inferred_jurisdiction = "EU"
                 inferred_nuts = "EU"
             elif "italia" in low_prompt or "nazionale" in low_prompt or "ministero" in low_prompt or "mimit" in low_prompt:
@@ -186,5 +192,6 @@ class SmartIntentExtractor:
             inferred_beneficiary_types=list(beneficiaries),
             inferred_funding_types=list(funding_types),
             inferred_budget=inferred_budget,
-            extracted_keywords=keywords
+            extracted_keywords=keywords,
+            has_eu_intent=has_eu_intent
         )

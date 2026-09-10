@@ -1,8 +1,8 @@
 {
-  "version": "1.2.0-Universal",
+  "version": "1.3.0-Universal",
   "registry_name": "LabNK Official Institutional Sources SSOT Registry",
-  "last_updated": "2026-09-02T22:00:00Z",
-  "total_sources": 31,
+  "last_updated": "2026-09-10T02:00:00Z",
+  "total_sources": 38,
   "sources": [
     {
       "source_id": "INVITALIA_NATIONAL",
@@ -99,19 +99,19 @@
       "name": "Regione Abruzzo — Portale FESR & Attività Produttive",
       "jurisdiction": "REG",
       "region": "Abruzzo",
-      "official_url": "https://coesione.regione.abruzzo.it/bandi-e-avvisi",
+      "official_url": "https://coesione.regione.abruzzo.it/avvisi-pubblici",
       "connector_type": "HTML_SCRAPER",
       "description": "Bandi PR FESR Abruzzo per innovazione PMI, efficientamento energetico e agroalimentare.",
       "active": true
     },
     {
       "source_id": "REG_BASILICATA",
-      "name": "Sviluppo Basilicata — Società In-House Regione Basilicata",
+      "name": "Regione Basilicata — Portale Bandi Istituzionale",
       "jurisdiction": "REG",
       "region": "Basilicata",
-      "official_url": "https://www.sviluppobasilicata.it",
+      "official_url": "https://portalebandi.regione.basilicata.it",
       "connector_type": "HTML_SCRAPER",
-      "description": "Bandi FESR Basilicata, Creazione d'Impresa e Fondo Microcredito.",
+      "description": "Bandi FESR Basilicata, Creazione d'Impresa, Fondo Microcredito e avvisi pubblici regionali.",
       "active": true
     },
     {
@@ -179,8 +179,8 @@
       "name": "Regione Lombardia — Bandi e Servizi Online",
       "jurisdiction": "REG",
       "region": "Lombardia",
-      "official_url": "https://www.dati.lombardia.it/resource/725x-mbvw.json",
-      "connector_type": "REST_API",
+      "official_url": "https://www.bandi.regione.lombardia.it/servizi/servizio/bandi",
+      "connector_type": "HTML_SCRAPER",
       "description": "Voucher Digitalizzazione PMI, Bando Ricerca & Innovazione, Linea Internazionalizzazione.",
       "active": true
     },
@@ -299,7 +299,7 @@
       "name": "European Commission — Funding & Tenders Opportunities (SEDIA)",
       "jurisdiction": "EU",
       "region": "Tutte",
-      "official_url": "https://api.tech.ec.europa.eu/search-api/prod/rest/search",
+      "official_url": "https://api.tech.ec.europa.eu/search-api/prod/rest/search?apiKey=SEDIA",
       "connector_type": "REST_API",
       "description": "Horizon Europe (EIC Accelerator, Pathfinder, Transition), Digital Europe, Life.",
       "active": true
@@ -312,6 +312,76 @@
       "official_url": "https://api.ted.europa.eu/v3/notices/search",
       "connector_type": "REST_API",
       "description": "Avvisi e gare d'appalto europee, Pre-Commercial Procurement per l'innovazione.",
+      "active": true
+    },
+    {
+      "source_id": "CCIAA_MILANO",
+      "name": "CCIAA Milano Monza Brianza Lodi — Bandi e Contributi",
+      "jurisdiction": "REG",
+      "region": "Lombardia",
+      "official_url": "https://www.milomb.camcom.it/bandi-di-contributo",
+      "connector_type": "HTML_SCRAPER",
+      "description": "Bandi di contributo, voucher digitalizzazione I4.0 e sostegno all'innovazione per le imprese di Milano, Monza Brianza e Lodi.",
+      "active": true
+    },
+    {
+      "source_id": "CCIAA_ROMA",
+      "name": "CCIAA Roma — Bandi e Contributi alle Imprese",
+      "jurisdiction": "REG",
+      "region": "Lazio",
+      "official_url": "https://www.rm.camcom.it/pagina82_avvisi-pubblici-bandi-per-contributi-e-attivit-promozionali-altre-opportunit.html",
+      "connector_type": "HTML_SCRAPER",
+      "description": "Voucher Doppia Transizione, Sviluppo Impresa, Nuove Imprese e contributi promozionali della Camera di Commercio di Roma.",
+      "active": true
+    },
+    {
+      "source_id": "CCIAA_TORINO",
+      "name": "CCIAA Torino — Finanziamenti, Bandi e Contributi",
+      "jurisdiction": "REG",
+      "region": "Piemonte",
+      "official_url": "https://www.to.camcom.it/finanziamenti-bandi-e-contributi",
+      "connector_type": "HTML_SCRAPER",
+      "description": "Bandi e contributi a fondo perduto per digitalizzazione, transizione ecologica, orientamento e startup torinesi.",
+      "active": true
+    },
+    {
+      "source_id": "CCIAA_NAPOLI",
+      "name": "CCIAA Napoli — Bandi e Promozione Economica",
+      "jurisdiction": "REG",
+      "region": "Campania",
+      "official_url": "https://www.na.camcom.gov.it",
+      "connector_type": "HTML_SCRAPER",
+      "description": "Contributi, ausili finanziari e bandi di promozione economica e territoriale per le imprese della provincia di Napoli.",
+      "active": true
+    },
+    {
+      "source_id": "CCIAA_BOLOGNA",
+      "name": "CCIAA Bologna — Contributi e Bandi di Sviluppo",
+      "jurisdiction": "REG",
+      "region": "Emilia-Romagna",
+      "official_url": "https://www.bo.camcom.gov.it/it/promozione-interna/contributi-della-camera-di-bologna",
+      "connector_type": "HTML_SCRAPER",
+      "description": "Contributi della Camera di Commercio di Bologna per innovazione digitale, internazionalizzazione export e sicurezza.",
+      "active": true
+    },
+    {
+      "source_id": "CSR_VENETO",
+      "name": "Regione del Veneto — CSR / PSR Sviluppo Rurale & Agricoltura",
+      "jurisdiction": "REG",
+      "region": "Veneto",
+      "official_url": "https://bandi.regione.veneto.it/Public/Index",
+      "connector_type": "HTML_SCRAPER",
+      "description": "Bandi CSR e PSR Veneto per investimenti produttivi agricoli, insediamento giovani agricoltori e sostenibilità agroambientale.",
+      "active": true
+    },
+    {
+      "source_id": "CSR_EMILIA_ROMAGNA",
+      "name": "Regione Emilia-Romagna — Agricoltura, Caccia e Pesca (CSR / PSR)",
+      "jurisdiction": "REG",
+      "region": "Emilia-Romagna",
+      "official_url": "https://agricoltura.regione.emilia-romagna.it/bandi",
+      "connector_type": "HTML_SCRAPER",
+      "description": "Bandi PSR / CSR Emilia-Romagna per filiere agroalimentari, ammodernamento aziende agricole, competitività e innovazione rurale.",
       "active": true
     }
   ]

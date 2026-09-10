@@ -17,6 +17,7 @@ import uuid
 import json
 import random
 import asyncio
+import argparse
 from pathlib import Path
 from typing import Optional, Union, List, Dict, Any
 
@@ -59,28 +60,32 @@ ERROR_SHARING_VIOLATION = 32
 ERROR_LOCK_VIOLATION = 33
 ERROR_ALREADY_EXISTS = 183
 
-_kernel32 = ctypes.windll.kernel32
+if sys.platform == "win32":
+    _kernel32 = ctypes.windll.kernel32
 
-_kernel32.CreateMutexW.argtypes = [ctypes.c_void_p, ctypes.c_bool, ctypes.c_wchar_p]
-_kernel32.CreateMutexW.restype = ctypes.c_void_p
+    _kernel32.CreateMutexW.argtypes = [ctypes.c_void_p, ctypes.c_bool, ctypes.c_wchar_p]
+    _kernel32.CreateMutexW.restype = ctypes.c_void_p
 
-_kernel32.WaitForSingleObject.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
-_kernel32.WaitForSingleObject.restype = ctypes.c_uint32
+    _kernel32.WaitForSingleObject.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+    _kernel32.WaitForSingleObject.restype = ctypes.c_uint32
 
-_kernel32.ReleaseMutex.argtypes = [ctypes.c_void_p]
-_kernel32.ReleaseMutex.restype = ctypes.c_bool
+    _kernel32.ReleaseMutex.argtypes = [ctypes.c_void_p]
+    _kernel32.ReleaseMutex.restype = ctypes.c_bool
 
-_kernel32.CloseHandle.argtypes = [ctypes.c_void_p]
-_kernel32.CloseHandle.restype = ctypes.c_bool
+    _kernel32.CloseHandle.argtypes = [ctypes.c_void_p]
+    _kernel32.CloseHandle.restype = ctypes.c_bool
 
-_kernel32.MoveFileExW.argtypes = [ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_uint32]
-_kernel32.MoveFileExW.restype = ctypes.c_bool
+    _kernel32.MoveFileExW.argtypes = [ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_uint32]
+    _kernel32.MoveFileExW.restype = ctypes.c_bool
 
-_kernel32.GetLastError.argtypes = []
-_kernel32.GetLastError.restype = ctypes.c_uint32
+    _kernel32.GetLastError.argtypes = []
+    _kernel32.GetLastError.restype = ctypes.c_uint32
 
-_kernel32.GetCurrentThreadId.argtypes = []
-_kernel32.GetCurrentThreadId.restype = ctypes.c_uint32
+    _kernel32.GetCurrentThreadId.argtypes = []
+    _kernel32.GetCurrentThreadId.restype = ctypes.c_uint32
+else:
+    _kernel32 = None
+
 
 
 # ---------------------------------------------------------------------------
@@ -646,3 +651,187 @@ class TwoPhaseCommitEngine:
             byte_size=len(raw),
             mime_type=mime_type,
         )
+
+
+# ---------------------------------------------------------------------------
+# Staging Promotion Subsystem (CRV 4.0 Macro-Fase 3)
+# ---------------------------------------------------------------------------
+def record_session_anchor_commit(
+    repo_root: Union[str, Path],
+    milestone_id: str,
+    committed_files: List[Dict[str, Any]],
+) -> None:
+    """
+    Appends an official commit record to nk_tracking/anchor/session_anchor.jsonl.
+    """
+    root = Path(repo_root).resolve()
+    anchor_file = root / "nk_tracking" / "anchor" / "session_anchor.jsonl"
+    if anchor_file.exists():
+        committed_names = [f["relative_path"] for f in committed_files]
+        entry = {
+            "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "act": "OFFICIAL_RELEASE_COMMIT",
+            "target": milestone_id,
+            "detail": (
+                f"Atomic 2PC promotion to production. "
+                f"{len(committed_files)} files committed ({', '.join(committed_names)}) "
+                f"with SHA-256 validation, WAL isolation, and Win32 Named Mutex lock."
+            ),
+            "skill": "NK-Master-Hub",
+            "status": "OK",
+        }
+        with open(anchor_file, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry) + "\n")
+
+
+def promote_staging_to_production(
+    repo_root: Optional[Union[str, Path]] = None,
+    milestone: Optional[str] = None,
+    staging_dirname: str = ".staging",
+    subdirs: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    """
+    Executes Win32 2PC atomic promotion of files from .staging/ to production.
+    Ensures Named Mutex concurrency guard, SHA-256 verification, and WAL logging.
+    """
+    root = Path(repo_root).resolve() if repo_root else Path(__file__).resolve().parent.parent
+    staging_dir = root / staging_dirname
+    if not staging_dir.exists():
+        raise FileNotFoundError(f"Staging directory does not exist: {staging_dir}")
+
+    target_subdirs = subdirs or ["src_app", "data/snapshots"]
+    engine = TwoPhaseCommitEngine()
+
+    committed: List[Dict[str, Any]] = []
+    unchanged: List[str] = []
+    failed: List[Dict[str, Any]] = []
+
+    print("=" * 80)
+    print("WIN32 TWO-PHASE COMMIT (2PC) ATOMIC PROMOTION ENGINE")
+    print("Protocol: CRV 4.0 | Macro-Fase 3: Atomic Commit & Memorize")
+    print("=" * 80)
+    print(f"[*] Repository Root: {root}")
+    print(f"[*] Staging Root   : {staging_dir}")
+    if milestone:
+        print(f"[*] Milestone Anchor: {milestone}")
+    print("-" * 80)
+
+    for subdir in target_subdirs:
+        stg_sub = staging_dir / subdir
+        if not stg_sub.exists():
+            continue
+
+        for stg_file in sorted(stg_sub.rglob("*")):
+            if not stg_file.is_file():
+                continue
+            if "__pycache__" in stg_file.parts or stg_file.name == ".gitkeep":
+                continue
+
+            rel_path = stg_file.relative_to(staging_dir)
+            prod_file = root / rel_path
+
+            stg_bytes = stg_file.read_bytes()
+            stg_sha = compute_sha256(stg_bytes)
+
+            # Check if production file is identical
+            if prod_file.exists():
+                prod_bytes = prod_file.read_bytes()
+                prod_sha = compute_sha256(prod_bytes)
+                if stg_sha == prod_sha:
+                    unchanged.append(str(rel_path))
+                    continue
+
+            # File is modified or new in staging -> promote via 2PC
+            print(f"[>] Promoting via Win32 2PC: {rel_path}")
+            print(f"    Target : {prod_file}")
+            print(f"    Payload: {len(stg_bytes)} bytes, SHA-256: {stg_sha}")
+
+            verdict = engine.atomic_write(prod_file, stg_bytes)
+
+            if verdict.verdict == "COMMIT":
+                committed.append({
+                    "relative_path": str(rel_path),
+                    "committed_path": verdict.committed_path,
+                    "sha256": stg_sha,
+                    "tx_id": verdict.transaction_id,
+                    "execution_time_ms": verdict.execution_time_ms,
+                })
+                print(f"    [+] VERDICT: COMMIT OK in {verdict.execution_time_ms:.2f}ms (tx_id: {verdict.transaction_id})")
+            else:
+                failed.append({
+                    "relative_path": str(rel_path),
+                    "reason": verdict.reason,
+                    "tx_id": verdict.transaction_id,
+                })
+                print(f"    [-] VERDICT: ABORT - Reason: {verdict.reason}")
+
+    if failed:
+        raise TwoPhaseCommitError(f"2PC Promotion aborted! {len(failed)} files failed: {failed}")
+
+    # Record milestone anchor if specified
+    if milestone:
+        record_session_anchor_commit(root, milestone, committed)
+        print(f"[+] Milestone Anchor recorded in session_anchor.jsonl: {milestone}")
+
+    print("=" * 80)
+    print(f"PROMOTION SUMMARY: {len(committed)} committed, {len(unchanged)} unchanged, {len(failed)} failed.")
+    print("=" * 80)
+
+    return {
+        "status": "SUCCESS",
+        "milestone": milestone,
+        "committed_files": committed,
+        "unchanged_files": unchanged,
+    }
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    """CLI entry point for Win32 Two-Phase Commit Engine."""
+    parser = argparse.ArgumentParser(
+        description="Win32 Two-Phase Commit (2PC) & Staging Promotion Engine",
+    )
+    parser.add_argument(
+        "--promote-staging",
+        action="store_true",
+        help="Promote modified files from .staging to production via Win32 2PC",
+    )
+    parser.add_argument(
+        "--milestone",
+        type=str,
+        default=None,
+        help="Milestone Anchor ID (e.g. NK-MS-20260903-STRESS-E2E-LOOP-v1.4.1)",
+    )
+    parser.add_argument(
+        "--repo-root",
+        type=str,
+        default=None,
+        help="Path to repository root (defaults to parent of scripts/)",
+    )
+    parser.add_argument(
+        "--staging-dir",
+        type=str,
+        default=".staging",
+        help="Path or name of staging directory relative to repo-root (defaults to .staging)",
+    )
+
+    args = parser.parse_args(argv)
+
+    if args.promote_staging:
+        try:
+            promote_staging_to_production(
+                repo_root=args.repo_root,
+                milestone=args.milestone,
+                staging_dirname=args.staging_dir,
+            )
+            return 0
+        except Exception as exc:
+            print(f"[!] Error during 2PC staging promotion: {exc}", file=sys.stderr)
+            return 1
+    else:
+        parser.print_help()
+        return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+

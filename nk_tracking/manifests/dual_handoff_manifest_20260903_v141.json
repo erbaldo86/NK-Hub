@@ -1,0 +1,60 @@
+{
+  "manifest_version": "1.1.0-Universal",
+  "timestamp": "2026-09-03T21:30:00Z",
+  "milestone_anchor_id": "NK-MS-20260903-STRESS-E2E-LOOP-v1.4.1",
+  "project": "LabNK \u2014 Modulo Bandi Intelligence & Decision Engine",
+  "release_version": "v1.4.1-Universal-Official",
+  "status": "CONSOLIDATED_OFFICIAL_RELEASE",
+  "fsm_state": "TURN_5_FINAL_HANDOFF_COMPLETE",
+  "macro_fase": "FASE_3_ATOMIC_COMMIT_2PC_COMPLETE",
+  "actor_critic_topology": {
+    "sovrano_infrastrutturale_l3": "NK-Master-Hub",
+    "evaluator_node": "NK-Oracle-Evaluator",
+    "critic_node": "NK-Session-Controller",
+    "worker_node": "NK-Delta-Architect"
+  },
+  "circuit_breaker": {
+    "correction_attempts": 0,
+    "max_allowed": 3,
+    "status": "HEALTHY_GREEN"
+  },
+  "metrics": {
+    "pytest_permanent_suite": "109/109 PASSED (100%)",
+    "benchmark_e2e_accuracy": "100.0% (60/60 Top-1 PASS)",
+    "nlp_precision": "30/30 (100.0%)",
+    "parametric_precision": "30/30 (100.0%)",
+    "ast_guard_purity": "41/41 Modules Checked (0 Violations)",
+    "sources_registry_count": 32,
+    "catalog_grants_count": 364,
+    "preflight_health": "HEALTHY_GREEN"
+  },
+  "cold_review_verdict": {
+    "gate_1_scope_audit": "PASS",
+    "gate_2_code_grounding": "PASS",
+    "gate_2bis_brief_grounding": "PASS",
+    "gate_3_preservation": "PASS",
+    "gate_4_truth_verification": "PASS",
+    "gate_5_delegation_audit": "PASS"
+  },
+  "two_phase_commit": {
+    "engine": "Win32NamedMutex + MoveFileExW + ShadowSwap + WAL",
+    "committed_files_count": 4,
+    "committed_files": [
+      "src_app/app.py",
+      "src_app/search/parametric_filter.py",
+      "src_app/service/bandi_service.py",
+      "data/snapshots/catalog_snapshot.json"
+    ],
+    "verdict": "COMMIT_SUCCESS"
+  },
+  "next_sprint": {
+    "name": "DOSSIER_PREFATTIBILITA_AND_BACKGROUND_HARVESTING",
+    "description": "Modulo di generazione dossier PDF/Markdown per clienti studio e pipeline di auto-harvesting notturno",
+    "target_files": [
+      "src_app/document_processing/document_pipeline.py",
+      "src_app/ingestion/orchestrator.py",
+      "src_app/service/bandi_service.py",
+      "src_app/ui/dashboard.py"
+    ]
+  }
+}

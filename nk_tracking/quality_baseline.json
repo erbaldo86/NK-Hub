@@ -1,36 +1,44 @@
 {
-  "_version": "1.1.0-Universal",
+  "_version": "1.6.0-VibeEnhanced",
   "project": "NK_Project",
   "baseline_date": "2026-08-20T22:45:00.000000",
-  "last_updated": "2026-08-22T14:10:39.926346",
+  "last_updated": "2026-09-10T15:25:00.000000",
   "metrics": {
     "skills_audited": {
       "value": 16,
-      "direction": "lower_is_better"
+      "direction": "higher_is_better"
     },
     "unit_tests_total": {
-      "value": 49,
-      "direction": "lower_is_better"
+      "value": 109,
+      "direction": "higher_is_better"
     },
     "unit_tests_passed": {
-      "value": 49,
-      "direction": "lower_is_better"
+      "value": 109,
+      "direction": "higher_is_better"
     },
     "unit_tests_pass_pct": {
       "value": 100.0,
-      "direction": "lower_is_better"
+      "direction": "higher_is_better"
+    },
+    "stress_test_80_passed": {
+      "value": 80,
+      "direction": "higher_is_better"
+    },
+    "stress_test_80_pass_pct": {
+      "value": 100.0,
+      "direction": "higher_is_better"
     },
     "sast_l1_compliance_pct": {
       "value": 100.0,
-      "direction": "lower_is_better"
+      "direction": "higher_is_better"
     },
     "sast_l2_compliance_pct": {
       "value": 100.0,
-      "direction": "lower_is_better"
+      "direction": "higher_is_better"
     },
     "sast_l3_compliance_pct": {
       "value": 100.0,
-      "direction": "lower_is_better"
+      "direction": "higher_is_better"
     },
     "dast_dynamic_exit_code": {
       "value": 0,
@@ -46,10 +54,22 @@
     },
     "crv_macro_phases": {
       "value": 4,
-      "direction": "lower_is_better"
+      "direction": "higher_is_better"
     },
     "cold_review_gates": {
       "value": 5,
+      "direction": "higher_is_better"
+    },
+    "heartbeat_jitter_ms": {
+      "value": 15.0,
+      "direction": "lower_is_better"
+    },
+    "time_to_first_staging_sec": {
+      "value": 12.0,
+      "direction": "lower_is_better"
+    },
+    "autonomous_healing_speed_ms": {
+      "value": 450.0,
       "direction": "lower_is_better"
     }
   },
@@ -108,6 +128,42 @@
         "unit_tests_total": 49,
         "unit_tests_passed": 49,
         "unit_tests_pass_pct": 100.0,
+        "sast_l1_compliance_pct": 100.0,
+        "sast_l2_compliance_pct": 100.0,
+        "sast_l3_compliance_pct": 100.0,
+        "dast_dynamic_exit_code": 0,
+        "token_leaks_detected": 0,
+        "mock_violations_detected": 0,
+        "crv_macro_phases": 4,
+        "cold_review_gates": 5
+      }
+    },
+    {
+      "timestamp": "2026-09-03T21:30:00.000000",
+      "metrics": {
+        "skills_audited": 16,
+        "unit_tests_total": 109,
+        "unit_tests_passed": 109,
+        "unit_tests_pass_pct": 100.0,
+        "sast_l1_compliance_pct": 100.0,
+        "sast_l2_compliance_pct": 100.0,
+        "sast_l3_compliance_pct": 100.0,
+        "dast_dynamic_exit_code": 0,
+        "token_leaks_detected": 0,
+        "mock_violations_detected": 0,
+        "crv_macro_phases": 4,
+        "cold_review_gates": 5
+      }
+    },
+    {
+      "timestamp": "2026-09-10T06:00:00.000000",
+      "metrics": {
+        "skills_audited": 16,
+        "unit_tests_total": 109,
+        "unit_tests_passed": 109,
+        "unit_tests_pass_pct": 100.0,
+        "stress_test_80_passed": 80,
+        "stress_test_80_pass_pct": 100.0,
         "sast_l1_compliance_pct": 100.0,
         "sast_l2_compliance_pct": 100.0,
         "sast_l3_compliance_pct": 100.0,

@@ -374,6 +374,7 @@ class DashboardRenderer:
                 const isEligible = score ? score.is_eligible : true;
                 const badgeClass = getMatchBadgeClass(matchScore);
                 const regioniStr = Array.isArray(g.regioni_target || g.regioni) ? (g.regioni_target || g.regioni).join(', ') : 'Nazionale';
+                const isEuGrant = g.fonte_nome === 'SEDIA EU' || g.fonte_nome === 'TED v3' || (g.ente_erogatore && g.ente_erogatore.toLowerCase().includes('europa')) || (g.titolo && g.titolo.toLowerCase().includes('horizon'));
 
                 const card = document.createElement('div');
                 card.className = 'grant-card';
@@ -382,7 +383,10 @@ class DashboardRenderer:
                         <div class="grant-top">
                             <div>
                                 <div class="grant-authority">${{escapeHTML(g.ente_erogatore)}}</div>
-                                <div style="font-size: 11px; color: var(--text-muted);">${{escapeHTML(regioniStr)}}</div>
+                                <div style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                    <span>${{escapeHTML(regioniStr)}}</span>
+                                    ${{isEuGrant ? '<span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.4); font-size: 10px; padding: 2px 6px;">🇪🇺 COMUNITARIO DIRETTO</span>' : ''}}
+                                </div>
                             </div>
                             <span class="match-badge ${{badgeClass}}">
                                 ${{matchScore}}% ${{isEligible ? 'COMPATIBILE' : 'NON IDONEO'}}
@@ -447,12 +451,16 @@ class DashboardRenderer:
                 const card = document.createElement('div');
                 card.className = 'grant-card';
                 const regioniStr = Array.isArray(g.regioni_target || g.regioni) ? (g.regioni_target || g.regioni).join(', ') : 'Nazionale';
+                const isEuGrant = g.fonte_nome === 'SEDIA EU' || g.fonte_nome === 'TED v3' || (g.ente_erogatore && g.ente_erogatore.toLowerCase().includes('europa')) || (g.titolo && g.titolo.toLowerCase().includes('horizon'));
                 card.innerHTML = `
                     <div>
                         <div class="grant-top">
                             <div>
                                 <div class="grant-authority">${{escapeHTML(g.ente_erogatore)}}</div>
-                                <div style="font-size: 11px; color: var(--text-muted);">${{escapeHTML(regioniStr)}}</div>
+                                <div style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                    <span>${{escapeHTML(regioniStr)}}</span>
+                                    ${{isEuGrant ? '<span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.4); font-size: 10px; padding: 2px 6px;">🇪🇺 COMUNITARIO DIRETTO</span>' : ''}}
+                                </div>
                             </div>
                             <span class="status-pill ${{g.stato === 'APERTO' ? 'status-open' : 'status-closed'}}">${{escapeHTML(g.stato)}}</span>
                         </div>

@@ -1,9 +1,11 @@
-"""HTML Scraper Connector for Tier 3 sources (Regional Portals, Institutional Scrapers) using BeautifulSoup4."""
+"""HTML Scraper Connector for Tier 3 sources (Regional Portals, Institutional Scrapers) using BeautifulSoup4.
+Nexus Keystone v1.1.0-Universal | Protocollo CRV 4.0.
+"""
 
 from datetime import datetime, timezone
 import json
 import logging
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Tuple, Any, Set
 import urllib.parse
 from bs4 import BeautifulSoup
 import httpx
@@ -19,20 +21,55 @@ from src_app.connectors.base import (
 
 logger = logging.getLogger("HtmlScraperConnector")
 
+# Selettori CSS ottimizzati per Drupal 10, Elementor WordPress e portali regionali italiani
+DEFAULT_CARD_SELECTOR = (
+    ".bando-item, article, tr.bando, .views-row, .card, .node--type-bando, .bando, "
+    ".item-bando, .views-field, .view-content > div, li.bando, .elenco-bandi .item, "
+    ".elementor-post, .elementor-grid-item, .elementor-card, .node--view-mode-teaser, "
+    ".card-bando, .box-bando, .scheda-bando, .list-item-bando, .entry-bando, "
+    ".cmp-card, .it-card, .table-bandi tbody tr, .bandi-table tr, .views-element-container .views-row, "
+    ".teaser-bando, .c-bando, .bando-box, .bandi-list__item"
+)
+
+DEFAULT_TITLE_SELECTOR = (
+    ".title, h2, h3, h4, a.bando-link, .card-title, .views-field-title, .field--name-title, "
+    ".titolo, header a, .elementor-post__title, .elementor-post__title a, .bando-title, "
+    ".titolo-bando, .entry-title, .entry-title a, .c-bando__title, .cmp-card__title, "
+    ".views-field-title a, .field--name-title a, .it-card-title, h2.title, h3.title"
+)
+
+DEFAULT_LINK_SELECTOR = (
+    "a.bando-link, .card-title a, h2 a, h3 a, h4 a, .elementor-post__title a, "
+    ".entry-title a, .c-bando__link, .cmp-card__link, a.read-more, a.btn-bando, a"
+)
+
+DEFAULT_DESC_SELECTOR = (
+    ".description, .summary, p, .card-text, .views-field-body, .field--name-body, "
+    ".descrizione, .abstract, .elementor-post__excerpt, .sommario, .c-bando__desc, "
+    ".entry-content, .field--name-field-descrizione, .it-card-text"
+)
+
+DEFAULT_DEADLINE_SELECTOR = (
+    ".deadline, .scadenza, .data-scadenza, .views-field-field-data-scadenza, time, "
+    ".field--name-field-data-scadenza, .bando-scadenza, .date-scadenza, .badge-scadenza, "
+    ".field--name-field-scadenza"
+)
+
 
 class HtmlScraperConnector(BaseBandoConnector):
-    """Connector for Tier 3 HTML scraping sources with DOM Drift Detection and JSON-LD support."""
+    """Connector for Tier 3 HTML scraping sources with controlled multi-page pagination, DOM Drift Detection and JSON-LD support."""
 
     def __init__(
         self,
         name: str = "HTML_Scraper_Generic",
-        card_selector: str = ".bando-item, article, tr.bando, .views-row, .card, .node--type-bando, .bando, .item-bando, .views-field, .view-content > div, li.bando, .elenco-bandi .item",
-        title_selector: str = ".title, h2, h3, h4, a.bando-link, .card-title, .views-field-title, .field--name-title, .titolo, header a",
-        link_selector: str = "a.bando-link, .card-title a, h2 a, h3 a, h4 a, a",
-        desc_selector: str = ".description, .summary, p, .card-text, .views-field-body, .field--name-body, .descrizione, .abstract",
-        deadline_selector: str = ".deadline, .scadenza, .data-scadenza, .views-field-field-data-scadenza, time, .field--name-field-data-scadenza",
+        card_selector: str = DEFAULT_CARD_SELECTOR,
+        title_selector: str = DEFAULT_TITLE_SELECTOR,
+        link_selector: str = DEFAULT_LINK_SELECTOR,
+        desc_selector: str = DEFAULT_DESC_SELECTOR,
+        deadline_selector: str = DEFAULT_DEADLINE_SELECTOR,
         rate_limiter: Optional[AsyncRateLimiter] = None,
         anti_ban: Optional[AntiBanPolicy] = None,
+        max_pages: int = 3,
     ):
         super().__init__(
             name=name,
@@ -45,8 +82,14 @@ class HtmlScraperConnector(BaseBandoConnector):
         self.link_selector = link_selector
         self.desc_selector = desc_selector
         self.deadline_selector = deadline_selector
+        self.max_pages = max(1, max_pages)
+        self.pages_scanned: int = 0
 
-    async def fetch_raw(self, url_or_query: str, headers: Optional[Dict[str, str]] = None) -> RawBandoPayload:
+    async def fetch_raw(
+        self,
+        url_or_query: str,
+        headers: Optional[Dict[str, str]] = None,
+    ) -> RawBandoPayload:
         """Fetch raw HTML document from portal endpoint."""
         req_headers = self.anti_ban.get_headers(headers)
 
@@ -62,6 +105,164 @@ class HtmlScraperConnector(BaseBandoConnector):
             fetched_at=datetime.now(timezone.utc),
             status_code=response.status_code,
         )
+
+    def find_next_page_url(
+        self,
+        html_content: str,
+        current_url: str,
+        current_page: int = 1,
+    ) -> Optional[str]:
+        """
+        Riconosce i pattern di paginazione nei portali regionali:
+        1. Selettori CSS per link successivi (Drupal 10, Elementor, Bootstrap):
+           'li.pager__item--next a', '.pagination a', 'a[rel=next]', '.elementor-pagination a.next'.
+        2. Testo del link corrispondente alla pagina target (es. "2", "3").
+        3. Riconoscimento parametri query (?page=, &p=, start=).
+        """
+        if not html_content:
+            return None
+
+        soup = BeautifulSoup(html_content, "html.parser")
+        target_page = current_page + 1
+
+        # 1. Selettori prioritari per link esplicito "Successivo / Next"
+        next_selectors = [
+            "li.pager__item--next a",
+            ".pager__item--next a",
+            "li.pager-next a",
+            "a[rel='next']",
+            ".pagination a.next",
+            ".pagination li.next a",
+            "a.page-numbers.next",
+            ".elementor-pagination a.next",
+            ".elementor-pagination a[class*='next']",
+            "a.next-page",
+            "a.next",
+            ".pager__link--next",
+            "a[aria-label*='Next' i]",
+            "a[aria-label*='Successiv' i]",
+            "a[aria-label*='Avanti' i]",
+        ]
+        for sel in next_selectors:
+            elem = soup.select_one(sel)
+            if elem and elem.has_attr("href"):
+                href = elem["href"].strip()
+                if href and href != "#" and not href.startswith("javascript:"):
+                    return urllib.parse.urljoin(current_url, href)
+
+        # 2. Ricerca del numero di pagina target all'interno dei contenitori di paginazione
+        target_str = str(target_page)
+        pagination_container_selectors = [
+            ".pagination a",
+            "ul.pager a",
+            "nav.pagination a",
+            ".elementor-pagination a",
+            "a.page-numbers",
+            ".pagination-container a",
+            ".pager a",
+            ".pagination-wrapper a",
+            "ul.page-numbers a",
+        ]
+        for container_sel in pagination_container_selectors:
+            for a in soup.select(container_sel):
+                txt = a.get_text(strip=True)
+                if txt == target_str and a.has_attr("href"):
+                    href = a["href"].strip()
+                    if href and href != "#" and not href.startswith("javascript:"):
+                        return urllib.parse.urljoin(current_url, href)
+
+        # 3. Analisi della query string dell'URL corrente per pattern ?page=, &p=, start=
+        parsed = urllib.parse.urlparse(current_url)
+        qs = urllib.parse.parse_qs(parsed.query)
+
+        has_pagination_markup = bool(
+            soup.select(".pagination, .pager, .elementor-pagination, .page-numbers, li.pager__item, nav[aria-label*='paginat' i]")
+        )
+
+        for param_name in ("page", "p", "pg", "page_number"):
+            if param_name in qs:
+                try:
+                    curr = int(qs[param_name][0])
+                    qs[param_name] = [str(curr + 1)]
+                    new_query = urllib.parse.urlencode(qs, doseq=True)
+                    return urllib.parse.urlunparse(parsed._replace(query=new_query))
+                except (ValueError, IndexError):
+                    pass
+
+        if "start" in qs:
+            try:
+                curr = int(qs["start"][0])
+                qs["start"] = [str(curr + 10)]
+                new_query = urllib.parse.urlencode(qs, doseq=True)
+                return urllib.parse.urlunparse(parsed._replace(query=new_query))
+            except (ValueError, IndexError):
+                pass
+
+        # Se il markup presenta paginazione ma i link sono generati o non catturati:
+        if has_pagination_markup and target_page <= 3:
+            qs["page"] = [str(target_page)]
+            new_query = urllib.parse.urlencode(qs, doseq=True)
+            return urllib.parse.urlunparse(parsed._replace(query=new_query))
+
+        return None
+
+    async def fetch_and_parse(
+        self,
+        url_or_query: str,
+        max_pages: Optional[int] = None,
+    ) -> List[CanonicalGrantModel]:
+        """
+        Esegue l'acquisizione multi-pagina automatica controllata (fino a max_pages, default 3)
+        scansionando le pagine 1, 2 e 3 con gestione rate-limiting e deduplicazione deterministica.
+        """
+        limit = max_pages or self.max_pages
+        all_records: List[CanonicalGrantModel] = []
+        seen_bando_ids: Set[str] = set()
+        visited_urls: Set[str] = set()
+
+        current_url = url_or_query
+        pages_fetched = 0
+
+        for page_idx in range(1, limit + 1):
+            if current_url in visited_urls:
+                break
+            visited_urls.add(current_url)
+
+            await self.rate_limiter.acquire()
+            try:
+                payload = await self.fetch_raw(current_url)
+                pages_fetched += 1
+            except Exception as exc:
+                if page_idx == 1:
+                    raise
+                logger.warning("Errore fetch pagina %d (%s): %s", page_idx, current_url, exc)
+                break
+
+            records = await self.parse(payload)
+            new_count = 0
+            for r in records:
+                if r.bando_id not in seen_bando_ids:
+                    seen_bando_ids.add(r.bando_id)
+                    all_records.append(r)
+                    new_count += 1
+
+            # Se la pagina corrente non contiene bandi o siamo all'ultima pagina richiesta, ferma la scansione
+            if new_count == 0 or page_idx >= limit:
+                break
+
+            # Cerca l'URL della pagina successiva
+            html_text = (
+                payload.raw_content.decode("utf-8", errors="replace")
+                if isinstance(payload.raw_content, bytes)
+                else str(payload.raw_content)
+            )
+            next_url = self.find_next_page_url(html_text, current_url, current_page=page_idx)
+            if not next_url or next_url in visited_urls:
+                break
+            current_url = next_url
+
+        self.pages_scanned = pages_fetched
+        return all_records
 
     def check_dom_drift(self, previous_hash: str, html_content: str) -> Tuple[bool, str]:
         """Compute current DOM skeleton hash and return whether structure drift occurred."""
@@ -140,7 +341,7 @@ class HtmlScraperConnector(BaseBandoConnector):
         skeleton_hash = DOMDriftDetector.compute_skeleton_hash(html_str)
         soup = BeautifulSoup(html_str, "html.parser")
         records: List[CanonicalGrantModel] = []
-        seen_bando_ids = set()
+        seen_bando_ids: Set[str] = set()
 
         # 1. Parsing JSON-LD Schema.org strutturato
         json_ld_records = self._parse_json_ld(soup, payload.source_url, skeleton_hash)
@@ -149,11 +350,14 @@ class HtmlScraperConnector(BaseBandoConnector):
                 seen_bando_ids.add(r.bando_id)
                 records.append(r)
 
-        # 2. Parsing visivo tramite selettori CSS (Drupal, Bootstrap, Portali Regionali)
+        # 2. Parsing visivo tramite selettori CSS (Drupal, Bootstrap, Elementor, Portali Regionali)
         cards = soup.select(self.card_selector)
         if not cards or len(cards) < 2:
             # Fallback euristico: ricerca link semantici correlati a bandi e agevolazioni
-            keywords = ["bando", "avviso", "incentiv", "agevolaz", "finanziament", "contribut", "voucher", "misura", "fondo", "innovazion", "startup", "investiment"]
+            keywords = [
+                "bando", "avviso", "incentiv", "agevolaz", "finanziament",
+                "contribut", "voucher", "misura", "fondo", "innovazion", "startup", "investiment"
+            ]
             found_parents = []
             seen_hrefs = set()
             for elem in soup.find_all("a", href=True):

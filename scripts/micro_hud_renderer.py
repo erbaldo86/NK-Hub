@@ -168,3 +168,14 @@ class MicroHUDRenderer:
         """Renders HUD enclosed in a clean markdown code/status container."""
         hud_line = self.render(include_extras=include_extras)
         return f"```text\n{hud_line}\n```"
+
+    @classmethod
+    def render_pulse(cls, step: str, percent: int, pulse_status: str = "ALIVE") -> str:
+        """Renders a fast inline pulse string: [NK-PULSE v1.6] ▓▓▓▓▓░░░░░ 50% | STEP: build | STATUS: ALIVE"""
+        bar_width = 10
+        p = max(0, min(100, int(percent)))
+        filled = int(round((p / 100.0) * bar_width))
+        empty = bar_width - filled
+        bar = "▓" * filled + "░" * empty
+        return f"[NK-PULSE v1.6] {bar} {p}% | STEP: {step} | STATUS: {pulse_status}"
+

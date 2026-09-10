@@ -1,5 +1,6 @@
 """LabNK Bandi Ingestion Orchestrator.
 Nexus Keystone v1.1.0-Universal | Live Institutional Sources Harvester.
+Protocollo CRV 4.0 | Controlled Multi-Page Pagination & Enriched Telemetry.
 """
 
 import json
@@ -37,9 +38,10 @@ def _is_valid_sha256(val: Optional[str]) -> bool:
 class IngestionOrchestrator:
     """
     Orchestratore centrale di Ingestion che carica il registro SSOT delle fonti (sources_registry.json),
-    scansiona i portali istituzionali reali (Nazionali, 20 Regioni, UE), normalizza i record
+    scansiona i portali istituzionali reali (Nazionali, 20 Regioni, Fonti Camerali, CSR/PSR, UE),
+    supporta la paginazione multi-pagina (max_pages controllata), normalizza i record
     nel Canonical Grant Model (CGM) e popola il repository con Double-Buffered Atomic Swap,
-    concorrenza limitata per-host, circuit breaker e persistenza offline-first.
+    concorrenza limitata per-host, circuit breaker, telemetria granulare e persistenza offline-first.
     """
 
     SOURCES_REGISTRY_PATH = Path(__file__).resolve().parent / "sources_registry.json"
@@ -53,6 +55,7 @@ class IngestionOrchestrator:
     _host_semaphores: Dict[str, asyncio.Semaphore] = {}
     _circuit_failures: Dict[str, int] = {}
     _circuit_open_until: Dict[str, float] = {}
+    _source_telemetry: Dict[str, Dict[str, Any]] = {}
 
     @classmethod
     def is_harvesting(cls) -> bool:
@@ -131,7 +134,7 @@ class IngestionOrchestrator:
 
     @classmethod
     def load_sources_registry(cls) -> List[Dict[str, Any]]:
-        """Carica l'elenco dei 31 portali ufficiali registrati in sources_registry.json."""
+        """Carica l'elenco dei portali ufficiali registrati in sources_registry.json."""
         if not cls.SOURCES_REGISTRY_PATH.exists():
             logger.warning(f"File {cls.SOURCES_REGISTRY_PATH} non trovato.")
             return []
@@ -149,7 +152,10 @@ class IngestionOrchestrator:
         source: Dict[str, Any],
         global_semaphore: asyncio.Semaphore
     ) -> Tuple[str, List[CanonicalGrantModel], str]:
-        """Esegue l'harvesting asincrono di una singola fonte con Circuit Breaker e limite per-host."""
+        """
+        Esegue l'harvesting asincrono di una singola fonte con supporto paginazione,
+        Circuit Breaker, limite per-host e telemetria arricchita.
+        """
         source_id = source.get("source_id", "UNKNOWN")
         source_name = source.get("name", source_id)
         url = source.get("official_url")
@@ -158,40 +164,74 @@ class IngestionOrchestrator:
         jurisdiction = source.get("jurisdiction", "NAT")
 
         if not url:
+            cls._source_telemetry[source_id] = {
+                "pages_scanned": 0,
+                "duration_ms": 0.0,
+                "grants_found": 0,
+                "yield_status": "SKIPPED",
+            }
             return source_id, [], "SKIPPED_NO_URL"
 
         # Controllo Circuit Breaker
         if cls.is_circuit_open(source_id):
             logger.warning("Fonte %s esclusa temporaneamente per Circuit Breaker aperto", source_id)
+            cls._source_telemetry[source_id] = {
+                "pages_scanned": 0,
+                "duration_ms": 0.0,
+                "grants_found": 0,
+                "yield_status": "CIRCUIT_BREAKER_OPEN",
+            }
             return source_id, [], "CIRCUIT_BREAKER_OPEN"
 
-        # Concurrency limit per-host (max 2 richieste per host)
+        # Concurrency limit per-host (max 2 richieste contemporanee per host)
         parsed_url = urllib.parse.urlparse(url)
         host = parsed_url.netloc.lower() or "unknown_host"
         host_semaphore = cls._get_host_semaphore(host)
 
         async with global_semaphore:
             async with host_semaphore:
+                t0 = time.perf_counter()
                 try:
                     rate_limiter = AsyncRateLimiter(requests_per_second=5.0)
                     anti_ban = AntiBanPolicy(rotate_user_agent=True, base_delay=0.1)
 
                     if connector_type == "REST_API":
-                        connector = RestApiConnector(name=source_name, rate_limiter=rate_limiter, anti_ban=anti_ban)
+                        connector = RestApiConnector(
+                            name=source_name,
+                            rate_limiter=rate_limiter,
+                            anti_ban=anti_ban,
+                            max_pages=2,
+                        )
                     elif connector_type == "RSS_FEED":
-                        connector = RssFeedConnector(name=source_name, rate_limiter=rate_limiter, anti_ban=anti_ban)
+                        connector = RssFeedConnector(
+                            name=source_name,
+                            rate_limiter=rate_limiter,
+                            anti_ban=anti_ban,
+                        )
                     else:
-                        connector = HtmlScraperConnector(name=source_name, rate_limiter=rate_limiter, anti_ban=anti_ban)
+                        connector = HtmlScraperConnector(
+                            name=source_name,
+                            rate_limiter=rate_limiter,
+                            anti_ban=anti_ban,
+                            max_pages=3,
+                        )
 
-                    # Timeout rigido di 8 secondi per fonte
-                    raw_payload = await asyncio.wait_for(connector.fetch_raw(url), timeout=8.0)
-                    grants = await connector.parse(raw_payload)
+                    # Timeout differenziato a 15.0s per fonti REST UE, timeout 10.0s per le altre con paginazione
+                    is_eu_rest = connector_type == "REST_API" and (jurisdiction == "EU" or "europa.eu" in (url or "").lower())
+                    timeout_sec = 15.0 if is_eu_rest else 10.0
+
+                    # Invocazione con supporto nativo per paginazione multi-pagina
+                    grants = await asyncio.wait_for(connector.fetch_and_parse(url), timeout=timeout_sec)
+                    fetch_duration_ms = round((time.perf_counter() - t0) * 1000, 2)
+                    pages_scanned = getattr(connector, "pages_scanned", 1) or 1
 
                     # Post-process & enrich parsed records
                     enriched_grants = []
                     for idx, g in enumerate(grants):
-                        # Imposta regioni_target = [region] se jurisdiction == "REG" e region valida; altrimenti ["Tutte"]
-                        if jurisdiction == "REG" and region and region.strip() and region.strip() != "Tutte":
+                        # Imposta regioni_target = ["Tutte"] se EU; [region] se REG; altrimenti ["Tutte"]
+                        if jurisdiction == "EU":
+                            g.regioni_target = ["Tutte"]
+                        elif jurisdiction == "REG" and region and region.strip() and region.strip() != "Tutte":
                             g.regioni_target = [region.strip()]
                         else:
                             g.regioni_target = ["Tutte"]
@@ -218,11 +258,26 @@ class IngestionOrchestrator:
                         enriched_grants.append(g)
 
                     cls.record_success(source_id)
-                    status = f"HEALTHY_LIVE_HARVESTED ({len(enriched_grants)} bandi)"
+                    yield_status = "HIGH" if len(enriched_grants) >= 10 else ("MEDIUM" if len(enriched_grants) > 0 else "EMPTY")
+                    cls._source_telemetry[source_id] = {
+                        "pages_scanned": pages_scanned,
+                        "duration_ms": fetch_duration_ms,
+                        "grants_found": len(enriched_grants),
+                        "yield_status": yield_status,
+                    }
+
+                    status = f"HEALTHY_LIVE_HARVESTED ({len(enriched_grants)} bandi, {pages_scanned} pag, {fetch_duration_ms:.0f}ms)"
                     return source_id, enriched_grants, status
 
                 except Exception as exc:
+                    elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
                     cls.record_failure(source_id)
+                    cls._source_telemetry[source_id] = {
+                        "pages_scanned": 0,
+                        "duration_ms": elapsed_ms,
+                        "grants_found": 0,
+                        "yield_status": "OFFLINE",
+                    }
                     logger.warning(f"Errore durante harvest live di {source_id} ({url}): {exc}")
                     return source_id, [], f"OFFLINE_FALLBACK ({type(exc).__name__})"
 
@@ -233,6 +288,7 @@ class IngestionOrchestrator:
         - Re-entrancy protection
         - Double-Buffered Atomic Swap
         - Offline-First snapshot fallback
+        - Supporto paginazione e telemetria granulare per fonte
         - Concorrenza limitata globale e per-host
         """
         async with cls._harvest_lock:
@@ -282,50 +338,66 @@ class IngestionOrchestrator:
             sources_details = []
 
             for idx, res in enumerate(results):
+                source_meta = active_sources[idx] if idx < len(active_sources) else {}
                 if isinstance(res, tuple):
                     s_id, grants, status_desc = res
-                    source_meta = active_sources[idx] if idx < len(active_sources) else {}
                     for g in grants:
                         staging_grants[g.bando_id] = g
                         total_live_harvested += 1
 
+                    tel = cls._source_telemetry.get(s_id, {})
                     sources_details.append({
                         "source_id": s_id,
                         "name": source_meta.get("name", s_id),
                         "jurisdiction": source_meta.get("jurisdiction", "NAT"),
+                        "region": source_meta.get("region", "Tutte"),
                         "connector": source_meta.get("connector_type", "HTML_SCRAPER"),
                         "grants_found": len(grants),
-                        "status": status_desc
+                        "pages_scanned": tel.get("pages_scanned", 1),
+                        "duration_ms": tel.get("duration_ms", 0.0),
+                        "yield_status": tel.get("yield_status", "UNKNOWN"),
+                        "status": status_desc,
                     })
                 else:
                     sources_details.append({
-                        "source_id": f"SOURCE_{idx}",
-                        "status": f"ERROR ({str(res)})"
+                        "source_id": source_meta.get("source_id", f"SOURCE_{idx}"),
+                        "name": source_meta.get("name", "Unknown"),
+                        "jurisdiction": source_meta.get("jurisdiction", "NAT"),
+                        "region": source_meta.get("region", "Tutte"),
+                        "connector": source_meta.get("connector_type", "UNKNOWN"),
+                        "grants_found": 0,
+                        "pages_scanned": 0,
+                        "duration_ms": 0.0,
+                        "yield_status": "ERROR",
+                        "status": f"ERROR ({str(res)})",
                     })
 
             # 4. Double-Buffered Atomic Swap nel servizio centrale in-memory
             service.swap_grants_atomic(staging_grants)
 
-            # 5. Persistenza dello snapshot reale su disco
-            cls.save_snapshot(staging_grants)
+            # 5. Persistenza dello snapshot reale su disco in modo asincrono
+            await asyncio.to_thread(cls.save_snapshot, staging_grants)
 
             total_grants_in_service = len(service.list_all_grants())
             elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
+            total_pages_scanned = sum(s.get("pages_scanned", 1) for s in sources_details)
 
             report = {
                 "status": "completed",
                 "job_id": cls._current_job_id,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "sources_scanned": sources_count,
+                "sources_active": len([s for s in sources_details if s.get("grants_found", 0) > 0]),
+                "total_pages_scanned": total_pages_scanned,
                 "grants_harvested_live": total_live_harvested,
                 "grants_total_in_service": total_grants_in_service,
                 "duration_ms": elapsed_ms,
-                "sources_details": sources_details
+                "sources_details": sources_details,
             }
             cls._last_telemetry = report
             logger.info(
-                "Live Harvesting completato: %d fonti scansionate, %d bandi live scaricati, %d bandi totali in %.2f ms",
-                sources_count, total_live_harvested, total_grants_in_service, elapsed_ms
+                "Live Harvesting completato: %d fonti scansionate (%d pagine), %d bandi live scaricati, %d bandi totali in %.2f ms",
+                sources_count, total_pages_scanned, total_live_harvested, total_grants_in_service, elapsed_ms
             )
             return report
 

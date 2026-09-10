@@ -1,0 +1,65 @@
+{
+  "manifest_version": "1.1.0-Universal",
+  "timestamp": "2026-09-10T06:00:00Z",
+  "milestone_anchor_id": "NK-MS-20260910-STRESS-80-E2E-LOOP",
+  "project": "LabNK — Modulo Bandi Intelligence & Decision Engine",
+  "release_version": "v1.5.1-Universal-Official",
+  "status": "CONSOLIDATED_OFFICIAL_RELEASE",
+  "fsm_state": "TURN_5_FINAL_HANDOFF_COMPLETE",
+  "macro_fase": "FASE_3_ATOMIC_COMMIT_2PC_COMPLETE",
+  "actor_critic_topology": {
+    "sovrano_infrastrutturale_l3": "NK-Master-Hub",
+    "evaluator_node": "NK-Oracle-Evaluator",
+    "critic_node": "NK-Session-Controller",
+    "worker_node": "NK-Delta-Architect"
+  },
+  "circuit_breaker": {
+    "correction_attempts": 0,
+    "max_allowed": 3,
+    "status": "HEALTHY_GREEN"
+  },
+  "metrics": {
+    "pytest_permanent_suite": "109/109 PASSED (100%)",
+    "stress_test_80_accuracy": "100.0% (80/80 PASS - 0 Deficit)",
+    "stress_test_latency_avg_ms": 6.5,
+    "nlp_precision": "40/40 (100.0%)",
+    "parametric_precision": "40/40 (100.0%)",
+    "ast_guard_purity": "40/40 Modules Checked (0 Violations)",
+    "sources_registry_count": 38,
+    "catalog_grants_count": 364,
+    "preflight_health": "HEALTHY_GREEN"
+  },
+  "cold_review_verdict": {
+    "gate_1_scope_audit": "PASS",
+    "gate_2_code_grounding": "PASS",
+    "gate_2bis_brief_grounding": "PASS",
+    "gate_3_preservation": "PASS",
+    "gate_4_truth_verification": "PASS",
+    "gate_5_delegation_audit": "PASS"
+  },
+  "two_phase_commit": {
+    "engine": "Win32NamedMutex + MoveFileExW + ShadowSwap + WAL",
+    "transactions": [
+      "tx_23112981039c",
+      "tx_77e46183bc08"
+    ],
+    "committed_files_count": 4,
+    "committed_files": [
+      "src_app/search/nlp_intent_extractor.py",
+      "src_app/app.py",
+      "src_app/search/ateco_tree.py",
+      "src_app/ingestion/sources_registry.json"
+    ],
+    "verdict": "COMMIT_SUCCESS"
+  },
+  "next_sprint": {
+    "name": "DOSSIER_PREFATTIBILITA_AND_BACKGROUND_HARVESTING",
+    "description": "Modulo di generazione dossier PDF/Markdown per clienti studio e pipeline di auto-harvesting notturno",
+    "target_files": [
+      "src_app/document_processing/document_pipeline.py",
+      "src_app/ingestion/orchestrator.py",
+      "src_app/service/bandi_service.py",
+      "src_app/ui/dashboard.py"
+    ]
+  }
+}

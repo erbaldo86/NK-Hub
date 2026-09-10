@@ -1,0 +1,199 @@
+{
+  "version": "1.0.0",
+  "generated_at": "2026-09-03T20:55:00Z",
+  "framework": "Nexus Keystone v1.1.0-Universal",
+  "source_engines": ["Google Native Search (Gemini)", "Tavily Search MCP"],
+  "evaluation_rule": {
+    "equal_results": "PASS (Allineamento conforme)",
+    "greater_results": "EXCELLENT (Arricchimento catalogo profondo)",
+    "lesser_results": "FAIL_DEFICIT (Trigger immediato Self-Healing Loop in .staging tramite Builder)"
+  },
+  "ground_truth_entries": [
+    {
+      "id": "NLP_STRESS_01",
+      "query": "Startup innovativa agritech a Bologna cerca voucher a fondo perduto e finanziamenti europei Horizon EIC per sensoristica IoT in campo aperto",
+      "official_institution": "Commissione Europea (EIC) / Regione Emilia-Romagna",
+      "official_portal_url": "https://eic.ec.europa.eu/eic-funding-opportunities/eic-accelerator_en",
+      "expected_measures": ["EU-HORIZON-EIC-ACCEL", "EMILIA-MECCANICA-4-0", "PUGLIA-AGRITECH-PRECISION"],
+      "min_expected_count": 1,
+      "requires_eu_intent": true,
+      "inferred_region": "Emilia-Romagna"
+    },
+    {
+      "id": "NLP_STRESS_02",
+      "query": "Pmi manifatturiera metalmeccanica di Brescia cerca credito d'imposta per acquisto macchinari CNC 5 assi e robotica Transizione 5.0",
+      "official_institution": "MIMIT / GSE",
+      "official_portal_url": "https://www.mimit.gov.it/it/incentivi/piano-transizione-5-0",
+      "expected_measures": ["MIMIT-TRANS-5-0", "LOMBARDIA-DIGIT-2026"],
+      "min_expected_count": 1,
+      "requires_eu_intent": false,
+      "inferred_region": "Lombardia"
+    },
+    {
+      "id": "NLP_STRESS_03",
+      "query": "Bando europeo SEDIA per ricerca deep tech intelligenza artificiale applicata a biotech farmaceutico con partenariato internazionale",
+      "official_institution": "Commissione Europea - Funding & Tenders (SEDIA)",
+      "official_portal_url": "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/programmes/horizon",
+      "expected_measures": ["EU-HORIZON-EIC-ACCEL"],
+      "min_expected_count": 1,
+      "requires_eu_intent": true,
+      "inferred_region": "Tutte"
+    },
+    {
+      "id": "NLP_STRESS_04",
+      "query": "Contributo a fondo perduto 80% per sicurezza sul lavoro, bonifica amianto e sostituzione macchinari pesanti per impresa edile a Napoli",
+      "official_institution": "INAIL",
+      "official_portal_url": "https://www.inail.it/cs/internet/attivita/prevenzione-e-sicurezza/agevolazioni-e-finanziamenti/bando-isi.html",
+      "expected_measures": ["INAIL-ISI-2026"],
+      "min_expected_count": 1,
+      "requires_eu_intent": false,
+      "inferred_region": "Campania"
+    },
+    {
+      "id": "NLP_STRESS_05",
+      "query": "Finanziamento tasso zero e fondo perduto fino a 100.000 euro per apertura nuova impresa giovanile under 35 e femminile a Bari",
+      "official_institution": "Invitalia / MIMIT",
+      "official_portal_url": "https://www.invitalia.it/incentivi-e-strumenti/resto-al-sud",
+      "expected_measures": ["RESTO-AL-SUD-2-0", "INVITALIA-SMART-START-2026", "SARDEGNA-IMPRESA-FEMMINILE"],
+      "min_expected_count": 1,
+      "requires_eu_intent": false,
+      "inferred_region": "Puglia"
+    },
+    {
+      "id": "NLP_STRESS_06",
+      "query": "TED European tender notice for cybersecurity cloud infrastructure procurement active in Italy",
+      "official_institution": "Ufficio Pubblicazioni UE (TED v3)",
+      "official_portal_url": "https://ted.europa.eu/",
+      "expected_measures": ["LAZIO-CYBER-SECURITY", "EU-HORIZON-EIC-ACCEL"],
+      "min_expected_count": 1,
+      "requires_eu_intent": false,
+      "inferred_region": "Tutte"
+    },
+    {
+      "id": "NLP_STRESS_07",
+      "query": "Consorzio di PMI vitivinicole in Veneto cerca contributi per promozione internazionale e fiere export negli Stati Uniti e in Asia",
+      "official_institution": "Regione Veneto / SIMEST",
+      "official_portal_url": "https://bandi.regione.veneto.it/",
+      "expected_measures": ["VENETO-CONSORZI-EXPORT"],
+      "min_expected_count": 1,
+      "requires_eu_intent": false,
+      "inferred_region": "Veneto"
+    },
+    {
+      "id": "NLP_STRESS_08",
+      "query": "Impianto fotovoltaico su tetto industriale con accumulo e pompe di calore per azienda agricola in Sicilia a fondo perduto",
+      "official_institution": "MASAF / Regione Siciliana",
+      "official_portal_url": "https://www.politicheagricole.it/agrisolare",
+      "expected_measures": ["SICILIA-SOLAR-GREEN"],
+      "min_expected_count": 1,
+      "requires_eu_intent": false,
+      "inferred_region": "Sicilia"
+    },
+    {
+      "id": "NLP_STRESS_09",
+      "query": "Sviluppo prototipo biomedicale diagnostico e sperimentazione clinica per dispositivi medici innovativi in Toscana",
+      "official_institution": "Regione Toscana",
+      "official_portal_url": "https://www.regione.toscana.it/bandi",
+      "expected_measures": ["TOSCANA-BIOTECH-PHARMA", "MARCHE-BIOMEDICALE"],
+      "min_expected_count": 1,
+      "requires_eu_intent": false,
+      "inferred_region": "Toscana"
+    },
+    {
+      "id": "NLP_STRESS_10",
+      "query": "Componentistica per veicoli elettrici e batterie al litio per fornitore automotive di Torino",
+      "official_institution": "Regione Piemonte / MIMIT",
+      "official_portal_url": "https://bandi.regione.piemonte.it/",
+      "expected_measures": ["PIEMONTE-AUTOMOTIVE-EV"],
+      "min_expected_count": 1,
+      "requires_eu_intent": false,
+      "inferred_region": "Piemonte"
+    },
+    {
+      "id": "NLP_STRESS_14",
+      "query": "Brevetti e tutela proprietà intellettuale per nuovo algoritmo crittografico brevettato a livello europeo",
+      "official_institution": "MIMIT / Unioncamere",
+      "official_portal_url": "https://www.brevettipiu.it/",
+      "expected_measures": ["MIMIT-BREVETTI-PLUS"],
+      "min_expected_count": 1,
+      "requires_eu_intent": false,
+      "inferred_region": "Tutte"
+    },
+    {
+      "id": "NLP_STRESS_21",
+      "query": "Investimenti produttivi e agevolazioni fiscali ZES Unica Mezzogiorno per nuovo stabilimento industriale a Salerno",
+      "official_institution": "Agenzia delle Entrate / Presidenza del Consiglio (ZES Unica)",
+      "official_portal_url": "https://www.agenziaentrate.gov.it/portale/credito-di-imposta-zes-unica",
+      "expected_measures": ["CAMPANIA-ZES-UNICA"],
+      "min_expected_count": 1,
+      "requires_eu_intent": false,
+      "inferred_region": "Campania"
+    },
+    {
+      "id": "NLP_STRESS_30",
+      "query": "AI Horizon Europe EIC Accelerator blended finance grant and equity for scalable clean tech venture in Italy",
+      "official_institution": "Commissione Europea - European Innovation Council",
+      "official_portal_url": "https://eic.ec.europa.eu/eic-funding-opportunities/eic-accelerator_en",
+      "expected_measures": ["EU-HORIZON-EIC-ACCEL"],
+      "min_expected_count": 1,
+      "requires_eu_intent": true,
+      "inferred_region": "Tutte"
+    },
+    {
+      "id": "PARAM_STRESS_01",
+      "criteria": {"regioni_target": ["Lombardia"], "ateco_codes": ["C.28"], "tipo_agevolazione": "credito_imposta", "stato": "APERTO"},
+      "official_institution": "MIMIT / Regione Lombardia",
+      "official_portal_url": "https://www.mimit.gov.it/",
+      "expected_measures": ["MIMIT-TRANS-5-0"],
+      "min_expected_count": 1
+    },
+    {
+      "id": "PARAM_STRESS_02",
+      "criteria": {"regioni_target": ["Tutte"], "tipo_agevolazione": "fondo_perduto", "search_text": "Horizon", "stato": "APERTO"},
+      "official_institution": "Commissione Europea (SEDIA)",
+      "official_portal_url": "https://ec.europa.eu/info/funding-tenders/opportunities/portal/",
+      "expected_measures": ["EU-HORIZON-EIC-ACCEL"],
+      "min_expected_count": 1
+    },
+    {
+      "id": "PARAM_STRESS_03",
+      "criteria": {"regioni_target": ["Campania"], "ateco_codes": ["J.62"], "tipologia_beneficiari": ["Startup_Innovative"], "stato": "APERTO"},
+      "official_institution": "Regione Campania / Invitalia",
+      "official_portal_url": "https://www.regione.campania.it/",
+      "expected_measures": ["CAMPANIA-AI-2026", "INVITALIA-SMART-START-2026"],
+      "min_expected_count": 1
+    },
+    {
+      "id": "PARAM_STRESS_10",
+      "criteria": {"regioni_target": ["Tutte"], "search_text": "INAIL", "tipo_agevolazione": "fondo_perduto", "stato": "APERTO"},
+      "official_institution": "INAIL",
+      "official_portal_url": "https://www.inail.it/",
+      "expected_measures": ["INAIL-ISI-2026"],
+      "min_expected_count": 1
+    },
+    {
+      "id": "PARAM_STRESS_11",
+      "criteria": {"regioni_target": ["Tutte"], "search_text": "Brevetti", "tipo_agevolazione": "voucher", "stato": "APERTO"},
+      "official_institution": "MIMIT / Unioncamere",
+      "official_portal_url": "https://www.brevettipiu.it/",
+      "expected_measures": ["MIMIT-BREVETTI-PLUS"],
+      "min_expected_count": 1
+    },
+    {
+      "id": "PARAM_STRESS_20",
+      "criteria": {"regioni_target": ["Campania"], "search_text": "ZES", "tipo_agevolazione": "credito_imposta", "stato": "APERTO"},
+      "official_institution": "Agenzia delle Entrate (ZES Unica Mezzogiorno)",
+      "official_portal_url": "https://www.agenziaentrate.gov.it/",
+      "expected_measures": ["CAMPANIA-ZES-UNICA"],
+      "min_expected_count": 1
+    },
+    {
+      "id": "PARAM_STRESS_26",
+      "criteria": {"regioni_target": ["Tutte"], "tipologia_beneficiari": ["Startup_Innovative"], "min_budget": 500000.0, "stato": "APERTO"},
+      "official_institution": "Invitalia (Smart&Start)",
+      "official_portal_url": "https://www.invitalia.it/incentivi-e-strumenti/smartstart-italia",
+      "expected_measures": ["INVITALIA-SMART-START-2026", "EU-HORIZON-EIC-ACCEL"],
+      "min_expected_count": 1
+    }
+  ]
+}

@@ -11,18 +11,17 @@
 * **Direttiva Mandatoria:** Prima di applicare modifiche fisiche a file di codice sorgente (`.py`, `.js`, `.ts`, `.html`, `.css`) o a schemi/dati, è fatto divieto assoluto di mantenere server/processi demone attivi in background con `reload=True` o file watcher aperti.
 * **Azione:** Verificare ed arrestare i processi attivi tramite `manage_task` (action: `kill`) o eseguire lo script di pulizia `scripts/safe_cleanup_dev_servers.py` prima dell'editing, per azzerare i conflitti `[WinError 32]` tipici del filesystem Windows NTFS e Google Drive virtuale.
 
-### [GLOBAL-RULE-02] STAGING_AND_ATOMIC_REPLACE
-* **Direttiva:** Per file critici o sensibili, utilizzare un pattern di scrittura atomica con staging buffer (`.staging/` o directory temporanea `%TEMP%`) e `os.replace` con retry a backoff esponenziale (max 3 tentativi, 100ms/300ms/1000ms), gestendo le latenze di sincronizzazione del client Google Drive.
+### [GLOBAL-RULE-02] STAGING_AND_2PC_ATOMIC_COMMIT
+* **Direttiva:** Per file critici o modifiche a codice, utilizzare il pattern di commit atomico a due fasi tramite `scripts/win32_2pc_engine.py` con buffer `.staging/`, Named Mutex Win32 e retry a backoff esponenziale con full jitter (8 tentativi), garantendo zero corruzione anche su Google Drive virtuale.
 
 ---
 
 ## 📄 2. Contesto & Large File Slicing
 
 ### [GLOBAL-RULE-03] LARGE_FILE_SLICING
-* **Direttiva Mandatoria:** Sui file di dimensioni superiori a 50 KB o con più di 800 righe (es. `app.js`), è fatto divieto tassativo agli agenti di:
-  1. Caricare l'intero file in memoria senza range di righe.
-  2. Eseguire sostituzioni massive o globali che riscrivono l'intero file.
-* **Azione:** Utilizzare sempre `view_file` con `StartLine` ed `EndLine` focalizzati su blocchi <= 100 righe ed applicare modifiche chirurgiche atomiche con `replace_file_content` o `multi_replace_file_content`.
+* **Direttiva Mandatoria:** Sui file di grandi dimensioni (>50 KB o >800 righe), è fatto divieto agli agenti di caricare l'intero file in memoria senza range di righe o eseguire sostituzioni massive non delimitate.
+* **Azione:** Utilizzare sempre `view_file` con `StartLine` ed `EndLine` focalizzati su blocchi contestuali ed applicare modifiche chirurgiche atomiche con `replace_file_content`.
+
 
 ---
 
