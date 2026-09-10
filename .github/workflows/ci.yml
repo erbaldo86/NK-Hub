@@ -1,0 +1,37 @@
+name: Lab NK Hub Continuous Verification
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  verify:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Preflight Health Check
+        run: |
+          python scripts/preflight_health_check.py
+
+      - name: Run Deterministic AST Guard Validator
+        run: |
+          python scripts/ast_guard_validator.py --target all
+
+      - name: Run Core Platform Test Suite
+        run: |
+          python -m unittest discover -s tests -p "test_*.py"

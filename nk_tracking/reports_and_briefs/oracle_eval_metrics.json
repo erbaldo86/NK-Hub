@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-02T22:35:46.613154+00:00",
+  "timestamp": "2026-09-10T18:50:13.884614+00:00",
   "ateco_nuts_tests": [
     {
       "test": "ATECO Normalization: 620100 -> 62.01.00",
@@ -286,9 +286,9 @@
       "inferred_ateco": [
         "30.30.09",
         "01.50.00",
-        "01.11.00",
         "30.30.00",
         "62.01.00",
+        "01.11.00",
         "01.21.00"
       ],
       "inferred_beneficiary": [
@@ -333,11 +333,11 @@
       "inferred_nuts": "ITH55",
       "inferred_ateco": [
         "28.00.00",
-        "30.00.00",
-        "25.62.00",
         "25.00.00",
+        "30.00.00",
         "28.11.00",
         "62.01.00",
+        "25.62.00",
         "28.99.00"
       ],
       "inferred_beneficiary": [
@@ -377,9 +377,9 @@
       "inferred_region": "Toscana",
       "inferred_nuts": "ITI14",
       "inferred_ateco": [
+        "21.20.00",
         "72.19.09",
-        "72.11.00",
-        "21.20.00"
+        "72.11.00"
       ],
       "inferred_beneficiary": [
         "Enti_Ricerca"
@@ -422,9 +422,9 @@
       "inferred_region": "Lombardia",
       "inferred_nuts": "ITC4C",
       "inferred_ateco": [
+        "47.91.10",
         "46.90.00",
         "62.02.00",
-        "47.91.10",
         "62.01.00"
       ],
       "inferred_beneficiary": [
@@ -463,13 +463,13 @@
       "inferred_region": "Piemonte",
       "inferred_nuts": "ITC11",
       "inferred_ateco": [
-        "62.02.00",
-        "62.09.09",
-        "62.03.00",
         "63.11.00",
-        "62.01.00",
+        "58.29.00",
         "72.19.09",
-        "58.29.00"
+        "62.01.00",
+        "62.02.00",
+        "62.03.00",
+        "62.09.09"
       ],
       "inferred_beneficiary": [
         "PMI"
@@ -509,11 +509,11 @@
       "inferred_region": "Sicilia",
       "inferred_nuts": "ITG12",
       "inferred_ateco": [
-        "38.21.00",
+        "71.12.10",
+        "35.11.00",
         "43.21.01",
         "39.00.00",
-        "35.11.00",
-        "71.12.10"
+        "38.21.00"
       ],
       "inferred_beneficiary": [
         "PMI"
@@ -552,8 +552,8 @@
       "inferred_region": null,
       "inferred_nuts": "EU",
       "inferred_ateco": [
-        "72.19.09",
         "TUTTI",
+        "72.19.09",
         "62.01.00"
       ],
       "inferred_beneficiary": [
@@ -596,10 +596,10 @@
       "inferred_nuts": "ITF35",
       "inferred_ateco": [
         "55.10.00",
-        "56.10.12",
         "55.20.51",
-        "79.11.00",
-        "56.10.11"
+        "56.10.11",
+        "56.10.12",
+        "79.11.00"
       ],
       "inferred_beneficiary": [
         "PMI"
@@ -639,15 +639,15 @@
       "inferred_region": "Lazio",
       "inferred_nuts": "ITI43",
       "inferred_ateco": [
-        "84.30.00",
-        "62.02.00",
-        "71.20.00",
-        "62.09.09",
-        "62.03.00",
-        "69.20.10",
-        "70.22.09",
+        "71.12.10",
         "63.11.00",
-        "71.12.10"
+        "69.20.10",
+        "71.20.00",
+        "70.22.09",
+        "62.02.00",
+        "84.30.00",
+        "62.03.00",
+        "62.09.09"
       ],
       "inferred_beneficiary": [
         "Startup_Innovative"
@@ -685,14 +685,14 @@
       "inferred_region": "Veneto",
       "inferred_nuts": "ITH35",
       "inferred_ateco": [
-        "38.21.00",
-        "62.02.00",
-        "39.00.00",
-        "69.20.10",
-        "70.22.09",
+        "71.12.10",
         "62.01.00",
         "35.11.00",
-        "71.12.10"
+        "70.22.09",
+        "62.02.00",
+        "69.20.10",
+        "39.00.00",
+        "38.21.00"
       ],
       "inferred_beneficiary": [
         "PMI"
@@ -768,12 +768,12 @@
       "inferred_region": "Friuli-Venezia Giulia",
       "inferred_nuts": "ITH4",
       "inferred_ateco": [
-        "28.00.00",
-        "30.00.00",
-        "25.62.00",
         "25.00.00",
+        "28.99.00",
+        "30.00.00",
         "28.11.00",
-        "28.99.00"
+        "25.62.00",
+        "28.00.00"
       ],
       "inferred_beneficiary": [
         "PMI"

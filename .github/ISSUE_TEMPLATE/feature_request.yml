@@ -1,0 +1,22 @@
+name: 🚀 Feature Request
+description: Suggest a new capability or enhancement for Lab NK Hub
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        We welcome proposals for new vocational skills, speed modes, or sandboxing improvements.
+  - type: textarea
+    id: problem-or-need
+    attributes:
+      label: Problem or Goal
+      description: Is your feature request related to a problem or a new workflow?
+    validations:
+      required: true
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution you'd like to see implemented.
+    validations:
+      required: true
