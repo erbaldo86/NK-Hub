@@ -199,7 +199,7 @@ class HtmlScraperConnector(BaseBandoConnector):
                 pass
 
         # Se il markup presenta paginazione ma i link sono generati o non catturati:
-        if has_pagination_markup and target_page <= 3:
+        if has_pagination_markup and target_page <= 50:
             qs["page"] = [str(target_page)]
             new_query = urllib.parse.urlencode(qs, doseq=True)
             return urllib.parse.urlunparse(parsed._replace(query=new_query))
@@ -212,18 +212,22 @@ class HtmlScraperConnector(BaseBandoConnector):
         max_pages: Optional[int] = None,
     ) -> List[CanonicalGrantModel]:
         """
-        Esegue l'acquisizione multi-pagina automatica controllata (fino a max_pages, default 3)
-        scansionando le pagine 1, 2 e 3 con gestione rate-limiting e deduplicazione deterministica.
+        Esegue l'acquisizione multi-pagina adattiva data-driven (Hash-Stop).
+        Rimuove il limite fisso max_pages e arresta lo sfoglio quando:
+        1. Tutti i bandi dell'ultima pagina sono duplicati (hash già visti).
+        2. Tutti i bandi dell'ultima pagina sono chiusi (BandoStato.CHIUSO).
+        3. Non ci sono più bandi o pagine successive da esplorare.
         """
-        limit = max_pages or self.max_pages
+        safety_ceiling = max_pages if max_pages is not None else 50
         all_records: List[CanonicalGrantModel] = []
         seen_bando_ids: Set[str] = set()
+        seen_hashes: Set[str] = set()
         visited_urls: Set[str] = set()
 
         current_url = url_or_query
         pages_fetched = 0
 
-        for page_idx in range(1, limit + 1):
+        for page_idx in range(1, safety_ceiling + 1):
             if current_url in visited_urls:
                 break
             visited_urls.add(current_url)
@@ -239,16 +243,40 @@ class HtmlScraperConnector(BaseBandoConnector):
                 break
 
             records = await self.parse(payload)
-            new_count = 0
-            for r in records:
-                if r.bando_id not in seen_bando_ids:
-                    seen_bando_ids.add(r.bando_id)
-                    all_records.append(r)
-                    new_count += 1
-
-            # Se la pagina corrente non contiene bandi o siamo all'ultima pagina richiesta, ferma la scansione
-            if new_count == 0 or page_idx >= limit:
+            if not records:
+                logger.debug("[%s] Hash-Stop: Nessun record estratto a pagina %d.", self.name, page_idx)
                 break
+
+            new_records = [
+                r for r in records
+                if r.bando_id not in seen_bando_ids and r.hash_payload not in seen_hashes
+            ]
+
+            # Condizione Hash-Stop 1: tutti i record estratti sono duplicati/già visti
+            if not new_records:
+                logger.info(
+                    "[%s] Hash-Stop attivato: tutti i bandi a pagina %d sono duplicati/noti, arresto sfoglio.",
+                    self.name, page_idx,
+                )
+                break
+
+            # Condizione Hash-Stop 2: tutti i bandi della pagina sono CHIUSI
+            all_closed = len(records) > 0 and all(r.stato == BandoStato.CHIUSO for r in records)
+            if all_closed:
+                logger.info(
+                    "[%s] Hash-Stop attivato: tutti i bandi a pagina %d sono CHIUSI, arresto sfoglio storico.",
+                    self.name, page_idx,
+                )
+                for r in new_records:
+                    seen_bando_ids.add(r.bando_id)
+                    seen_hashes.add(r.hash_payload)
+                    all_records.append(r)
+                break
+
+            for r in new_records:
+                seen_bando_ids.add(r.bando_id)
+                seen_hashes.add(r.hash_payload)
+                all_records.append(r)
 
             # Cerca l'URL della pagina successiva
             html_text = (

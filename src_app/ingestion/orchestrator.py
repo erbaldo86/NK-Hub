@@ -3,6 +3,8 @@ Nexus Keystone v1.1.0-Universal | Live Institutional Sources Harvester.
 Protocollo CRV 4.0 | Controlled Multi-Page Pagination & Enriched Telemetry.
 """
 
+from __future__ import annotations
+
 import json
 import time
 import asyncio
@@ -10,17 +12,20 @@ import logging
 import uuid
 import urllib.parse
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional, Tuple, TYPE_CHECKING
 from datetime import datetime, timezone
 
 from src_app.models.cgm import CanonicalGrantModel, BandoStato, FonteTipo
-from src_app.service.bandi_service import LabNKBandiService
+if TYPE_CHECKING:
+    from src_app.service.bandi_service import LabNKBandiService
 from src_app.search.ateco_tree import AtecoTree
 from src_app.connectors.rest_api import RestApiConnector
 from src_app.connectors.rss_feed import RssFeedConnector
 from src_app.connectors.html_scraper import HtmlScraperConnector
+from src_app.connectors.incentivi_gov import IncentiviGovConnector
+from src_app.connectors.unioncamere_federator import UnioncamereFederatorConnector
 from src_app.connectors.base import AsyncRateLimiter, AntiBanPolicy
-from src_app.app import bootstrap_demo_service
+from src_app.core.catalog_loader import load_seed_grants
 
 logger = logging.getLogger("IngestionOrchestrator")
 
@@ -35,6 +40,18 @@ def _is_valid_sha256(val: Optional[str]) -> bool:
     )
 
 
+def _find_snapshot_path() -> Path:
+    p = Path(__file__).resolve()
+    for parent in p.parents:
+        cand = parent / "data" / "snapshots" / "catalog_snapshot.json"
+        if cand.exists():
+            return cand
+    for parent in p.parents:
+        if (parent / "src_app").exists() or (parent / ".staging").exists():
+            return parent / "data" / "snapshots" / "catalog_snapshot.json"
+    return p.parent.parent.parent / "data" / "snapshots" / "catalog_snapshot.json"
+
+
 class IngestionOrchestrator:
     """
     Orchestratore centrale di Ingestion che carica il registro SSOT delle fonti (sources_registry.json),
@@ -45,7 +62,7 @@ class IngestionOrchestrator:
     """
 
     SOURCES_REGISTRY_PATH = Path(__file__).resolve().parent / "sources_registry.json"
-    SNAPSHOT_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "snapshots" / "catalog_snapshot.json"
+    SNAPSHOT_PATH = _find_snapshot_path()
 
     _is_harvesting: bool = False
     _current_job_id: Optional[str] = None
@@ -122,7 +139,7 @@ class IngestionOrchestrator:
                 loaded = {}
                 for item in data:
                     try:
-                        cgm = CanonicalGrantModel.model_validate(item)
+                        cgm = CanonicalGrantModel.model_validate(item, strict=False)
                         loaded[cgm.bando_id] = cgm
                     except Exception as e:
                         logger.warning("Salto record snapshot invalido: %s", e)
@@ -195,7 +212,19 @@ class IngestionOrchestrator:
                     rate_limiter = AsyncRateLimiter(requests_per_second=5.0)
                     anti_ban = AntiBanPolicy(rotate_user_agent=True, base_delay=0.1)
 
-                    if connector_type == "REST_API":
+                    if connector_type in ("INCENTIVI_GOV_RNA", "INCENTIVI_GOV") or source_id in ("INCENTIVI_GOV_NATIONAL", "RNA_AIUTI_STATO"):
+                        connector = IncentiviGovConnector(
+                            name=source_name,
+                            rate_limiter=rate_limiter,
+                            anti_ban=anti_ban,
+                        )
+                    elif connector_type == "UNIONCAMERE_FEDERATOR" or source_id == "UNIONCAMERE_PID_NATIONAL" or "CCIAA_" in source_id:
+                        connector = UnioncamereFederatorConnector(
+                            name=source_name,
+                            rate_limiter=rate_limiter,
+                            anti_ban=anti_ban,
+                        )
+                    elif connector_type == "REST_API":
                         connector = RestApiConnector(
                             name=source_name,
                             rate_limiter=rate_limiter,
@@ -220,8 +249,41 @@ class IngestionOrchestrator:
                     is_eu_rest = connector_type == "REST_API" and (jurisdiction == "EU" or "europa.eu" in (url or "").lower())
                     timeout_sec = 15.0 if is_eu_rest else 10.0
 
-                    # Invocazione con supporto nativo per paginazione multi-pagina
-                    grants = await asyncio.wait_for(connector.fetch_and_parse(url), timeout=timeout_sec)
+                    # Invisible Self-Healing Loop for HTTP 403 / 429 with backoff 1s -> 2s -> 4s & UA rotation
+                    backoff_delays = [1.0, 2.0, 4.0]
+                    max_attempts = 3
+                    grants = []
+                    last_exc = None
+
+                    for attempt in range(max_attempts):
+                        try:
+                            grants = await asyncio.wait_for(connector.fetch_and_parse(url), timeout=timeout_sec)
+                            last_exc = None
+                            break
+                        except Exception as exc:
+                            last_exc = exc
+                            status_code = getattr(getattr(exc, "response", None), "status_code", None)
+                            err_msg = str(exc)
+                            is_ban_or_rate = (
+                                status_code in (403, 429)
+                                or "403" in err_msg
+                                or "429" in err_msg
+                                or "rate limit" in err_msg.lower()
+                                or "too many requests" in err_msg.lower()
+                                or "forbidden" in err_msg.lower()
+                            )
+                            if is_ban_or_rate and attempt < max_attempts - 1:
+                                delay = backoff_delays[attempt]
+                                logger.warning(
+                                    "Invisible Self-Healing Loop: HTTP 403/429 rilevato per %s (tentativo %d/%d). "
+                                    "Rotazione User-Agent e backoff di %.1fs...",
+                                    source_id, attempt + 1, max_attempts, delay
+                                )
+                                anti_ban.base_delay += delay
+                                await asyncio.sleep(delay)
+                                continue
+                            raise exc
+
                     fetch_duration_ms = round((time.perf_counter() - t0) * 1000, 2)
                     pages_scanned = getattr(connector, "pages_scanned", 1) or 1
 
@@ -282,12 +344,17 @@ class IngestionOrchestrator:
                     return source_id, [], f"OFFLINE_FALLBACK ({type(exc).__name__})"
 
     @classmethod
-    async def harvest_all(cls, service: LabNKBandiService) -> Dict[str, Any]:
+    async def harvest_all(
+        cls,
+        service: LabNKBandiService,
+        sources_subset: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
         """
         Esegue la scansione completa di tutte le fonti istituzionali registrate con:
         - Re-entrancy protection
         - Double-Buffered Atomic Swap
         - Offline-First snapshot fallback
+        - Deduplicazione globale rigorosa su grant.hash_payload
         - Supporto paginazione e telemetria granulare per fonte
         - Concorrenza limitata globale e per-host
         """
@@ -306,23 +373,29 @@ class IngestionOrchestrator:
 
         try:
             start_time = time.perf_counter()
-            sources = cls.load_sources_registry()
+            sources = sources_subset if sources_subset is not None else cls.load_sources_registry()
             sources_count = len(sources)
 
-            # Staging dictionary per il Double-Buffered Swap
+            # Staging dictionary per il Double-Buffered Swap con deduplicazione su hash_payload
             staging_grants: Dict[str, CanonicalGrantModel] = {}
+            seen_hashes: set[str] = set()
 
-            # 1. Carica il catalogo base curato (23 bandi di riferimento con hash validi)
-            baseline_service = bootstrap_demo_service()
-            for grant in baseline_service.list_all_grants():
+            # 1. Carica il catalogo base curato (38 bandi di riferimento con hash validi)
+            for grant in load_seed_grants():
                 if not _is_valid_sha256(grant.hash_payload):
                     grant.hash_payload = CanonicalGrantModel.calculate_payload_hash(f"{grant.bando_id}:{grant.titolo}")
-                staging_grants[grant.bando_id] = grant
+                if grant.hash_payload not in seen_hashes:
+                    seen_hashes.add(grant.hash_payload)
+                    staging_grants[grant.bando_id] = grant
 
             # 2. Supporto Offline-First: carica snapshot autentico salvato precedentemente (ZERO-MOCK)
             cached_snapshot = cls.load_snapshot()
             for g_id, g in cached_snapshot.items():
-                staging_grants[g_id] = g
+                if not _is_valid_sha256(g.hash_payload):
+                    g.hash_payload = CanonicalGrantModel.calculate_payload_hash(f"{g.bando_id}:{g.titolo}")
+                if g.hash_payload not in seen_hashes:
+                    seen_hashes.add(g.hash_payload)
+                    staging_grants[g.bando_id] = g
 
             # 3. Concurrency limitata globale a 8 richieste parallele (e 2 per-host)
             active_sources = [s for s in sources if s.get("active", True)]
@@ -342,8 +415,12 @@ class IngestionOrchestrator:
                 if isinstance(res, tuple):
                     s_id, grants, status_desc = res
                     for g in grants:
-                        staging_grants[g.bando_id] = g
-                        total_live_harvested += 1
+                        if not _is_valid_sha256(g.hash_payload):
+                            g.hash_payload = CanonicalGrantModel.calculate_payload_hash(f"{g.bando_id}:{g.titolo}")
+                        if g.hash_payload not in seen_hashes:
+                            seen_hashes.add(g.hash_payload)
+                            staging_grants[g.bando_id] = g
+                            total_live_harvested += 1
 
                     tel = cls._source_telemetry.get(s_id, {})
                     sources_details.append({

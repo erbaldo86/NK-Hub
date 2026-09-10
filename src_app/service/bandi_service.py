@@ -5,127 +5,78 @@ Nexus Keystone v1.1.0-Universal | LabNK Bandi Intelligence.
 import collections
 import re
 import threading
-import unicodedata
-from functools import lru_cache
-from typing import List, Dict, Any, Optional, Tuple, Set
-from ..models.cgm import CanonicalGrantModel, BandoStato
-from ..search.nlp_intent_extractor import SmartIntentExtractor, SearchIntent
-from ..search.parametric_filter import ParametricFilter, ParametricFilterCriteria
+from typing import Any, Dict, List, Optional, Set, Tuple
+
+from ..catalog.repository import GrantsRepository
+from ..core.config import DEFAULT_TOP_K, MAX_LRU_DOCUMENTS
+from ..document_processing.models import ProcessedDocumentReport
 from ..matching.profile_model import CompanyProfile, MatchScoreBreakdown
 from ..matching.scoring_engine import MatchScoringEngine
+from ..models.cgm import BandoStato, CanonicalGrantModel
 from ..search.ateco_tree import AtecoTree
-from ..document_processing.document_pipeline import DocumentPipeline
-from ..document_processing.models import ProcessedDocumentReport
+from ..search.linguistics import (
+    BILINGUAL_LEMMAS,
+    SHORT_RELEVANT_TOKENS,
+    _get_text_tokens_and_stems,
+    match_token,
+    match_token_fast,
+    strip_accents,
+)
+from ..search.nlp_intent_extractor import SearchIntent, SmartIntentExtractor
+from ..search.parametric_filter import ParametricFilter, ParametricFilterCriteria
 
-BILINGUAL_LEMMAS: Dict[str, List[str]] = {
-    "ai": ["intelligenza artificiale", "artificial intelligence", "ia", "machine learning"],
-    "deep tech": ["deeptech", "tecnologie di frontiera"],
-    "photovoltaic": ["fotovoltaico", "solare", "solar"],
-    "hydrogen": ["idrogeno", "h2"],
-    "biotech": ["biotecnologie", "biotecnologia", "biotechnology"],
-}
-
-SHORT_RELEVANT_TOKENS = {"ai", "ue", "ia", "h2", "eu"}
-
-
-def strip_accents(text: str) -> str:
-    """Rimuove accenti e diacritici per comparazioni resilienti."""
-    return "".join(
-        c for c in unicodedata.normalize("NFD", text)
-        if unicodedata.category(c) != "Mn"
-    )
-
-
-@lru_cache(maxsize=4096)
-def _get_text_tokens_and_stems(text: str) -> Tuple[str, frozenset, frozenset]:
-    """Estrae e memorizza in cache il testo pulito, le parole e gli stem morfologici per O(1) matching."""
-    text_clean = strip_accents(text.lower())
-    words = frozenset(re.findall(r"\b\w+\b", text_clean))
-    stems = frozenset(w[:-1] for w in words if len(w) >= 5)
-    return text_clean, words, stems
-
-
-def match_token_fast(t_clean: str, text_clean: str, words: frozenset, stems: frozenset) -> bool:
-    """Valutazione morfologica O(1) con set pre-calcolati di parole e radici."""
-    if not t_clean:
-        return True
-    if t_clean in text_clean:
-        return True
-    if len(t_clean) >= 5:
-        stem = t_clean[:-1]
-        if stem in text_clean or stem in stems:
-            return True
-        if (t_clean.endswith("ico") or t_clean.endswith("ica") or t_clean.endswith("ici") or t_clean.endswith("iche")) and len(t_clean) >= 6:
-            ic_stem = t_clean[:-3] + "ic"
-            if ic_stem in text_clean:
-                return True
-            if any(w.startswith(ic_stem) for w in words):
-                return True
-    return False
-
-
-def match_token(tok: str, text: str, word_set: Optional[Any] = None) -> bool:
-    """Helper di matching morfologico flesso per italiano e inglese (singolari/plurali e accenti)."""
-    t_clean = strip_accents(tok.lower().strip())
-    if not t_clean:
-        return True
-
-    if word_set is not None:
-        text_clean = strip_accents(text.lower())
-        if t_clean in text_clean:
-            return True
-        if len(t_clean) >= 5:
-            stem = t_clean[:-1]
-            if stem in text_clean:
-                return True
-            if (t_clean.endswith("ico") or t_clean.endswith("ica") or t_clean.endswith("ici") or t_clean.endswith("iche")) and len(t_clean) >= 6:
-                if t_clean[:-3] + "ic" in text_clean:
-                    return True
-            for w in word_set:
-                if len(w) >= 5 and w[:-1] == stem:
-                    return True
-        return False
-
-    text_clean, words, stems = _get_text_tokens_and_stems(text)
-    return match_token_fast(t_clean, text_clean, words, stems)
+# Re-export linguistic symbols for 100% backwards compatibility
+__all__ = [
+    "BILINGUAL_LEMMAS",
+    "SHORT_RELEVANT_TOKENS",
+    "strip_accents",
+    "_get_text_tokens_and_stems",
+    "match_token_fast",
+    "match_token",
+    "LabNKBandiService",
+]
 
 
 class LabNKBandiService:
     """
     Servizio unificato sovrano per la gestione dell'intelligence bandi:
-    archiviazione CGM thread-safe con Double-Buffered Atomic Swap,
+    archiviazione CGM thread-safe tramite GrantsRepository (Double-Buffered Atomic Swap),
     ricerca conversazionale NLP ad altissima efficienza (<20ms),
     ricerca parametrica, scoring di matching aziendale ed elaborazione
     documentale con bounded LRU cache.
     """
 
-    MAX_LRU_DOCUMENTS = 50
+    MAX_LRU_DOCUMENTS: int = MAX_LRU_DOCUMENTS
 
-    def __init__(self):
+    def __init__(self) -> None:
+        self._repo = GrantsRepository()
         self._lock = threading.Lock()
-        self._grants: Dict[str, CanonicalGrantModel] = {}
         self._documents: collections.OrderedDict[str, ProcessedDocumentReport] = collections.OrderedDict()
+
+    @property
+    def _grants(self) -> Dict[str, CanonicalGrantModel]:
+        """Accesso trasparente al dizionario dei bandi per retrocompatibilità."""
+        return self._repo._grants
+
+    @_grants.setter
+    def _grants(self, value: Dict[str, CanonicalGrantModel]) -> None:
+        self._repo._grants = value
 
     def add_grant(self, grant: CanonicalGrantModel) -> None:
         """Registra o aggiorna un bando nel repository centrale (thread-safe)."""
-        with self._lock:
-            self._grants[grant.bando_id] = grant
+        self._repo.add_grant(grant)
 
     def add_grants(self, grants: List[CanonicalGrantModel]) -> None:
         """Registra un batch di bandi (thread-safe)."""
-        with self._lock:
-            for g in grants:
-                self._grants[g.bando_id] = g
+        self._repo.add_grants(grants)
 
     def get_grant(self, grant_id: str) -> Optional[CanonicalGrantModel]:
         """Recupera la scheda bando per ID (thread-safe)."""
-        with self._lock:
-            return self._grants.get(grant_id)
+        return self._repo.get_grant(grant_id)
 
     def list_all_grants(self) -> List[CanonicalGrantModel]:
         """Restituisce una copia snapshot dell'elenco completo dei bandi indicizzati (thread-safe)."""
-        with self._lock:
-            return list(self._grants.values())
+        return self._repo.list_all_grants()
 
     def swap_grants_atomic(self, new_grants: Dict[str, CanonicalGrantModel]) -> None:
         """
@@ -133,14 +84,13 @@ class LabNKBandiService:
         Implementa il pattern Double-Buffered Swap (Copy-On-Write) per garantire letture
         concorrenti non bloccate e consistenza transazionale.
         """
-        with self._lock:
-            self._grants = dict(new_grants)
+        self._repo.swap_grants_atomic(new_grants)
 
     def search_nlp(
         self,
         query: str,
         profile: Optional[CompanyProfile] = None,
-        top_k: int = 20
+        top_k: int = DEFAULT_TOP_K,
     ) -> Tuple[SearchIntent, List[CanonicalGrantModel], List[MatchScoreBreakdown]]:
         """
         Esegue una ricerca conversazionale NLP ad altissima velocità (<20ms):
@@ -170,7 +120,7 @@ class LabNKBandiService:
             company_size=inferred_size,
             ateco_codes=intent.inferred_ateco_codes,
             operational_region=intent.inferred_region or "Tutte",
-            target_investment_amount=intent.inferred_budget
+            target_investment_amount=intent.inferred_budget,
         )
 
         open_grants = [g for g in all_grants if g.stato == BandoStato.APERTO]
@@ -182,7 +132,7 @@ class LabNKBandiService:
             "imprese", "impresa", "aziende", "azienda", "società", "societa", "ditta", "ditte",
             "pmi", "progetto", "progetti", "attività", "attivita", "servizio", "servizi",
             "supporto", "agevolazione", "agevolazioni", "contributo", "contributi",
-            "fondo", "perduto", "aiuto", "aiuti", "avviso", "avvisi", "concessione", "erogazione"
+            "fondo", "perduto", "aiuto", "aiuti", "avviso", "avvisi", "concessione", "erogazione",
         }
 
         query_lower = query.lower()
@@ -194,7 +144,7 @@ class LabNKBandiService:
 
         # Estrazione n-grammi e locuzioni composte (bi-grammi e tri-grammi)
         words_list = [w for w in raw_words if w not in stopwords]
-        phrases = []
+        phrases: List[str] = []
         for i in range(len(words_list) - 1):
             phrases.append(f"{words_list[i]} {words_list[i+1]}")
         for i in range(len(words_list) - 2):
@@ -221,7 +171,9 @@ class LabNKBandiService:
                     else:
                         query_tokens.add(v)
 
-        has_intent_specific_ateco = bool(intent.inferred_ateco_codes and "TUTTI" not in [c.upper() for c in intent.inferred_ateco_codes])
+        has_intent_specific_ateco = bool(
+            intent.inferred_ateco_codes and "TUTTI" not in [c.upper() for c in intent.inferred_ateco_codes]
+        )
 
         # Pre-processa token puliti per query
         clean_tokens = [strip_accents(tok.lower().strip()) for tok in query_tokens]
@@ -248,17 +200,21 @@ class LabNKBandiService:
 
             lexical_points = (title_hits * 25.0) + (desc_hits * 15.0) + (ente_hits * 5.0) + phrase_points
 
-            bando_has_specific_ateco = bool(g.settori_beneficiari and "TUTTI" not in [s.upper() for s in g.settori_beneficiari])
+            bando_has_specific_ateco = bool(
+                g.settori_beneficiari and "TUTTI" not in [s.upper() for s in g.settori_beneficiari]
+            )
             has_specific_ateco_match = False
             if has_intent_specific_ateco and bando_has_specific_ateco:
-                has_specific_ateco_match = AtecoTree.is_code_compatible(g.settori_beneficiari, intent.inferred_ateco_codes)
+                has_specific_ateco_match = AtecoTree.is_code_compatible(
+                    g.settori_beneficiari, intent.inferred_ateco_codes
+                )
 
             # Strict Relevance Filter:
             # Se query_tokens è presente, richiedi obbligatoriamente che lexical_points >= 15.0
             if query_tokens:
                 if lexical_points < 15.0:
                     continue
-            elif (phrases or has_intent_specific_ateco):
+            elif phrases or has_intent_specific_ateco:
                 if not (lexical_points > 0 or has_specific_ateco_match):
                     continue
 
@@ -303,7 +259,7 @@ class LabNKBandiService:
                 max_score = max(p[2] for p in scored_pairs)
                 cutoff = max_score * 0.55
                 scored_pairs = [p for p in scored_pairs if p[2] >= cutoff]
-                scored_pairs = scored_pairs[:min(top_k, 10)]
+                scored_pairs = scored_pairs[: min(top_k, 10)]
             else:
                 scored_pairs = scored_pairs[:top_k]
 
@@ -319,7 +275,7 @@ class LabNKBandiService:
     def calculate_match_for_grant(
         self,
         grant_id: str,
-        profile: CompanyProfile
+        profile: CompanyProfile,
     ) -> Optional[MatchScoreBreakdown]:
         """Calcola la compatibilità di un profilo con uno specifico bando."""
         grant = self.get_grant(grant_id)
@@ -332,12 +288,13 @@ class LabNKBandiService:
         grant_id: str,
         doc_bytes: bytes,
         filename: str,
-        mime_type: Optional[str] = None
+        mime_type: Optional[str] = None,
     ) -> ProcessedDocumentReport:
         """
         Elabora un allegato ufficiale (P7M/ZIP/PDF) tramite DocumentPipeline
         e lo associa al bando corrispondente all'interno della cache LRU (max 50 report).
         """
+        from ..document_processing.document_pipeline import DocumentPipeline
         report = DocumentPipeline.process_document(doc_bytes, filename, mime_type)
         with self._lock:
             if grant_id in self._documents:

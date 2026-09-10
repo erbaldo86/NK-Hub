@@ -1,0 +1,40 @@
+{
+  "matrix": [
+    {
+      "workers": 1,
+      "requests": 80,
+      "throughput_rps": 222.4,
+      "nlp_mean_ms": 5.56,
+      "param_mean_ms": 3.28,
+      "overall_mean_ms": 4.42,
+      "success_rate": 100.0
+    },
+    {
+      "workers": 4,
+      "requests": 80,
+      "throughput_rps": 227.8,
+      "nlp_mean_ms": 21.44,
+      "param_mean_ms": 13.23,
+      "overall_mean_ms": 17.33,
+      "success_rate": 100.0
+    },
+    {
+      "workers": 8,
+      "requests": 80,
+      "throughput_rps": 216.9,
+      "nlp_mean_ms": 45.98,
+      "param_mean_ms": 26.37,
+      "overall_mean_ms": 36.18,
+      "success_rate": 100.0
+    },
+    {
+      "workers": 16,
+      "requests": 80,
+      "throughput_rps": 225.0,
+      "nlp_mean_ms": 81.77,
+      "param_mean_ms": 54.11,
+      "overall_mean_ms": 67.94,
+      "success_rate": 100.0
+    }
+  ]
+}

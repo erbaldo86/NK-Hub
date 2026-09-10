@@ -1,4 +1,4 @@
-# 🏛️ Lab NK Hub — Sovereign AI Agentic OS (v1.6.0-VibeEnhanced)
+# 🏛️ Lab NK Hub — Sovereign AI Agentic OS (v1.7.0)
 ### *The Sovereign Cognitive Operating System, Multi-Agent Swarm Orchestrator & Vibe Coding Engine for Google Antigravity*
 
 <p align="center">
@@ -7,10 +7,10 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Release-v1.6.0--VibeEnhanced-0052FF?style=for-the-badge&logo=shield&logoColor=white" alt="Release Badge" />
+  <img src="https://img.shields.io/badge/Release-v1.7.0-0052FF?style=for-the-badge&logo=shield&logoColor=white" alt="Release Badge" />
   <img src="https://img.shields.io/badge/Standard-CRV_4.0_Universal-00C853?style=for-the-badge&logo=checkmarx&logoColor=white" alt="CRV 4.0 Standard" />
   <img src="https://img.shields.io/badge/Zero--Mock-100%25_Real_Certified-FF6D00?style=for-the-badge&logo=databricks&logoColor=white" alt="Zero-Mock Certified" />
-  <img src="https://img.shields.io/badge/Platform_Core_Tests-100%25_PASS-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Platform Tests" />
+  <img src="https://img.shields.io/badge/Permanent_Tests-122%2F122_100%25_PASS-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Permanent Tests" />
   <img src="https://img.shields.io/badge/Anti--Freeze-Pulse_Sentinel_Active-brightgreen?style=for-the-badge&logo=prometheus&logoColor=white" alt="Anti-Freeze Sentinel" />
   <img src="https://img.shields.io/badge/Vibe_Coding-Triple--Speed_Mode_C%2FB%2FA-9C27B0?style=for-the-badge&logo=speedtest&logoColor=white" alt="Triple Speed Vibe Coding" />
   <img src="https://img.shields.io/badge/Commit_Lock-Win32_2PC_Named_Mutex-E91E63?style=for-the-badge&logo=windows&logoColor=white" alt="Win32 2PC Mutex" />

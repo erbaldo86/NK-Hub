@@ -1,0 +1,33 @@
+{
+  "timestamp": "2026-09-10T23:36:20Z",
+  "test_type": "Real Concurrency Cross-Check",
+  "concurrency_workers": 16,
+  "total_requests": 80,
+  "success_rate_pct": 100.0,
+  "errors_count": 0,
+  "errors": [],
+  "atomic_swaps_during_test": 29,
+  "elapsed_seconds": 0.356,
+  "throughput_req_per_sec": 225.0,
+  "nlp_metrics": {
+    "count": 40,
+    "mean_ms": 81.77,
+    "median_ms": 84.12,
+    "p95_ms": 98.8,
+    "min_ms": 36.43,
+    "max_ms": 98.98
+  },
+  "parametric_metrics": {
+    "count": 40,
+    "mean_ms": 54.11,
+    "median_ms": 53.28,
+    "p95_ms": 76.33,
+    "min_ms": 29.08,
+    "max_ms": 80.17
+  },
+  "overall_metrics": {
+    "mean_ms": 67.94,
+    "p95_ms": 96.32,
+    "target_under_15ms": false
+  }
+}

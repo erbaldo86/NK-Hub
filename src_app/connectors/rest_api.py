@@ -9,7 +9,7 @@ import re
 from typing import Any, Dict, List, Optional
 import httpx
 
-from src_app.models.cgm import BandoStato, CanonicalGrantModel, FonteTipo
+from src_app.models.cgm import BandoStato, CanonicalGrantModel, FonteTipo, MacroCategoria
 from src_app.connectors.base import (
     AntiBanPolicy,
     AsyncRateLimiter,
@@ -166,7 +166,7 @@ class RestApiConnector(BaseBandoConnector):
                     }
                     data = {
                         "text": "***",
-                        "pageSize": "100",
+                        "pageSize": "500",
                         "pageNumber": str(page_num),
                     }
                     response = await client.post(base_url, headers=req_headers, params=sedia_params, data=data, files=files)
@@ -183,7 +183,7 @@ class RestApiConnector(BaseBandoConnector):
                         page_json = response.json()
                         results = page_json.get("results", [])
                         all_results.extend(results)
-                        if len(results) < 100:
+                        if len(results) < 500:
                             break
                     except Exception:
                         break
@@ -208,13 +208,15 @@ class RestApiConnector(BaseBandoConnector):
 
                 for page_num in range(1, self.max_pages + 1):
                     ted_body = json_body.copy() if json_body else {
-                        "query": "CY = ITA",
+                        "query": "CY = ITA AND (CPV = 73* OR CPV = 72* OR CPV = 71* OR CPV = 38*)",
                         "fields": ["publication-number", "notice-title", "buyer-name", "total-value"],
                         "scope": "ACTIVE",
                         "paginationMode": "PAGE_NUMBER",
                         "page": page_num,
                         "limit": 50,
                     }
+                    if "query" in ted_body and "CPV" not in ted_body["query"]:
+                        ted_body["query"] = f"({ted_body['query']}) AND (CPV = 73* OR CPV = 72* OR CPV = 71* OR CPV = 38*)"
                     ted_body["page"] = page_num
                     if "limit" not in ted_body:
                         ted_body["limit"] = 50
@@ -383,6 +385,7 @@ class RestApiConnector(BaseBandoConnector):
                 stato=stato,
                 regioni_target=["Tutte"],
                 url_bando=url_bando,
+                macro_categoria=MacroCategoria.AGEVOLAZIONE_IMPRESA,
                 fonte_tipo=FonteTipo.REST_API,
                 fonte_nome="SEDIA EU",
                 hash_payload=CanonicalGrantModel.calculate_payload_hash(json.dumps(item, sort_keys=True)),
@@ -428,6 +431,7 @@ class RestApiConnector(BaseBandoConnector):
                 stato=BandoStato.APERTO,
                 regioni_target=["Tutte"],
                 url_bando=url_bando,
+                macro_categoria=MacroCategoria.APPALTO_FORNITURA,
                 fonte_tipo=FonteTipo.REST_API,
                 fonte_nome="TED v3",
                 hash_payload=CanonicalGrantModel.calculate_payload_hash(json.dumps(item, sort_keys=True)),

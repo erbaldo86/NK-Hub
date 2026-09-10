@@ -24,6 +24,11 @@ class BandoStato(str, Enum):
     PIANIFICATO = "PIANIFICATO"
 
 
+class MacroCategoria(str, Enum):
+    AGEVOLAZIONE_IMPRESA = "AGEVOLAZIONE_IMPRESA"
+    APPALTO_FORNITURA = "APPALTO_FORNITURA"
+
+
 class CanonicalGrantModel(BaseModel):
     """Canonical Grant Model (CGM) enforcing strict type validation."""
 
@@ -52,6 +57,9 @@ class CanonicalGrantModel(BaseModel):
     url_bando: str
     url_documenti: List[str] = Field(default_factory=list)
     codice_cup: Optional[str] = None
+    macro_categoria: MacroCategoria = MacroCategoria.AGEVOLAZIONE_IMPRESA
+    car_codice_misura: Optional[str] = None
+    de_minimis_applicabile: Optional[bool] = None
     fonte_tipo: FonteTipo
     fonte_nome: str
     hash_payload: str

@@ -1,8 +1,8 @@
-# 🏛️ Regolamento di Sistema: Ecosistema Antigravity (Nexus Keystone Official Release v1.6.0-VibeEnhanced)
+# 🏛️ Regolamento di Sistema: Ecosistema Antigravity (Nexus Keystone Official Release v1.7.0-RepoMap Refined)
 
 > **Ambito:** Regole del workspace a livello di progetto per tutti gli agenti, sub-agenti e nodi NK.  
 > **Applicazione:** Imperativo vincolante per l'Agente Principale, i Sub-Agenti e la FSM dell'Hub.  
-> **Versione Protocollo:** v1.6.0-VibeEnhanced (Anti-Freeze Pulse Sentinel, Intrinsic /implementation & /goal, Vibe-Sprint Mode C, Brief-Aware Handoff, Decoupled Asymmetric Actor-Critic, Auto-Brief Swarm FSM a 5 Turni, Win32 2PC Mutex, Real DAST Sandbox, 3-Tier Episodic Memory & 109-Test Permanent Suite Ratchet)
+> **Versione Protocollo:** v1.7.0-RepoMap Refined (High-Density AST Repo-Map, Anti-Freeze Pulse Sentinel, Intrinsic /implementation & /goal, Vibe-Sprint Mode C, Brief-Aware Handoff, Decoupled Asymmetric Actor-Critic, Auto-Brief Swarm FSM a 5 Turni, Win32 2PC Mutex, Real DAST Sandbox, 3-Tier Episodic Memory & 115-Test Permanent Suite Ratchet)
 
 ---
 
@@ -10,19 +10,19 @@
 
 ### [RULE-00] ZERO_UNAUTHORIZED_FILE_MODIFICATION_MANDATE
 * **DIVIETO ASSOLUTO DI SCRITTURA PRE-APPROVAZIONE SU PRODUZIONE:** È fatto divieto tassativo a QUALSIASI agente o sub-agente di chiamare `write_to_file`, `replace_file_content` o modificare file di produzione (`"src_app/*"`, `".agents/AGENTS.md"`) durante richieste di sola consultazione, senza autorizzazione.
-* **DEROGA SPECIFICHE & BRIEFING (nk_genome/):** In deroga parziale, i nodi di ideazione e pianificazione (`NK-Ideator`, `NK-Plan-Aligner`, `NK-Session-Controller`) sono formalmente pre-autorizzati a creare e aggiornare il Trittico in `"nk_genome/"` (`concept_map.md`, `structural_tree.md`, `implementation_plan.md`) e la telemetria in `"nk_tracking/"` per adempiere all'Auto-Brief Swarm FSM.
+* **DEROGA SPECIFICHE & BRIEFING (nk_genome/):** In deroga parziale, i nodi di ideazione e pianificazione (`NK-Ideator`, `NK-Plan-Aligner`, `NK-Session-Controller`) sono formalmente pre-autorizzati a creare e aggiornare la Tetralogia Sovrana in `"nk_genome/"` (`concept_map.md`, `structural_tree.md`, `implementation_plan.md`, `repo_map.md`) e la telemetria in `"nk_tracking/"` per adempiere all'Auto-Brief Swarm FSM.
 * **DEROGA VIBE CODING STAGING/SANDBOX:** In modalità interattiva Vibe Coding (Mode B e Mode C), l'agente è pre-autorizzato a creare prototipi e branch isolati in `".staging/"` e `"%TEMP%\nk_sandbox_*\"` per eseguire verifiche AST e DAST senza "permission ping-pong". Il commit fisico finale su disco di produzione resta vincolato alla conferma atomica.
 * **DIVIETO DI I/O BYPASS VIA TERMINALE:** È vietato in modo esplicito aggirare il blocco di I/O usando `run_command` con operatori di reindirizzamento (`>`, `>>`), comandi come `echo`, o script Python non autorizzati per manipolare file fisici.
 
 ### [RULE-00.1] STRICT_SPECIFIER_READ_ONLY_MANDATE
 * Tutti i nodi di Ideazione, UX/UI Design, Metaprompting, Diagnostica e Audit (`NK-Ideator`, `NK-App-UX-Architect`, `NK-Security-Auditor`, `NK-Bug-Diagnostic-Engine`) operano in modalità **Strict Read-Only sul codice di produzione (`src_app/*`)**.
-* È fatto divieto assoluto a tali nodi di eseguire o prescrivere chiamate di scrittura per file sorgente (`.py`, `.js`, `.ts`, `.html`, `.css`). L'output consentito è unicamente il Trittico in `nk_genome/`, schemi JSON in `nk_tracking/reports_and_briefs/` e report di audit. La scrittura del codice applicativo è prerogativa esclusiva dei Builder operanti in `".staging/"`.
+* È fatto divieto assoluto a tali nodi di eseguire o prescrivere chiamate di scrittura per file sorgente (`.py`, `.js`, `.ts`, `.html`, `.css`). L'output consentito è unicamente la Tetralogia Sovrana in `nk_genome/`, schemi JSON in `nk_tracking/reports_and_briefs/` e report di audit. La scrittura del codice applicativo è prerogativa esclusiva dei Builder operanti in `".staging/"`.
 
 ### [RULE-00.2] THE_SCRIBE_EXEMPTION
-* In deroga parziale a `[RULE-00]`, la skill `NK-Scribe` è formalmente autorizzata ad eseguire aggiornamenti automatici in background sui soli file di tracciamento e documentazione (`nk_tracking/*`, `nk_genome/PATCH_NOTES.md`, `README.md`) al completamento con esito PASS della Macro-Fase 3 del CRV 4.0.
+* In deroga parziale a `[RULE-00]`, la skill `NK-Scribe` è formalmente autorizzata ad eseguire aggiornamenti automatici in background sui soli file di tracciamento e documentazione (`nk_tracking/*`, `nk_genome/PATCH_NOTES.md`, `nk_genome/repo_map.md`, `README.md`) al completamento con esito PASS della Macro-Fase 3 del CRV 4.0.
 
 ### [RULE-00.3] SANITIZATION_AND_SANDBOX_EXEMPTION (Teardown & Cleanup)
-* In deroga a `[RULE-00]`, gli orchestratori (`NK-Master-Hub`, `NK-Session-Controller`) e i motori core (`scripts/win32_2pc_engine.py`, `scripts/dast_sandbox_runner.py`, `scripts/async_heartbeat_signaler.py`) sono formalmente autorizzati a creare e distruggere directory effimere in `"%TEMP%\nk_sandbox_<uuid>\"`, `"%TEMP%\nk_diagnostics\"` e file transazionali `.wal_2pc.jsonl` / `.wal/`.
+* In deroga a `[RULE-00]`, gli orchestratori (`NK-Master-Hub`, `NK-Session-Controller`) e i motori core (`scripts/win32_2pc_engine.py`, `scripts/dast_sandbox_runner.py`, `scripts/async_heartbeat_signaler.py`, `scripts/ast_repo_mapper.py`) sono formalmente autorizzati a creare e distruggere directory effimere in `"%TEMP%\nk_sandbox_<uuid>\"`, `"%TEMP%\nk_diagnostics\"` e file transazionali `.wal_2pc.jsonl` / `.wal/`.
 
 ---
 
@@ -59,8 +59,8 @@
 * **Tooling Integrato:** Utilizzo del tool nativo `schedule(DurationSeconds=45)` o del daemon asincrono `scripts/async_heartbeat_signaler.py` (cadenza 15-20s).
 * **Isolamento Diagnostico:** In caso di watchdog alert, i dump diagnostici dei thread devono essere salvati rigorosamente in `"%TEMP%\nk_diagnostics\"` (mai sul mount Google Drive `G:\`) per prevenire lock I/O e deadlock con `GoogleDriveFS`.
 
-### [RULE-01.10] PERMANENT_TEST_SUITE_MANDATE (109 Test Non-Regression Ratchet)
-* **È FATTO DIVIETO CATEGORICO E ASSOLUTO** di eliminare o degradare la suite permanente di **109 test unitari su 15 file** contenuti in `"tests/"` (49 test core piattaforma + 60 test dominio applicativo).
+### [RULE-01.10] PERMANENT_TEST_SUITE_MANDATE (115 Test Non-Regression Ratchet)
+* **È FATTO DIVIETO CATEGORICO E ASSOLUTO** di eliminare o degradare la suite permanente di **115 test unitari su 15 file** contenuti in `"tests/"` (55 test core piattaforma + 60 test dominio applicativo).
 * Il ratchet di qualità (`nk_tracking/quality_baseline.json`) impone che nessuna modifica possa ridurre la percentuale di PASS sotto il 100.0%.
 
 ### [RULE-01.11] INTRINSIC_IMPLEMENTATION_MANDATE
@@ -68,6 +68,11 @@
 
 ### [RULE-01.12] INTRINSIC_GOAL_MANDATE
 * Qualsiasi richiesta utente espressa in ottica di obiettivo (*"realizza"*, *"costruisci"*, *"implementa"*, *"sviluppa"*, *"crea la feature X"*) impegna l'agente a una condotta goal-driven autonoma e ininterrotta fino al raggiungimento verificato della *Definition of Done*, attivando l'Invisible Self-Healing Loop in staging senza interruzioni premature per domande superflue.
+
+### [RULE-01.13] INTRINSIC_REPO_MAP_MANDATE (Tetralogia Sovrana v1.7.0)
+* **AUTONOMIA TOTALE SENZA PROMPT UTENTE:** La generazione e l'aggiornamento della High-Density AST Repo-Map (`scripts/ast_repo_mapper.py`) è un processo intrinseco del genoma architetturale ("Tetralogia Sovrana": `concept_map.md`, `structural_tree.md`, `implementation_plan.md`, `repo_map.md`).
+* **AGGIORNAMENTO AUTONOMO AL COMMIT:** A ogni commit atomico (Macro-Fase 3), `NK-Scribe` aggiorna automaticamente `nk_genome/repo_map.md` e la mappa AST nella directory dell'applicazione generata (es. `Programmi di test/`).
+* **INIEZIONE GRADUATA NEL CONTESTO:** `NK-Session-Controller` inietta porzioni graduate della repo-map nei sub-agenti in base alla modalità (Mode C: $\le 256$ tok, Mode B: $\le 512$ tok, Mode A: $\le 1024$ tok), escludendo i nodi puramente testuali (`NK-Scribe`, `NK-Episodic-Memory-Engine`).
 
 ### [RULE-01.2] ZERO_MOCK_MANDATE
 * Divieto categorico di `MagicMock`, stub sintetici, fuzzer casuali o simulazioni in memoria. Ogni test deve validare codice reale su processi e filesystem reali.
@@ -90,7 +95,7 @@
 * Turno 1: Draft Synthesis (Proposta iniziale).
 * Turno 2: Attack & Stress Swarm (Attacco avversariale e individuazione falle).
 * Turno 3: Refine & Solution Architecture (Convergenza e risoluzione chirurgica).
-* Turno 4: 1:1 Plan Alignment (Verifica di aderenza al Trittico `nk_genome/`).
+* Turno 4: 1:1 Plan Alignment (Verifica di aderenza alla Tetralogia `nk_genome/`).
 * Turno 5: Garbage Collection & Final Handoff.
 
 ### [RULE-05.1] CHANGELOG_SSOT
@@ -101,4 +106,3 @@
   - Tier 1 Core Memory: $\le 350$ token per ciascuno dei 4 domini NK (`ARCH`, `SEC`, `OPS`, `DEVX`).
   - Tier 2 Local Scratchpad: sliding window a 200 eventi con rotazione backup (.bak_1, .bak_2).
   - Tier 3 Archival Cold Store: Pure Python BM25 + Dense Cosine con Reciprocal Rank Fusion ($k=60$).
-

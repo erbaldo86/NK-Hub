@@ -1,19 +1,19 @@
 {
-  "_version": "1.6.0-VibeEnhanced",
+  "_version": "1.7.1-SovereignClean",
   "project": "NK_Project",
   "baseline_date": "2026-08-20T22:45:00.000000",
-  "last_updated": "2026-09-10T15:25:00.000000",
+  "last_updated": "2026-09-11T01:56:00.000000",
   "metrics": {
     "skills_audited": {
       "value": 16,
       "direction": "higher_is_better"
     },
     "unit_tests_total": {
-      "value": 109,
+      "value": 115,
       "direction": "higher_is_better"
     },
     "unit_tests_passed": {
-      "value": 109,
+      "value": 115,
       "direction": "higher_is_better"
     },
     "unit_tests_pass_pct": {
@@ -172,6 +172,33 @@
         "mock_violations_detected": 0,
         "crv_macro_phases": 4,
         "cold_review_gates": 5
+      }
+    },
+    {
+      "timestamp": "2026-09-10T22:07:53.533882",
+      "metrics": {
+        "skills_audited": 16,
+        "unit_tests_total": 115,
+        "unit_tests_passed": 115,
+        "unit_tests_pass_pct": 100.0,
+        "stress_test_80_passed": 80,
+        "stress_test_80_pass_pct": 100.0,
+        "sast_l1_compliance_pct": 100.0,
+        "sast_l2_compliance_pct": 100.0,
+        "sast_l3_compliance_pct": 100.0,
+        "dast_dynamic_exit_code": 0,
+        "token_leaks_detected": 0,
+        "mock_violations_detected": 0,
+        "crv_macro_phases": 4,
+        "cold_review_gates": 5
+      }
+    },
+    {
+      "timestamp": "2026-09-11T01:38:26.381733",
+      "metrics": {
+        "unit_tests_total": 122,
+        "unit_tests_passed": 122,
+        "unit_tests_pass_pct": 100.0
       }
     }
   ]

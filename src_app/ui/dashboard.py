@@ -2,18 +2,55 @@
 Nexus Keystone v1.1.0-Universal | LabNK Bandi Intelligence.
 """
 
-from typing import List, Optional
 import json
+from pathlib import Path
+from typing import Optional
+
 from ..service.bandi_service import LabNKBandiService
-from ..models.cgm import CanonicalGrantModel
+from .components.grants_view import render_grants_view
+from .components.header import render_header
+from .components.kpi_grid import render_kpi_grid
+from .components.search_sections import render_search_sections
+
+ASSETS_DIR = Path(__file__).resolve().parent / "assets"
+STYLES_PATH = ASSETS_DIR / "styles.css"
+CLIENT_JS_PATH = ASSETS_DIR / "dashboard_client.js"
 
 
 class DashboardRenderer:
     """Generatore di interfaccia utente interattiva e reattiva per la ricerca e consultazione dei bandi."""
 
+    _cached_css: Optional[str] = None
+    _cached_js: Optional[str] = None
+
+    @classmethod
+    def _load_asset(cls, path: Path) -> str:
+        try:
+            return path.read_text(encoding="utf-8")
+        except Exception:
+            return ""
+
+    @classmethod
+    def get_css(cls) -> str:
+        """Restituisce il foglio di stile CSS della dashboard (con cache in-memory)."""
+        if cls._cached_css is None:
+            cls._cached_css = cls._load_asset(STYLES_PATH)
+        return cls._cached_css
+
+    @classmethod
+    def get_js(cls) -> str:
+        """Restituisce il codice JavaScript client-side (con cache in-memory)."""
+        if cls._cached_js is None:
+            cls._cached_js = cls._load_asset(CLIENT_JS_PATH)
+        return cls._cached_js
+
     @classmethod
     def render_html(cls, service: LabNKBandiService) -> str:
-        """Genera una dashboard HTML5 autonoma, moderna e collegata alle API REST asincrone."""
+        """
+        Genera una dashboard HTML5 autonoma, moderna e reattiva collegata alle API REST.
+        Assembla i componenti modulari (Header, KPI Grid, Search Sections, Grants View),
+        iniettando il CSS compilato e il client JavaScript con i dati CGM serializzati.
+        """
         grants = service.list_all_grants()
         total_budget = sum(g.budget_totale or 0 for g in grants)
         open_grants = sum(1 for g in grants if g.stato.value == "APERTO")
@@ -33,657 +70,48 @@ class DashboardRenderer:
                 "regioni": g.regioni_target or ["Tutte"],
                 "url_bando": g.url_bando or "#",
                 "tipo_agevolazione": g.tipo_agevolazione or "Fondo perduto",
-                "fonte_nome": g.fonte_nome or "Fonte Istituzionale"
+                "fonte_nome": g.fonte_nome or "Fonte Istituzionale",
+                "macro_categoria": getattr(g, "macro_categoria", None).value if getattr(g, "macro_categoria", None) else "AGEVOLAZIONE_IMPRESA",
+                "data_apertura": g.data_apertura.isoformat() if g.data_apertura else None,
+                "data_scadenza": g.data_scadenza.isoformat() if g.data_scadenza else None,
+                "de_minimis_applicabile": getattr(g, "de_minimis_applicabile", False),
+                "car_codice_misura": getattr(g, "car_codice_misura", None),
+                "codice_cup": getattr(g, "codice_cup", None),
             }
             for g in grants
-        ])
+        ], ensure_ascii=False)
 
-        html = f"""<!DOCTYPE html>
+        css_content = cls.get_css()
+        js_content = cls.get_js()
+
+        header_html = render_header()
+        kpi_html = render_kpi_grid(len(grants), open_grants, total_budget)
+        search_html = render_search_sections()
+        catalog_html = render_grants_view()
+
+        return f"""<!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LabNK — Monitoraggio & Intelligence Bandi (Nexus Keystone)</title>
     <style>
-        :root {{
-            --bg: #0f172a;
-            --surface: #1e293b;
-            --surface-hover: #273549;
-            --card-bg: #1e293b;
-            --primary: #38bdf8;
-            --primary-glow: rgba(56, 189, 248, 0.25);
-            --primary-hover: #0ea5e9;
-            --accent: #10b981;
-            --accent-glow: rgba(16, 185, 129, 0.2);
-            --text: #f8fafc;
-            --text-muted: #94a3b8;
-            --border: #334155;
-            --border-light: #475569;
-            --danger: #ef4444;
-            --danger-bg: rgba(239, 68, 68, 0.15);
-            --warning: #f59e0b;
-            --warning-bg: rgba(245, 158, 11, 0.15);
-            --success-bg: rgba(16, 185, 129, 0.15);
-            --info-bg: rgba(56, 189, 248, 0.12);
-        }}
-        * {{ box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }}
-        body {{ background: var(--bg); color: var(--text); padding: 24px; min-height: 100vh; }}
-        
-        .header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 16px; flex-wrap: wrap; gap: 12px; }}
-        .header h1 {{ font-size: 24px; color: var(--primary); display: flex; align-items: center; gap: 10px; }}
-        .header-meta {{ display: flex; align-items: center; gap: 12px; }}
-        .badge {{ background: #0369a1; color: #e0f2fe; padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 600; letter-spacing: 0.5px; }}
-        .live-status {{ display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--accent); background: var(--success-bg); padding: 4px 10px; border-radius: 9999px; border: 1px solid rgba(16, 185, 129, 0.3); }}
-        .pulse-dot {{ width: 8px; height: 8px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 8px var(--accent); animation: pulse 2s infinite; }}
-        @keyframes pulse {{ 0%, 100% {{ opacity: 1; }} 50% {{ opacity: 0.4; }} }}
-
-        .kpi-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }}
-        .kpi-card {{ background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 18px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2); transition: transform 0.2s, border-color 0.2s; }}
-        .kpi-card:hover {{ transform: translateY(-2px); border-color: var(--primary); }}
-        .kpi-title {{ font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }}
-        .kpi-value {{ font-size: 26px; font-weight: 700; color: var(--text); margin-top: 6px; }}
-
-        .tabs {{ display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--border); overflow-x: auto; }}
-        .tab-btn {{ background: transparent; border: none; color: var(--text-muted); padding: 12px 18px; cursor: pointer; font-size: 14px; font-weight: 600; border-bottom: 3px solid transparent; transition: all 0.2s; white-space: nowrap; }}
-        .tab-btn:hover {{ color: var(--text); }}
-        .tab-btn.active {{ color: var(--primary); border-bottom-color: var(--primary); }}
-        
-        .tab-content {{ display: none; }}
-        .tab-content.active {{ display: block; }}
-
-        /* Quick query presets */
-        .presets-container {{ display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; align-items: center; }}
-        .presets-label {{ font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-right: 4px; }}
-        .preset-btn {{ background: rgba(56, 189, 248, 0.1); color: var(--primary); border: 1px solid rgba(56, 189, 248, 0.3); padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s; }}
-        .preset-btn:hover {{ background: var(--primary); color: #0f172a; transform: translateY(-1px); }}
-
-        /* Search inputs */
-        .search-box {{ display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }}
-        .search-input {{ flex: 1; min-width: 260px; background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 12px 16px; border-radius: 8px; font-size: 14px; transition: border-color 0.2s; outline: none; }}
-        .search-input:focus {{ border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-glow); }}
-        .btn {{ background: var(--primary); color: #0f172a; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }}
-        .btn:hover {{ background: var(--primary-hover); transform: translateY(-1px); }}
-        .btn-secondary {{ background: var(--surface); color: var(--text); border: 1px solid var(--border); }}
-        .btn-secondary:hover {{ background: var(--surface-hover); color: var(--primary); border-color: var(--primary); }}
-
-        /* Intent Card */
-        .intent-card {{ background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 10px; padding: 18px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); display: none; }}
-        .intent-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; }}
-        .intent-title {{ font-size: 14px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 6px; }}
-        .intent-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }}
-        .intent-item {{ background: rgba(15, 23, 42, 0.6); padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); }}
-        .intent-label {{ font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; }}
-        .intent-val {{ font-size: 13px; font-weight: 600; color: var(--text); margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }}
-        .tag {{ background: rgba(56, 189, 248, 0.15); color: #bae6fd; padding: 2px 6px; border-radius: 4px; font-size: 11px; }}
-        .tag-green {{ background: rgba(16, 185, 129, 0.15); color: #a7f3d0; padding: 2px 6px; border-radius: 4px; font-size: 11px; }}
-
-        /* Grants Grid */
-        .grants-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 18px; }}
-        .grant-card {{ background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2); transition: all 0.2s; }}
-        .grant-card:hover {{ border-color: rgba(56, 189, 248, 0.5); transform: translateY(-2px); }}
-        
-        .grant-top {{ display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 10px; }}
-        .grant-authority {{ font-size: 12px; color: var(--primary); font-weight: 600; }}
-        
-        .match-badge {{ display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 700; letter-spacing: 0.3px; }}
-        .match-high {{ background: var(--success-bg); color: var(--accent); border: 1px solid rgba(16, 185, 129, 0.4); }}
-        .match-mid {{ background: var(--warning-bg); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.4); }}
-        .match-low {{ background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.4); }}
-        
-        .status-pill {{ font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; }}
-        .status-open {{ background: var(--success-bg); color: var(--accent); }}
-        .status-closed {{ background: var(--danger-bg); color: var(--danger); }}
-
-        .grant-title {{ font-size: 16px; font-weight: 700; color: #ffffff; margin-bottom: 8px; line-height: 1.3; }}
-        .grant-desc {{ font-size: 13px; color: var(--text-muted); line-height: 1.45; margin-bottom: 16px; }}
-
-        .grant-financials {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; background: rgba(15, 23, 42, 0.5); padding: 10px; border-radius: 6px; margin-bottom: 14px; border: 1px solid rgba(255, 255, 255, 0.05); }}
-        .fin-item {{ text-align: center; }}
-        .fin-label {{ font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; }}
-        .fin-value {{ font-size: 13px; font-weight: 700; color: var(--text); margin-top: 2px; }}
-        .fin-accent {{ color: var(--accent); }}
-
-        /* Breakdown container */
-        .breakdown-box {{ background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; padding: 12px; margin-bottom: 14px; font-size: 12px; }}
-        .breakdown-title {{ font-weight: 600; color: #bae6fd; margin-bottom: 6px; display: flex; justify-content: space-between; }}
-        .breakdown-item {{ display: flex; align-items: center; gap: 6px; margin-bottom: 4px; color: var(--text-muted); }}
-        .bonus-tag {{ background: rgba(16, 185, 129, 0.15); color: var(--accent); padding: 2px 6px; border-radius: 4px; font-size: 11px; display: inline-block; margin-top: 4px; }}
-        .fail-tag {{ background: var(--danger-bg); color: var(--danger); padding: 2px 6px; border-radius: 4px; font-size: 11px; display: inline-block; margin-top: 4px; }}
-
-        .grant-footer {{ display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 12px; margin-top: 4px; }}
-        .grant-link {{ color: var(--primary); text-decoration: none; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }}
-        .grant-link:hover {{ text-decoration: underline; color: var(--primary-hover); }}
-        .grant-link-btn {{ display: inline-flex; align-items: center; gap: 6px; background: rgba(56, 189, 248, 0.12); color: var(--primary); border: 1px solid rgba(56, 189, 248, 0.3); padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600; transition: all 0.2s ease; }}
-        .grant-link-btn:hover {{ background: var(--primary); color: #0f172a; border-color: var(--primary); }}
-        .speed-badge {{ background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); color: var(--primary); padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; margin-bottom: 16px; display: none; align-items: center; gap: 8px; }}
-
-        .loading-spinner {{ display: none; text-align: center; padding: 24px; color: var(--primary); font-size: 14px; font-weight: 600; }}
-        .empty-state {{ color: var(--text-muted); text-align: center; padding: 36px 20px; font-size: 14px; grid-column: 1 / -1; }}
-
-        /* Responsive form grid */
-        .param-form-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 16px; }}
-        .form-group {{ display: flex; flex-direction: column; gap: 6px; }}
-        .form-label {{ font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }}
-        .form-select {{ background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 10px 14px; border-radius: 6px; font-size: 13px; outline: none; }}
-        .form-select:focus {{ border-color: var(--primary); }}
+{css_content}
     </style>
 </head>
 <body>
-    <div class="header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
-        <div>
-            <h1>🏛️ LabNK — Bandi & Intelligence <span class="badge">v1.1.0 Universal</span></h1>
-            <div class="header-meta">
-                <span class="live-status"><span class="pulse-dot"></span> Live API Server</span>
-                <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: var(--accent); border: 1px solid rgba(16, 185, 129, 0.3);">🛡️ 30+ Fonti Ufficiali Monitorate (Invitalia, MIMIT, 20 Regioni, UE SEDIA)</span>
-                <span style="font-size: 12px; color: var(--text-muted);">Protocollo CRV 4.0 | Zero-Mock Engine</span>
-            </div>
-        </div>
-        <div>
-            <button class="btn" id="btn-sync-harvest" onclick="triggerSyncHarvest()" style="background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: 13px;">
-                <span>🔄 Sincronizza Fonti dal Web</span>
-            </button>
-        </div>
-    </div>
+{header_html}
 
-    <!-- KPIs Metric Bar -->
-    <div class="kpi-grid">
-        <div class="kpi-card">
-            <div class="kpi-title">Bandi Monitorati</div>
-            <div class="kpi-value">{len(grants)}</div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-title">Bandi Aperti</div>
-            <div class="kpi-value" style="color: var(--accent);">{open_grants}</div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-title">Dotazione Totale Stanziata</div>
-            <div class="kpi-value">€ {total_budget:,.0f}</div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-title">Fonti Istituzionali</div>
-            <div class="kpi-value">110+ Tier 1/2/3</div>
-        </div>
-    </div>
+{kpi_html}
 
-    <!-- Navigation Tabs -->
-    <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('nlp-tab')">🔍 Ricerca NLP & Matching Intelligente</button>
-        <button class="tab-btn" onclick="switchTab('parametric-tab')">⚙️ Ricerca Parametrica (Consulenti)</button>
-        <button class="tab-btn" onclick="switchTab('catalog-tab')">📋 Catalogo Completo Bandi CGM</button>
-    </div>
+{search_html}
 
-    <!-- 1. TAB RICERCA NLP -->
-    <div id="nlp-tab" class="tab-content active">
-        <!-- Quick Preset Buttons -->
-        <div class="presets-container">
-            <span class="presets-label">⚡ Query Rapide:</span>
-            <button class="preset-btn" onclick="runPreset('Cerco finanziamenti a fondo perduto per una startup a Napoli per sviluppo software AI')">🚀 Startup AI Napoli</button>
-            <button class="preset-btn" onclick="runPreset('Voucher digitalizzazione PMI Lombardia acquisto software cybersecurity')">💼 Voucher PMI Lombardia</button>
-            <button class="preset-btn" onclick="runPreset('Incentivi per transizione 5.0 ed efficientamento energetico processi produttivi')">⚡ Transizione 5.0 Nazionale</button>
-            <button class="preset-btn" onclick="runPreset('Horizon Europe EIC accelerator grant ed equity per startup deep tech')">🇪🇺 Deep Tech Horizon EIC</button>
-            <button class="preset-btn" onclick="runPreset('Contributi a fondo perduto per innovazione agricola e agrifood in Sicilia')">🌾 Agrifood Sicilia</button>
-            <button class="preset-btn" onclick="runPreset('Finanziamento tasso agevolato per macchinari industria 4.0 e robotica in Emilia-Romagna')">⚙️ Meccanica 4.0 Emilia</button>
-            <button class="preset-btn" onclick="runPreset('Bando ISI INAIL per sicurezza sul lavoro e bonifica amianto')">🛡️ Bando ISI INAIL</button>
-            <button class="preset-btn" onclick="runPreset('Agevolazioni per artigianato moda e tessile in Toscana')">👗 Moda & Tessile Toscana</button>
-        </div>
-
-        <div class="search-box">
-            <input type="text" id="nlp-input" class="search-input" placeholder="Es. Cerco finanziamenti a fondo perduto per una startup a Napoli per sviluppo software AI..." onkeypress="if(event.key==='Enter') filterGrantsNLP()">
-            <button class="btn" id="btn-nlp-search" onclick="filterGrantsNLP()">
-                <span>Trova Bandi</span>
-            </button>
-        </div>
-
-        <!-- Intent Analysis Box -->
-        <div id="intent-card" class="intent-card">
-            <div class="intent-header">
-                <div class="intent-title">🧠 Analisi Semantica dell'Intento NLP</div>
-                <span class="tag-green">Smart Intent Extractor 1.1</span>
-            </div>
-            <div class="intent-grid">
-                <div class="intent-item">
-                    <div class="intent-label">📍 Territorio / NUTS</div>
-                    <div id="intent-region" class="intent-val">-</div>
-                </div>
-                <div class="intent-item">
-                    <div class="intent-label">🏷️ Codici ATECO Rilevati</div>
-                    <div id="intent-ateco" class="intent-val">-</div>
-                </div>
-                <div class="intent-item">
-                    <div class="intent-label">👥 Beneficiari & Forma</div>
-                    <div id="intent-beneficiaries" class="intent-val">-</div>
-                </div>
-                <div class="intent-item">
-                    <div class="intent-label">💰 Agevolazione & Budget</div>
-                    <div id="intent-funding" class="intent-val">-</div>
-                </div>
-                <div class="intent-item" style="grid-column: 1 / -1;">
-                    <div class="intent-label">🔑 Parole Chiave Estratte</div>
-                    <div id="intent-keywords" class="intent-val">-</div>
-                </div>
-            </div>
-        </div>
-
-        <div id="nlp-spinner" class="loading-spinner">⏳ Elaborazione query e calcolo indice di compatibilità...</div>
-        <div id="speed-indicator" class="speed-badge"></div>
-        <div id="grants-container-nlp" class="grants-grid"></div>
-    </div>
-
-    <!-- 2. TAB RICERCA PARAMETRICA -->
-    <div id="parametric-tab" class="tab-content">
-        <div class="param-form-grid">
-            <div class="form-group">
-                <label class="form-label">Codice ATECO</label>
-                <input type="text" id="param-ateco" class="search-input" style="min-width: unset;" placeholder="es. 62.01.00">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Regione Target</label>
-                <input type="text" id="param-region" class="search-input" style="min-width: unset;" placeholder="es. Campania o Tutte">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Beneficiari</label>
-                <select id="param-beneficiary" class="form-select">
-                    <option value="">Tutte le tipologie</option>
-                    <option value="Startup_Innovative">Startup Innovative</option>
-                    <option value="PMI">PMI</option>
-                    <option value="Grandi_Imprese">Grandi Imprese</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Tipo Agevolazione</label>
-                <select id="param-aid-type" class="form-select">
-                    <option value="">Tutte le agevolazioni</option>
-                    <option value="fondo perduto">Fondo perduto</option>
-                    <option value="voucher">Voucher</option>
-                    <option value="credito">Credito d'imposta</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">% Min. Copertura</label>
-                <input type="number" id="param-coverage" class="search-input" style="min-width: unset;" placeholder="es. 50" min="0" max="100">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Ricerca Testo</label>
-                <input type="text" id="param-text" class="search-input" style="min-width: unset;" placeholder="Parole chiave...">
-            </div>
-        </div>
-
-        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-            <button class="btn" onclick="filterGrantsParametric()">Applica Filtri</button>
-            <button class="btn btn-secondary" onclick="resetParametricFilters()">Ripristina</button>
-        </div>
-
-        <div id="param-spinner" class="loading-spinner">⏳ Filtraggio parametrico in corso...</div>
-        <div id="grants-container-param" class="grants-grid"></div>
-    </div>
-
-    <!-- 3. TAB CATALOGO COMPLETO -->
-    <div id="catalog-tab" class="tab-content">
-        <div class="search-box">
-            <input type="text" id="catalog-search" class="search-input" placeholder="Filtra catalogo per titolo, ente o settore..." onkeyup="filterCatalog()">
-        </div>
-        <div id="grants-container-catalog" class="grants-grid"></div>
-    </div>
+{catalog_html}
 
     <script>
         const GRANTS_DATA = {grants_json};
-
-        // DOM XSS Sanitizer Guard
-        function escapeHTML(str) {{
-            if (str === null || str === undefined) return '';
-            return String(str)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
-        }}
-
-        function switchTab(tabId) {{
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            if (event && event.target) {{
-                event.target.classList.add('active');
-            }}
-        }}
-
-        function formatCurrency(val) {{
-            if (!val || val === 0) return "N/D";
-            return "€ " + Number(val).toLocaleString('it-IT');
-        }}
-
-        function getMatchBadgeClass(score) {{
-            if (score >= 80) return "match-high";
-            if (score >= 50) return "match-mid";
-            return "match-low";
-        }}
-
-        function renderNlpCards(containerId, results) {{
-            const container = document.getElementById(containerId);
-            container.innerHTML = '';
-            if (!results || results.length === 0) {{
-                container.innerHTML = '<div class="empty-state">🔍 <b>Nessun bando compatibile trovato</b> per i criteri o il territorio selezionato.<br><span style="font-size: 13px; color: var(--text-muted); margin-top: 6px; display: inline-block;">Prova a verificare i bandi nazionali aperti o ad ampliare i termini di ricerca.</span></div>';
-                return;
-            }}
-
-            results.forEach(item => {{
-                const g = item.grant;
-                const score = item.score;
-                const matchScore = score ? Math.round(score.overall_match_score) : 75;
-                const isEligible = score ? score.is_eligible : true;
-                const badgeClass = getMatchBadgeClass(matchScore);
-                const regioniStr = Array.isArray(g.regioni_target || g.regioni) ? (g.regioni_target || g.regioni).join(', ') : 'Nazionale';
-                const isEuGrant = g.fonte_nome === 'SEDIA EU' || g.fonte_nome === 'TED v3' || (g.ente_erogatore && g.ente_erogatore.toLowerCase().includes('europa')) || (g.titolo && g.titolo.toLowerCase().includes('horizon'));
-
-                const card = document.createElement('div');
-                card.className = 'grant-card';
-                card.innerHTML = `
-                    <div>
-                        <div class="grant-top">
-                            <div>
-                                <div class="grant-authority">${{escapeHTML(g.ente_erogatore)}}</div>
-                                <div style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                                    <span>${{escapeHTML(regioniStr)}}</span>
-                                    ${{isEuGrant ? '<span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.4); font-size: 10px; padding: 2px 6px;">🇪🇺 COMUNITARIO DIRETTO</span>' : ''}}
-                                </div>
-                            </div>
-                            <span class="match-badge ${{badgeClass}}">
-                                ${{matchScore}}% ${{isEligible ? 'COMPATIBILE' : 'NON IDONEO'}}
-                            </span>
-                        </div>
-                        <h3 class="grant-title">${{escapeHTML(g.titolo)}}</h3>
-                        <p class="grant-desc">${{escapeHTML(g.descrizione ? g.descrizione.substring(0, 160) + '...' : '')}}</p>
-                    </div>
-
-                    <div>
-                        <div class="grant-financials">
-                            <div class="fin-item">
-                                <div class="fin-label">Copertura</div>
-                                <div class="fin-value fin-accent">${{Number(g.percentuale_copertura || 0)}}%</div>
-                            </div>
-                            <div class="fin-item">
-                                <div class="fin-label">Max Finanziabile</div>
-                                <div class="fin-value">${{formatCurrency(g.importo_massimo_finanziabile)}}</div>
-                            </div>
-                            <div class="fin-item">
-                                <div class="fin-label">Dotazione Totale</div>
-                                <div class="fin-value">${{formatCurrency(g.budget_totale)}}</div>
-                            </div>
-                        </div>
-
-                        ${{score ? `
-                        <div class="breakdown-box">
-                            <div class="breakdown-title">
-                                <span>🎯 Valutazione Idoneità MatchScoringEngine</span>
-                                <span style="font-size: 11px; color: ${{isEligible ? 'var(--accent)' : 'var(--danger)'}};">
-                                    ${{isEligible ? '✓ Requisiti Verificati' : '⚠️ Condizione Bloccante'}}
-                                </span>
-                            </div>
-                            ${{score.blocking_failures && score.blocking_failures.length > 0 ? 
-                                `<div class="fail-tag">⚠️ ${{escapeHTML(score.blocking_failures[0])}}</div>` : ''}}
-                            ${{score.bonus_points && score.bonus_points.length > 0 ? 
-                                score.bonus_points.map(bp => `<div class="bonus-tag">★ ${{escapeHTML(bp)}}</div>`).join('') : ''}}
-                            ${{score.recommended_actions && score.recommended_actions.length > 0 ? 
-                                `<div style="margin-top: 6px; color: var(--text-muted); font-size: 11px;">💡 <em>${{escapeHTML(score.recommended_actions[0])}}</em></div>` : ''}}
-                        </div>
-                        ` : ''}}
-
-                        <div class="grant-footer">
-                            <span class="tag">${{escapeHTML(g.tipo_agevolazione || 'Agevolazione')}}</span>
-                            <a href="${{encodeURI(g.url_bando || '#')}}" target="_blank" rel="noopener noreferrer" class="grant-link-btn">🏛️ Apri Bando Ufficiale ↗</a>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(card);
-            }});
-        }}
-
-        function renderStandardCards(containerId, grants) {{
-            const container = document.getElementById(containerId);
-            container.innerHTML = '';
-            if (!grants || grants.length === 0) {{
-                container.innerHTML = '<div class="empty-state">📋 <b>Nessun bando trovato</b> per i criteri selezionati.<br><span style="font-size: 13px; color: var(--text-muted); margin-top: 6px; display: inline-block;">Prova a verificare i bandi nazionali o ad azzerare i filtri.</span></div>';
-                return;
-            }}
-
-            grants.forEach(g => {{
-                const card = document.createElement('div');
-                card.className = 'grant-card';
-                const regioniStr = Array.isArray(g.regioni_target || g.regioni) ? (g.regioni_target || g.regioni).join(', ') : 'Nazionale';
-                const isEuGrant = g.fonte_nome === 'SEDIA EU' || g.fonte_nome === 'TED v3' || (g.ente_erogatore && g.ente_erogatore.toLowerCase().includes('europa')) || (g.titolo && g.titolo.toLowerCase().includes('horizon'));
-                card.innerHTML = `
-                    <div>
-                        <div class="grant-top">
-                            <div>
-                                <div class="grant-authority">${{escapeHTML(g.ente_erogatore)}}</div>
-                                <div style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                                    <span>${{escapeHTML(regioniStr)}}</span>
-                                    ${{isEuGrant ? '<span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.4); font-size: 10px; padding: 2px 6px;">🇪🇺 COMUNITARIO DIRETTO</span>' : ''}}
-                                </div>
-                            </div>
-                            <span class="status-pill ${{g.stato === 'APERTO' ? 'status-open' : 'status-closed'}}">${{escapeHTML(g.stato)}}</span>
-                        </div>
-                        <h3 class="grant-title">${{escapeHTML(g.titolo)}}</h3>
-                        <p class="grant-desc">${{escapeHTML(g.descrizione ? g.descrizione.substring(0, 160) + '...' : '')}}</p>
-                    </div>
-                    <div>
-                        <div class="grant-financials">
-                            <div class="fin-item">
-                                <div class="fin-label">Copertura</div>
-                                <div class="fin-value fin-accent">${{Number(g.percentuale_copertura || 0)}}%</div>
-                            </div>
-                            <div class="fin-item">
-                                <div class="fin-label">Max Finanziabile</div>
-                                <div class="fin-value">${{formatCurrency(g.importo_massimo_finanziabile)}}</div>
-                            </div>
-                            <div class="fin-item">
-                                <div class="fin-label">Dotazione</div>
-                                <div class="fin-value">${{formatCurrency(g.budget_totale)}}</div>
-                            </div>
-                        </div>
-                        <div class="grant-footer">
-                            <span class="tag">${{escapeHTML(g.tipo_agevolazione || 'Agevolazione')}}</span>
-                            <a href="${{encodeURI(g.url_bando || '#')}}" target="_blank" rel="noopener noreferrer" class="grant-link-btn">🏛️ Apri Bando Ufficiale ↗</a>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(card);
-            }});
-        }}
-
-        async function filterGrantsNLP() {{
-            const query = document.getElementById('nlp-input').value.trim();
-            if (!query) return;
-
-            const spinner = document.getElementById('nlp-spinner');
-            const intentCard = document.getElementById('intent-card');
-            const speedEl = document.getElementById('speed-indicator');
-            spinner.style.display = 'block';
-            if (speedEl) speedEl.style.display = 'none';
-
-            const startTime = performance.now();
-
-            try {{
-                const resp = await fetch('/api/search/nlp', {{
-                    method: 'POST',
-                    headers: {{ 'Content-Type': 'application/json' }},
-                    body: JSON.stringify({{ query: query, top_k: 20 }})
-                }});
-
-                if (resp.ok) {{
-                    const data = await resp.json();
-                    const elapsedMs = Math.round(performance.now() - startTime);
-                    
-                    // Display Intent Box with XSS sanitization
-                    if (data.intent) {{
-                        const it = data.intent;
-                        document.getElementById('intent-region').innerHTML = it.inferred_region ? 
-                            `<span class="tag-green">${{escapeHTML(it.inferred_region)}}</span> <span style="font-size: 11px; color: var(--text-muted);">(${{escapeHTML(it.inferred_nuts || 'NUTS')}})</span>` : 
-                            '<span class="tag">Nazionale / Tutte</span>';
-                        
-                        document.getElementById('intent-ateco').innerHTML = it.inferred_ateco_codes && it.inferred_ateco_codes.length > 0 ?
-                            it.inferred_ateco_codes.map(c => `<span class="tag">${{escapeHTML(c)}}</span>`).join(' ') :
-                            '<span class="tag">Tutti i settori</span>';
-                        
-                        document.getElementById('intent-beneficiaries').innerHTML = it.inferred_beneficiary_types && it.inferred_beneficiary_types.length > 0 ?
-                            it.inferred_beneficiary_types.map(b => `<span class="tag">${{escapeHTML(b)}}</span>`).join(' ') :
-                            '<span class="tag">PMI</span>';
-                        
-                        document.getElementById('intent-funding').innerHTML = `
-                            <span class="tag-green">${{it.inferred_funding_types ? escapeHTML(it.inferred_funding_types.join(', ')) : 'fondo_perduto'}}</span>
-                            ${{it.inferred_budget ? `<span class="tag">${{formatCurrency(it.inferred_budget)}}</span>` : ''}}
-                        `;
-
-                        document.getElementById('intent-keywords').innerHTML = it.extracted_keywords && it.extracted_keywords.length > 0 ?
-                            it.extracted_keywords.map(kw => `<span class="tag">${{escapeHTML(kw)}}</span>`).join(' ') :
-                            '<span style="color: var(--text-muted);">Nessuna keyword specifica</span>';
-
-                        intentCard.style.display = 'block';
-                    }}
-
-                    if (speedEl && data.results) {{
-                        speedEl.innerHTML = `⚡ Trovati ${{data.results.length}} bandi pertinenti in ${{elapsedMs}}ms | Risoluzione ATECO & De Minimis Eseguita in Tempo Reale`;
-                        speedEl.style.display = 'inline-flex';
-                    }}
-
-                    renderNlpCards('grants-container-nlp', data.results);
-                }} else {{
-                    throw new Error('API request failed');
-                }}
-            }} catch (err) {{
-                // Offline / Static fallback
-                console.warn('API non raggiungibile, fallback su filtro statico:', err);
-                const qLow = query.toLowerCase();
-                const filtered = GRANTS_DATA.filter(g => 
-                    g.titolo.toLowerCase().includes(qLow) || 
-                    g.descrizione.toLowerCase().includes(qLow) ||
-                    (g.regioni && g.regioni.some(r => r.toLowerCase().includes(qLow)))
-                );
-                const fakeResults = filtered.map(g => ({{
-                    grant: g,
-                    score: {{
-                        overall_match_score: 85.0,
-                        is_eligible: true,
-                        blocking_failures: [],
-                        bonus_points: ['Compatibilità Semantica Ottimale'],
-                        recommended_actions: ['Presentare candidatura tramite portale ufficiale']
-                    }}
-                }}));
-                renderNlpCards('grants-container-nlp', fakeResults);
-            }} finally {{
-                spinner.style.display = 'none';
-            }}
-        }}
-
-        async function filterGrantsParametric() {{
-            const ateco = document.getElementById('param-ateco').value.trim();
-            const region = document.getElementById('param-region').value.trim();
-            const beneficiary = document.getElementById('param-beneficiary').value;
-            const aidType = document.getElementById('param-aid-type').value;
-            const coverageVal = document.getElementById('param-coverage').value;
-            const searchText = document.getElementById('param-text').value.trim();
-
-            const criteria = {{
-                ateco_codes: ateco ? [ateco] : [],
-                regioni_target: region ? [region] : [],
-                tipologia_beneficiari: beneficiary ? [beneficiary] : [],
-                tipo_agevolazione: aidType || null,
-                min_percentuale_copertura: coverageVal ? parseFloat(coverageVal) : null,
-                search_text: searchText || null,
-                stato: "APERTO"
-            }};
-
-            const spinner = document.getElementById('param-spinner');
-            spinner.style.display = 'block';
-
-            try {{
-                const resp = await fetch('/api/search/parametric', {{
-                    method: 'POST',
-                    headers: {{ 'Content-Type': 'application/json' }},
-                    body: JSON.stringify(criteria)
-                }});
-
-                if (resp.ok) {{
-                    const data = await resp.json();
-                    renderStandardCards('grants-container-param', data.results || data);
-                }} else {{
-                    throw new Error('Parametric API failed');
-                }}
-            }} catch (err) {{
-                console.warn('API non raggiungibile, fallback su filtro statico parametrico:', err);
-                const filtered = GRANTS_DATA.filter(g => {{
-                    const matchAteco = !ateco || (g.settori && g.settori.some(s => s.includes(ateco) || s === 'TUTTI'));
-                    const matchReg = !region || (g.regioni && g.regioni.some(r => r.toLowerCase().includes(region.toLowerCase()) || r.toLowerCase() === 'tutte'));
-                    const matchBen = !beneficiary || (g.beneficiari && g.beneficiari.includes(beneficiary));
-                    const matchAid = !aidType || (g.tipo_agevolazione && g.tipo_agevolazione.toLowerCase().includes(aidType.toLowerCase()));
-                    const matchCov = !coverageVal || (g.percentuale_copertura >= parseFloat(coverageVal));
-                    const matchTxt = !searchText || g.titolo.toLowerCase().includes(searchText.toLowerCase()) || g.descrizione.toLowerCase().includes(searchText.toLowerCase());
-                    return matchAteco && matchReg && matchBen && matchAid && matchCov && matchTxt;
-                }});
-                renderStandardCards('grants-container-param', filtered);
-            }} finally {{
-                spinner.style.display = 'none';
-            }}
-        }}
-
-        function resetParametricFilters() {{
-            document.getElementById('param-ateco').value = '';
-            document.getElementById('param-region').value = '';
-            document.getElementById('param-beneficiary').value = '';
-            document.getElementById('param-aid-type').value = '';
-            document.getElementById('param-coverage').value = '';
-            document.getElementById('param-text').value = '';
-            renderStandardCards('grants-container-param', GRANTS_DATA);
-        }}
-
-        function filterCatalog() {{
-            const term = document.getElementById('catalog-search').value.toLowerCase();
-            const filtered = GRANTS_DATA.filter(g => 
-                g.titolo.toLowerCase().includes(term) ||
-                g.ente_erogatore.toLowerCase().includes(term) ||
-                (g.descrizione && g.descrizione.toLowerCase().includes(term))
-            );
-            renderStandardCards('grants-container-catalog', filtered);
-        }}
-
-        async function triggerSyncHarvest() {{
-            const btn = document.getElementById('btn-sync-harvest');
-            const originalText = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<span>⏳ Sincronizzazione in corso...</span>';
-            try {{
-                const resp = await fetch('/api/sync/harvest', {{ method: 'POST' }});
-                if (resp.ok) {{
-                    const res = await resp.json();
-                    btn.innerHTML = '<span>✓ Sincronizzate ' + res.sources_scanned + ' fonti (' + res.duration_ms + 'ms)</span>';
-                    setTimeout(() => {{
-                        btn.innerHTML = originalText;
-                        btn.disabled = false;
-                    }}, 4000);
-                }} else {{
-                    throw new Error('Sync failed');
-                }}
-            }} catch (err) {{
-                btn.innerHTML = '<span>⚠️ Errore sincronizzazione</span>';
-                setTimeout(() => {{
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
-                }}, 3000);
-            }}
-        }}
-
-        function runPreset(queryText) {{
-            document.getElementById('nlp-input').value = queryText;
-            filterGrantsNLP();
-        }}
-
-        // Initial Boot Render
-        renderStandardCards('grants-container-nlp', GRANTS_DATA);
-        renderStandardCards('grants-container-param', GRANTS_DATA);
-        renderStandardCards('grants-container-catalog', GRANTS_DATA);
+{js_content}
     </script>
 </body>
 </html>
 """
-        return html

@@ -1,0 +1,878 @@
+{
+  "timestamp": "2026-09-10T23:55:00Z",
+  "benchmark_name": "LabNK 30 Dual Scenarios Stress Test",
+  "total_scenarios": 30,
+  "total_tests": 60,
+  "total_passed": 60,
+  "overall_pass_pct": 100.0,
+  "nlp": {
+    "total": 30,
+    "passed": 30,
+    "pass_pct": 100.0,
+    "avg_latency_ms": 6.73
+  },
+  "parametric": {
+    "total": 30,
+    "passed": 30,
+    "pass_pct": 100.0,
+    "avg_latency_ms": 2.98
+  },
+  "deficit_count": 0,
+  "failures": [],
+  "scenarios": [
+    {
+      "id": "DUAL_01",
+      "title": "Innovazione Software & AI a Napoli",
+      "domain": "ICT & Intelligenza Artificiale",
+      "nlp": {
+        "query": "Cerco contributi a fondo perduto per una startup a Napoli che sviluppa software di intelligenza artificiale e machine learning",
+        "passed": true,
+        "latency_ms": 26.75,
+        "detail": "PASS #1 (26.7ms, 2 res)"
+      },
+      "parametric": {
+        "payload": {
+          "regioni": [
+            "Campania"
+          ],
+          "settori": [
+            "62.01.00"
+          ],
+          "tipologie_beneficiari": [
+            "Startup_Innovative",
+            "PMI"
+          ],
+          "agevolazione": "fondo_perduto"
+        },
+        "passed": true,
+        "latency_ms": 5.08,
+        "detail": "PASS (5.1ms, 38 res)"
+      }
+    },
+    {
+      "id": "DUAL_02",
+      "title": "Transizione 5.0 & Robotica Meccanica",
+      "domain": "Manifattura 4.0 / 5.0 & Efficienza Energetica",
+      "nlp": {
+        "query": "PMI metalmeccanica cerca credito imposta per acquisto macchinari industriali 5.0 e robotica con risparmio energetico",
+        "passed": true,
+        "latency_ms": 8.14,
+        "detail": "PASS #1 (8.1ms, 4 res)"
+      },
+      "parametric": {
+        "payload": {
+          "regioni": [
+            "Tutte"
+          ],
+          "settori": [
+            "28.00.00"
+          ],
+          "tipologie_beneficiari": [
+            "PMI"
+          ],
+          "agevolazione": "credito_imposta"
+        },
+        "passed": true,
+        "latency_ms": 3.22,
+        "detail": "PASS (3.2ms, 38 res)"
+      }
+    },
+    {
+      "id": "DUAL_03",
+      "title": "Voucher Digitalizzazione & Cloud a Milano",
+      "domain": "Digitalizzazione & Cybersecurity",
+      "nlp": {
+        "query": "Piccola impresa a Milano vuole un voucher per acquistare software gestionali, sicurezza informatica e cloud",
+        "passed": true,
+        "latency_ms": 6.69,
+        "detail": "PASS #1 (6.7ms, 1 res)"
+      },
+      "parametric": {
+        "payload": {
+          "regioni": [
+            "Lombardia"
+          ],
+          "settori": [
+            "62.02.00"
+          ],
+          "tipologie_beneficiari": [
+            "PMI",
+            "Micro"
+          ],
+          "agevolazione": "voucher"
+        },
+        "passed": true,
+        "latency_ms": 2.61,
+        "detail": "PASS (2.6ms, 38 res)"
+      }
+    },
+    {
+      "id": "DUAL_04",
+      "title": "Horizon Europe EIC Accelerator Deep Tech",
+      "domain": "Bandi Europei Diretti & Deep Tech",
+      "nlp": {
+        "query": "Startup innovativa cerca grant ed equity europei dal programma Horizon Europe EIC Accelerator per deep tech e intelligenza artificiale",
+        "passed": true,
+        "latency_ms": 6.89,
+        "detail": "PASS #1 (6.9ms, 1 res)"
+      },
+      "parametric": {
+        "payload": {
+          "regioni": [
+            "Tutte"
+          ],
+          "settori": [
+            "72.19.09"
+          ],
+          "tipologie_beneficiari": [
+            "Startup_Innovative",
+            "PMI"
+          ],
+          "agevolazione": "grant"
+        },
+        "passed": true,
+        "latency_ms": 2.87,
+        "detail": "PASS (2.9ms, 38 res)"
+      }
+    },
+    {
+      "id": "DUAL_05",
+      "title": "Sicurezza sul Lavoro & Bonifica Amianto INAIL",
+      "domain": "Sicurezza Lavoro & Tutela Ambientale",
+      "nlp": {
+        "query": "Azienda cerca finanziamenti a fondo perduto per la rimozione e bonifica di coperture in eternit amianto nei capannoni e sicurezza lavoro",
+        "passed": true,
+        "latency_ms": 6.27,
+        "detail": "PASS #1 (6.3ms, 2 res)"
+      },
+      "parametric": {
+        "payload": {
+          "regioni": [
+            "Tutte"
+          ],
+          "settori": [
+            "TUTTI"
+          ],
+          "tipologie_beneficiari": [
+            "PMI",
+            "Grandi_Imprese"
+          ],
+          "agevolazione": "fondo_perduto"
+        },
+        "passed": true,
+        "latency_ms": 2.95,
+        "detail": "PASS (3.0ms, 38 res)"
+      }
+    },
+    {
+      "id": "DUAL_06",
+      "title": "Resto al Sud Autoimpiego Giovanile",
+      "domain": "Autoimpiego & Nuove Imprese Mezzogiorno",
+      "nlp": {
+        "query": "Giovane under 35 vuole aprire una nuova attività a Bari con finanziamento a tasso zero e fondo perduto Resto al Sud",
+        "passed": true,
+        "latency_ms": 4.34,
+        "detail": "PASS #1 (4.3ms, 2 res)"
+      },
+      "parametric": {
+        "payload": {
+          "regioni": [
+            "Puglia"
+          ],
+          "settori": [
+            "TUTTI"
+          ],
+          "tipologie_beneficiari": [
+            "Micro",
+            "PMI"
+          ],
+          "agevolazione": "fondo_perduto"
+        },
+        "passed": true,
+        "latency_ms": 2.66,
+        "detail": "PASS (2.7ms, 38 res)"
+      }
+    },
+    {
+      "id": "DUAL_07",
+      "title": "Innovazione Filiera Agroalimentare Sicilia",
+      "domain": "Agricoltura & Agroalimentare",
+      "nlp": {
+        "query": "Azienda agricola a Catania cerca contributi a fondo perduto per ammodernamento impianti di trasformazione agrifood e tracciabilità",
+        "passed": true,
+        "latency_ms": 4.95,
+        "detail": "PASS #1 (5.0ms, 4 res)"
+      },
+      "parametric": {
+        "payload": {
+          "regioni": [
+            "Sicilia"
+          ],
+          "settori": [
+            "10.00.00",
+            "01.00.00"
+          ],
+          "tipologie_beneficiari": [
+            "PMI"
+          ],
+          "agevolazione": "fondo_perduto"
+        },
+        "passed": true,
+        "latency_ms": 2.53,
+        "detail": "PASS (2.5ms, 38 res)"
+      }
+    },
+    {
+      "id": "DUAL_08",
+      "title": "Fotovoltaico & Autoconsumo Energetico Palermo",
+      "domain": "Energie Rinnovabili & Transizione Green",
+      "nlp": {
+        "query": "PMI manifatturiera a Palermo vuole installare pannelli solari fotovoltaici e batterie per abbattere i costi elettrici con contributo regionale",
+        "passed": true,
+        "latency_ms": 5.56,
+        "detail": "PASS #1 (5.6ms, 2 res)"
+      },
+      "parametric": {
+        "payload": {
+          "regioni": [
+            "Sicilia"
+          ],
+          "settori": [
+            "35.11.00"
+          ],
+          "tipologie_beneficiari": [
+            "PMI"
+          ],
+          "agevolazione": "fondo_perduto"
+        },
+        "passed": true,
+        "latency_ms": 3.26,
+        "detail": "PASS (3.3ms, 38 res)"
+      }
+    },
+    {
+      "id": "DUAL_09",
+      "title": "Riqualificazione Strutture Alberghiere Veneto",
+      "domain": "Turismo & Ospitalità",
+      "nlp": {
+        "query": "Albergo a Venezia cerca contributi a fondo perduto per ristrutturazione camere, efficienza termica e digitalizzazione dell accoglienza",
+        "passed": true,
+        "latency_ms": 5.73,
+        "detail": "PASS #1 (5.7ms, 4 res)"
+      },
+      "parametric": {
+        "payload": {
+          "regioni": [
+            "Veneto"
+          ],
+          "settori": [
+            "55.10.00"
+          ],
+          "tipologie_beneficiari": [
+            "PMI"
+          ],
+          "agevolazione": "fondo_perduto"
+        },
+        "passed": true,
+        "latency_ms": 3.14,
+        "detail": "PASS (3.1ms, 38 res)"
+      }
+    },
+    {
+      "id": "DUAL_10",
+      "title": "Internazionalizzazione & Export Consorzi Veneto",
+      "domain": "Export & Commercio Estero",
+      "nlp": {
+        "query": "Consorzio di imprese di Verona cerca voucher per fiere internazionali ed export di prodotti tipici verso mercati extra-UE",
+        "passed": true,
+        "latency_ms": 5.29,
+        "detail": "PASS #1 (5.3ms, 1 res)"
+      },
+      "parametric": {
+        "payload": {
+          "regioni": [
+            "Veneto"
+          ],
+          "settori": [
+            "46.00.00"
+          ],
+          "tipologie_beneficiari": [
+            "PMI"
+          ],
+          "agevolazione": "voucher"
+        },
+        "passed": true,
+        "latency_ms": 2.48,
+        "detail": "PASS (2.5ms, 38 res)"
+      }
+    },
+    {
+      "id": "DUAL_11",
+      "title": "Distretto Tessile & Moda Sostenibile Prato",
+      "domain": "Tessile, Moda & Economia Circolare",
+      "nlp": {
+        "query": "Azienda tessile a Prato cerca agevolazioni per riciclo filati, tinture ecologiche e macchinari di tessitura a basso impatto",
+        "passed": true,
+        "latency_ms": 5.39,
+        "detail": "PASS #1 (5.4ms, 1 res)"
+      },
+      "parametric": {
+        "payload": {
+          "regioni": [
+            "Toscana"
+          ],
+          "settori": [
+            "13.20.00"
+          ],
+          "tipologie_beneficiari": [
+            "PMI"
+          ],
+          "agevolazione": "fondo_perduto"
+        },
+        "passed": true,
+        "latency_ms": 2.68,
+        "detail": "PASS (2.7ms, 38 res)"
+      }
+    },
+    {
+      "id": "DUAL_12",
+      "title": "Ricerca & Sviluppo Biotech Firenze",
+      "domain": "Scienze della Vita & Pharma",
+      "nlp": {
+        "query": "Spin-off biotecnologico a Firenze cerca finanziamenti per ricerca clinica su farmaci oncologici e life sciences",
+        "passed": true,
+        "latency_ms": 5.41,
+        "detail": "PASS #1 (5.4ms, 1 res)"
+      },
+      "parametric": {
+        "payload": {
+          "regioni": [
+            "Toscana"
+          ],
+          "settori": [
+            "72.11.00"
+          ],
+          "tipologie_beneficiari": [
+            "Startup_Innovative",
+            "Enti_Ricerca"
+          ],
+          "agevolazione": "fondo_perduto"
+        },
+        "passed": true,
+        "latency_ms": 2.83,
+        "detail": "PASS (2.8ms, 38 res)"
+      }
+    },
+    {
+      "id": "DUAL_13",
+      "title": "PIA Aerospazio & Tecnologie Satellitari Puglia",
+      "domain": "Aerospazio & Tecnologie Avanzate",
+      "nlp": {
+        "query": "Impresa aerospaziale a Brindisi cerca fondi per sviluppo componenti satellitari e droni con contratto di programma regionale",
+        "passed": true,
+        "latency_ms": 4.92,
+        "detail": "PASS #2 (4.9ms, 2 res)"
+      },
+      "parametric": {
+        "payload": {
+          "regioni": [
+            "Puglia"
+          ],
+          "settori": [
+            "30.30.00"
+          ],
+          "tipologie_beneficiari": [
+            "Grandi_Imprese",
+            "PMI"
+          ],
+          "agevolazione": "fondo_perduto"
+        },
+        "passed": true,
+        "latency_ms": 3.02,
+        "detail": "PASS (3.0ms, 38 res)"
+      }
+    },
+    {
+      "id": "DUAL_14",
+      "title": "Precision Farming & Droni Agricoli Bari",
+      "domain": "Agritech & Agricoltura 4.0",
+      "nlp": {
+        "query": "Azienda agricola a Bari cerca contributi per acquisto droni agricoli, sensori suolo IoT e intelligenza artificiale per irrigazione",
+        "passed": true,
+        "latency_ms": 6.58,
+        "detail": "PASS #1 (6.6ms, 7 res)"
+      },
+      "parametric": {
+        "payload": {
+          "regioni": [
+            "Puglia"
+          ],
+          "settori": [
+            "01.11.00"
+          ],
+          "tipologie_beneficiari": [
+            "PMI",
+            "Startup_Innovative"
+          ],
+          "agevolazione": "fondo_perduto"
+        },
+        "passed": true,
+        "latency_ms": 2.51,
+        "detail": "PASS (2.5ms, 38 res)"
+      }
+    },
+    {
+      "id": "DUAL_15",
+      "title": "Riconversione Automotive Elettrico Torino",
+      "domain": "Automotive & Mobilità Elettrica",
+      "nlp": {
+        "query": "Fornitore componentistica auto a Torino cerca aiuti per riconvertire la produzione verso motori elettrici e pacchi batterie EV",
+        "passed": true,
+        "latency_ms": 4.0,
+        "detail": "PASS #1 (4.0ms, 2 res)"
+      },
+      "parametric": {
+        "payload": {
+          "regioni": [
+            "Piemonte"
+          ],
+          "settori": [
+            "29.00.00"
+          ],
+          "tipologie_beneficiari": [
+            "PMI"
+          ],
+          "agevolazione": "fondo_perduto"
+        },
+        "passed": true,
+        "latency_ms": 2.7,
+        "detail": "PASS (2.7ms, 38 res)"
+      }
+    },
+    {
+      "id": "DUAL_16",
+      "title": "Industria Meccanica Avanzata & Robotica Bologna",
+      "domain": "Meccanica & Automazione Industriale",
+      "nlp": {
+        "query": "Officina meccanica di precisione a Bologna cerca agevolazioni per torni a controllo numerico, robot antropomorfi e automazione 4.0",
+        "passed": true,
+        "latency_ms": 5.46,
+        "detail": "PASS #1 (5.5ms, 1 res)"
+      },
+      "parametric": {
+        "payload": {
+          "regioni": [
+            "Emilia-Romagna"
+          ],
+          "settori": [
+            "28.00.00"
+          ],
+          "tipologie_beneficiari": [
+            "PMI"
+          ],
+          "agevolazione": "fondo_perduto"
+        },
+        "passed": true,
+        "latency_ms": 2.59,
+        "detail": "PASS (2.6ms, 38 res)"
+      }
+    },
+    {
+      "id": "DUAL_17",
+      "title": "Cybersecurity & Migrazione Cloud Roma",
+      "domain": "Sicurezza Informatica & Cloud Infrastructure",
+      "nlp": {
+        "query": "Società di consulenza IT a Roma cerca voucher a fondo perduto per audit di sicurezza informatica, SOC e migrazione su cloud sicuro",
+        "passed": true,
+        "latency_ms": 6.59,
+        "detail": "PASS #1 (6.6ms, 2 res)"
+      },
+      "parametric": {
+        "payload": {
+          "regioni": [
+            "Lazio"
+          ],
+          "settori": [
+            "62.01.00"
+          ],
+          "tipologie_beneficiari": [
+            "PMI"
+          ],
+          "agevolazione": "voucher"
+        },
+        "passed": true,
+        "latency_ms": 3.13,
+        "detail": "PASS (3.1ms, 38 res)"
+      }
+    },
+    {
+      "id": "DUAL_18",
+      "title": "Agroalimentare di Qualità & Tipicità Abruzzo",
+      "domain": "Agroalimentare & Packaging",
+      "nlp": {
+        "query": "Pastificio artigianale a Chieti cerca fondi per nuovo packaging biodegradabile e impianto di essiccazione ad alta efficienza",
+        "passed": true,
+        "latency_ms": 6.44,
+        "detail": "PASS #3 (6.4ms, 7 res)"
+      },
+      "parametric": {
+        "payload": {
+          "regioni": [
+            "Abruzzo"
+          ],
+          "settori": [
+            "10.89.00"
+          ],
+          "tipologie_beneficiari": [
+            "PMI"
+          ],
+          "agevolazione": "fondo_perduto"
+        },
+        "passed": true,
+        "latency_ms": 2.61,
+        "detail": "PASS (2.6ms, 38 res)"
+      }
+    },
+    {
+      "id": "DUAL_19",
+      "title": "Filiera Legno Arredo & Design Friuli",
+      "domain": "Legno Arredo & Manifattura Design",
+      "nlp": {
+        "query": "Fabbrica di mobili a Udine cerca agevolazioni per taglio laser legno, software CAD/CAM e verniciatura ecologica all acqua",
+        "passed": true,
+        "latency_ms": 9.38,
+        "detail": "PASS #1 (9.4ms, 3 res)"
+      },
+      "parametric": {
+        "payload": {
+          "regioni": [
+            "Friuli-Venezia Giulia"
+          ],
+          "settori": [
+            "31.00.00"
+          ],
+          "tipologie_beneficiari": [
+            "PMI"
+          ],
+          "agevolazione": "fondo_perduto"
+        },
+        "passed": true,
+        "latency_ms": 3.03,
+        "detail": "PASS (3.0ms, 38 res)"
+      }
+    },
+    {
+      "id": "DUAL_20",
+      "title": "Brevetti+ & Valorizzazione Marchi MIMIT",
+      "domain": "Proprietà Intellettuale & Brevetti",
+      "nlp": {
+        "query": "PMI con brevetto industriale registrato cerca contributo per estensione internazionale, consulenza legale IP e industrializzazione",
+        "passed": true,
+        "latency_ms": 5.5,
+        "detail": "PASS #3 (5.5ms, 3 res)"
+      },
+      "parametric": {
+        "payload": {
+          "regioni": [
+            "Tutte"
+          ],
+          "settori": [
+            "TUTTI"
+          ],
+          "tipologie_beneficiari": [
+            "PMI",
+            "Startup_Innovative"
+          ],
+          "agevolazione": "fondo_perduto"
+        },
+        "passed": true,
+        "latency_ms": 3.0,
+        "detail": "PASS (3.0ms, 38 res)"
+      }
+    },
+    {
+      "id": "DUAL_21",
+      "title": "Smart&Start Finanziamento Startup Innovative",
+      "domain": "Startup Innovative & Finanziamento Agevolato",
+      "nlp": {
+        "query": "Nuova startup innovativa ad alto contenuto tecnologico cerca finanziamento a tasso zero fino all 80% per spese di sviluppo e personale",
+        "passed": true,
+        "latency_ms": 6.66,
+        "detail": "PASS #1 (6.7ms, 4 res)"
+      },
+      "parametric": {
+        "payload": {
+          "regioni": [
+            "Tutte"
+          ],
+          "settori": [
+            "62.01.00"
+          ],
+          "tipologie_beneficiari": [
+            "Startup_Innovative"
+          ],
+          "agevolazione": "tasso_agevolato"
+        },
+        "passed": true,
+        "latency_ms": 3.34,
+        "detail": "PASS (3.3ms, 38 res)"
+      }
+    },
+    {
+      "id": "DUAL_22",
+      "title": "Mobilità Sostenibile & Flotte Green Genova",
+      "domain": "Logistica, Porti & Trasporti",
+      "nlp": {
+        "query": "Azienda di trasporti e logistica a Genova cerca contributi per acquisto furgoni commerciali 100% elettrici e stazioni di ricarica",
+        "passed": true,
+        "latency_ms": 5.94,
+        "detail": "PASS #1 (5.9ms, 1 res)"
+      },
+      "parametric": {
+        "payload": {
+          "regioni": [
+            "Liguria"
+          ],
+          "settori": [
+            "49.41.00"
+          ],
+          "tipologie_beneficiari": [
+            "PMI"
+          ],
+          "agevolazione": "fondo_perduto"
+        },
+        "passed": true,
+        "latency_ms": 2.87,
+        "detail": "PASS (2.9ms, 38 res)"
+      }
+    },
+    {
+      "id": "DUAL_23",
+      "title": "Biomedicale & Dispositivi Medici Marche",
+      "domain": "Biomedicale & Sanità",
+      "nlp": {
+        "query": "Azienda biomedicale ad Ancona cerca voucher per certificazione marcatura CE dispositivi medici e software diagnostico AI",
+        "passed": true,
+        "latency_ms": 7.81,
+        "detail": "PASS #1 (7.8ms, 3 res)"
+      },
+      "parametric": {
+        "payload": {
+          "regioni": [
+            "Marche"
+          ],
+          "settori": [
+            "32.50.00"
+          ],
+          "tipologie_beneficiari": [
+            "PMI"
+          ],
+          "agevolazione": "voucher"
+        },
+        "passed": true,
+        "latency_ms": 3.69,
+        "detail": "PASS (3.7ms, 38 res)"
+      }
+    },
+    {
+      "id": "DUAL_24",
+      "title": "Economia Circolare & Riciclo Rifiuti Umbria",
+      "domain": "Economia Circolare & Rifiuti",
+      "nlp": {
+        "query": "Impianto di gestione rifiuti a Perugia cerca agevolazioni per linea di separazione e riciclo polimeri plastici post-consumo",
+        "passed": true,
+        "latency_ms": 5.65,
+        "detail": "PASS #1 (5.6ms, 1 res)"
+      },
+      "parametric": {
+        "payload": {
+          "regioni": [
+            "Umbria"
+          ],
+          "settori": [
+            "38.21.00"
+          ],
+          "tipologie_beneficiari": [
+            "PMI"
+          ],
+          "agevolazione": "fondo_perduto"
+        },
+        "passed": true,
+        "latency_ms": 2.82,
+        "detail": "PASS (2.8ms, 38 res)"
+      }
+    },
+    {
+      "id": "DUAL_25",
+      "title": "Credito d Imposta ZES Unica Mezzogiorno",
+      "domain": "Agevolazioni Fiscali & Investimenti Sud",
+      "nlp": {
+        "query": "Media impresa manifatturiera cerca credito d imposta per nuovi investimenti in macchinari e capannoni industriali al Sud ZES Unica",
+        "passed": true,
+        "latency_ms": 6.15,
+        "detail": "PASS #1 (6.1ms, 1 res)"
+      },
+      "parametric": {
+        "payload": {
+          "regioni": [
+            "Campania"
+          ],
+          "settori": [
+            "28.00.00"
+          ],
+          "tipologie_beneficiari": [
+            "PMI",
+            "Grandi_Imprese"
+          ],
+          "agevolazione": "credito_imposta"
+        },
+        "passed": true,
+        "latency_ms": 3.4,
+        "detail": "PASS (3.4ms, 38 res)"
+      }
+    },
+    {
+      "id": "DUAL_26",
+      "title": "Produzione Audiovisiva & Cinema Piemonte",
+      "domain": "Industria Culturale & Cinema",
+      "nlp": {
+        "query": "Casa di produzione cinematografica cerca contributi per riprese di un lungometraggio e serie TV girata in location piemontesi",
+        "passed": true,
+        "latency_ms": 5.98,
+        "detail": "PASS #1 (6.0ms, 4 res)"
+      },
+      "parametric": {
+        "payload": {
+          "regioni": [
+            "Piemonte"
+          ],
+          "settori": [
+            "59.11.00"
+          ],
+          "tipologie_beneficiari": [
+            "PMI"
+          ],
+          "agevolazione": "fondo_perduto"
+        },
+        "passed": true,
+        "latency_ms": 2.84,
+        "detail": "PASS (2.8ms, 38 res)"
+      }
+    },
+    {
+      "id": "DUAL_27",
+      "title": "Imprenditoria Femminile & Pari Opportunità Sardegna",
+      "domain": "Impresa Donna & Pari Opportunità",
+      "nlp": {
+        "query": "Impresa a prevalente partecipazione femminile a Cagliari cerca contributi a fondo perduto per acquisto attrezzature e digitalizzazione",
+        "passed": true,
+        "latency_ms": 4.81,
+        "detail": "PASS #1 (4.8ms, 1 res)"
+      },
+      "parametric": {
+        "payload": {
+          "regioni": [
+            "Sardegna"
+          ],
+          "settori": [
+            "TUTTI"
+          ],
+          "tipologie_beneficiari": [
+            "PMI",
+            "Micro"
+          ],
+          "agevolazione": "fondo_perduto"
+        },
+        "passed": true,
+        "latency_ms": 2.67,
+        "detail": "PASS (2.7ms, 38 res)"
+      }
+    },
+    {
+      "id": "DUAL_28",
+      "title": "Voucher Innovation Manager Specialistica MIMIT",
+      "domain": "Consulenza Direzionale & Innovation Management",
+      "nlp": {
+        "query": "PMI cerca contributi al 50% per ingaggiare un Innovation Manager qualificato per progetti di big data e intelligenza artificiale",
+        "passed": true,
+        "latency_ms": 6.31,
+        "detail": "PASS #1 (6.3ms, 2 res)"
+      },
+      "parametric": {
+        "payload": {
+          "regioni": [
+            "Tutte"
+          ],
+          "settori": [
+            "70.22.09"
+          ],
+          "tipologie_beneficiari": [
+            "PMI"
+          ],
+          "agevolazione": "voucher"
+        },
+        "passed": true,
+        "latency_ms": 2.95,
+        "detail": "PASS (3.0ms, 38 res)"
+      }
+    },
+    {
+      "id": "DUAL_29",
+      "title": "Commercio al Dettaglio & Casse Telematiche Roma",
+      "domain": "Commercio di Vicinato & Sicurezza Punti Vendita",
+      "nlp": {
+        "query": "Negozio di abbigliamento a Roma cerca contributi per acquisto registratore telematico di cassa, sistemi antitaccheggio ed e-commerce",
+        "passed": true,
+        "latency_ms": 5.96,
+        "detail": "PASS #1 (6.0ms, 1 res)"
+      },
+      "parametric": {
+        "payload": {
+          "regioni": [
+            "Lazio"
+          ],
+          "settori": [
+            "47.71.10"
+          ],
+          "tipologie_beneficiari": [
+            "PMI",
+            "Micro"
+          ],
+          "agevolazione": "voucher"
+        },
+        "passed": true,
+        "latency_ms": 3.17,
+        "detail": "PASS (3.2ms, 38 res)"
+      }
+    },
+    {
+      "id": "DUAL_30",
+      "title": "Sanità Digitale & Piattaforme E-Health TED UE",
+      "domain": "Bandi Europei Diretti & Sanità Elettronica",
+      "nlp": {
+        "query": "Azienda software ospedaliero cerca appalti e bandi europei per telemedicina, cartella clinica elettronica e sanità digitale su TED",
+        "passed": true,
+        "latency_ms": 6.49,
+        "detail": "PASS #1 (6.5ms, 1 res)"
+      },
+      "parametric": {
+        "payload": {
+          "regioni": [
+            "Tutte"
+          ],
+          "settori": [
+            "62.01.00"
+          ],
+          "tipologie_beneficiari": [
+            "PMI",
+            "Grandi_Imprese"
+          ],
+          "agevolazione": "appalto"
+        },
+        "passed": true,
+        "latency_ms": 2.6,
+        "detail": "PASS (2.6ms, 38 res)"
+      }
+    }
+  ]
+}

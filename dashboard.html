@@ -5,132 +5,650 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LabNK — Monitoraggio & Intelligence Bandi (Nexus Keystone)</title>
     <style>
-        :root {
-            --bg: #0f172a;
-            --surface: #1e293b;
-            --surface-hover: #273549;
-            --card-bg: #1e293b;
-            --primary: #38bdf8;
-            --primary-glow: rgba(56, 189, 248, 0.25);
-            --primary-hover: #0ea5e9;
-            --accent: #10b981;
-            --accent-glow: rgba(16, 185, 129, 0.2);
-            --text: #f8fafc;
-            --text-muted: #94a3b8;
-            --border: #334155;
-            --border-light: #475569;
-            --danger: #ef4444;
-            --danger-bg: rgba(239, 68, 68, 0.15);
-            --warning: #f59e0b;
-            --warning-bg: rgba(245, 158, 11, 0.15);
-            --success-bg: rgba(16, 185, 129, 0.15);
-            --info-bg: rgba(56, 189, 248, 0.12);
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        body { background: var(--bg); color: var(--text); padding: 24px; min-height: 100vh; }
-        
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 16px; flex-wrap: wrap; gap: 12px; }
-        .header h1 { font-size: 24px; color: var(--primary); display: flex; align-items: center; gap: 10px; }
-        .header-meta { display: flex; align-items: center; gap: 12px; }
-        .badge { background: #0369a1; color: #e0f2fe; padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 600; letter-spacing: 0.5px; }
-        .live-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--accent); background: var(--success-bg); padding: 4px 10px; border-radius: 9999px; border: 1px solid rgba(16, 185, 129, 0.3); }
-        .pulse-dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 8px var(--accent); animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+:root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface-hover: #273549;
+    --card-bg: #1e293b;
+    --primary: #38bdf8;
+    --primary-glow: rgba(56, 189, 248, 0.25);
+    --primary-hover: #0ea5e9;
+    --accent: #10b981;
+    --accent-glow: rgba(16, 185, 129, 0.2);
+    --text: #f8fafc;
+    --text-muted: #94a3b8;
+    --border: #334155;
+    --border-light: #475569;
+    --danger: #ef4444;
+    --danger-bg: rgba(239, 68, 68, 0.15);
+    --warning: #f59e0b;
+    --warning-bg: rgba(245, 158, 11, 0.15);
+    --success-bg: rgba(16, 185, 129, 0.15);
+    --info-bg: rgba(56, 189, 248, 0.12);
+}
 
-        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
-        .kpi-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 18px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2); transition: transform 0.2s, border-color 0.2s; }
-        .kpi-card:hover { transform: translateY(-2px); border-color: var(--primary); }
-        .kpi-title { font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
-        .kpi-value { font-size: 26px; font-weight: 700; color: var(--text); margin-top: 6px; }
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
 
-        .tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--border); overflow-x: auto; }
-        .tab-btn { background: transparent; border: none; color: var(--text-muted); padding: 12px 18px; cursor: pointer; font-size: 14px; font-weight: 600; border-bottom: 3px solid transparent; transition: all 0.2s; white-space: nowrap; }
-        .tab-btn:hover { color: var(--text); }
-        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
-        
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
+body {
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px;
+    min-height: 100vh;
+}
 
-        /* Quick query presets */
-        .presets-container { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; align-items: center; }
-        .presets-label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-right: 4px; }
-        .preset-btn { background: rgba(56, 189, 248, 0.1); color: var(--primary); border: 1px solid rgba(56, 189, 248, 0.3); padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
-        .preset-btn:hover { background: var(--primary); color: #0f172a; transform: translateY(-1px); }
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
 
-        /* Search inputs */
-        .search-box { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
-        .search-input { flex: 1; min-width: 260px; background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 12px 16px; border-radius: 8px; font-size: 14px; transition: border-color 0.2s; outline: none; }
-        .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-glow); }
-        .btn { background: var(--primary); color: #0f172a; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
-        .btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
-        .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
-        .btn-secondary:hover { background: var(--surface-hover); color: var(--primary); border-color: var(--primary); }
+.header h1 {
+    font-size: 24px;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
 
-        /* Intent Card */
-        .intent-card { background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 10px; padding: 18px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); display: none; }
-        .intent-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; }
-        .intent-title { font-size: 14px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 6px; }
-        .intent-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
-        .intent-item { background: rgba(15, 23, 42, 0.6); padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); }
-        .intent-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; }
-        .intent-val { font-size: 13px; font-weight: 600; color: var(--text); margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
-        .tag { background: rgba(56, 189, 248, 0.15); color: #bae6fd; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
-        .tag-green { background: rgba(16, 185, 129, 0.15); color: #a7f3d0; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+.header-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
 
-        /* Grants Grid */
-        .grants-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 18px; }
-        .grant-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2); transition: all 0.2s; }
-        .grant-card:hover { border-color: rgba(56, 189, 248, 0.5); transform: translateY(-2px); }
-        
-        .grant-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
-        .grant-authority { font-size: 12px; color: var(--primary); font-weight: 600; }
-        
-        .match-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 700; letter-spacing: 0.3px; }
-        .match-high { background: var(--success-bg); color: var(--accent); border: 1px solid rgba(16, 185, 129, 0.4); }
-        .match-mid { background: var(--warning-bg); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.4); }
-        .match-low { background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.4); }
-        
-        .status-pill { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
-        .status-open { background: var(--success-bg); color: var(--accent); }
-        .status-closed { background: var(--danger-bg); color: var(--danger); }
+.badge {
+    background: #0369a1;
+    color: #e0f2fe;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
 
-        .grant-title { font-size: 16px; font-weight: 700; color: #ffffff; margin-bottom: 8px; line-height: 1.3; }
-        .grant-desc { font-size: 13px; color: var(--text-muted); line-height: 1.45; margin-bottom: 16px; }
+.live-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--accent);
+    background: var(--success-bg);
+    padding: 4px 10px;
+    border-radius: 9999px;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
 
-        .grant-financials { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; background: rgba(15, 23, 42, 0.5); padding: 10px; border-radius: 6px; margin-bottom: 14px; border: 1px solid rgba(255, 255, 255, 0.05); }
-        .fin-item { text-align: center; }
-        .fin-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; }
-        .fin-value { font-size: 13px; font-weight: 700; color: var(--text); margin-top: 2px; }
-        .fin-accent { color: var(--accent); }
+.pulse-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse 2s infinite;
+}
 
-        /* Breakdown container */
-        .breakdown-box { background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; padding: 12px; margin-bottom: 14px; font-size: 12px; }
-        .breakdown-title { font-weight: 600; color: #bae6fd; margin-bottom: 6px; display: flex; justify-content: space-between; }
-        .breakdown-item { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; color: var(--text-muted); }
-        .bonus-tag { background: rgba(16, 185, 129, 0.15); color: var(--accent); padding: 2px 6px; border-radius: 4px; font-size: 11px; display: inline-block; margin-top: 4px; }
-        .fail-tag { background: var(--danger-bg); color: var(--danger); padding: 2px 6px; border-radius: 4px; font-size: 11px; display: inline-block; margin-top: 4px; }
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
 
-        .grant-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 12px; margin-top: 4px; }
-        .grant-link { color: var(--primary); text-decoration: none; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
-        .grant-link:hover { text-decoration: underline; color: var(--primary-hover); }
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
 
-        .loading-spinner { display: none; text-align: center; padding: 24px; color: var(--primary); font-size: 14px; font-weight: 600; }
-        .empty-state { color: var(--text-muted); text-align: center; padding: 36px 20px; font-size: 14px; grid-column: 1 / -1; }
+.kpi-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s, border-color 0.2s;
+}
 
-        /* Responsive form grid */
-        .param-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 16px; }
-        .form-group { display: flex; flex-direction: column; gap: 6px; }
-        .form-label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
-        .form-select { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 10px 14px; border-radius: 6px; font-size: 13px; outline: none; }
-        .form-select:focus { border-color: var(--primary); }
+.kpi-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--primary);
+}
+
+.kpi-title {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.kpi-value {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text);
+    margin-top: 6px;
+}
+
+.tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+}
+
+.tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    padding: 12px 18px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.tab-btn:hover {
+    color: var(--text);
+}
+
+.tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Quick query presets */
+.presets-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+    align-items: center;
+}
+
+.presets-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-right: 4px;
+}
+
+.preset-btn {
+    background: rgba(56, 189, 248, 0.1);
+    color: var(--primary);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.preset-btn:hover {
+    background: var(--primary);
+    color: #0f172a;
+    transform: translateY(-1px);
+}
+
+/* Search inputs */
+.search-box {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.search-input {
+    flex: 1;
+    min-width: 260px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+    outline: none;
+}
+
+.search-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-glow);
+}
+
+.btn {
+    background: var(--primary);
+    color: #0f172a;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+    background: var(--surface-hover);
+    color: var(--primary);
+    border-color: var(--primary);
+}
+
+/* Intent Card */
+.intent-card {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    display: none;
+}
+
+.intent-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 8px;
+}
+
+.intent-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.intent-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+.intent-item {
+    background: rgba(15, 23, 42, 0.6);
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+}
+
+.intent-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.intent-val {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-top: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+}
+
+.tag {
+    background: rgba(56, 189, 248, 0.15);
+    color: #bae6fd;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+.tag-green {
+    background: rgba(16, 185, 129, 0.15);
+    color: #a7f3d0;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+/* Grants Grid */
+.grants-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 18px;
+}
+
+.grant-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s;
+}
+
+.grant-card:hover {
+    border-color: rgba(56, 189, 248, 0.5);
+    transform: translateY(-2px);
+}
+
+.grant-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.grant-authority {
+    font-size: 12px;
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.match-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+.match-high {
+    background: var(--success-bg);
+    color: var(--accent);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.match-mid {
+    background: var(--warning-bg);
+    color: var(--warning);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.match-low {
+    background: var(--danger-bg);
+    color: var(--danger);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.status-pill {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.status-open {
+    background: var(--success-bg);
+    color: var(--accent);
+}
+
+.status-closed {
+    background: var(--danger-bg);
+    color: var(--danger);
+}
+
+.grant-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 8px;
+    line-height: 1.3;
+}
+
+.grant-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.45;
+    margin-bottom: 16px;
+}
+
+.grant-financials {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    background: rgba(15, 23, 42, 0.5);
+    padding: 10px;
+    border-radius: 6px;
+    margin-bottom: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.fin-item {
+    text-align: center;
+}
+
+.fin-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.fin-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-top: 2px;
+}
+
+.fin-accent {
+    color: var(--accent);
+}
+
+/* Breakdown container */
+.breakdown-box {
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 14px;
+    font-size: 12px;
+}
+
+.breakdown-title {
+    font-weight: 600;
+    color: #bae6fd;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.breakdown-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+    color: var(--text-muted);
+}
+
+.bonus-tag {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--accent);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    display: inline-block;
+    margin-top: 4px;
+}
+
+.fail-tag {
+    background: var(--danger-bg);
+    color: var(--danger);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    display: inline-block;
+    margin-top: 4px;
+}
+
+.grant-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+    margin-top: 4px;
+}
+
+.grant-link {
+    color: var(--primary);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.grant-link:hover {
+    text-decoration: underline;
+    color: var(--primary-hover);
+}
+
+.grant-link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(56, 189, 248, 0.12);
+    color: var(--primary);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    padding: 6px 14px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.grant-link-btn:hover {
+    background: var(--primary);
+    color: #0f172a;
+    border-color: var(--primary);
+}
+
+.speed-badge {
+    background: rgba(56, 189, 248, 0.08);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    color: var(--primary);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    display: none;
+    align-items: center;
+    gap: 8px;
+}
+
+.loading-spinner {
+    display: none;
+    text-align: center;
+    padding: 24px;
+    color: var(--primary);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.empty-state {
+    color: var(--text-muted);
+    text-align: center;
+    padding: 36px 20px;
+    font-size: 14px;
+    grid-column: 1 / -1;
+}
+
+/* Responsive form grid */
+.param-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+.form-select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    outline: none;
+}
+
+.form-select:focus {
+    border-color: var(--primary);
+}
+
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>🏛️ LabNK — Bandi & Intelligence <span class="badge">v1.1.0 Universal</span></h1>
-        <div class="header-meta">
-            <span class="live-status"><span class="pulse-dot"></span> Live API Server</span>
-            <span style="font-size: 12px; color: var(--text-muted);">Protocollo CRV 4.0 | Zero-Mock Engine</span>
+    <div class="header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+        <div>
+            <h1>🏛️ LabNK — Bandi & Intelligence <span class="badge">v1.1.0 Universal</span></h1>
+            <div class="header-meta">
+                <span class="live-status"><span class="pulse-dot"></span> Live API Server</span>
+                <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: var(--accent); border: 1px solid rgba(16, 185, 129, 0.3);">🛡️ 30+ Fonti Ufficiali Monitorate (Invitalia, MIMIT, 20 Regioni, UE SEDIA)</span>
+                <span style="font-size: 12px; color: var(--text-muted);">Protocollo CRV 4.0 | Zero-Mock Engine</span>
+            </div>
+        </div>
+        <div>
+            <button class="btn" id="btn-sync-harvest" onclick="triggerSyncHarvest()" style="background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: 13px;">
+                <span>🔄 Sincronizza Fonti dal Web</span>
+            </button>
         </div>
     </div>
 
@@ -138,15 +656,15 @@
     <div class="kpi-grid">
         <div class="kpi-card">
             <div class="kpi-title">Bandi Monitorati</div>
-            <div class="kpi-value">4</div>
+            <div class="kpi-value">38</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-title">Bandi Aperti</div>
-            <div class="kpi-value" style="color: var(--accent);">4</div>
+            <div class="kpi-value" style="color: var(--accent);">38</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-title">Dotazione Totale Stanziata</div>
-            <div class="kpi-value">€ 7,475,000,000</div>
+            <div class="kpi-value">€ 11,488,000,000</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-title">Fonti Istituzionali</div>
@@ -170,6 +688,10 @@
             <button class="preset-btn" onclick="runPreset('Voucher digitalizzazione PMI Lombardia acquisto software cybersecurity')">💼 Voucher PMI Lombardia</button>
             <button class="preset-btn" onclick="runPreset('Incentivi per transizione 5.0 ed efficientamento energetico processi produttivi')">⚡ Transizione 5.0 Nazionale</button>
             <button class="preset-btn" onclick="runPreset('Horizon Europe EIC accelerator grant ed equity per startup deep tech')">🇪🇺 Deep Tech Horizon EIC</button>
+            <button class="preset-btn" onclick="runPreset('Contributi a fondo perduto per innovazione agricola e agrifood in Sicilia')">🌾 Agrifood Sicilia</button>
+            <button class="preset-btn" onclick="runPreset('Finanziamento tasso agevolato per macchinari industria 4.0 e robotica in Emilia-Romagna')">⚙️ Meccanica 4.0 Emilia</button>
+            <button class="preset-btn" onclick="runPreset('Bando ISI INAIL per sicurezza sul lavoro e bonifica amianto')">🛡️ Bando ISI INAIL</button>
+            <button class="preset-btn" onclick="runPreset('Agevolazioni per artigianato moda e tessile in Toscana')">👗 Moda & Tessile Toscana</button>
         </div>
 
         <div class="search-box">
@@ -210,6 +732,7 @@
         </div>
 
         <div id="nlp-spinner" class="loading-spinner">⏳ Elaborazione query e calcolo indice di compatibilità...</div>
+        <div id="speed-indicator" class="speed-badge"></div>
         <div id="grants-container-nlp" class="grants-grid"></div>
     </div>
 
@@ -270,318 +793,401 @@
     </div>
 
     <script>
-        const GRANTS_DATA = [{"bando_id": "CAMPANIA-AI-2026", "titolo": "Bando Innovazione e Intelligenza Artificiale Campania", "ente_erogatore": "Regione Campania \u2014 Assessorato alla Ricerca", "descrizione": "Contributi a fondo perduto fino all'80% per lo sviluppo di soluzioni AI, modelli linguistici, computer vision e cloud per startup e PMI campane.", "budget_totale": 15000000.0, "importo_massimo_finanziabile": 200000.0, "percentuale_copertura": 80.0, "stato": "APERTO", "settori": ["62.01.00", "62.02.00", "72.19.09"], "beneficiari": ["PMI", "Startup_Innovative"], "regioni": ["Campania"], "url_bando": "https://innovazione.regione.campania.it/ai-pmi", "tipo_agevolazione": "Contributo a fondo perduto (de minimis)", "fonte_nome": "REG_CAMPANIA"}, {"bando_id": "MIMIT-TRANS-5-0", "titolo": "Transizione 5.0 & Efficientamento Energetico Nazionale", "ente_erogatore": "MIMIT (Ministero delle Imprese e del Made in Italy)", "descrizione": "Crediti d'imposta e contributi per la digitalizzazione dei processi produttivi e la riduzione dei consumi energetici.", "budget_totale": 6300000000.0, "importo_massimo_finanziabile": 2500000.0, "percentuale_copertura": 45.0, "stato": "APERTO", "settori": ["TUTTI"], "beneficiari": ["PMI", "Grandi_Imprese"], "regioni": ["Tutte"], "url_bando": "https://mimit.gov.it/transizione50", "tipo_agevolazione": "Credito d'imposta / Fondo perduto", "fonte_nome": "MIMIT_REST"}, {"bando_id": "LOMBARDIA-DIGIT-2026", "titolo": "Voucher Digitalizzazione PMI Lombardia", "ente_erogatore": "Regione Lombardia & Unioncamere", "descrizione": "Voucher a fondo perduto per l'acquisto di software gestionali, cybersecurity e piattaforme di commercio elettronico.", "budget_totale": 10000000.0, "importo_massimo_finanziabile": 15000.0, "percentuale_copertura": 70.0, "stato": "APERTO", "settori": ["62.01.00", "47.91.10", "70.22.09"], "beneficiari": ["PMI", "Micro"], "regioni": ["Lombardia"], "url_bando": "https://regione.lombardia.it/voucher-digit", "tipo_agevolazione": "Voucher a fondo perduto", "fonte_nome": "REG_LOMBARDIA"}, {"bando_id": "EU-HORIZON-EIC-ACCEL", "titolo": "EIC Accelerator \u2014 European Innovation Council", "ente_erogatore": "Commissione Europea (Horizon Europe)", "descrizione": "Finanziamento misto (grant a fondo perduto fino a 2.5M\u20ac + equity fino a 15M\u20ac) per startup deep tech ad altissimo potenziale di scalabilit\u00e0.", "budget_totale": 1150000000.0, "importo_massimo_finanziabile": 2500000.0, "percentuale_copertura": 70.0, "stato": "APERTO", "settori": ["TUTTI"], "beneficiari": ["Startup_Innovative", "PMI"], "regioni": ["Tutte"], "url_bando": "https://eic.ec.europa.eu/accelerator", "tipo_agevolazione": "Grant + Blended Equity", "fonte_nome": "EU_SEDIA"}];
+        const GRANTS_DATA = [{"bando_id": "CAMPANIA-AI-2026", "titolo": "Bando Innovazione e Intelligenza Artificiale Campania", "ente_erogatore": "Regione Campania — Assessorato alla Ricerca", "descrizione": "Contributi a fondo perduto fino all'80% per lo sviluppo di soluzioni AI, intelligenza artificiale, modelli linguistici, computer vision e software per startup e PMI a Napoli e in Campania.", "budget_totale": 15000000.0, "importo_massimo_finanziabile": 200000.0, "percentuale_copertura": 80.0, "stato": "APERTO", "settori": ["62.01.00", "62.02.00", "72.19.09"], "beneficiari": ["PMI", "Startup_Innovative"], "regioni": ["Campania"], "url_bando": "https://bandi.sviluppocampania.it/", "tipo_agevolazione": "Contributo a fondo perduto (de minimis)", "fonte_nome": "REG_CAMPANIA"}, {"bando_id": "MIMIT-TRANS-5-0", "titolo": "Transizione 5.0 & Efficientamento Energetico Nazionale", "ente_erogatore": "MIMIT (Ministero delle Imprese e del Made in Italy)", "descrizione": "Crediti d'imposta e contributi per la transizione 5.0, digitalizzazione dei processi produttivi, macchinari industriali, efficientamento energetico e autoproduzione rinnovabili.", "budget_totale": 6300000000.0, "importo_massimo_finanziabile": 2500000.0, "percentuale_copertura": 45.0, "stato": "APERTO", "settori": ["28.00.00", "TUTTI"], "beneficiari": ["PMI", "Grandi_Imprese"], "regioni": ["Tutte"], "url_bando": "https://www.mimit.gov.it/it/incentivi/transizione-5-0", "tipo_agevolazione": "Credito d'imposta / Fondo perduto", "fonte_nome": "MIMIT_REST"}, {"bando_id": "LOMBARDIA-DIGIT-2026", "titolo": "Voucher Digitalizzazione PMI Lombardia", "ente_erogatore": "Regione Lombardia & Unioncamere Lombardia", "descrizione": "Voucher a fondo perduto per l'acquisto di software gestionali, cybersecurity, cloud e piattaforme per PMI a Milano e in Lombardia.", "budget_totale": 10000000.0, "importo_massimo_finanziabile": 15000.0, "percentuale_copertura": 70.0, "stato": "APERTO", "settori": ["62.01.00", "62.02.00", "47.91.10", "70.22.09"], "beneficiari": ["PMI", "Micro"], "regioni": ["Lombardia"], "url_bando": "https://www.bandi.regione.lombardia.it/servizi/servizio/bandi/dettaglio/sviluppo-economico/voucher-digitalizzazione-pmi", "tipo_agevolazione": "Voucher digitalizzazione a fondo perduto", "fonte_nome": "REG_LOMBARDIA"}, {"bando_id": "EU-HORIZON-EIC-ACCEL", "titolo": "EIC Accelerator — European Innovation Council", "ente_erogatore": "Commissione Europea (Horizon Europe)", "descrizione": "Finanziamento misto grant ed equity (blended finance) per startup deep tech, intelligenza artificiale e innovazioni dirompenti Horizon Europe EIC Accelerator.", "budget_totale": 1150000000.0, "importo_massimo_finanziabile": 2500000.0, "percentuale_copertura": 70.0, "stato": "APERTO", "settori": ["72.19.09", "TUTTI"], "beneficiari": ["Startup_Innovative", "PMI"], "regioni": ["Tutte"], "url_bando": "https://eic.ec.europa.eu/eic-funding-opportunities/eic-accelerator_en", "tipo_agevolazione": "Grant ed equity / Blended finance", "fonte_nome": "EU_SEDIA"}, {"bando_id": "INAIL-ISI-2026", "titolo": "Bando ISI INAIL 2026 — Sicurezza sul Lavoro & Prevenzione", "ente_erogatore": "INAIL (Istituto Nazionale Assicurazione Infortuni sul Lavoro)", "descrizione": "Contributi a fondo perduto fino al 65% per progetti di miglioramento della salute e sicurezza sul lavoro, bonifica amianto e rifacimento coperture.", "budget_totale": 500000000.0, "importo_massimo_finanziabile": 130000.0, "percentuale_copertura": 65.0, "stato": "APERTO", "settori": ["43.99.01", "39.00.00", "TUTTI"], "beneficiari": ["PMI", "Micro", "Grandi_Imprese"], "regioni": ["Tutte"], "url_bando": "https://www.inail.it/cs/internet/attivita/prevenzione-e-sicurezza/agevolazioni-e-finanziamenti/incentivi-alle-imprese/bando-isi-2026.html", "tipo_agevolazione": "Contributo a fondo perduto", "fonte_nome": "INAIL_GOV"}, {"bando_id": "RESTO-AL-SUD-2-0", "titolo": "Resto al Sud 2.0 — Autoimpiego & Nuove Imprese nel Mezzogiorno", "ente_erogatore": "Invitalia & Dipartimento Politiche di Coesione", "descrizione": "Incentivi a fondo perduto Resto al Sud 2.0 per apertura di nuove imprese, ristorazione tipica, somministrazione, street food e laboratori artigianali a Palermo, Napoli e nel Mezzogiorno.", "budget_totale": 800000000.0, "importo_massimo_finanziabile": 200000.0, "percentuale_copertura": 75.0, "stato": "APERTO", "settori": ["56.10.11", "56.10.12", "TUTTI"], "beneficiari": ["PMI", "Micro", "Startup_Innovative", "Professionisti"], "regioni": ["Campania", "Sicilia", "Puglia", "Calabria", "Basilicata", "Abruzzo", "Molise", "Sardegna"], "url_bando": "https://www.invitalia.it/cosa-facciamo/creiamo-nuove-aziende/resto-al-sud", "tipo_agevolazione": "Fondo perduto (75%) + Finanziamento agevolato", "fonte_nome": "INVITALIA_REST"}, {"bando_id": "SICILIA-AGRIFOOD-2026", "titolo": "PSR Sicilia — Innovazione di Filiera Agroalimentare & Agricoltura Sostenibile", "ente_erogatore": "Regione Siciliana — Dipartimento Agricoltura e Sviluppo Rurale", "descrizione": "Contributi a fondo perduto fino al 70% per investimenti in impianti di precision farming, ammodernamento aziende agricole e trasformazione alimentare biologica in Sicilia.", "budget_totale": 45000000.0, "importo_massimo_finanziabile": 300000.0, "percentuale_copertura": 70.0, "stato": "APERTO", "settori": ["01.11.00", "01.21.00", "01.50.00", "10.39.00", "10.89.09"], "beneficiari": ["PMI", "Micro"], "regioni": ["Sicilia"], "url_bando": "https://www.euroinfosicilia.it/bandi-e-avvisi/", "tipo_agevolazione": "Contributo a fondo perduto", "fonte_nome": "REG_SICILIA_AGRI"}, {"bando_id": "SICILIA-SOLAR-GREEN", "titolo": "Bando Autoconsumo & Transizione Energetica PMI Sicilia", "ente_erogatore": "Regione Siciliana — Dipartimento dell'Energia", "descrizione": "Agevolazioni a fondo perduto per installazione pannelli solari, impianti fotovoltaici aziendali, sistemi di accumulo ed efficientamento energetico per le PMI in Sicilia.", "budget_totale": 50000000.0, "importo_massimo_finanziabile": 250000.0, "percentuale_copertura": 65.0, "stato": "APERTO", "settori": ["35.11.00", "43.21.01", "71.12.10", "01.11.00", "01.21.00", "01.50.00"], "beneficiari": ["PMI", "Micro"], "regioni": ["Sicilia"], "url_bando": "https://www.regione.sicilia.it/istituzioni/regione/strutture-regionali/assessorato-energia-servizi-pubblica-utilita/dipartimento-energia", "tipo_agevolazione": "Contributo a fondo perduto (de minimis)", "fonte_nome": "REG_SICILIA_ENERGIA"}, {"bando_id": "VENETO-TURISMO-2026", "titolo": "Fondo Riqualificazione Strutture Ricettive & Turismo Veneto", "ente_erogatore": "Regione del Veneto — Direzione Turismo", "descrizione": "Contributi a fondo perduto per riqualificazione energetica alberghi, strutture ricettive, sostituzione caldaie con pompe di calore, ammodernamento e turismo sostenibile nel Veneto.", "budget_totale": 25000000.0, "importo_massimo_finanziabile": 150000.0, "percentuale_copertura": 50.0, "stato": "APERTO", "settori": ["55.10.00", "55.20.51", "56.10.11", "79.11.00"], "beneficiari": ["PMI", "Micro"], "regioni": ["Veneto"], "url_bando": "https://www.venetosviluppo.it", "tipo_agevolazione": "Contributo a fondo perduto", "fonte_nome": "REG_VENETO_TURISMO"}, {"bando_id": "VENETO-CONSORZI-EXPORT", "titolo": "Voucher Internazionalizzazione & Consulenza Export Consorzi Veneto", "ente_erogatore": "Regione del Veneto & Veneto Sviluppo", "descrizione": "Voucher a fondo perduto per temporary export manager e partecipazione a fiere internazionali all'estero per consorzi veneti e PMI del Veneto.", "budget_totale": 8000000.0, "importo_massimo_finanziabile": 40000.0, "percentuale_copertura": 50.0, "stato": "APERTO", "settori": ["70.22.09", "46.90.00", "73.11.00", "38.21.00"], "beneficiari": ["PMI"], "regioni": ["Veneto"], "url_bando": "https://www.venetosviluppo.it", "tipo_agevolazione": "Voucher a fondo perduto", "fonte_nome": "REG_VENETO_EXPORT"}, {"bando_id": "TOSCANA-MODA-TESSILE", "titolo": "Bando Sostegno Distretto Tessile di Prato & Moda Toscana — Transizione Green", "ente_erogatore": "Regione Toscana & Sviluppo Toscana", "descrizione": "Voucher e contributi a fondo perduto per transizione ecologica tessile biologico, manifattura tessile e moda sostenibile a Prato e in Toscana.", "budget_totale": 18000000.0, "importo_massimo_finanziabile": 100000.0, "percentuale_copertura": 60.0, "stato": "APERTO", "settori": ["13.20.00", "13.10.00", "13.99.00", "14.13.00", "15.12.00", "32.12.00"], "beneficiari": ["PMI", "Micro"], "regioni": ["Toscana"], "url_bando": "https://www.sviluppo.toscana.it", "tipo_agevolazione": "Contributo a fondo perduto", "fonte_nome": "REG_TOSCANA_MODA"}, {"bando_id": "TOSCANA-BIOTECH-PHARMA", "titolo": "Bando Ricerca & Sviluppo Biotech e Scienze della Vita Toscana", "ente_erogatore": "Regione Toscana — Sviluppo Toscana", "descrizione": "Bando per ricerca e sviluppo biotech sperimentazione clinica e dispositivi medici a Firenze e in Toscana per imprese delle scienze della vita e pharma.", "budget_totale": 30000000.0, "importo_massimo_finanziabile": 1500000.0, "percentuale_copertura": 70.0, "stato": "APERTO", "settori": ["72.11.00", "21.20.00", "72.19.09"], "beneficiari": ["Enti_Ricerca", "Startup_Innovative", "PMI"], "regioni": ["Toscana"], "url_bando": "https://www.sviluppo.toscana.it", "tipo_agevolazione": "Contributo a fondo perduto", "fonte_nome": "REG_TOSCANA_BIOTECH"}, {"bando_id": "PUGLIA-AEROSPACE-TECH", "titolo": "Bando PIA Tech & Aerospazio Puglia", "ente_erogatore": "Regione Puglia — Puglia Sviluppo", "descrizione": "Incentivi per programmi integrati di agevolazione per grandi progetti industriali e PMI nella filiera aerospazio, droni e meccatronica avanzata in Puglia.", "budget_totale": 30000000.0, "importo_massimo_finanziabile": 1000000.0, "percentuale_copertura": 65.0, "stato": "APERTO", "settori": ["30.30.00", "28.00.00", "62.01.00", "72.19.09"], "beneficiari": ["PMI", "Startup_Innovative", "Grandi_Imprese"], "regioni": ["Puglia"], "url_bando": "https://www.sistema.puglia.it", "tipo_agevolazione": "Contributo a fondo perduto + Finanziamento", "fonte_nome": "PUGLIA_SVILUPPO"}, {"bando_id": "PUGLIA-AGRITECH-PRECISION", "titolo": "Bando Smart Agritech & Precision Farming Puglia", "ente_erogatore": "Regione Puglia — Assessorato Agricoltura", "descrizione": "Contributo a fondo perduto per agritech droni e sensoristica agricoltura di precisione a Bari e in Puglia.", "budget_totale": 25000000.0, "importo_massimo_finanziabile": 120000.0, "percentuale_copertura": 70.0, "stato": "APERTO", "settori": ["01.11.00", "01.21.00", "62.01.00"], "beneficiari": ["PMI", "Micro"], "regioni": ["Puglia"], "url_bando": "https://www.regione.puglia.it", "tipo_agevolazione": "Contributo a fondo perduto", "fonte_nome": "REG_PUGLIA_AGRI"}, {"bando_id": "PIEMONTE-AUTOMOTIVE-EV", "titolo": "Bando Riconversione Automotive & Mobilità Sostenibile Piemonte", "ente_erogatore": "Regione Piemonte & Finpiemonte", "descrizione": "Finanziamenti a fondo perduto per riconversione automotive verso componentistica elettrica, veicoli elettrici, batterie e idrogeno a Torino e in Piemonte.", "budget_totale": 40000000.0, "importo_massimo_finanziabile": 800000.0, "percentuale_copertura": 55.0, "stato": "APERTO", "settori": ["29.10.00", "28.11.00", "25.62.00", "62.01.00"], "beneficiari": ["PMI", "Grandi_Imprese"], "regioni": ["Piemonte"], "url_bando": "https://www.finpiemonte.it", "tipo_agevolazione": "Contributo a fondo perduto", "fonte_nome": "FINPIEMONTE_AUTO"}, {"bando_id": "EMILIA-MECCANICA-4-0", "titolo": "Bando Industria Meccanica Avanzata & Robotica Emilia-Romagna", "ente_erogatore": "Regione Emilia-Romagna", "descrizione": "Finanziamento a tasso agevolato per macchine utensili, robotica industriale e meccanica avanzata a Bologna e in Emilia-Romagna.", "budget_totale": 35000000.0, "importo_massimo_finanziabile": 500000.0, "percentuale_copertura": 50.0, "stato": "APERTO", "settori": ["28.41.00", "25.00.00", "28.00.00", "28.11.00", "28.99.00"], "beneficiari": ["PMI"], "regioni": ["Emilia-Romagna"], "url_bando": "https://fesr.regione.emilia-romagna.it", "tipo_agevolazione": "Tasso agevolato / Fondo perduto", "fonte_nome": "REG_EMILIA_MECCANICA"}, {"bando_id": "LAZIO-CYBER-SECURITY", "titolo": "Bando Cyber Security & Cloud Migration PMI Lazio", "ente_erogatore": "Regione Lazio & Lazio Innova", "descrizione": "Voucher per audit di sicurezza informatica, cloud migration, crittografia dati e cyber security a Roma e nel Lazio per PMI.", "budget_totale": 20000000.0, "importo_massimo_finanziabile": 100000.0, "percentuale_copertura": 70.0, "stato": "APERTO", "settori": ["62.09.09", "62.01.00", "62.02.00", "62.03.00", "70.22.09"], "beneficiari": ["PMI", "Startup_Innovative"], "regioni": ["Lazio"], "url_bando": "https://www.lazioinnova.it", "tipo_agevolazione": "Voucher a fondo perduto", "fonte_nome": "LAZIO_INNOVA"}, {"bando_id": "ABRUZZO-FOOD-PROCESSING", "titolo": "Bando Sviluppo Rurale & Agroalimentare Qualità Abruzzo", "ente_erogatore": "Regione Abruzzo — Dipartimento Agricoltura", "descrizione": "Agevolazioni per macchinari lavorazione e packaging conserve alimentari, trasformazione agroalimentare di qualità in Abruzzo.", "budget_totale": 14000000.0, "importo_massimo_finanziabile": 200000.0, "percentuale_copertura": 60.0, "stato": "APERTO", "settori": ["10.39.00", "10.89.09", "10.51.00"], "beneficiari": ["PMI"], "regioni": ["Abruzzo"], "url_bando": "https://coesione.regione.abruzzo.it/bandi-e-avvisi", "tipo_agevolazione": "Contributo a fondo perduto", "fonte_nome": "REG_ABRUZZO_AGRI"}, {"bando_id": "FRIULI-MANIFATTURA-LEGNO", "titolo": "Bando Innovazione Filiera Legno & Arredo Design FVG", "ente_erogatore": "Regione Autonoma Friuli-Venezia Giulia", "descrizione": "Bando innovazione filiera legno e arredo design sostenibile, manifattura arredi a Udine e in Friuli-Venezia Giulia.", "budget_totale": 16000000.0, "importo_massimo_finanziabile": 350000.0, "percentuale_copertura": 55.0, "stato": "APERTO", "settori": ["31.09.00", "16.29.00", "25.00.00", "28.11.00"], "beneficiari": ["PMI"], "regioni": ["Friuli-Venezia Giulia"], "url_bando": "https://www.regione.fvg.it", "tipo_agevolazione": "Contributo a fondo perduto", "fonte_nome": "REG_FVG_MANIFATTURA"}, {"bando_id": "MIMIT-BREVETTI-PLUS", "titolo": "Brevetti+ Disegni+ Marchi+ Valorizzazione Proprietà Intellettuale", "ente_erogatore": "MIMIT (Ministero delle Imprese e del Made in Italy) & Unioncamere", "descrizione": "Agevolazioni brevetti marchi e valorizzazione titoli di proprietà industriale e intellettuale per PMI su tutto il territorio nazionale.", "budget_totale": 32000000.0, "importo_massimo_finanziabile": 140000.0, "percentuale_copertura": 80.0, "stato": "APERTO", "settori": ["72.19.09", "TUTTI"], "beneficiari": ["PMI", "Startup_Innovative", "Micro"], "regioni": ["Tutte"], "url_bando": "https://www.mimit.gov.it/it/incentivi/brevetti-disegni-marchi", "tipo_agevolazione": "Voucher / Contributo a fondo perduto (de minimis)", "fonte_nome": "MIMIT_PI"}, {"bando_id": "INVITALIA-SMART-START-2026", "titolo": "Smart&Start Italia — Incentivi Startup Innovative", "ente_erogatore": "Invitalia", "descrizione": "Finanziamento agevolato a tasso zero e fondo perduto Smart&Start Italia per startup innovative ad alto valore tecnologico, software, cloud, intelligenza artificiale.", "budget_totale": 100000000.0, "importo_massimo_finanziabile": 1500000.0, "percentuale_copertura": 80.0, "stato": "APERTO", "settori": ["62.01.00", "62.02.00", "63.11.00", "72.19.09", "58.29.00"], "beneficiari": ["Startup_Innovative", "Micro", "PMI"], "regioni": ["Tutte"], "url_bando": "https://www.invitalia.it/cosa-facciamo/creiamo-nuove-aziende/smartstart-italia", "tipo_agevolazione": "Finanziamento tasso zero / agevolato fino al 90%", "fonte_nome": "INVITALIA_REST"}, {"bando_id": "LIGURIA-LOGISTICA-GREEN", "titolo": "Bando FILSE Mobilità Sostenibile e Flotte Green Liguria", "ente_erogatore": "FILSE & Regione Liguria", "descrizione": "Incentivi per acquisto veicoli commerciali elettrici e logistica green, mobilità sostenibile e flotte ecologiche a Genova e in Liguria per PMI.", "budget_totale": 15000000.0, "importo_massimo_finanziabile": 150000.0, "percentuale_copertura": 50.0, "stato": "APERTO", "settori": ["49.41.00", "52.29.00"], "beneficiari": ["PMI"], "regioni": ["Liguria"], "url_bando": "https://www.filse.it", "tipo_agevolazione": "Contributo a fondo perduto", "fonte_nome": "FILSE_LIGURIA"}, {"bando_id": "MARCHE-BIOMEDICALE", "titolo": "Bando Innovazione e Digitalizzazione PMI Marche — Biomedicale e Diagnostica", "ente_erogatore": "SVEM & Regione Marche", "descrizione": "Contributi a fondo perduto per digitalizzazione laboratori odontoiatrici e diagnostica biomedicale ad Ancona e nelle Marche per PMI.", "budget_totale": 12000000.0, "importo_massimo_finanziabile": 120000.0, "percentuale_copertura": 50.0, "stato": "APERTO", "settori": ["32.50.13", "32.50.11", "62.01.00"], "beneficiari": ["PMI"], "regioni": ["Marche"], "url_bando": "https://www.svem.eu", "tipo_agevolazione": "Contributo a fondo perduto", "fonte_nome": "SVEM_MARCHE"}, {"bando_id": "UMBRIA-CIRCOLARE", "titolo": "Bando Sviluppumbria Economia Circolare & Sostenibilità", "ente_erogatore": "Sviluppumbria & Regione Umbria", "descrizione": "Finanziamenti a fondo perduto per economia circolare riciclo materie plastiche, recupero scarti agroalimentari, sansa e ammodernamento frantoi a Foligno, Perugia e in Umbria.", "budget_totale": 10000000.0, "importo_massimo_finanziabile": 100000.0, "percentuale_copertura": 55.0, "stato": "APERTO", "settori": ["38.32.20", "38.21.00", "10.41.00", "01.63.00"], "beneficiari": ["PMI"], "regioni": ["Umbria"], "url_bando": "https://www.sviluppumbria.it", "tipo_agevolazione": "Contributo a fondo perduto", "fonte_nome": "SVILUPPUMBRIA"}, {"bando_id": "VALLE-AOSTA-ROTAZIONE", "titolo": "Fondo Rotazione Finaosta Sostegno Imprese VDA — Riqualificazione Rifugi, Alberghi & Rinnovabili", "ente_erogatore": "Finaosta — Regione Autonoma Valle d'Aosta", "descrizione": "Fondo di rotazione per investimenti innovativi, turismo montano e riqualificazione rifugi alpini: installazione pannelli fotovoltaici, batterie ad alta quota, transizione ecologica e artigianato alpino ad Aosta e in Valle d'Aosta.", "budget_totale": 8000000.0, "importo_massimo_finanziabile": 80000.0, "percentuale_copertura": 60.0, "stato": "APERTO", "settori": ["16.29.19", "16.29.00", "23.70.00", "31.09.00", "55.10.00", "55.20.10", "55.20.20", "35.11.00"], "beneficiari": ["PMI"], "regioni": ["Valle d'Aosta"], "url_bando": "https://www.finaosta.com", "tipo_agevolazione": "Finanziamento agevolato a tasso quasi zero", "fonte_nome": "FINAOSTA_VDA"}, {"bando_id": "PUGLIA-BLUE-ECONOMY", "titolo": "Puglia Sviluppo — Contratti di Programma e Blue Economy Nautica", "ente_erogatore": "Puglia Sviluppo & Regione Puglia", "descrizione": "Agevolazioni per cantieristica navale, nautica da diporto e blue economy per PMI e cantieri navali a Taranto e in Puglia.", "budget_totale": 20000000.0, "importo_massimo_finanziabile": 200000.0, "percentuale_copertura": 50.0, "stato": "APERTO", "settori": ["30.11.02", "30.12.00"], "beneficiari": ["PMI"], "regioni": ["Puglia"], "url_bando": "https://www.sistema.puglia.it", "tipo_agevolazione": "Misto fondo perduto e conto interessi", "fonte_nome": "PUGLIA_BLUE"}, {"bando_id": "CAMPANIA-ZES-UNICA", "titolo": "Credito d'Imposta ZES Unica Mezzogiorno — Investimenti Campania", "ente_erogatore": "Agenzia delle Entrate / Dipartimento Coesione", "descrizione": "Bando per attrazione investimenti e nuove unita produttive nelle aree ZES Unica Mezzogiorno, credito d'imposta per macchinari in Campania.", "budget_totale": 1800000000.0, "importo_massimo_finanziabile": 5000000.0, "percentuale_copertura": 60.0, "stato": "APERTO", "settori": ["25.00.00", "28.00.00", "TUTTI"], "beneficiari": ["PMI"], "regioni": ["Campania", "Puglia", "Calabria", "Sicilia", "Basilicata", "Abruzzo", "Molise", "Sardegna"], "url_bando": "https://www.agenziaentrate.gov.it", "tipo_agevolazione": "Credito d'imposta", "fonte_nome": "AGENZIA_ENTRATE_ZES"}, {"bando_id": "EMILIA-ARTIGIANATO-CERAMICA", "titolo": "Bando Sostegno Artigianato Artistico e Ceramica Emilia-Romagna", "ente_erogatore": "Regione Emilia-Romagna", "descrizione": "Contributi a fondo perduto per microimprese dell'artigianato artistico e ceramica a Faenza e su tutta la Regione Emilia-Romagna.", "budget_totale": 6000000.0, "importo_massimo_finanziabile": 50000.0, "percentuale_copertura": 50.0, "stato": "APERTO", "settori": ["23.41.00", "23.70.00"], "beneficiari": ["Micro", "PMI"], "regioni": ["Emilia-Romagna"], "url_bando": "https://fesr.regione.emilia-romagna.it", "tipo_agevolazione": "Contributo a fondo perduto", "fonte_nome": "REG_EMILIA_CERAMICA"}, {"bando_id": "PUGLIA-IDRICO-AGRICOLTURA", "titolo": "PSR Puglia — Gestione Sostenibile Risorse Idriche e Invasi", "ente_erogatore": "Regione Puglia — Assessorato Agricoltura", "descrizione": "Incentivi per efficientamento idrico e riutilizzo acque reflue in aziende agricole e irrigazione a Foggia e in Puglia.", "budget_totale": 22000000.0, "importo_massimo_finanziabile": 150000.0, "percentuale_copertura": 60.0, "stato": "APERTO", "settori": ["01.61.00", "01.11.00"], "beneficiari": ["PMI"], "regioni": ["Puglia"], "url_bando": "https://www.regione.puglia.it", "tipo_agevolazione": "Contributo a fondo perduto", "fonte_nome": "REG_PUGLIA_IDRICO"}, {"bando_id": "CAMPANIA-AEROSPAZIO-DRONI", "titolo": "Bando Distretto Aerospaziale Campania (DAC) — Ricerca, Droni e Satelliti", "ente_erogatore": "DAC Campania & Sviluppo Campania", "descrizione": "Finanziamenti per startup aerospaziali droni e tecnologie satellitari e aerospazio a Napoli e in Campania.", "budget_totale": 18000000.0, "importo_massimo_finanziabile": 300000.0, "percentuale_copertura": 75.0, "stato": "APERTO", "settori": ["30.30.09", "30.30.00", "62.01.00"], "beneficiari": ["Startup_Innovative", "PMI"], "regioni": ["Campania"], "url_bando": "https://bandi.sviluppocampania.it/", "tipo_agevolazione": "Contributo a fondo perduto", "fonte_nome": "DAC_CAMPANIA"}, {"bando_id": "PIEMONTE-FILM-FUND", "titolo": "Piemonte Film TV Fund — Produzione Audiovisiva e Cinema", "ente_erogatore": "Film Commission Torino Piemonte & Regione Piemonte", "descrizione": "Bando sostegno alle filiere cinematografiche produzione audiovisiva, fiction, film e gaming in Piemonte.", "budget_totale": 12000000.0, "importo_massimo_finanziabile": 200000.0, "percentuale_copertura": 50.0, "stato": "APERTO", "settori": ["59.11.00", "59.12.00"], "beneficiari": ["PMI"], "regioni": ["Piemonte"], "url_bando": "https://www.fctp.it", "tipo_agevolazione": "Contributo a fondo perduto", "fonte_nome": "PIEMONTE_FILM"}, {"bando_id": "VENETO-LOGISTICA-FREDDO", "titolo": "Bando Sviluppo Polo Logistico Intermodale e Agroalimentare Veneto", "ente_erogatore": "Regione del Veneto & Veneto Sviluppo", "descrizione": "Contributi per creazione hub logistici e magazzini refrigerati per la catena del freddo agroalimentare a Verona e nel Veneto.", "budget_totale": 16000000.0, "importo_massimo_finanziabile": 250000.0, "percentuale_copertura": 45.0, "stato": "APERTO", "settori": ["52.10.10", "52.29.00"], "beneficiari": ["PMI"], "regioni": ["Veneto"], "url_bando": "https://www.venetosviluppo.it", "tipo_agevolazione": "Contributo a fondo perduto", "fonte_nome": "REG_VENETO_LOGISTICA"}, {"bando_id": "SARDEGNA-IMPRESA-FEMMINILE", "titolo": "Fondo Impresa Femminile & Imprenditoria Donne Sardegna", "ente_erogatore": "Regione Autonoma della Sardegna & Sardegna Ricerche", "descrizione": "Fondo perduto per imprenditoria femminile, nuove imprese guidate da donne a Cagliari e in tutta la Sardegna.", "budget_totale": 10000000.0, "importo_massimo_finanziabile": 100000.0, "percentuale_copertura": 80.0, "stato": "APERTO", "settori": ["TUTTI"], "beneficiari": ["PMI", "Micro", "Startup_Innovative"], "regioni": ["Sardegna"], "url_bando": "https://www.sardegnaricerche.it", "tipo_agevolazione": "Contributo a fondo perduto", "fonte_nome": "SARDEGNA_RICERCHE"}, {"bando_id": "EMILIA-FONDO-STARTER-2026", "titolo": "Fondo Starter — Finanziamento Agevolato & Garanzia Nuove Imprese Tecnologiche", "ente_erogatore": "Regione Emilia-Romagna — PR FESR", "descrizione": "Finanziamenti a tasso agevolato fino al 70% e contributi per la creazione e consolidamento di nuove imprese tecnologiche, startup digitali, AI e meccatronica in Emilia-Romagna.", "budget_totale": 20000000.0, "importo_massimo_finanziabile": 300000.0, "percentuale_copertura": 70.0, "stato": "APERTO", "settori": ["TUTTI"], "beneficiari": ["Startup_Innovative", "PMI", "Micro"], "regioni": ["Emilia-Romagna"], "url_bando": "https://fesr.regione.emilia-romagna.it", "tipo_agevolazione": "Finanziamento agevolato / Fondo perduto", "fonte_nome": "REG_EMILIA_STARTER"}, {"bando_id": "MIMIT-VOUCHER-INNOVATION-AI", "titolo": "Voucher Innovation Manager — Consulenza Specialistica AI, Big Data & Cybersecurity", "ente_erogatore": "MIMIT (Ministero delle Imprese e del Made in Italy)", "descrizione": "Contributi a fondo perduto fino al 50% per le spese sostenute da PMI e startup innovative per l'acquisizione di servizi di consulenza specialistica resa da Innovation Manager qualificati in ambito AI, big data e sicurezza.", "budget_totale": 50000000.0, "importo_massimo_finanziabile": 40000.0, "percentuale_copertura": 50.0, "stato": "APERTO", "settori": ["62.01.00", "62.02.00", "63.11.00", "72.19.09", "70.22.09"], "beneficiari": ["PMI", "Startup_Innovative", "Micro"], "regioni": ["Tutte"], "url_bando": "https://www.mimit.gov.it/it/incentivi/voucher-innovation-manager", "tipo_agevolazione": "Voucher a fondo perduto (de minimis)", "fonte_nome": "MIMIT_REST"}, {"bando_id": "CCIAA-ROMA-COMMERCIO-2026", "titolo": "Bando CCIAA Roma — Sostegno al Commercio, Registratori Telematici & Sicurezza Antitaccheggio", "ente_erogatore": "Camera di Commercio di Roma & Regione Lazio", "descrizione": "Contributi a fondo perduto per il commercio al dettaglio a Roma e nel Lazio: acquisto registratori telematici di cassa, sistemi antitaccheggio innovativi, commercio elettronico e sicurezza punti vendita.", "budget_totale": 6000000.0, "importo_massimo_finanziabile": 10000.0, "percentuale_copertura": 60.0, "stato": "APERTO", "settori": ["47.71.10", "47.71.20", "47.19.10", "47.19.20", "47.00.00", "47.91.10"], "beneficiari": ["PMI", "Micro"], "regioni": ["Lazio"], "url_bando": "https://www.rm.camcom.it/bandi", "tipo_agevolazione": "Contributo a fondo perduto (voucher)", "fonte_nome": "CCIAA_ROMA"}, {"bando_id": "EU-TED-DIGITAL-HEALTH", "titolo": "Bando TED EU — Appalto Pubblico Europeo Sanità Digitale & Piattaforme E-Health", "ente_erogatore": "Unione Europea — TED (Tenders Electronic Daily)", "descrizione": "Appalto pubblico europeo pubblicato su TED v3 per fornitura soluzioni software sanità digitale, telemedicina e fascicolo sanitario elettronico.", "budget_totale": 80000000.0, "importo_massimo_finanziabile": 5000000.0, "percentuale_copertura": 100.0, "stato": "APERTO", "settori": ["62.01.00", "86.10.00", "TUTTI"], "beneficiari": ["Grandi_Imprese", "PMI"], "regioni": ["Tutte"], "url_bando": "https://api.ted.europa.eu/v3/notices/search", "tipo_agevolazione": "Appalto pubblico europeo / Contratto TED", "fonte_nome": "EU_TED_V3"}, {"bando_id": "EU-SEDIA-LIFE-CIRCULAR", "titolo": "Bando LIFE EU — Economia Circolare, Tutela Climatica & Ambiente (SEDIA)", "ente_erogatore": "Commissione Europea (LIFE Programme / SEDIA)", "descrizione": "Finanziamento a fondo perduto del programma LIFE della Commissione Europea per progetti di economia circolare, riduzione emissioni industriali, depurazione acque e tutela dell'ambiente in Europa.", "budget_totale": 120000000.0, "importo_massimo_finanziabile": 2000000.0, "percentuale_copertura": 60.0, "stato": "APERTO", "settori": ["38.21.00", "37.00.00", "TUTTI"], "beneficiari": ["PMI", "Grandi_Imprese", "Enti_Ricerca"], "regioni": ["Tutte"], "url_bando": "https://api.tech.ec.europa.eu/search-api/prod/rest/search", "tipo_agevolazione": "Contributo a fondo perduto LIFE", "fonte_nome": "EU_SEDIA_LIFE"}];
+/**
+ * LabNK Bandi Intelligence — Client-Side Dashboard Application.
+ * Nexus Keystone v1.1.0-Universal | Vanilla ES6 Interactive Engine.
+ */
 
-        // DOM XSS Sanitizer Guard
-        function escapeHTML(str) {
-            if (str === null || str === undefined) return '';
-            return String(str)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
-        }
+// DOM XSS Sanitizer Guard
+function escapeHTML(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
 
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            if (event && event.target) {
-                event.target.classList.add('active');
-            }
-        }
+function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    const target = document.getElementById(tabId);
+    if (target) {
+        target.classList.add('active');
+    }
+    if (window.event && window.event.target) {
+        window.event.target.classList.add('active');
+    }
+}
 
-        function formatCurrency(val) {
-            if (!val || val === 0) return "N/D";
-            return "€ " + Number(val).toLocaleString('it-IT');
-        }
+function formatCurrency(val) {
+    if (!val || val === 0) return "N/D";
+    return "€ " + Number(val).toLocaleString('it-IT');
+}
 
-        function getMatchBadgeClass(score) {
-            if (score >= 80) return "match-high";
-            if (score >= 50) return "match-mid";
-            return "match-low";
-        }
+function getMatchBadgeClass(score) {
+    if (score >= 80) return "match-high";
+    if (score >= 50) return "match-mid";
+    return "match-low";
+}
 
-        function renderNlpCards(containerId, results) {
-            const container = document.getElementById(containerId);
-            container.innerHTML = '';
-            if (!results || results.length === 0) {
-                container.innerHTML = '<div class="empty-state">Nessun bando compatibile con la query specificata.</div>';
-                return;
-            }
+function renderNlpCards(containerId, results) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = '';
+    if (!results || results.length === 0) {
+        container.innerHTML = '<div class="empty-state">🔍 <b>Nessun bando compatibile trovato</b> per i criteri o il territorio selezionato.<br><span style="font-size: 13px; color: var(--text-muted); margin-top: 6px; display: inline-block;">Prova a verificare i bandi nazionali aperti o ad ampliare i termini di ricerca.</span></div>';
+        return;
+    }
 
-            results.forEach(item => {
-                const g = item.grant;
-                const score = item.score;
-                const matchScore = score ? Math.round(score.overall_match_score) : 75;
-                const isEligible = score ? score.is_eligible : true;
-                const badgeClass = getMatchBadgeClass(matchScore);
-                const regioniStr = Array.isArray(g.regioni_target || g.regioni) ? (g.regioni_target || g.regioni).join(', ') : 'Nazionale';
+    results.forEach(item => {
+        const g = item.grant;
+        const score = item.score;
+        const matchScore = score ? Math.round(score.overall_match_score) : 75;
+        const isEligible = score ? score.is_eligible : true;
+        const badgeClass = getMatchBadgeClass(matchScore);
+        const regioniStr = Array.isArray(g.regioni_target || g.regioni) ? (g.regioni_target || g.regioni).join(', ') : 'Nazionale';
+        const isEuGrant = g.fonte_nome === 'SEDIA EU' || g.fonte_nome === 'TED v3' || (g.ente_erogatore && g.ente_erogatore.toLowerCase().includes('europa')) || (g.titolo && g.titolo.toLowerCase().includes('horizon'));
 
-                const card = document.createElement('div');
-                card.className = 'grant-card';
-                card.innerHTML = `
+        const card = document.createElement('div');
+        card.className = 'grant-card';
+        card.innerHTML = `
+            <div>
+                <div class="grant-top">
                     <div>
-                        <div class="grant-top">
-                            <div>
-                                <div class="grant-authority">${escapeHTML(g.ente_erogatore)}</div>
-                                <div style="font-size: 11px; color: var(--text-muted);">${escapeHTML(regioniStr)}</div>
-                            </div>
-                            <span class="match-badge ${badgeClass}">
-                                ${matchScore}% ${isEligible ? 'COMPATIBILE' : 'NON IDONEO'}
-                            </span>
-                        </div>
-                        <h3 class="grant-title">${escapeHTML(g.titolo)}</h3>
-                        <p class="grant-desc">${escapeHTML(g.descrizione ? g.descrizione.substring(0, 160) + '...' : '')}</p>
-                    </div>
-
-                    <div>
-                        <div class="grant-financials">
-                            <div class="fin-item">
-                                <div class="fin-label">Copertura</div>
-                                <div class="fin-value fin-accent">${Number(g.percentuale_copertura || 0)}%</div>
-                            </div>
-                            <div class="fin-item">
-                                <div class="fin-label">Max Finanziabile</div>
-                                <div class="fin-value">${formatCurrency(g.importo_massimo_finanziabile)}</div>
-                            </div>
-                            <div class="fin-item">
-                                <div class="fin-label">Dotazione Totale</div>
-                                <div class="fin-value">${formatCurrency(g.budget_totale)}</div>
-                            </div>
-                        </div>
-
-                        ${score ? `
-                        <div class="breakdown-box">
-                            <div class="breakdown-title">
-                                <span>🎯 Valutazione Idoneità MatchScoringEngine</span>
-                                <span style="font-size: 11px; color: ${isEligible ? 'var(--accent)' : 'var(--danger)'};">
-                                    ${isEligible ? '✓ Requisiti Verificati' : '⚠️ Condizione Bloccante'}
-                                </span>
-                            </div>
-                            ${score.blocking_failures && score.blocking_failures.length > 0 ? 
-                                `<div class="fail-tag">⚠️ ${escapeHTML(score.blocking_failures[0])}</div>` : ''}
-                            ${score.bonus_points && score.bonus_points.length > 0 ? 
-                                score.bonus_points.map(bp => `<div class="bonus-tag">★ ${escapeHTML(bp)}</div>`).join('') : ''}
-                            ${score.recommended_actions && score.recommended_actions.length > 0 ? 
-                                `<div style="margin-top: 6px; color: var(--text-muted); font-size: 11px;">💡 <em>${escapeHTML(score.recommended_actions[0])}</em></div>` : ''}
-                        </div>
-                        ` : ''}
-
-                        <div class="grant-footer">
-                            <span class="tag">${escapeHTML(g.tipo_agevolazione || 'Agevolazione')}</span>
-                            <a href="${encodeURI(g.url_bando || '#')}" target="_blank" rel="noopener noreferrer" class="grant-link">🔗 Scheda Bando &rarr;</a>
+                        <div class="grant-authority">${escapeHTML(g.ente_erogatore)}</div>
+                        <div style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                            <span>${escapeHTML(regioniStr)}</span>
+                            ${isEuGrant ? '<span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.4); font-size: 10px; padding: 2px 6px;">🇪🇺 COMUNITARIO DIRETTO</span>' : ''}
                         </div>
                     </div>
-                `;
-                container.appendChild(card);
-            });
-        }
+                    <span class="match-badge ${badgeClass}">
+                        ${matchScore}% ${isEligible ? 'COMPATIBILE' : 'NON IDONEO'}
+                    </span>
+                </div>
+                <h3 class="grant-title">${escapeHTML(g.titolo)}</h3>
+                <p class="grant-desc">${escapeHTML(g.descrizione ? g.descrizione.substring(0, 160) + '...' : '')}</p>
+            </div>
 
-        function renderStandardCards(containerId, grants) {
-            const container = document.getElementById(containerId);
-            container.innerHTML = '';
-            if (!grants || grants.length === 0) {
-                container.innerHTML = '<div class="empty-state">Nessun bando trovato per i criteri selezionati.</div>';
-                return;
-            }
-
-            grants.forEach(g => {
-                const card = document.createElement('div');
-                card.className = 'grant-card';
-                const regioniStr = Array.isArray(g.regioni_target || g.regioni) ? (g.regioni_target || g.regioni).join(', ') : 'Nazionale';
-                card.innerHTML = `
-                    <div>
-                        <div class="grant-top">
-                            <div>
-                                <div class="grant-authority">${escapeHTML(g.ente_erogatore)}</div>
-                                <div style="font-size: 11px; color: var(--text-muted);">${escapeHTML(regioniStr)}</div>
-                            </div>
-                            <span class="status-pill ${g.stato === 'APERTO' ? 'status-open' : 'status-closed'}">${escapeHTML(g.stato)}</span>
-                        </div>
-                        <h3 class="grant-title">${escapeHTML(g.titolo)}</h3>
-                        <p class="grant-desc">${escapeHTML(g.descrizione ? g.descrizione.substring(0, 160) + '...' : '')}</p>
+            <div>
+                <div class="grant-financials">
+                    <div class="fin-item">
+                        <div class="fin-label">Copertura</div>
+                        <div class="fin-value fin-accent">${Number(g.percentuale_copertura || 0)}%</div>
                     </div>
+                    <div class="fin-item">
+                        <div class="fin-label">Max Finanziabile</div>
+                        <div class="fin-value">${formatCurrency(g.importo_massimo_finanziabile)}</div>
+                    </div>
+                    <div class="fin-item">
+                        <div class="fin-label">Dotazione Totale</div>
+                        <div class="fin-value">${formatCurrency(g.budget_totale)}</div>
+                    </div>
+                </div>
+
+                ${score ? `
+                <div class="breakdown-box">
+                    <div class="breakdown-title">
+                        <span>🎯 Valutazione Idoneità MatchScoringEngine</span>
+                        <span style="font-size: 11px; color: ${isEligible ? 'var(--accent)' : 'var(--danger)'};">
+                            ${isEligible ? '✓ Requisiti Verificati' : '⚠️ Condizione Bloccante'}
+                        </span>
+                    </div>
+                    ${score.blocking_failures && score.blocking_failures.length > 0 ? 
+                        `<div class="fail-tag">⚠️ ${escapeHTML(score.blocking_failures[0])}</div>` : ''}
+                    ${score.bonus_points && score.bonus_points.length > 0 ? 
+                        score.bonus_points.map(bp => `<div class="bonus-tag">★ ${escapeHTML(bp)}</div>`).join('') : ''}
+                    ${score.recommended_actions && score.recommended_actions.length > 0 ? 
+                        `<div style="margin-top: 6px; color: var(--text-muted); font-size: 11px;">💡 <em>${escapeHTML(score.recommended_actions[0])}</em></div>` : ''}
+                </div>
+                ` : ''}
+
+                <div class="grant-footer">
+                    <span class="tag">${escapeHTML(g.tipo_agevolazione || 'Agevolazione')}</span>
+                    <a href="${encodeURI(g.url_bando || '#')}" target="_blank" rel="noopener noreferrer" class="grant-link-btn">🏛️ Apri Bando Ufficiale ↗</a>
+                </div>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+}
+
+function renderStandardCards(containerId, grants) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = '';
+    if (!grants || grants.length === 0) {
+        container.innerHTML = '<div class="empty-state">📋 <b>Nessun bando trovato</b> per i criteri selezionati.<br><span style="font-size: 13px; color: var(--text-muted); margin-top: 6px; display: inline-block;">Prova a verificare i bandi nazionali o ad azzerare i filtri.</span></div>';
+        return;
+    }
+
+    grants.forEach(g => {
+        const card = document.createElement('div');
+        card.className = 'grant-card';
+        const regioniStr = Array.isArray(g.regioni_target || g.regioni) ? (g.regioni_target || g.regioni).join(', ') : 'Nazionale';
+        const isEuGrant = g.fonte_nome === 'SEDIA EU' || g.fonte_nome === 'TED v3' || (g.ente_erogatore && g.ente_erogatore.toLowerCase().includes('europa')) || (g.titolo && g.titolo.toLowerCase().includes('horizon'));
+        card.innerHTML = `
+            <div>
+                <div class="grant-top">
                     <div>
-                        <div class="grant-financials">
-                            <div class="fin-item">
-                                <div class="fin-label">Copertura</div>
-                                <div class="fin-value fin-accent">${Number(g.percentuale_copertura || 0)}%</div>
-                            </div>
-                            <div class="fin-item">
-                                <div class="fin-label">Max Finanziabile</div>
-                                <div class="fin-value">${formatCurrency(g.importo_massimo_finanziabile)}</div>
-                            </div>
-                            <div class="fin-item">
-                                <div class="fin-label">Dotazione</div>
-                                <div class="fin-value">${formatCurrency(g.budget_totale)}</div>
-                            </div>
-                        </div>
-                        <div class="grant-footer">
-                            <span class="tag">${escapeHTML(g.tipo_agevolazione || 'Agevolazione')}</span>
-                            <a href="${encodeURI(g.url_bando || '#')}" target="_blank" rel="noopener noreferrer" class="grant-link">🔗 Scheda Bando &rarr;</a>
+                        <div class="grant-authority">${escapeHTML(g.ente_erogatore)}</div>
+                        <div style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                            <span>${escapeHTML(regioniStr)}</span>
+                            ${isEuGrant ? '<span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.4); font-size: 10px; padding: 2px 6px;">🇪🇺 COMUNITARIO DIRETTO</span>' : ''}
                         </div>
                     </div>
-                `;
-                container.appendChild(card);
-            });
-        }
+                    <span class="status-pill ${g.stato === 'APERTO' ? 'status-open' : 'status-closed'}">${escapeHTML(g.stato)}</span>
+                </div>
+                <h3 class="grant-title">${escapeHTML(g.titolo)}</h3>
+                <p class="grant-desc">${escapeHTML(g.descrizione ? g.descrizione.substring(0, 160) + '...' : '')}</p>
+            </div>
+            <div>
+                <div class="grant-financials">
+                    <div class="fin-item">
+                        <div class="fin-label">Copertura</div>
+                        <div class="fin-value fin-accent">${Number(g.percentuale_copertura || 0)}%</div>
+                    </div>
+                    <div class="fin-item">
+                        <div class="fin-label">Max Finanziabile</div>
+                        <div class="fin-value">${formatCurrency(g.importo_massimo_finanziabile)}</div>
+                    </div>
+                    <div class="fin-item">
+                        <div class="fin-label">Dotazione</div>
+                        <div class="fin-value">${formatCurrency(g.budget_totale)}</div>
+                    </div>
+                </div>
+                <div class="grant-footer">
+                    <span class="tag">${escapeHTML(g.tipo_agevolazione || 'Agevolazione')}</span>
+                    <a href="${encodeURI(g.url_bando || '#')}" target="_blank" rel="noopener noreferrer" class="grant-link-btn">🏛️ Apri Bando Ufficiale ↗</a>
+                </div>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+}
 
-        async function filterGrantsNLP() {
-            const query = document.getElementById('nlp-input').value.trim();
-            if (!query) return;
+async function filterGrantsNLP() {
+    const inputEl = document.getElementById('nlp-input');
+    if (!inputEl) return;
+    const query = inputEl.value.trim();
+    if (!query) return;
 
-            const spinner = document.getElementById('nlp-spinner');
-            const intentCard = document.getElementById('intent-card');
-            spinner.style.display = 'block';
+    const spinner = document.getElementById('nlp-spinner');
+    const intentCard = document.getElementById('intent-card');
+    const speedEl = document.getElementById('speed-indicator');
+    if (spinner) spinner.style.display = 'block';
+    if (speedEl) speedEl.style.display = 'none';
 
-            try {
-                const resp = await fetch('/api/search/nlp', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ query: query })
-                });
+    const startTime = performance.now();
 
-                if (resp.ok) {
-                    const data = await resp.json();
-                    
-                    // Display Intent Box with XSS sanitization
-                    if (data.intent) {
-                        const it = data.intent;
-                        document.getElementById('intent-region').innerHTML = it.inferred_region ? 
-                            `<span class="tag-green">${escapeHTML(it.inferred_region)}</span> <span style="font-size: 11px; color: var(--text-muted);">(${escapeHTML(it.inferred_nuts || 'NUTS')$})</span>` : 
-                            '<span class="tag">Nazionale / Tutte</span>';
-                        
-                        document.getElementById('intent-ateco').innerHTML = it.inferred_ateco_codes && it.inferred_ateco_codes.length > 0 ?
-                            it.inferred_ateco_codes.map(c => `<span class="tag">${escapeHTML(c)}</span>`).join(' ') :
-                            '<span class="tag">Tutti i settori</span>';
-                        
-                        document.getElementById('intent-beneficiaries').innerHTML = it.inferred_beneficiary_types && it.inferred_beneficiary_types.length > 0 ?
-                            it.inferred_beneficiary_types.map(b => `<span class="tag">${escapeHTML(b)}</span>`).join(' ') :
-                            '<span class="tag">PMI</span>';
-                        
-                        document.getElementById('intent-funding').innerHTML = `
-                            <span class="tag-green">${it.inferred_funding_types ? escapeHTML(it.inferred_funding_types.join(', ')) : 'fondo_perduto'}</span>
-                            ${it.inferred_budget ? `<span class="tag">${formatCurrency(it.inferred_budget)}</span>` : ''}
-                        `;
+    try {
+        const resp = await fetch('/api/search/nlp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: query, top_k: 20 })
+        });
 
-                        document.getElementById('intent-keywords').innerHTML = it.extracted_keywords && it.extracted_keywords.length > 0 ?
-                            it.extracted_keywords.map(kw => `<span class="tag">${escapeHTML(kw)}</span>`).join(' ') :
-                            '<span style="color: var(--text-muted);">Nessuna keyword specifica</span>';
+        if (resp.ok) {
+            const data = await resp.json();
+            const elapsedMs = Math.round(performance.now() - startTime);
 
-                        intentCard.style.display = 'block';
-                    }
-
-                    renderNlpCards('grants-container-nlp', data.results);
-                } else {
-                    throw new Error('API request failed');
+            // Display Intent Box with XSS sanitization
+            if (data.intent && intentCard) {
+                const it = data.intent;
+                const rEl = document.getElementById('intent-region');
+                if (rEl) {
+                    rEl.innerHTML = it.inferred_region ? 
+                        `<span class="tag-green">${escapeHTML(it.inferred_region)}</span> <span style="font-size: 11px; color: var(--text-muted);">(${escapeHTML(it.inferred_nuts || 'NUTS')})</span>` : 
+                        '<span class="tag">Nazionale / Tutte</span>';
                 }
-            } catch (err) {
-                // Offline / Static fallback
-                console.warn('API non raggiungibile, fallback su filtro statico:', err);
-                const qLow = query.toLowerCase();
-                const filtered = GRANTS_DATA.filter(g => 
-                    g.titolo.toLowerCase().includes(qLow) || 
-                    g.descrizione.toLowerCase().includes(qLow) ||
-                    (g.regioni && g.regioni.some(r => r.toLowerCase().includes(qLow)))
-                );
-                const fakeResults = filtered.map(g => ({
-                    grant: g,
-                    score: {
-                        overall_match_score: 85.0,
-                        is_eligible: true,
-                        blocking_failures: [],
-                        bonus_points: ['Compatibilità Semantica Ottimale'],
-                        recommended_actions: ['Presentare candidatura tramite portale ufficiale']
-                    }
-                }));
-                renderNlpCards('grants-container-nlp', fakeResults);
-            } finally {
-                spinner.style.display = 'none';
-            }
-        }
 
-        async function filterGrantsParametric() {
-            const ateco = document.getElementById('param-ateco').value.trim();
-            const region = document.getElementById('param-region').value.trim();
-            const beneficiary = document.getElementById('param-beneficiary').value;
-            const aidType = document.getElementById('param-aid-type').value;
-            const coverageVal = document.getElementById('param-coverage').value;
-            const searchText = document.getElementById('param-text').value.trim();
-
-            const criteria = {
-                ateco_codes: ateco ? [ateco] : [],
-                regioni_target: region ? [region] : [],
-                tipologia_beneficiari: beneficiary ? [beneficiary] : [],
-                tipo_agevolazione: aidType || null,
-                min_percentuale_copertura: coverageVal ? parseFloat(coverageVal) : null,
-                search_text: searchText || null,
-                stato: "APERTO"
-            };
-
-            const spinner = document.getElementById('param-spinner');
-            spinner.style.display = 'block';
-
-            try {
-                const resp = await fetch('/api/search/parametric', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(criteria)
-                });
-
-                if (resp.ok) {
-                    const data = await resp.json();
-                    renderStandardCards('grants-container-param', data.results || data);
-                } else {
-                    throw new Error('Parametric API failed');
+                const aEl = document.getElementById('intent-ateco');
+                if (aEl) {
+                    aEl.innerHTML = it.inferred_ateco_codes && it.inferred_ateco_codes.length > 0 ?
+                        it.inferred_ateco_codes.map(c => `<span class="tag">${escapeHTML(c)}</span>`).join(' ') :
+                        '<span class="tag">Tutti i settori</span>';
                 }
-            } catch (err) {
-                console.warn('API non raggiungibile, fallback su filtro statico parametrico:', err);
-                const filtered = GRANTS_DATA.filter(g => {
-                    const matchAteco = !ateco || (g.settori && g.settori.some(s => s.includes(ateco) || s === 'TUTTI'));
-                    const matchReg = !region || (g.regioni && g.regioni.some(r => r.toLowerCase().includes(region.toLowerCase()) || r.toLowerCase() === 'tutte'));
-                    const matchBen = !beneficiary || (g.beneficiari && g.beneficiari.includes(beneficiary));
-                    const matchAid = !aidType || (g.tipo_agevolazione && g.tipo_agevolazione.toLowerCase().includes(aidType.toLowerCase()));
-                    const matchCov = !coverageVal || (g.percentuale_copertura >= parseFloat(coverageVal));
-                    const matchTxt = !searchText || g.titolo.toLowerCase().includes(searchText.toLowerCase()) || g.descrizione.toLowerCase().includes(searchText.toLowerCase());
-                    return matchAteco && matchReg && matchBen && matchAid && matchCov && matchTxt;
-                });
-                renderStandardCards('grants-container-param', filtered);
-            } finally {
-                spinner.style.display = 'none';
+
+                const bEl = document.getElementById('intent-beneficiaries');
+                if (bEl) {
+                    bEl.innerHTML = it.inferred_beneficiary_types && it.inferred_beneficiary_types.length > 0 ?
+                        it.inferred_beneficiary_types.map(b => `<span class="tag">${escapeHTML(b)}</span>`).join(' ') :
+                        '<span class="tag">PMI</span>';
+                }
+
+                const fEl = document.getElementById('intent-funding');
+                if (fEl) {
+                    fEl.innerHTML = `
+                        <span class="tag-green">${it.inferred_funding_types ? escapeHTML(it.inferred_funding_types.join(', ')) : 'fondo_perduto'}</span>
+                        ${it.inferred_budget ? `<span class="tag">${formatCurrency(it.inferred_budget)}</span>` : ''}
+                    `;
+                }
+
+                const kEl = document.getElementById('intent-keywords');
+                if (kEl) {
+                    kEl.innerHTML = it.extracted_keywords && it.extracted_keywords.length > 0 ?
+                        it.extracted_keywords.map(kw => `<span class="tag">${escapeHTML(kw)}</span>`).join(' ') :
+                        '<span style="color: var(--text-muted);">Nessuna keyword specifica</span>';
+                }
+
+                intentCard.style.display = 'block';
             }
-        }
 
-        function resetParametricFilters() {
-            document.getElementById('param-ateco').value = '';
-            document.getElementById('param-region').value = '';
-            document.getElementById('param-beneficiary').value = '';
-            document.getElementById('param-aid-type').value = '';
-            document.getElementById('param-coverage').value = '';
-            document.getElementById('param-text').value = '';
-            renderStandardCards('grants-container-param', GRANTS_DATA);
-        }
+            if (speedEl && data.results) {
+                speedEl.innerHTML = `⚡ Trovati ${data.results.length} bandi pertinenti in ${elapsedMs}ms | Risoluzione ATECO & De Minimis Eseguita in Tempo Reale`;
+                speedEl.style.display = 'inline-flex';
+            }
 
-        function filterCatalog() {
-            const term = document.getElementById('catalog-search').value.toLowerCase();
-            const filtered = GRANTS_DATA.filter(g => 
-                g.titolo.toLowerCase().includes(term) ||
-                g.ente_erogatore.toLowerCase().includes(term) ||
-                (g.descrizione && g.descrizione.toLowerCase().includes(term))
-            );
-            renderStandardCards('grants-container-catalog', filtered);
+            renderNlpCards('grants-container-nlp', data.results);
+        } else {
+            throw new Error('API request failed');
         }
+    } catch (err) {
+        // Offline / Static fallback
+        console.warn('API non raggiungibile, fallback su filtro statico:', err);
+        const qLow = query.toLowerCase();
+        const rawData = (typeof GRANTS_DATA !== 'undefined') ? GRANTS_DATA : [];
+        const filtered = rawData.filter(g => 
+            g.titolo.toLowerCase().includes(qLow) || 
+            g.descrizione.toLowerCase().includes(qLow) ||
+            (g.regioni && g.regioni.some(r => r.toLowerCase().includes(qLow)))
+        );
+        const fakeResults = filtered.map(g => ({
+            grant: g,
+            score: {
+                overall_match_score: 85.0,
+                is_eligible: true,
+                blocking_failures: [],
+                bonus_points: ['Compatibilità Semantica Ottimale'],
+                recommended_actions: ['Presentare candidatura tramite portale ufficiale']
+            }
+        }));
+        renderNlpCards('grants-container-nlp', fakeResults);
+    } finally {
+        if (spinner) spinner.style.display = 'none';
+    }
+}
 
-        function runPreset(queryText) {
-            document.getElementById('nlp-input').value = queryText;
-            filterGrantsNLP();
+async function filterGrantsParametric() {
+    const ateco = (document.getElementById('param-ateco')?.value || '').trim();
+    const region = (document.getElementById('param-region')?.value || '').trim();
+    const beneficiary = document.getElementById('param-beneficiary')?.value || '';
+    const aidType = document.getElementById('param-aid-type')?.value || '';
+    const coverageVal = document.getElementById('param-coverage')?.value || '';
+    const searchText = (document.getElementById('param-text')?.value || '').trim();
+
+    const criteria = {
+        ateco_codes: ateco ? [ateco] : [],
+        regioni_target: region ? [region] : [],
+        tipologia_beneficiari: beneficiary ? [beneficiary] : [],
+        tipo_agevolazione: aidType || null,
+        min_percentuale_copertura: coverageVal ? parseFloat(coverageVal) : null,
+        search_text: searchText || null,
+        stato: "APERTO"
+    };
+
+    const spinner = document.getElementById('param-spinner');
+    if (spinner) spinner.style.display = 'block';
+
+    try {
+        const resp = await fetch('/api/search/parametric', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(criteria)
+        });
+
+        if (resp.ok) {
+            const data = await resp.json();
+            renderStandardCards('grants-container-param', data.results || data);
+        } else {
+            throw new Error('Parametric API failed');
         }
+    } catch (err) {
+        console.warn('API non raggiungibile, fallback su filtro statico parametrico:', err);
+        const rawData = (typeof GRANTS_DATA !== 'undefined') ? GRANTS_DATA : [];
+        const filtered = rawData.filter(g => {
+            const matchAteco = !ateco || (g.settori && g.settori.some(s => s.includes(ateco) || s === 'TUTTI'));
+            const matchReg = !region || (g.regioni && g.regioni.some(r => r.toLowerCase().includes(region.toLowerCase()) || r.toLowerCase() === 'tutte'));
+            const matchBen = !beneficiary || (g.beneficiari && g.beneficiari.includes(beneficiary));
+            const matchAid = !aidType || (g.tipo_agevolazione && g.tipo_agevolazione.toLowerCase().includes(aidType.toLowerCase()));
+            const matchCov = !coverageVal || (g.percentuale_copertura >= parseFloat(coverageVal));
+            const matchTxt = !searchText || g.titolo.toLowerCase().includes(searchText.toLowerCase()) || g.descrizione.toLowerCase().includes(searchText.toLowerCase());
+            return matchAteco && matchReg && matchBen && matchAid && matchCov && matchTxt;
+        });
+        renderStandardCards('grants-container-param', filtered);
+    } finally {
+        if (spinner) spinner.style.display = 'none';
+    }
+}
 
-        // Initial Boot Render
-        renderStandardCards('grants-container-nlp', GRANTS_DATA);
-        renderStandardCards('grants-container-param', GRANTS_DATA);
-        renderStandardCards('grants-container-catalog', GRANTS_DATA);
+function resetParametricFilters() {
+    if (document.getElementById('param-ateco')) document.getElementById('param-ateco').value = '';
+    if (document.getElementById('param-region')) document.getElementById('param-region').value = '';
+    if (document.getElementById('param-beneficiary')) document.getElementById('param-beneficiary').value = '';
+    if (document.getElementById('param-aid-type')) document.getElementById('param-aid-type').value = '';
+    if (document.getElementById('param-coverage')) document.getElementById('param-coverage').value = '';
+    if (document.getElementById('param-text')) document.getElementById('param-text').value = '';
+    const rawData = (typeof GRANTS_DATA !== 'undefined') ? GRANTS_DATA : [];
+    renderStandardCards('grants-container-param', rawData);
+}
+
+function filterCatalog() {
+    const searchEl = document.getElementById('catalog-search');
+    if (!searchEl) return;
+    const term = searchEl.value.toLowerCase();
+    const rawData = (typeof GRANTS_DATA !== 'undefined') ? GRANTS_DATA : [];
+    const filtered = rawData.filter(g => 
+        g.titolo.toLowerCase().includes(term) || 
+        g.ente_erogatore.toLowerCase().includes(term) ||
+        (g.descrizione && g.descrizione.toLowerCase().includes(term))
+    );
+    renderStandardCards('grants-container-catalog', filtered);
+}
+
+async function triggerSyncHarvest() {
+    const btn = document.getElementById('btn-sync-harvest');
+    if (!btn) return;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳ Sincronizzazione in corso...</span>';
+    try {
+        const resp = await fetch('/api/sync/harvest', { method: 'POST' });
+        if (resp.ok) {
+            const res = await resp.json();
+            btn.innerHTML = '<span>✓ Sincronizzate ' + res.sources_scanned + ' fonti (' + res.duration_ms + 'ms)</span>';
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 4000);
+        } else {
+            throw new Error('Sync failed');
+        }
+    } catch (err) {
+        btn.innerHTML = '<span>⚠️ Errore sincronizzazione</span>';
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }, 3000);
+    }
+}
+
+function runPreset(queryText) {
+    const inputEl = document.getElementById('nlp-input');
+    if (inputEl) {
+        inputEl.value = queryText;
+    }
+    filterGrantsNLP();
+}
+
+// Initial Boot Render
+if (typeof GRANTS_DATA !== 'undefined') {
+    renderStandardCards('grants-container-nlp', GRANTS_DATA);
+    renderStandardCards('grants-container-param', GRANTS_DATA);
+    renderStandardCards('grants-container-catalog', GRANTS_DATA);
+}
+
     </script>
 </body>
 </html>

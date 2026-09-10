@@ -1,4 +1,4 @@
 """Data models package."""
-from .cgm import CanonicalGrantModel
+from .cgm import BandoStato, CanonicalGrantModel, FonteTipo, MacroCategoria
 
-__all__ = ["CanonicalGrantModel"]
+__all__ = ["CanonicalGrantModel", "BandoStato", "FonteTipo", "MacroCategoria"]
