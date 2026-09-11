@@ -32,7 +32,6 @@
 - `.agents/skills/NK-Dynamic-Sandbox-StressTester/resources/*`: phase2_chaos_swarm_runner.py, dynamic_pool_dispatcher.py, phase1_surgical_runner.py
 - `.agents/skills/NK-Security-Auditor/resources/l1/*`: peer_review_validator.py, token_weighted_allocator.py, swarm_aggregator.py
 - `tests/*`: test_invisible_healing_loop.py, test_dast_sandbox.py, test_schemas_and_contracts.py, test_sbfl_engine.py, test_ast_guard_validator.py, test_memory_3tier.py, test_win32_2pc.py, test_ast_repo_mapper.py, conftest.py, test_platform_upgrades.py
-- `root/*`: dashboard.html
 - `google-docs-mcp/*`: auth.py, cli.py
 - `nk_tracking/cockpit/*`: nk_cockpit.html
 - `.agents/skills/NK-Oracle-Evaluator/scripts/*`, `.agents/skills/NK-Bug-Diagnostic-Engine/resources/*`

@@ -179,7 +179,7 @@ def test_platform_cli_integration(tmp_path: Path) -> None:
     if not runner_script.exists():
         runner_script = workspace_root / ".staging" / "scripts" / "platform_runner.py"
 
-    cli_cmd = f'{sys.executable} -c "print(\'CLI_RUNNER_SUCCESS_🚀\')"'
+    cli_cmd = f'"{sys.executable}" -c "print(\'CLI_RUNNER_SUCCESS_🚀\')"'
     rc_runner, stdout_runner, stderr_runner = safe_subprocess_run(
         [sys.executable, str(runner_script), "--cmd", cli_cmd]
     )

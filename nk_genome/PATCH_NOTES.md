@@ -1,10 +1,30 @@
 # 📜 NEXUS KEYSTONE OFFICIAL CHANGELOG & PATCH NOTES (SSOT)
 
 > **Single Source of Truth (SSOT):** `nk_genome/PATCH_NOTES.md`  
-> **Release Ufficiale:** `v1.9.0-PlatformOptimized (Core Optimization & Project Isolation Mandate)`  
-> **Milestone Anchor:** `NK-MS-20260911-PLATFORM-OPTIMIZED-v1.9.0`  
+> **Release Ufficiale:** `v1.9.1-ForensicClean (Full Decoupling, Scorie Purged & TAS Audit)`  
+> **Milestone Anchor:** `NK-MS-20260911-FORENSIC-CLEAN-v1.9.1`  
 > **Data Consolidamento:** 2026-09-11  
-> **Stato Release:** `🛡️ [NK-SUPER-BRIEF-STATUS: AUDITED_AND_OFFICIAL_v1.9.0 🟢]`
+> **Stato Release:** `🛡️ [NK-SUPER-BRIEF-STATUS: AUDITED_AND_OFFICIAL_v1.9.1 🟢]`
+
+---
+
+## 🏛️ Release v1.9.1-ForensicClean — Bonifica Scorie, Salvaguardia Progetto Esterno & Audit TAS
+La Release **v1.9.1-ForensicClean** completa in modo deterministico e rigoroso l'operazione di scompattamento di `LabNK-Bandi` e la bonifica integrale di NK-Hub:
+1. **Bonifica Radicale Scorie Residue in NK-Hub**:
+   - Rimosso `dashboard.html` (70 KB) dalla root e dal tracciamento Git.
+   - Rimossa la cartella `data/` (5 file, 1,1 MB con i dataset storici dei bandi) da NK-Hub e da Git.
+   - Rimossa la directory effimera orfana `test_scratch/` dal filesystem.
+   - Rimossa la specifica di dominio `nk_genome/business_financial_domain_spec.md` (preservata in `LabNK-Bandi`).
+2. **Completamento & Autosufficienza di `LabNK-Bandi`**:
+   - Trasferita la directory `data/` (`stress_test_queries_80.txt`, `web_ground_truth_80.json`, benchmark 30/40 dual) in `g:\Il mio Drive\LabNK-Bandi\data\`.
+   - Trasferito `dashboard.html` e creata la cartella di telemetria `nk_tracking/reports_and_briefs/`.
+   - Verificata la piena operatività: tutti i 67 test dei Bandi passano al 100%.
+3. **Risoluzione Bug Spazi nel Path su Windows (`test_platform_cli_integration`)**:
+   - Corretto il quoting di `sys.executable` in `tests/test_platform_upgrades.py`, sanando il fallimento su percorsi con spazi (`G:\Il mio Drive\...`).
+   - Suite permanente ratificata a **60/60 test PASSED (100.0%)** su Windows e Linux.
+4. **Blindatura di Sicurezza & TAS Audit L1/L2/L3**:
+   - De-tracciati da Git i file `google-docs-mcp/credentials.json` e `google-docs-mcp/token.json` e aggiunti a `.gitignore`.
+   - Eseguito audit formale TAS con radar chart di sicurezza e certificazione di conformità a rischio zero.
 
 ---
 

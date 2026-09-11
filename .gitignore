@@ -37,3 +37,9 @@ nk_tracking/cockpit/
 .staging/*
 !.staging/.gitkeep
 
+# Sensitive Credentials and Auth Tokens
+google-docs-mcp/credentials.json
+google-docs-mcp/token.json
+data/
+test_scratch/
+
