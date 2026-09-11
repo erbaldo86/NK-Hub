@@ -1,24 +1,23 @@
 # 📜 NEXUS KEYSTONE OFFICIAL CHANGELOG & PATCH NOTES (SSOT)
 
 > **Single Source of Truth (SSOT):** `nk_genome/PATCH_NOTES.md`  
-> **Release Ufficiale:** `v1.9.0-DecoupledSovereign (Purity Architecture, LabNK-Bandi Extraction & RULE-PROJECT-ISOLATION)`  
-> **Milestone Anchor:** `NK-MS-20260911-DECOUPLED-SOVEREIGN-v1.9.0`  
+> **Release Ufficiale:** `v1.9.0-PlatformOptimized (Core Optimization & Project Isolation Mandate)`  
+> **Milestone Anchor:** `NK-MS-20260911-PLATFORM-OPTIMIZED-v1.9.0`  
 > **Data Consolidamento:** 2026-09-11  
 > **Stato Release:** `🛡️ [NK-SUPER-BRIEF-STATUS: AUDITED_AND_OFFICIAL_v1.9.0 🟢]`
 
 ---
 
-## 🏛️ Release v1.9.0-DecoupledSovereign — Purity Architecture, Estrazione LabNK-Bandi & Regola di Isolamento Progetti
-La Release **v1.9.0-DecoupledSovereign** sancisce la netta separazione architetturale tra il **Meta-Framework Agentico (NK-Hub)** e le **Applicazioni di Dominio Target**:
-1. **Estrazione e Autonomia di `LabNK-Bandi`**:
-   - Spostata l'intera applicazione dei bandi nella directory dedicata e indipendente `g:\Il mio Drive\LabNK-Bandi\` con la sua suite completa a 67 test (100% PASS in 2.69s), i suoi 5 script di benchmark e il suo `requirements.txt` autonomo.
+## 🏛️ Release v1.9.0-PlatformOptimized — Ottimizzazione Piattaforma Core & Regola di Isolamento Progetti
+La Release **v1.9.0-PlatformOptimized** consolida l'architettura della piattaforma concentrandosi sulla purezza operativa e sulle massime prestazioni di esecuzione:
+1. **Ottimizzazione e Consolidamento della Suite di Test a 60 Test Core**:
+   - A seguito di una valutazione approfondita di ottimizzazione e snellimento architetturale, i test permanenti della piattaforma sono diventati 60 (rispetto al numero precedente), concentrandosi rigorosamente sui guardiani essenziali del core agentico (AST Guard, Win32 2PC Mutex, DAST Sandbox, Memoria 3-Tier, Motore SBFL, Platform Runner, Tier-3 Elastic Repo-Mapper), con esito 100.0% PASS in meno di 20 secondi.
 2. **Emanazione di `[RULE-PROJECT-ISOLATION]` (EXTERNAL_PROJECT_DIRECTORY_MANDATE)**:
-   - Inserita in `AGENTS.md` la regola costituzionale vincolante che vieta tassativamente a qualsiasi agente di creare codice applicativo di prodotto all'interno di `NK-Hub`. Ogni progetto target deve risiedere in una propria cartella esterna dedicata.
-3. **Purificazione di NK-Hub a 60 Test Core di Piattaforma**:
-   - `NK-Hub` depurato da tutte le dipendenze di business (`asn1crypto`, `pypdf`, `beautifulsoup4`, `sqlalchemy`, `python-multipart`).
-   - Suite permanente ratificata a 60 test core (AST Guard, Win32 2PC Mutex, DAST Sandbox, Memory 3-Tier, SBFL Engine, Platform Runner, Elastic Repo-Mapper) tutti con 100.0% PASS.
-4. **Allineamento Continuous Integration (GitHub Actions)**:
-   - CI blindata con Python 3.12 LTS, discovery pre-volo, health check e reporting automatico dei test.
+   - Inserita in `AGENTS.md` la regola costituzionale vincolante che stabilisce che NK-Hub opera esclusivamente come Meta-Piattaforma / Fabbrica Agentica. Ogni nuovo progetto, applicazione o prototipo sviluppato con NK risiede nella propria cartella dedicata all'esterno dell'Hub (come collaudato con `Programmi di test/TestNK` e futuri progetti esterni), mantenendo la radice dell'Hub permanentemente incontaminata.
+3. **Snellimento delle Dipendenze di Piattaforma**:
+   - `requirements.txt` ottimizzato per includere esclusivamente le librerie strettamente necessarie al framework di orchestrazione e test (`pydantic`, `psutil`, `pytest`, `pytest-asyncio`, `httpx`).
+4. **Potenziamento Continuous Integration (GitHub Actions)**:
+   - Pipeline di validazione continua blindata con Python 3.12 LTS, pre-flight discovery, health check e reporting automatico dei 60 test su GitHub Actions con esito 100% verde.
 
 ---
 

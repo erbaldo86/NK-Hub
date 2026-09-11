@@ -1,9 +1,9 @@
-# 🏛️ NK Genome: Structural Tree Master (v1.9.0-DecoupledSovereign)
+# 🏛️ NK Genome: Structural Tree Master (v1.9.0-PlatformOptimized)
 ### *Albero Strutturale, Motori di Piattaforma, Contratti & Topologia Ecosistema*
 
 > **Badge di Certificazione:** 🛡️ [NK-SUPER-BRIEF-STATUS: AUDITED_AND_OFFICIAL_v1.9.0 🟢]  
-> **Milestone Anchor:** `NK-MS-20260911-DECOUPLED-SOVEREIGN-v1.9.0`  
-> **Versione Target:** `v1.9.0-DecoupledSovereign`  
+> **Milestone Anchor:** `NK-MS-20260911-PLATFORM-OPTIMIZED-v1.9.0`  
+> **Versione Target:** `v1.9.0-PlatformOptimized`  
 > **Dominio:** Meta-Piattaforma Sovrana NK-Hub, 60 Test Permanenti di Piattaforma & Isolamento Progetti Esterni
 
 ---
@@ -13,7 +13,7 @@
 ```text
 G:/Il mio Drive/Antigravity/
 ├── .agents/
-│   ├── AGENTS.md                                # Regolamento di Sistema v1.9.0-DecoupledSovereign
+│   ├── AGENTS.md                                # Regolamento di Sistema v1.9.0-PlatformOptimized
 │   ├── rules/
 │   │   └── anti_crash_rules.md                  # Regole di protezione Windows, Win32 & I/O
 │   └── skills/                                  # 16 Skill Vocazionali Canoniche
@@ -78,5 +78,5 @@ In ossequio al principio architetturale *"L'Hub è la Fabbrica, i Progetti sono 
 
 1. **`Programmi di test/TestNK/`**:
    - Gestionale CRM aziendale con import rubrica smartphone vCard (`.vcf`), parser CSV/TSV e storage SQLite WAL puro (23 test dedicati al 100% PASS).
-2. **`g:\Il mio Drive\LabNK-Bandi/`**:
-   - Piattaforma di Bandi Intelligence con 12 package DDD, connettori a *Incentivi.gov*, *Unioncamere*, *TED*, *SEDIA*, estrazione PDF e firma digitale `.p7m` (67 test dedicati al 100% PASS).
+2. **Directory Esterne Dedicate (Future Applicazioni)**:
+   - Ogni nuovo applicativo, microservizio o portale generato dagli agenti risiede nella propria directory radice autonoma all'esterno dell'Hub, garantendo il pieno disaccoppiamento del ciclo di vita.

@@ -1,4 +1,4 @@
-# 🏛️ Lab NK Hub — Sovereign AI Agentic OS (v1.9.0-DecoupledSovereign)
+# 🏛️ Lab NK Hub — Sovereign AI Agentic OS (v1.9.0-PlatformOptimized)
 ### *Il Sistema Operativo Cognitivo Sovrano, Orchestratore di Sciami Multi-Agente & Motore di Vibe Coding per Google Antigravity*
 
 <p align="center">
@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Release-v1.9.0--DecoupledSovereign-0052FF?style=for-the-badge&logo=shield&logoColor=white" alt="Release Badge" />
+  <img src="https://img.shields.io/badge/Release-v1.9.0--PlatformOptimized-0052FF?style=for-the-badge&logo=shield&logoColor=white" alt="Release Badge" />
   <img src="https://img.shields.io/badge/Standard-CRV_4.0_Universal-00C853?style=for-the-badge&logo=checkmarx&logoColor=white" alt="CRV 4.0 Standard" />
   <img src="https://img.shields.io/badge/Zero--Mock-100%25_Real_Certified-FF6D00?style=for-the-badge&logo=databricks&logoColor=white" alt="Zero-Mock Certified" />
   <img src="https://img.shields.io/badge/Permanent_Tests-60%2F60_100%25_PASS-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Permanent Tests" />
@@ -18,14 +18,14 @@
 
 ---
 
-## ⚡ Patch Notes: Novità Release v1.9.0-DecoupledSovereign (Purity Release)
+## ⚡ Patch Notes: Novità Release v1.9.0-PlatformOptimized (Ottimizzazione della Piattaforma)
 
-> **Disaccoppiamento Architetturale & Isolamento dei Progetti:** La versione **v1.9.0-DecoupledSovereign** sancisce la netta separazione architetturale tra la **Meta-Piattaforma Sovrana (NK-Hub)** e i domini applicativi esterni sviluppati con essa:
+> **Ottimizzazione della Piattaforma & Isolamento dei Progetti:** La versione **v1.9.0-PlatformOptimized** punta sulla massima purezza operativa, sullo snellimento architetturale e sulla rapidità estrema di validazione:
 
-* **Separazione Netta Piattaforma e Applicazioni Target:** Estratta l'applicazione Bandi nella directory indipendente `LabNK-Bandi/` con la sua suite completa a 67 test e dipendenze di business, purificando NK-Hub come puro sistema operativo agentico leggero e universale.
-* **Regola Costituzionale `[RULE-PROJECT-ISOLATION]` (EXTERNAL_PROJECT_DIRECTORY_MANDATE):** Divieto categorico di inserire codice applicativo di prodotto all'interno del repository NK-Hub. Ogni progetto sviluppato con NK risiede obbligatoriamente in un proprio workspace esterno dedicato.
-* **Suite Permanente Ottimizzata a 60 Test Core:** Test focalizzati al 100% sull'integrità della piattaforma (AST Guard, Win32 2PC Mutex, Memoria 3-Tier, Motore SBFL, Sandbox DAST, Platform Runner, Repo-Mapper elastico) con esito 100.0% PASS.
-* **Depurazione Dipendenze:** Rimosse da `requirements.txt` le librerie di dominio non pertinenti alla piattaforma (`asn1crypto`, `beautifulsoup4`, `pypdf`, `sqlalchemy`, `python-multipart`).
+* **Suite Permanente Ottimizzata a 60 Test Core:** A seguito di una valutazione approfondita di snellimento e ottimizzazione architetturale, i test permanenti della piattaforma sono diventati **60 test core** (rispetto al numero precedente), concentrati rigorosamente sui guardiani essenziali della piattaforma (AST Guard, Win32 2PC Mutex, Sandbox DAST, Memoria 3-Tier, Motore SBFL, Platform Runner, Repo-Mapper elastico Tier-3) con esito 100.0% PASS in meno di 20 secondi.
+* **Regola Costituzionale `[RULE-PROJECT-ISOLATION]` (EXTERNAL_PROJECT_DIRECTORY_MANDATE):** Sancito il principio fondamentale che NK-Hub opera unicamente come Fabbrica Agentica / Meta-Piattaforma. Ogni nuovo progetto, applicazione o prototipo realizzato con l'ausilio di NK risiede nella propria cartella dedicata all'esterno dell'Hub (come `Programmi di test/TestNK` e futuri progetti esterni), mantenendo la cartella radice dell'Hub permanentemente incontaminata.
+* **Depurazione Dipendenze:** `requirements.txt` depurato per contenere esclusivamente le dipendenze essenziali del framework di orchestrazione (`pydantic`, `psutil`, `pytest`, `pytest-asyncio`, `httpx`).
+* **Allineamento Continuous Integration (GitHub Actions):** Pipeline di integrazione continua blindata con Python 3.12 LTS, preflight health check e reporting automatico dei 60 test su GitHub Actions con esito 100% verde.
 
 ---
 

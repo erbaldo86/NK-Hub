@@ -1,18 +1,18 @@
-# 🏛️ NK Genome: Concept Map & Master Brief (v1.9.0-DecoupledSovereign)
+# 🏛️ NK Genome: Concept Map & Master Brief (v1.9.0-PlatformOptimized)
 ### *Sovereign Meta-Platform, Multi-Agent Swarm Orchestrator & Vibe Coding Engine*
 
 > **Badge di Certificazione:** 🛡️ [NK-SUPER-BRIEF-STATUS: AUDITED_AND_OFFICIAL_v1.9.0 🟢]  
-> **Milestone Anchor:** `NK-MS-20260911-DECOUPLED-SOVEREIGN-v1.9.0`  
-> **Versione Target:** `v1.9.0-DecoupledSovereign`  
+> **Milestone Anchor:** `NK-MS-20260911-PLATFORM-OPTIMIZED-v1.9.0`  
+> **Versione Target:** `v1.9.0-PlatformOptimized`  
 > **Dominio:** Nexus Keystone Hub — Meta-Framework Agentico, CRV 4.0, Win32 2PC & Sandbox Isolation
 
 ---
 
 ## 🎯 1. Visione Concettuale & La Tetralogia Sovrana di NK Genome
 
-Con la Release **v1.9.0-DecoupledSovereign**, l'intero ecosistema Nexus Keystone raggiunge la **Piena Purezza Architetturale**:
+Con la Release **v1.9.0-PlatformOptimized**, l'intero ecosistema Nexus Keystone raggiunge la **Piena Purezza Architetturale**:
 1. **Disaccoppiamento Totale Meta-Platform vs Target Applications:**  
-   NK-Hub opera rigorosamente come Meta-Piattaforma e Laboratorio di Sviluppo. I progetti applicativi realizzati con NK (es. `Programmi di test/TestNK`, `LabNK-Bandi`) risiedono in directory esterne dedicate, in conformità vincolante con `[RULE-PROJECT-ISOLATION]`.
+   NK-Hub opera rigorosamente come Meta-Piattaforma e Laboratorio di Sviluppo. I progetti applicativi realizzati con NK (es. `Programmi di test/TestNK` e progetti esterni dedicati) risiedono in directory esterne dedicate, in conformità vincolante con `[RULE-PROJECT-ISOLATION]`.
 2. **La Tetralogia Sovrana in `nk_genome/`:**
    - `concept_map.md`: Intento di dominio, architettura dei guardiani di qualità e tassonomia Vibe Coding.
    - `structural_tree.md`: Topologia strutturale dei motori asincroni in `scripts/`, delle 16 vocational skill in `.agents/` e dei 60 test di piattaforma in `tests/`.
@@ -41,7 +41,7 @@ graph TD
 
     subgraph EXTERNAL AUTONOMOUS PROJECTS
         TNK["Programmi di test/TestNK (CRM SQLite WAL)"]
-        BND["LabNK-Bandi (Grants Intelligence)"]
+        EXT["Applicazioni Esterne Dedicate (Future Apps)"]
     end
 
     CM --> ST
@@ -49,7 +49,7 @@ graph TD
     ST --> W2P
     ST --> DST
     W2P -.->|Orchestra & Costruisce| TNK
-    W2P -.->|Orchestra & Costruisce| BND
+    W2P -.->|Orchestra & Costruisce| EXT
 ```
 
 ---

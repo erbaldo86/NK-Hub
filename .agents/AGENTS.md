@@ -11,7 +11,7 @@
 ### [RULE-PROJECT-ISOLATION] EXTERNAL_PROJECT_DIRECTORY_MANDATE
 * **DIVIETO ASSOLUTO DI CODICE APPLICATIVO NELL'HUB:** È fatto divieto tassativo a QUALSIASI agente o sub-agente di creare cartelle o file di codice sorgente applicativo di produzione (`src_app/`, `app/`, moduli di business) all'interno dell'albero del repository `NK-Hub`.
 * **MANDATO CARTELLA ESTERNA A SÉ STANTE:** Ogni nuovo progetto, applicazione, gestionale, script o prototipo sviluppato con l'ausilio di NK DEVE risiedere nella propria directory radice autonoma e dedicata all'esterno dell'Hub (es. `g:\Il mio Drive\<NomeProgetto>\` o workspace separato).
-* **RUOLO ESCLUSIVO DI NK-HUB:** NK-Hub opera rigorosamente come "Meta-Platform / Agentic Hub": contiene gli agenti, le skill, i guardiani di qualità e i tool di diagnostica, e lavora sui progetti esterni guidando i builder tramite puntamento a cartelle target esterne (come collaudato con `Programmi di test/TestNK` e `LabNK-Bandi`), mantenendo la propria radice incontaminata.
+* **RUOLO ESCLUSIVO DI NK-HUB:** NK-Hub opera rigorosamente come "Meta-Platform / Agentic Hub": contiene gli agenti, le skill, i guardiani di qualità e i tool di diagnostica, e lavora sui progetti esterni guidando i builder tramite puntamento a cartelle target esterne (come collaudato con `Programmi di test/TestNK` e progetti esterni dedicati), mantenendo la propria radice incontaminata.
 
 ### [RULE-00] ZERO_UNAUTHORIZED_FILE_MODIFICATION_MANDATE
 * **DIVIETO ASSOLUTO DI SCRITTURA PRE-APPROVAZIONE SU PRODUZIONE:** È fatto divieto tassativo a QUALSIASI agente o sub-agente di chiamare `write_to_file`, `replace_file_content` o modificare file di produzione (`".agents/AGENTS.md"`, `"scripts/*"`) durante richieste di sola consultazione, senza autorizzazione.
