@@ -8,15 +8,20 @@
 
 ## 🛑 0. HARD EXECUTION GATE (Divieto Assoluto di Modifica Senza Permesso)
 
+### [RULE-PROJECT-ISOLATION] EXTERNAL_PROJECT_DIRECTORY_MANDATE
+* **DIVIETO ASSOLUTO DI CODICE APPLICATIVO NELL'HUB:** È fatto divieto tassativo a QUALSIASI agente o sub-agente di creare cartelle o file di codice sorgente applicativo di produzione (`src_app/`, `app/`, moduli di business) all'interno dell'albero del repository `NK-Hub`.
+* **MANDATO CARTELLA ESTERNA A SÉ STANTE:** Ogni nuovo progetto, applicazione, gestionale, script o prototipo sviluppato con l'ausilio di NK DEVE risiedere nella propria directory radice autonoma e dedicata all'esterno dell'Hub (es. `g:\Il mio Drive\<NomeProgetto>\` o workspace separato).
+* **RUOLO ESCLUSIVO DI NK-HUB:** NK-Hub opera rigorosamente come "Meta-Platform / Agentic Hub": contiene gli agenti, le skill, i guardiani di qualità e i tool di diagnostica, e lavora sui progetti esterni guidando i builder tramite puntamento a cartelle target esterne (come collaudato con `Programmi di test/TestNK` e `LabNK-Bandi`), mantenendo la propria radice incontaminata.
+
 ### [RULE-00] ZERO_UNAUTHORIZED_FILE_MODIFICATION_MANDATE
-* **DIVIETO ASSOLUTO DI SCRITTURA PRE-APPROVAZIONE SU PRODUZIONE:** È fatto divieto tassativo a QUALSIASI agente o sub-agente di chiamare `write_to_file`, `replace_file_content` o modificare file di produzione (`"src_app/*"`, `".agents/AGENTS.md"`) durante richieste di sola consultazione, senza autorizzazione.
+* **DIVIETO ASSOLUTO DI SCRITTURA PRE-APPROVAZIONE SU PRODUZIONE:** È fatto divieto tassativo a QUALSIASI agente o sub-agente di chiamare `write_to_file`, `replace_file_content` o modificare file di produzione (`".agents/AGENTS.md"`, `"scripts/*"`) durante richieste di sola consultazione, senza autorizzazione.
 * **DEROGA SPECIFICHE & BRIEFING (nk_genome/):** In deroga parziale, i nodi di ideazione e pianificazione (`NK-Ideator`, `NK-Plan-Aligner`, `NK-Session-Controller`) sono formalmente pre-autorizzati a creare e aggiornare la Tetralogia Sovrana in `"nk_genome/"` (`concept_map.md`, `structural_tree.md`, `implementation_plan.md`, `repo_map.md`) e la telemetria in `"nk_tracking/"` per adempiere all'Auto-Brief Swarm FSM.
 * **DEROGA VIBE CODING STAGING/SANDBOX:** In modalità interattiva Vibe Coding (Mode B e Mode C), l'agente è pre-autorizzato a creare prototipi e branch isolati in `".staging/"` e `"%TEMP%\nk_sandbox_*\"` per eseguire verifiche AST e DAST senza "permission ping-pong". Il commit fisico finale su disco di produzione resta vincolato alla conferma atomica.
 * **DIVIETO DI I/O BYPASS VIA TERMINALE:** È vietato in modo esplicito aggirare il blocco di I/O usando `run_command` con operatori di reindirizzamento (`>`, `>>`), comandi come `echo`, o script Python non autorizzati per manipolare file fisici.
 
 ### [RULE-00.1] STRICT_SPECIFIER_READ_ONLY_MANDATE
-* Tutti i nodi di Ideazione, UX/UI Design, Metaprompting, Diagnostica e Audit (`NK-Ideator`, `NK-App-UX-Architect`, `NK-Security-Auditor`, `NK-Bug-Diagnostic-Engine`) operano in modalità **Strict Read-Only sul codice di produzione (`src_app/*`)**.
-* È fatto divieto assoluto a tali nodi di eseguire o prescrivere chiamate di scrittura per file sorgente (`.py`, `.js`, `.ts`, `.html`, `.css`). L'output consentito è unicamente la Tetralogia Sovrana in `nk_genome/`, schemi JSON in `nk_tracking/reports_and_briefs/` e report di audit. La scrittura del codice applicativo è prerogativa esclusiva dei Builder operanti in `".staging/"`.
+* Tutti i nodi di Ideazione, UX/UI Design, Metaprompting, Diagnostica e Audit (`NK-Ideator`, `NK-App-UX-Architect`, `NK-Security-Auditor`, `NK-Bug-Diagnostic-Engine`) operano in modalità **Strict Read-Only sui file di produzione dell'Hub e dei progetti target**.
+* È fatto divieto assoluto a tali nodi di eseguire o prescrivere chiamate di scrittura per file sorgente (`.py`, `.js`, `.ts`, `.html`, `.css`). L'output consentito è unicamente la Tetralogia Sovrana in `nk_genome/`, schemi JSON in `nk_tracking/reports_and_briefs/` e report di audit. La scrittura del codice applicativo nei progetti esterni è prerogativa esclusiva dei Builder operanti in `".staging/"`.
 
 ### [RULE-00.2] THE_SCRIBE_EXEMPTION
 * In deroga parziale a `[RULE-00]`, la skill `NK-Scribe` è formalmente autorizzata ad eseguire aggiornamenti automatici in background sui soli file di tracciamento e documentazione (`nk_tracking/*`, `nk_genome/PATCH_NOTES.md`, `nk_genome/repo_map.md`, `README.md`) al completamento con esito PASS della Macro-Fase 3 del CRV 4.0.
@@ -59,8 +64,8 @@
 * **Tooling Integrato:** Utilizzo del tool nativo `schedule(DurationSeconds=45)` o del daemon asincrono `scripts/async_heartbeat_signaler.py` (cadenza 15-20s).
 * **Isolamento Diagnostico:** In caso di watchdog alert, i dump diagnostici dei thread devono essere salvati rigorosamente in `"%TEMP%\nk_diagnostics\"` (mai sul mount Google Drive `G:\`) per prevenire lock I/O e deadlock con `GoogleDriveFS`.
 
-### [RULE-01.10] PERMANENT_TEST_SUITE_MANDATE (115 Test Non-Regression Ratchet)
-* **È FATTO DIVIETO CATEGORICO E ASSOLUTO** di eliminare o degradare la suite permanente di **115 test unitari su 15 file** contenuti in `"tests/"` (55 test core piattaforma + 60 test dominio applicativo).
+### [RULE-01.10] PERMANENT_TEST_SUITE_MANDATE (60 Test Core Platform Ratchet)
+* **È FATTO DIVIETO CATEGORICO E ASSOLUTO** di eliminare o degradare la suite permanente di **60 test unitari su 9 file** contenuti in `"tests/"` dedicati al core della piattaforma (AST Guard, Win32 2PC, Memory 3-Tier, SBFL Engine, DAST Sandbox, Platform Runner, Repo-Mapper elastico).
 * Il ratchet di qualità (`nk_tracking/quality_baseline.json`) impone che nessuna modifica possa ridurre la percentuale di PASS sotto il 100.0%.
 
 ### [RULE-01.11] INTRINSIC_IMPLEMENTATION_MANDATE

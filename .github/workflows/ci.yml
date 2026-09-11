@@ -39,7 +39,7 @@ jobs:
         run: |
           python scripts/ast_guard_validator.py --target all
 
-      - name: Run Core Platform Test Suite (127 Permanent Tests)
+      - name: Run Core Platform Test Suite (60 Permanent Tests)
         run: |
           pip install pytest-github-actions-annotate-failures
           python -m pytest tests/ -v --tb=short --junitxml=pytest-results.xml

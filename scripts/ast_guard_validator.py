@@ -696,7 +696,7 @@ def main() -> int:
     targets_to_scan: List[Path] = []
     if raw_target.lower() == "all":
         workspace_root = Path(__file__).resolve().parent.parent
-        for candidate in ["scripts", "tests", "src_app"]:
+        for candidate in ["scripts", "tests"]:
             cand_path = workspace_root / candidate
             if cand_path.exists():
                 targets_to_scan.append(cand_path)

@@ -1,4 +1,4 @@
-# 🏛️ Lab NK Hub — Sovereign AI Agentic OS (v1.8.0-ModularStable)
+# 🏛️ Lab NK Hub — Sovereign AI Agentic OS (v1.9.0-DecoupledSovereign)
 ### *The Sovereign Cognitive Operating System, Multi-Agent Swarm Orchestrator & Vibe Coding Engine for Google Antigravity*
 
 <p align="center">
@@ -7,26 +7,31 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Release-v1.8.0--ModularStable-0052FF?style=for-the-badge&logo=shield&logoColor=white" alt="Release Badge" />
+  <img src="https://img.shields.io/badge/Release-v1.9.0--DecoupledSovereign-0052FF?style=for-the-badge&logo=shield&logoColor=white" alt="Release Badge" />
   <img src="https://img.shields.io/badge/Standard-CRV_4.0_Universal-00C853?style=for-the-badge&logo=checkmarx&logoColor=white" alt="CRV 4.0 Standard" />
   <img src="https://img.shields.io/badge/Zero--Mock-100%25_Real_Certified-FF6D00?style=for-the-badge&logo=databricks&logoColor=white" alt="Zero-Mock Certified" />
-  <img src="https://img.shields.io/badge/Permanent_Tests-127%2F127_100%25_PASS-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Permanent Tests" />
-  <img src="https://img.shields.io/badge/Dual_Benchmark-40_Scenarios_100%25_PASS-brightgreen?style=for-the-badge&logo=fastapi&logoColor=white" alt="Dual Benchmark" />
-  <img src="https://img.shields.io/badge/Architecture-12_DDD_Blocks-purple?style=for-the-badge&logo=diagramsdotnet&logoColor=white" alt="Architecture Blocks" />
+  <img src="https://img.shields.io/badge/Permanent_Tests-60%2F60_100%25_PASS-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Permanent Tests" />
+  <img src="https://img.shields.io/badge/Architecture-Pure_Agentic_MetaPlatform-purple?style=for-the-badge&logo=diagramsdotnet&logoColor=white" alt="Architecture Blocks" />
   <img src="https://img.shields.io/badge/Commit_Lock-Win32_2PC_Named_Mutex-E91E63?style=for-the-badge&logo=windows&logoColor=white" alt="Win32 2PC Mutex" />
   <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License MIT" />
 </p>
 
 ---
 
-## ⚡ Patch Notes: What's New in v1.8.0-ModularStable (New Official Baseline)
+## ⚡ Patch Notes: What's New in v1.9.0-DecoupledSovereign (Purity Release)
 
-> **Official Stable Baseline:** Release **v1.8.0-ModularStable** establishes the de-monolithized modular block architecture of LabNK Bandi Intelligence as the new Single Source of Truth (SSOT), permanently retiring all legacy structures:
+> **Architectural Decoupling & Project Isolation:** Release **v1.9.0-DecoupledSovereign** establishes complete architectural separation between the **Sovereign Meta-Platform (NK-Hub)** and external target application domains:
 
-* **12 Modular DDD Blocks (`src_app/`):** Clean separation into 12 domain packages (`api`, `catalog`, `connectors`, `core`, `data`, `document_processing`, `ingestion`, `matching`, `models`, `search`, `service`, `ui`), eliminating monolithic bloat.
-* **Invisible Self-Healing & Critical Bug Resolutions:** Fully resolved cold-start circular dependency deadlocks and standardized Italian/plural parameter aliases (`regioni`, `settori`, `agevolazione`) in the expert parametric search engine.
-* **40-Scenario Dual Benchmark (80 End-to-End Queries):** Comparative validation across 80 simulated queries (40 Natural Language NLP + 40 Advanced Parametric) with **80/80 PASS (100.0%, 0 deficit)**, average latencies sub-7ms, and a 100% Dual Agreement Rate.
-* **127 Permanent Tests Ratchet:** 18 test modules with 127 tests at 100% PASS, deterministic L3 Oracle (95/95 PASS), and AST Guard (66/66 compliant modules).
+* **Separation of Platform & Target Applications:** Extracted the Bandi intelligence application into its own autonomous project tree (`LabNK-Bandi/`) with its dedicated 67 tests and business dependencies, purifying NK-Hub into a lean, universal agentic operating system.
+* **Constitutional Rule `[RULE-PROJECT-ISOLATION]` (EXTERNAL_PROJECT_DIRECTORY_MANDATE):** Strictly prohibits creating application source code inside the NK-Hub repository. Every user application developed with NK must reside in an independent external workspace.
+* **Streamlined 60-Test Permanent Core Suite:** Concentrates testing strictly on platform integrity (AST Guard, Win32 2PC, Memory 3-Tier, SBFL Engine, DAST Sandbox, Platform Runner, Elastic Repo-Mapper) with 100.0% PASS.
+* **Depurated Dependencies:** Removed domain-specific libraries (`asn1crypto`, `beautifulsoup4`, `pypdf`, `sqlalchemy`, `python-multipart`) from NK-Hub's `requirements.txt`.
+
+---
+
+## ⚡ Archive Patch Notes: What's New in v1.8.0-ModularStable
+
+> **Modular Baseline:** Release **v1.8.0-ModularStable** established the de-monolithized modular block architecture and 40-Scenario Dual Benchmark:
 
 ---
 

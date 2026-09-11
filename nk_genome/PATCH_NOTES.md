@@ -1,10 +1,24 @@
 # 📜 NEXUS KEYSTONE OFFICIAL CHANGELOG & PATCH NOTES (SSOT)
 
 > **Single Source of Truth (SSOT):** `nk_genome/PATCH_NOTES.md`  
-> **Release Ufficiale:** `v1.8.0-ModularStable (Official Stable Baseline, Modular DDD Blocks & 40-Scenario Dual Benchmark)`  
-> **Milestone Anchor:** `NK-MS-20260911-MODULAR-STABLE-BASELINE-v1.8.0`  
+> **Release Ufficiale:** `v1.9.0-DecoupledSovereign (Purity Architecture, LabNK-Bandi Extraction & RULE-PROJECT-ISOLATION)`  
+> **Milestone Anchor:** `NK-MS-20260911-DECOUPLED-SOVEREIGN-v1.9.0`  
 > **Data Consolidamento:** 2026-09-11  
-> **Stato Release:** `🛡️ [NK-SUPER-BRIEF-STATUS: AUDITED_AND_OFFICIAL_v1.8.0 🟢]`
+> **Stato Release:** `🛡️ [NK-SUPER-BRIEF-STATUS: AUDITED_AND_OFFICIAL_v1.9.0 🟢]`
+
+---
+
+## 🏛️ Release v1.9.0-DecoupledSovereign — Purity Architecture, Estrazione LabNK-Bandi & Regola di Isolamento Progetti
+La Release **v1.9.0-DecoupledSovereign** sancisce la netta separazione architetturale tra il **Meta-Framework Agentico (NK-Hub)** e le **Applicazioni di Dominio Target**:
+1. **Estrazione e Autonomia di `LabNK-Bandi`**:
+   - Spostata l'intera applicazione dei bandi nella directory dedicata e indipendente `g:\Il mio Drive\LabNK-Bandi\` con la sua suite completa a 67 test (100% PASS in 2.69s), i suoi 5 script di benchmark e il suo `requirements.txt` autonomo.
+2. **Emanazione di `[RULE-PROJECT-ISOLATION]` (EXTERNAL_PROJECT_DIRECTORY_MANDATE)**:
+   - Inserita in `AGENTS.md` la regola costituzionale vincolante che vieta tassativamente a qualsiasi agente di creare codice applicativo di prodotto all'interno di `NK-Hub`. Ogni progetto target deve risiedere in una propria cartella esterna dedicata.
+3. **Purificazione di NK-Hub a 60 Test Core di Piattaforma**:
+   - `NK-Hub` depurato da tutte le dipendenze di business (`asn1crypto`, `pypdf`, `beautifulsoup4`, `sqlalchemy`, `python-multipart`).
+   - Suite permanente ratificata a 60 test core (AST Guard, Win32 2PC Mutex, DAST Sandbox, Memory 3-Tier, SBFL Engine, Platform Runner, Elastic Repo-Mapper) tutti con 100.0% PASS.
+4. **Allineamento Continuous Integration (GitHub Actions)**:
+   - CI blindata con Python 3.12 LTS, discovery pre-volo, health check e reporting automatico dei test.
 
 ---
 

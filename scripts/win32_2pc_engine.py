@@ -699,7 +699,7 @@ def promote_staging_to_production(
     if not staging_dir.exists():
         raise FileNotFoundError(f"Staging directory does not exist: {staging_dir}")
 
-    target_subdirs = subdirs or ["src_app", "data/snapshots"]
+    target_subdirs = subdirs or ["scripts", "tests", "data/snapshots"]
     engine = TwoPhaseCommitEngine()
 
     committed: List[Dict[str, Any]] = []

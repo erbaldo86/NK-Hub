@@ -1,4 +1,4 @@
-# 🏛️ Lab NK Hub — Sovereign AI Agentic OS (v1.8.0-ModularStable)
+# 🏛️ Lab NK Hub — Sovereign AI Agentic OS (v1.9.0-DecoupledSovereign)
 ### *Il Sistema Operativo Cognitivo Sovrano, Orchestratore di Sciami Multi-Agente & Motore di Vibe Coding per Google Antigravity*
 
 <p align="center">
@@ -7,26 +7,31 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Release-v1.8.0--ModularStable-0052FF?style=for-the-badge&logo=shield&logoColor=white" alt="Release Badge" />
+  <img src="https://img.shields.io/badge/Release-v1.9.0--DecoupledSovereign-0052FF?style=for-the-badge&logo=shield&logoColor=white" alt="Release Badge" />
   <img src="https://img.shields.io/badge/Standard-CRV_4.0_Universal-00C853?style=for-the-badge&logo=checkmarx&logoColor=white" alt="CRV 4.0 Standard" />
   <img src="https://img.shields.io/badge/Zero--Mock-100%25_Real_Certified-FF6D00?style=for-the-badge&logo=databricks&logoColor=white" alt="Zero-Mock Certified" />
-  <img src="https://img.shields.io/badge/Permanent_Tests-127%2F127_100%25_PASS-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Permanent Tests" />
-  <img src="https://img.shields.io/badge/Dual_Benchmark-40_Scenari_100%25_PASS-brightgreen?style=for-the-badge&logo=fastapi&logoColor=white" alt="Dual Benchmark" />
-  <img src="https://img.shields.io/badge/Architecture-12_DDD_Blocks-purple?style=for-the-badge&logo=diagramsdotnet&logoColor=white" alt="Architecture Blocks" />
+  <img src="https://img.shields.io/badge/Permanent_Tests-60%2F60_100%25_PASS-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Permanent Tests" />
+  <img src="https://img.shields.io/badge/Architecture-MetaPiattaforma_Agentica_Pura-purple?style=for-the-badge&logo=diagramsdotnet&logoColor=white" alt="Architecture Blocks" />
   <img src="https://img.shields.io/badge/Commit_Lock-Win32_2PC_Named_Mutex-E91E63?style=for-the-badge&logo=windows&logoColor=white" alt="Win32 2PC Mutex" />
   <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License MIT" />
 </p>
 
 ---
 
-## ⚡ Patch Notes: Novità Release v1.8.0-ModularStable (Nuova Baseline Ufficiale)
+## ⚡ Patch Notes: Novità Release v1.9.0-DecoupledSovereign (Purity Release)
 
-> **Nuovo Punto di Partenza Stabile:** La versione **v1.8.0-ModularStable** consolida la completa de-monolitizzazione a blocchi di LabNK Bandi Intelligence come nuova Single Source of Truth (SSOT), archiviando in modo definitivo ogni residuo legacy:
+> **Disaccoppiamento Architetturale & Isolamento dei Progetti:** La versione **v1.9.0-DecoupledSovereign** sancisce la netta separazione architetturale tra la **Meta-Piattaforma Sovrana (NK-Hub)** e i domini applicativi esterni sviluppati con essa:
 
-* **Architettura a 12 Blocchi Modulari DDD (`src_app/`):** Suddivisione in 12 package verticali (`api`, `catalog`, `connectors`, `core`, `data`, `document_processing`, `ingestion`, `matching`, `models`, `search`, `service`, `ui`), eliminando completamente i vecchi file monolitici.
-* **Invisible Self-Healing & Risoluzione Bug Critici:** Rimozione dei blocchi da import circolare a freddo e supporto universale a tutti i sinonimi e plurali italiani (`regioni`, `settori`, `agevolazione`) nella ricerca parametrica per esperti.
-* **Benchmark Deterministico a 40 Scenari Duali (80 Query E2E):** Validazione comparativa su 80 query simulate (40 NLP Semplificate + 40 Parametriche Avanzate) con **80/80 PASS (100.0%, 0 deficit)**, latenze medie inferiori a 7 ms e Dual Agreement del 100%.
-* **Ratchet di Qualità a 127 Test Permanenti:** Suite unitaria/integrazione su 18 file con 127 test al 100% PASS, Oracolo Deterministico L3 (95/95 PASS) e AST Guard (66/66 moduli conformi).
+* **Separazione Netta Piattaforma e Applicazioni Target:** Estratta l'applicazione Bandi nella directory indipendente `LabNK-Bandi/` con la sua suite completa a 67 test e dipendenze di business, purificando NK-Hub come puro sistema operativo agentico leggero e universale.
+* **Regola Costituzionale `[RULE-PROJECT-ISOLATION]` (EXTERNAL_PROJECT_DIRECTORY_MANDATE):** Divieto categorico di inserire codice applicativo di prodotto all'interno del repository NK-Hub. Ogni progetto sviluppato con NK risiede obbligatoriamente in un proprio workspace esterno dedicato.
+* **Suite Permanente Ottimizzata a 60 Test Core:** Test focalizzati al 100% sull'integrità della piattaforma (AST Guard, Win32 2PC Mutex, Memoria 3-Tier, Motore SBFL, Sandbox DAST, Platform Runner, Repo-Mapper elastico) con esito 100.0% PASS.
+* **Depurazione Dipendenze:** Rimosse da `requirements.txt` le librerie di dominio non pertinenti alla piattaforma (`asn1crypto`, `beautifulsoup4`, `pypdf`, `sqlalchemy`, `python-multipart`).
+
+---
+
+## ⚡ Archivio Patch Notes: Release v1.8.0-ModularStable
+
+> **Baseline Modulare:** La versione **v1.8.0-ModularStable** ha introdotto la de-monolitizzazione modulare e il benchmark a 40 scenari duali:
 
 ---
 
