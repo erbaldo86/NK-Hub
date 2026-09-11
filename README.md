@@ -29,12 +29,6 @@
 
 ---
 
-## ⚡ Archive Patch Notes: What's New in v1.8.0-ModularStable
-
-> **Modular Baseline:** Release **v1.8.0-ModularStable** established the de-monolithized modular block architecture and 40-Scenario Dual Benchmark:
-
----
-
 ## ⚡ Archive Patch Notes: What's New in v1.7.2-PlatformHardened
 
 > **Executive Spotlight:** Here is the complete breakdown of new capabilities, architectural hardening, and the real-world **"Proof of Work"** benchmark delivered in **v1.7.2-PlatformHardened**, explained transparently **for both non-technical users and senior engineers**:

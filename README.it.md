@@ -29,12 +29,6 @@
 
 ---
 
-## ⚡ Archivio Patch Notes: Release v1.8.0-ModularStable
-
-> **Baseline Modulare:** La versione **v1.8.0-ModularStable** ha introdotto la de-monolitizzazione modulare e il benchmark a 40 scenari duali:
-
----
-
 ## ⚡ Archivio Patch Notes: Release v1.7.2-PlatformHardened
 
 > **In Primo Piano:** Ecco il quadro completo delle nuove funzionalità, dei potenziamenti infrastrutturali e dei risultati della **"Prova del Nove"** introdotti nella versione **v1.7.2-PlatformHardened**, spiegati in modo trasparente **sia per i non esperti che per i programmatori senior**:
