@@ -1,19 +1,19 @@
 {
-  "_version": "1.7.1-SovereignClean",
+  "_version": "1.8.0-ModularStable",
   "project": "NK_Project",
   "baseline_date": "2026-08-20T22:45:00.000000",
-  "last_updated": "2026-09-11T01:56:00.000000",
+  "last_updated": "2026-09-11T02:00:00.000000",
   "metrics": {
     "skills_audited": {
       "value": 16,
       "direction": "higher_is_better"
     },
     "unit_tests_total": {
-      "value": 115,
+      "value": 127,
       "direction": "higher_is_better"
     },
     "unit_tests_passed": {
-      "value": 115,
+      "value": 127,
       "direction": "higher_is_better"
     },
     "unit_tests_pass_pct": {
@@ -71,6 +71,18 @@
     "autonomous_healing_speed_ms": {
       "value": 450.0,
       "direction": "lower_is_better"
+    },
+    "stress_test_40_dual_passed": {
+      "value": 80,
+      "direction": "higher_is_better"
+    },
+    "stress_test_40_dual_pass_pct": {
+      "value": 100.0,
+      "direction": "higher_is_better"
+    },
+    "dual_agreement_pct": {
+      "value": 100.0,
+      "direction": "higher_is_better"
     }
   },
   "ratchet_rule": "no_metric_may_worsen",
@@ -199,6 +211,28 @@
         "unit_tests_total": 122,
         "unit_tests_passed": 122,
         "unit_tests_pass_pct": 100.0
+      }
+    },
+    {
+      "timestamp": "2026-09-11T02:00:00.000000",
+      "metrics": {
+        "skills_audited": 16,
+        "unit_tests_total": 127,
+        "unit_tests_passed": 127,
+        "unit_tests_pass_pct": 100.0,
+        "stress_test_80_passed": 80,
+        "stress_test_80_pass_pct": 100.0,
+        "stress_test_40_dual_passed": 80,
+        "stress_test_40_dual_pass_pct": 100.0,
+        "dual_agreement_pct": 100.0,
+        "sast_l1_compliance_pct": 100.0,
+        "sast_l2_compliance_pct": 100.0,
+        "sast_l3_compliance_pct": 100.0,
+        "dast_dynamic_exit_code": 0,
+        "token_leaks_detected": 0,
+        "mock_violations_detected": 0,
+        "crv_macro_phases": 4,
+        "cold_review_gates": 5
       }
     }
   ]

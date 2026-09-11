@@ -1,0 +1,69 @@
+{
+  "manifest_version": "1.8.0-ModularStable",
+  "timestamp": "2026-09-11T02:00:00Z",
+  "milestone_anchor_id": "NK-MS-20260911-MODULAR-STABLE-BASELINE-v1.8.0",
+  "project": "LabNK — Modulo Bandi Intelligence & Decision Engine",
+  "release_version": "v1.8.0-ModularStable",
+  "status": "CONSOLIDATED_OFFICIAL_RELEASE",
+  "fsm_state": "TURN_5_FINAL_HANDOFF_COMPLETE",
+  "macro_fase": "FASE_3_ATOMIC_COMMIT_2PC_COMPLETE",
+  "actor_critic_topology": {
+    "sovrano_infrastrutturale_l3": "NK-Master-Hub",
+    "evaluator_node": "NK-Oracle-Evaluator",
+    "critic_node": "NK-Session-Controller",
+    "worker_node": "NK-Delta-Architect"
+  },
+  "circuit_breaker": {
+    "correction_attempts": 0,
+    "max_allowed": 3,
+    "status": "HEALTHY_GREEN"
+  },
+  "metrics": {
+    "pytest_permanent_suite": "127/127 PASSED (100.0%)",
+    "stress_test_40_dual_accuracy": "100.0% (80/80 PASS - 0 Deficit)",
+    "dual_agreement_rate": "100.0%",
+    "stress_test_nlp_latency_avg_ms": 6.99,
+    "stress_test_parametric_latency_avg_ms": 4.10,
+    "oracle_deterministic_l3": "95/95 PASSED (100.0%)",
+    "ast_guard_purity": "66/66 Modules Checked (0 Violations)",
+    "preflight_health": "HEALTHY_GREEN",
+    "seed_grants_count": 40,
+    "snapshot_grants_count": 835
+  },
+  "cold_review_verdict": {
+    "gate_1_scope_audit": "PASS",
+    "gate_2_code_grounding": "PASS",
+    "gate_2bis_brief_grounding": "PASS",
+    "gate_3_preservation": "PASS",
+    "gate_4_truth_verification": "PASS",
+    "gate_5_delegation_audit": "PASS"
+  },
+  "architecture_summary": {
+    "modular_blocks_count": 12,
+    "packages": [
+      "src_app/api",
+      "src_app/catalog",
+      "src_app/connectors",
+      "src_app/core",
+      "src_app/data",
+      "src_app/document_processing",
+      "src_app/ingestion",
+      "src_app/matching",
+      "src_app/models",
+      "src_app/search",
+      "src_app/service",
+      "src_app/ui"
+    ],
+    "legacy_monoliths_status": "ARCHIVED_AND_PURGED"
+  },
+  "next_sprint": {
+    "name": "MASS_INGESTION_CRAWLER_AND_MULTI_TENANCY",
+    "description": "Crawler massivo paginato per estrazione continuativa FESR/FSE e profilazione multi-azienda per consulenti",
+    "target_files": [
+      "src_app/connectors/html_scraper.py",
+      "src_app/ingestion/orchestrator.py",
+      "src_app/matching/scoring_engine.py",
+      "src_app/matching/profile_model.py"
+    ]
+  }
+}

@@ -1,10 +1,31 @@
 # 📜 NEXUS KEYSTONE OFFICIAL CHANGELOG & PATCH NOTES (SSOT)
 
 > **Single Source of Truth (SSOT):** `nk_genome/PATCH_NOTES.md`  
-> **Release Ufficiale:** `v1.7.2-PlatformHardened (Environment Discovery, Universal UTF-8 Bootstrap & Test Isolation)`  
-> **Milestone Anchor:** `NK-MS-20260911-PLATFORM-HARDENED-v1.7.2`  
+> **Release Ufficiale:** `v1.8.0-ModularStable (Official Stable Baseline, Modular DDD Blocks & 40-Scenario Dual Benchmark)`  
+> **Milestone Anchor:** `NK-MS-20260911-MODULAR-STABLE-BASELINE-v1.8.0`  
 > **Data Consolidamento:** 2026-09-11  
-> **Stato Release:** `🛡️ [NK-SUPER-BRIEF-STATUS: AUDITED_AND_OPTIMIZED 🟢]`
+> **Stato Release:** `🛡️ [NK-SUPER-BRIEF-STATUS: AUDITED_AND_OFFICIAL_v1.8.0 🟢]`
+
+---
+
+## 🏛️ Release v1.8.0-ModularStable — Nuova Baseline Stabile Ufficiale, Architettura a Blocchi & Benchmark 40 Scenari Duali
+La Release **v1.8.0-ModularStable** sancisce il consolidamento dell'architettura de-monolitizzata a blocchi come **Nuovo Punto di Partenza Stabile Ufficiale** dell'intero ecosistema LabNK e Nexus Keystone:
+1. **De-monolitizzazione Completa & Architettura a 12 Blocchi DDD (`src_app/`)**:
+   - Smantellamento definitivo dei macro-monoliti in 12 package verticali modulari e disaccoppiati: `api/`, `catalog/`, `connectors/`, `core/`, `data/`, `document_processing/`, `ingestion/`, `matching/`, `models/`, `search/`, `service/`, `ui/`.
+   - `app.py` e `server.py` convertiti in facciate essenziali per l'esecuzione CLI e il server ASGI Uvicorn.
+2. **Invisible Self-Healing & Risoluzione Falla Import Circolari**:
+   - Rimosso il blocco circolare tra `bandi_service.py`, `document_pipeline.py`, `orchestrator.py` e `nightly_scheduler.py` tramite lazy import e clausole `if TYPE_CHECKING:`.
+   - Garantito il corretto cold start a freddo e la perfetta esecuzione di `preflight_health_check.py` con status `HEALTHY_GREEN`.
+3. **Bonifica Parametric Search Alias Mapping (Bypass Neutralizzato)**:
+   - Esteso `map_convenience_aliases` in `src_app/search/parametric_filter.py` per supportare in modo trasparente tutte le denominazioni italiane e plurali (`regioni`, `settori`, `codici_ateco`, `agevolazione`, `tipo_agevolazione`, `tipologie_beneficiari`).
+   - Risolto il fallback no-op che restituiva l'intero catalogo invece dei soli bandi conformi ai filtri.
+4. **Modello di Stress Test Reale a 40 Scenari Duali (80 Query E2E)**:
+   - Creato il dataset anagrafico SSOT `data/benchmark_40_dual_scenarios.json` e il runner deterministico `scripts/run_stress_test_40_dual.py`.
+   - Eseguite 80 query reali simultanee (40 NLP Semplificate + 40 Parametriche Avanzate) con **80/80 PASS (100.0%, 0 deficit)**.
+   - Latenza media Semplificata: **6.99 ms** | Latenza media Parametrica: **4.10 ms** | Dual Agreement Rate: **100.0%**.
+5. **Elevazione Suite di Test Permanente a 127 Test (100.0% PASS)**:
+   - Suite permanente ratificata su 18 file con 127 test unitari/integrazione, Oracolo Deterministico L3 (95/95 PASS) e AST Guard (66/66 moduli conformi).
+   - Ratchet di non-regressione ratificato in `nk_tracking/quality_baseline.json`.
 
 ---
 
