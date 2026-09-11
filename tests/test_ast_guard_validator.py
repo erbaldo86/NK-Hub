@@ -96,6 +96,7 @@ def process_command(command):
         self.assertTrue(rep.is_valid, f"PEP 634 should pass cleanly: {rep.violations}")
 
     # 33. test_scope_integrity_pep695_type_parameters
+    @unittest.skipIf(sys.version_info < (3, 12), "PEP 695 type parameters require Python 3.12+")
     def test_scope_integrity_pep695_type_parameters(self):
         """33. Validates zero false positives on PEP 695 type parameters & TypeAlias."""
         code = """
