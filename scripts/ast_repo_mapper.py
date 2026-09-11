@@ -1210,6 +1210,65 @@ class RepoMapGenerator:
         )
 
     @classmethod
+    def _render_expanded_module(cls, mod: str, syms: List[SymbolNode]) -> str:
+        mod_lines = [f"## 📄 {mod}"]
+        classes = [s for s in syms if s.symbol_type == SymbolType.CLASS]
+        for cls_node in classes:
+            cls_sig = cls_node.signature or f"class {cls_node.name}:"
+            mod_lines.append(f"  {cls_sig}")
+            methods = [s for s in syms if s.parent_id == cls_node.id and s.symbol_type == SymbolType.METHOD]
+            for m in methods:
+                m_sig = m.signature or f"def {m.name}(): ..."
+                mod_lines.append(f"    {m_sig}")
+        functions = [
+            s for s in syms
+            if s.symbol_type in (SymbolType.FUNCTION, SymbolType.ASYNC_FUNCTION) and s.parent_id is None
+        ]
+        for fn in functions:
+            fn_sig = fn.signature or f"def {fn.name}(): ..."
+            mod_lines.append(f"  {fn_sig}")
+        if not classes and not functions:
+            other_syms = [s for s in syms if s.symbol_type != SymbolType.IMPORT]
+            for osym in other_syms[:5]:
+                mod_lines.append(f"  {osym.signature or osym.name}")
+        mod_lines.append("")
+        return "\n".join(mod_lines)
+
+    @classmethod
+    def _render_inline_compact_module(cls, mod: str, syms: List[SymbolNode]) -> str:
+        lines = [f"## 📄 {mod}"]
+        classes = [s for s in syms if s.symbol_type == SymbolType.CLASS]
+        for cls_node in classes:
+            methods = [s for s in syms if s.parent_id == cls_node.id and s.symbol_type == SymbolType.METHOD]
+            if methods:
+                m_names = [m.name for m in methods]
+                lines.append(f"  class {cls_node.name}: [{', '.join(m_names)}]")
+            else:
+                consts = [s for s in syms if s.parent_id == cls_node.id and s.symbol_type == SymbolType.CONSTANT]
+                if consts:
+                    c_names = [c.name for c in consts]
+                    lines.append(f"  class {cls_node.name}: [{', '.join(c_names)}]")
+                else:
+                    lines.append(f"  class {cls_node.name}: []")
+
+        functions = [
+            s for s in syms
+            if s.symbol_type in (SymbolType.FUNCTION, SymbolType.ASYNC_FUNCTION) and s.parent_id is None
+        ]
+        if functions:
+            fn_names = [fn.name for fn in functions]
+            lines.append(f"  functions: [{', '.join(fn_names)}]")
+
+        if not classes and not functions:
+            other_syms = [s for s in syms if s.symbol_type != SymbolType.IMPORT]
+            if other_syms:
+                sym_names = [s.name for s in other_syms[:5]]
+                lines.append(f"  symbols: [{', '.join(sym_names)}]")
+
+        lines.append("")
+        return "\n".join(lines)
+
+    @classmethod
     def _render_two_tier_map(
         cls,
         root_dir: Path,
@@ -1218,7 +1277,13 @@ class RepoMapGenerator:
         focal_ids: Set[str],
         max_tokens: int,
     ) -> Tuple[str, int]:
-        """Renders the high-density map with Two-Tier Clustering to strictly respect max_tokens."""
+        """
+        Renders the high-density map with Tier-3 Elastic Compactor:
+        1. Tier-1 Expanded: Full signatures with types/returns for focal/priority modules.
+        2. Tier-3 Inline Class Compaction: High-density single-line representation for rich modules.
+        3. Tier-2 Dense Packing & Zero Omissions: Dense symbol outlines with adaptive directory grouping.
+        4. Guaranteed Headroom: Output constrained to <= 82% of max_tokens (<= 850 tokens for 1024 budget).
+        """
         modules: Dict[str, List[SymbolNode]] = {}
         for node in graph.nodes.values():
             if node.symbol_type != SymbolType.IMPORT:
@@ -1234,103 +1299,142 @@ class RepoMapGenerator:
             score = max((pr_scores.get(s.id, 0.0) for s in syms), default=0.0)
             if is_focal:
                 score += 1000.0  # Strongly prioritize focal modules to Tier 1
+            has_cls = any(s.symbol_type == SymbolType.CLASS for s in syms)
+            if has_cls:
+                score += 0.01  # Prioritize class-containing modules
             module_scores.append((mod, score, is_focal))
 
         module_scores.sort(key=lambda x: x[1], reverse=True)
 
         header = "# 🗺️ HIGH-DENSITY AST REPO-MAP (Tetralogia Sovrana Snapshot)\n\n"
-        tier1_budget = max(120, int(max_tokens * 0.70))
+        target_budget = min(max_tokens, int(max_tokens * 0.82))
+        tier1_budget = max(40, int(target_budget * 0.55))
 
         tier1_blocks: List[str] = []
         tier1_mods: Set[str] = set()
 
         for mod, score, is_focal in module_scores:
             syms = modules[mod]
-            mod_lines = [f"## 📄 {mod}"]
             classes = [s for s in syms if s.symbol_type == SymbolType.CLASS]
-            for cls_node in classes:
-                cls_sig = cls_node.signature or f"class {cls_node.name}:"
-                mod_lines.append(f"  {cls_sig}")
-                methods = [s for s in syms if s.parent_id == cls_node.id]
-                for m in methods:
-                    m_sig = m.signature or f"def {m.name}(): ..."
-                    mod_lines.append(f"    {m_sig}")
+            methods = [s for s in syms if s.symbol_type == SymbolType.METHOD]
             functions = [
                 s for s in syms
                 if s.symbol_type in (SymbolType.FUNCTION, SymbolType.ASYNC_FUNCTION) and s.parent_id is None
             ]
-            for fn in functions:
-                fn_sig = fn.signature or f"def {fn.name}(): ..."
-                mod_lines.append(f"  {fn_sig}")
-            mod_lines.append("")
-            block_text = "\n".join(mod_lines)
 
-            candidate_tier1 = "\n".join(tier1_blocks + [block_text])
-            if estimate_tokens(header + candidate_tier1) <= tier1_budget:
-                tier1_blocks.append(block_text)
-                tier1_mods.add(mod)
-                continue
+            is_large = (
+                len(classes) >= 3 or
+                (len(classes) >= 1 and len(methods) >= 5) or
+                (len(classes) + len(functions) >= 7)
+            )
 
-            # Se non entra interamente, se è focale o se Tier 1 è ancora vuoto,
-            # include una versione compatta (solo definizioni di classi e firme di primo livello)
-            if is_focal or not tier1_blocks:
-                compact_lines = [f"## 📄 {mod}"]
-                for cls_node in classes:
-                    cls_sig = cls_node.signature or f"class {cls_node.name}:"
-                    compact_lines.append(f"  {cls_sig}")
-                for fn in functions:
-                    fn_sig = fn.signature or f"def {fn.name}(): ..."
-                    compact_lines.append(f"  {fn_sig}")
-                compact_lines.append("")
-                compact_block = "\n".join(compact_lines)
-
-                cand_compact = "\n".join(tier1_blocks + [compact_block])
-                if estimate_tokens(header + cand_compact) <= tier1_budget:
-                    tier1_blocks.append(compact_block)
+            # Try Expanded format if focal or not large
+            if not is_large or is_focal:
+                exp_block = cls._render_expanded_module(mod, syms)
+                cand = header + "\n".join(tier1_blocks + [exp_block])
+                if estimate_tokens(cand) <= tier1_budget:
+                    tier1_blocks.append(exp_block)
                     tier1_mods.add(mod)
                     continue
-                elif not tier1_blocks:
-                    trimmed_lines = [f"## 📄 {mod}"]
-                    for l in compact_lines[1:]:
-                        test_block = "\n".join(tier1_blocks + ["\n".join(trimmed_lines + [l, ""])])
-                        if estimate_tokens(header + test_block) <= tier1_budget:
-                            trimmed_lines.append(l)
-                        else:
-                            break
-                    if len(trimmed_lines) > 1:
-                        trimmed_lines.append("")
-                        tier1_blocks.append("\n".join(trimmed_lines))
-                        tier1_mods.add(mod)
-                        continue
 
-            continue
+            # Fallback to Tier-3 Inline Class Compaction
+            inline_block = cls._render_inline_compact_module(mod, syms)
+            cand = header + "\n".join(tier1_blocks + [inline_block])
+            if estimate_tokens(cand) <= tier1_budget:
+                tier1_blocks.append(inline_block)
+                tier1_mods.add(mod)
+                continue
+            elif not tier1_blocks:
+                cand_lines = inline_block.splitlines()
+                trimmed = [cand_lines[0]]
+                for l in cand_lines[1:]:
+                    test_t = header + "\n".join(tier1_blocks + ["\n".join(trimmed + [l, ""])])
+                    if estimate_tokens(test_t) <= tier1_budget:
+                        trimmed.append(l)
+                    else:
+                        break
+                if len(trimmed) > 1:
+                    trimmed.append("")
+                    tier1_blocks.append("\n".join(trimmed))
+                    tier1_mods.add(mod)
+                    continue
 
         tier2_mods = [m for m, _, _ in module_scores if m not in tier1_mods]
-        tier2_lines: List[str] = []
         tier2_header = "### 📦 Moduli Secondari (Riepilogo Compatto)\n" if tier2_mods else ""
-        omitted_count = 0
+        tier2_lines: List[str] = []
+        remaining_mods: List[str] = []
 
-        if tier2_mods:
-            for mod in tier2_mods:
-                syms = modules[mod]
-                s_count = len(syms)
-                names = ", ".join(s.name for s in syms[:3])
-                more = f" +{s_count - 3}" if s_count > 3 else ""
-                line = f"- `{mod}`: ({s_count} simboli: {names}{more})"
+        tier2_mods.sort(
+            key=lambda m: (
+                any(s.symbol_type == SymbolType.CLASS for s in modules[m]),
+                pr_scores.get(m, 0.0),
+            ),
+            reverse=True,
+        )
 
-                current_text = (
+        for idx, mod in enumerate(tier2_mods):
+            syms = modules[mod]
+            classes = [s.name for s in syms if s.symbol_type == SymbolType.CLASS]
+            fns = [
+                s.name for s in syms
+                if s.symbol_type in (SymbolType.FUNCTION, SymbolType.ASYNC_FUNCTION) and s.parent_id is None
+            ]
+            key_syms = classes + fns
+            if not key_syms:
+                key_syms = [s.name for s in syms if s.symbol_type != SymbolType.IMPORT]
+            top_syms = key_syms[:3]
+            line = f"- `{mod}`: [{', '.join(top_syms)}]" if top_syms else f"- `{mod}`: []"
+
+            unprocessed = tier2_mods[idx + 1:]
+            rem_groups: Dict[str, List[str]] = {}
+            for u in unprocessed:
+                p_u = Path(u)
+                d = p_u.parent.as_posix()
+                rem_groups.setdefault(d, []).append(p_u.name)
+            rem_folder_lines = [
+                f"- `root/*`: {', '.join(fnames)}" if (d == '.' or not d) else f"- `{d}/*`: {', '.join(fnames)}"
+                for d, fnames in rem_groups.items()
+            ]
+
+            test_map = (
+                header
+                + "\n".join(tier1_blocks)
+                + "\n"
+                + tier2_header
+                + "\n".join(tier2_lines + [line] + rem_folder_lines)
+            )
+            if estimate_tokens(test_map) <= target_budget:
+                tier2_lines.append(line)
+            else:
+                remaining_mods = tier2_mods[idx:]
+                break
+
+        if remaining_mods:
+            rem_groups = {}
+            for u in remaining_mods:
+                p_u = Path(u)
+                d = p_u.parent.as_posix()
+                rem_groups.setdefault(d, []).append(p_u.name)
+
+            unadded_dirs: List[str] = []
+            for d, fnames in rem_groups.items():
+                prefix = "root/*" if (d == "." or not d) else f"{d}/*"
+                f_line = f"- `{prefix}`: {', '.join(fnames)}"
+                test_map = (
                     header
                     + "\n".join(tier1_blocks)
-                    + ("\n" if tier1_blocks else "")
+                    + "\n"
                     + tier2_header
-                    + "\n".join(tier2_lines + [line])
+                    + "\n".join(tier2_lines + [f_line])
                 )
-                if estimate_tokens(current_text) <= max_tokens - 15:
-                    tier2_lines.append(line)
+                if estimate_tokens(test_map) <= target_budget:
+                    tier2_lines.append(f_line)
                 else:
-                    omitted_count = len(tier2_mods) - len(tier2_lines)
-                    tier2_lines.append(f"- ... [+{omitted_count} altri moduli secondari omessi per budget]")
-                    break
+                    unadded_dirs.append(prefix)
+
+            if unadded_dirs:
+                ultra_line = "- `" + "`, `".join(unadded_dirs) + "`"
+                tier2_lines.append(ultra_line)
 
         blocks = [header.rstrip(), ""]
         if tier1_blocks:
@@ -1341,6 +1445,19 @@ class RepoMapGenerator:
 
         final_content = "\n".join(blocks).strip() + "\n"
         final_tokens = estimate_tokens(final_content)
+
+        if final_tokens > max_tokens:
+            cand_lines = final_content.splitlines()
+            trimmed = []
+            for l in cand_lines:
+                cand_str = "\n".join(trimmed + [l]) + "\n"
+                if estimate_tokens(cand_str) <= max_tokens:
+                    trimmed.append(l)
+                else:
+                    break
+            final_content = "\n".join(trimmed).strip() + "\n"
+            final_tokens = estimate_tokens(final_content)
+
         return final_content, final_tokens
 
 

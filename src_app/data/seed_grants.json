@@ -777,7 +777,7 @@
     "titolo": "Bando Innovazione e Digitalizzazione PMI Marche — Biomedicale e Diagnostica",
     "ente_erogatore": "SVEM & Regione Marche",
     "descrizione": "Contributi a fondo perduto per digitalizzazione laboratori odontoiatrici e diagnostica biomedicale ad Ancona e nelle Marche per PMI.",
-    "tipo_agevolazione": "Contributo a fondo perduto",
+    "tipo_agevolazione": "Contributo a fondo perduto (voucher innovazione e digitalizzazione)",
     "budget_totale": 12000000.0,
     "importo_massimo_finanziabile": 120000.0,
     "percentuale_copertura": 50.0,
@@ -1320,5 +1320,79 @@
     "dom_skeleton_hash": null,
     "created_at": "2026-09-10T18:40:17.774829Z",
     "updated_at": "2026-09-10T18:40:17.774830Z"
+  },
+  {
+    "bando_id": "INCENTIVI-GOV-CAR-NATIONAL",
+    "titolo": "Incentivi.gov.it — Misura Agevolativa R&S e Competitività Imprese con Codice CAR",
+    "ente_erogatore": "MIMIT — Registro Nazionale Aiuti (RNA)",
+    "descrizione": "Finanziamento agevolato e contributi per investimenti in R&S, innovazione di processo e competitività industriale delle PMI con codice CAR CAR-12345 e regime di aiuto notificato.",
+    "tipo_agevolazione": "Finanziamento a tasso agevolato / Contributo fondo perduto",
+    "budget_totale": 250000000.0,
+    "importo_massimo_finanziabile": 800000.0,
+    "percentuale_copertura": 70.0,
+    "data_apertura": "2026-09-10T18:40:17.774489Z",
+    "data_scadenza": null,
+    "stato": "APERTO",
+    "settori_beneficiari": [
+      "72.19.09",
+      "28.00.00",
+      "62.01.00"
+    ],
+    "tipologia_beneficiari": [
+      "PMI",
+      "Startup_Innovative",
+      "Grandi_Imprese"
+    ],
+    "regioni_target": [
+      "Tutte"
+    ],
+    "url_bando": "https://www.incentivi.gov.it/misure/car-12345",
+    "url_documenti": [],
+    "codice_cup": "B12C34567890001",
+    "fonte_tipo": "REST_API",
+    "fonte_nome": "INCENTIVI_GOV_NATIONAL",
+    "macro_categoria": "AGEVOLAZIONE_IMPRESA",
+    "car_codice_misura": "CAR-12345",
+    "de_minimis_applicabile": false,
+    "hash_payload": "hash_incentivi_gov_car_national_2026",
+    "dom_skeleton_hash": null,
+    "created_at": "2026-09-10T18:40:17.774544Z",
+    "updated_at": "2026-09-10T18:40:17.774545Z"
+  },
+  {
+    "bando_id": "UNIONCAMERE-PID-DIGIT-2026",
+    "titolo": "Voucher Digitalizzazione I4.0 Rete Camere di Commercio d'Italia / PID",
+    "ente_erogatore": "Unioncamere — Rete Nazionale Punti Impresa Digitale (PID)",
+    "descrizione": "Voucher a fondo perduto fino a 10.000 euro per la digitalizzazione delle micro e piccole imprese, acquisto software cloud, cybersecurity, e-commerce e connettività promosso dalle Camere di Commercio d'Italia.",
+    "tipo_agevolazione": "Voucher a fondo perduto (de minimis)",
+    "budget_totale": 30000000.0,
+    "importo_massimo_finanziabile": 10000.0,
+    "percentuale_copertura": 70.0,
+    "data_apertura": "2026-09-10T18:40:17.774489Z",
+    "data_scadenza": null,
+    "stato": "APERTO",
+    "settori_beneficiari": [
+      "TUTTI"
+    ],
+    "tipologia_beneficiari": [
+      "Micro",
+      "Piccola",
+      "PMI"
+    ],
+    "regioni_target": [
+      "Tutte"
+    ],
+    "url_bando": "https://www.unioncamere.gov.it/pid-voucher-digitalizzazione",
+    "url_documenti": [],
+    "codice_cup": null,
+    "fonte_tipo": "REST_API",
+    "fonte_nome": "UNIONCAMERE_PID_NATIONAL",
+    "macro_categoria": "AGEVOLAZIONE_IMPRESA",
+    "car_codice_misura": null,
+    "de_minimis_applicabile": true,
+    "hash_payload": "hash_unioncamere_pid_digit_2026",
+    "dom_skeleton_hash": null,
+    "created_at": "2026-09-10T18:40:17.774544Z",
+    "updated_at": "2026-09-10T18:40:17.774545Z"
   }
 ]

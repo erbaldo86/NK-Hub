@@ -1,10 +1,31 @@
 # 📜 NEXUS KEYSTONE OFFICIAL CHANGELOG & PATCH NOTES (SSOT)
 
 > **Single Source of Truth (SSOT):** `nk_genome/PATCH_NOTES.md`  
-> **Release Ufficiale:** `v1.7.1-SovereignClean (Sovereign Audit, Bug Bonification & Two-Tier AST Stabilization)`  
-> **Milestone Anchor:** `NK-MS-20260911-SOVEREIGN-CLEAN-v1.7.1`  
+> **Release Ufficiale:** `v1.7.2-PlatformHardened (Environment Discovery, Universal UTF-8 Bootstrap & Test Isolation)`  
+> **Milestone Anchor:** `NK-MS-20260911-PLATFORM-HARDENED-v1.7.2`  
 > **Data Consolidamento:** 2026-09-11  
 > **Stato Release:** `🛡️ [NK-SUPER-BRIEF-STATUS: AUDITED_AND_OPTIMIZED 🟢]`
+
+---
+
+## 🏛️ Release v1.7.2-PlatformHardened — Environment Discovery, Universal UTF-8 Bootstrap & Test Isolation
+La Release **v1.7.2-PlatformHardened** recepisce le migliorie a rischio zero e rischio controllato dell'infrastruttura di piattaforma NK emerse durante la "Prova del Nove":
+1. **Environment Capability Discovery (`scripts/env_capability_probe.py`)**:
+   - Diagnostica deterministica e discovery a sola lettura del runtime: Python version, architettura CPU, OS, codepages di sistema.
+   - Scansione preventiva dello stato di installazione dei moduli standard (`sqlite3`, `json`, `csv`, `re`, `asyncio`, `pathlib`, `typing`) e di terze parti (`fastapi`, `pydantic`, `pytest`, `uvicorn`, `httpx`, `psutil`, `pywin32`, `sqlalchemy`), eliminando a monte le incongruenze di dipendenze.
+2. **Universal UTF-8 Runner & Stream Bootstrap (`scripts/platform_runner.py`)**:
+   - Forzatura automatica di `reconfigure_streams(encoding='utf-8', errors='replace')` e wrapper `safe_subprocess_run` con iniezione di `PYTHONIOENCODING="utf-8"` e `PYTHONUTF8="1"`.
+   - Eliminazione definitiva del bug di crash `UnicodeDecodeError: 'charmap'` nei task in background su Windows.
+3. **Blindatura Test Discovery & Noise Elimination (`pytest.ini`)**:
+   - File di configurazione canonico alla radice con `testpaths = tests` e `norecursedirs = .staging "Programmi di test" temp* .git .pytest_cache`.
+   - Filtro automatico dei deprecation warning di Starlette/FastAPI TestClient, isolamento ermetico dei test della piattaforma rispetto ad applicazioni utente o cartelle temporanee.
+4. **Espansione Suite di Test Permanente (127 Test Zero-Mock al 100% PASS)**:
+   - Creato `tests/test_platform_upgrades.py` con 4 test unitari zero-mock ed aggiunto test per l'elastic compactor in `tests/test_ast_repo_mapper.py`.
+   - Totale suite unitaria NK elevata a **127/127 test PASS (100.0%) con 0 errori e 0 warning**.
+5. **Tier-3 Elastic Compactor & Dense Packing (`scripts/ast_repo_mapper.py`)**:
+   - Risolto il problema della saturazione del token budget nei progetti complessi e della conseguente "cecità selettiva" (omissione forzata dei moduli secondari).
+   - Introdotta la compattazione inline per classi e metodi (`class X: [m1, m2, ...]`), il dense packing per i moduli secondari raggruppati per cartella e la garanzia di headroom ($\ge 170-200$ token liberi costanti).
+   - Collaudo reale certificato su `TestNK`: token scesi da **1022 a 827 token (-19.1%)**, moduli secondari omessi ridotti da **8 a 0 (100% visibilità di classi e funzioni)**.
 
 ---
 

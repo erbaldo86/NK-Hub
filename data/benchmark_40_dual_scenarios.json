@@ -1,0 +1,979 @@
+[
+  {
+    "id": "DUAL_01",
+    "title": "Innovazione Software & AI a Napoli",
+    "domain": "ICT & Intelligenza Artificiale",
+    "simplified_nlp_query": "Cerco contributi a fondo perduto per una startup a Napoli che sviluppa software di intelligenza artificiale e machine learning",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Campania"
+      ],
+      "settori": [
+        "62.01.00"
+      ],
+      "tipologie_beneficiari": [
+        "Startup_Innovative",
+        "PMI"
+      ],
+      "agevolazione": "fondo_perduto"
+    },
+    "expected_target_id": "CAMPANIA-AI-2026",
+    "expected_keywords": [
+      "Campania",
+      "Intelligenza Artificiale",
+      "software"
+    ]
+  },
+  {
+    "id": "DUAL_02",
+    "title": "Transizione 5.0 & Robotica Meccanica",
+    "domain": "Manifattura 4.0 / 5.0 & Efficienza Energetica",
+    "simplified_nlp_query": "PMI metalmeccanica cerca credito imposta per acquisto macchinari industriali 5.0 e robotica con risparmio energetico",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Tutte"
+      ],
+      "settori": [
+        "28.00.00"
+      ],
+      "tipologie_beneficiari": [
+        "PMI"
+      ],
+      "agevolazione": "credito_imposta"
+    },
+    "expected_target_id": "MIMIT-TRANS-5-0",
+    "expected_keywords": [
+      "Transizione 5.0",
+      "MIMIT",
+      "macchinari"
+    ]
+  },
+  {
+    "id": "DUAL_03",
+    "title": "Voucher Digitalizzazione & Cloud a Milano",
+    "domain": "Digitalizzazione & Cybersecurity",
+    "simplified_nlp_query": "Piccola impresa a Milano vuole un voucher per acquistare software gestionali, sicurezza informatica e cloud",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Lombardia"
+      ],
+      "settori": [
+        "62.02.00"
+      ],
+      "tipologie_beneficiari": [
+        "PMI",
+        "Micro"
+      ],
+      "agevolazione": "voucher"
+    },
+    "expected_target_id": "LOMBARDIA-DIGIT-2026",
+    "expected_keywords": [
+      "Lombardia",
+      "Voucher",
+      "Digitalizzazione"
+    ]
+  },
+  {
+    "id": "DUAL_04",
+    "title": "Horizon Europe EIC Accelerator Deep Tech",
+    "domain": "Bandi Europei Diretti & Deep Tech",
+    "simplified_nlp_query": "Startup innovativa cerca grant ed equity europei dal programma Horizon Europe EIC Accelerator per deep tech e intelligenza artificiale",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Tutte"
+      ],
+      "settori": [
+        "72.19.09"
+      ],
+      "tipologie_beneficiari": [
+        "Startup_Innovative",
+        "PMI"
+      ],
+      "agevolazione": "grant"
+    },
+    "expected_target_id": "EU-HORIZON-EIC-ACCEL",
+    "expected_keywords": [
+      "EIC Accelerator",
+      "Horizon Europe",
+      "European Innovation Council"
+    ]
+  },
+  {
+    "id": "DUAL_05",
+    "title": "Sicurezza sul Lavoro & Bonifica Amianto INAIL",
+    "domain": "Sicurezza Lavoro & Tutela Ambientale",
+    "simplified_nlp_query": "Azienda cerca finanziamenti a fondo perduto per la rimozione e bonifica di coperture in eternit amianto nei capannoni e sicurezza lavoro",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Tutte"
+      ],
+      "settori": [
+        "TUTTI"
+      ],
+      "tipologie_beneficiari": [
+        "PMI",
+        "Grandi_Imprese"
+      ],
+      "agevolazione": "fondo_perduto"
+    },
+    "expected_target_id": "INAIL-ISI-2026",
+    "expected_keywords": [
+      "INAIL",
+      "Sicurezza",
+      "ISI"
+    ]
+  },
+  {
+    "id": "DUAL_06",
+    "title": "Resto al Sud Autoimpiego Giovanile",
+    "domain": "Autoimpiego & Nuove Imprese Mezzogiorno",
+    "simplified_nlp_query": "Giovane under 35 vuole aprire una nuova attività a Bari con finanziamento a tasso zero e fondo perduto Resto al Sud",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Puglia"
+      ],
+      "settori": [
+        "TUTTI"
+      ],
+      "tipologie_beneficiari": [
+        "Micro",
+        "PMI"
+      ],
+      "agevolazione": "fondo_perduto"
+    },
+    "expected_target_id": "RESTO-AL-SUD-2-0",
+    "expected_keywords": [
+      "Resto al Sud",
+      "Autoimpiego"
+    ]
+  },
+  {
+    "id": "DUAL_07",
+    "title": "Innovazione Filiera Agroalimentare Sicilia",
+    "domain": "Agricoltura & Agroalimentare",
+    "simplified_nlp_query": "Azienda agricola a Catania cerca contributi a fondo perduto per ammodernamento impianti di trasformazione agrifood e tracciabilità",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Sicilia"
+      ],
+      "settori": [
+        "10.00.00",
+        "01.00.00"
+      ],
+      "tipologie_beneficiari": [
+        "PMI"
+      ],
+      "agevolazione": "fondo_perduto"
+    },
+    "expected_target_id": "SICILIA-AGRIFOOD-2026",
+    "expected_keywords": [
+      "Sicilia",
+      "Agroalimentare",
+      "PSR"
+    ]
+  },
+  {
+    "id": "DUAL_08",
+    "title": "Fotovoltaico & Autoconsumo Energetico Palermo",
+    "domain": "Energie Rinnovabili & Transizione Green",
+    "simplified_nlp_query": "PMI manifatturiera a Palermo vuole installare pannelli solari fotovoltaici e batterie per abbattere i costi elettrici con contributo regionale",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Sicilia"
+      ],
+      "settori": [
+        "35.11.00"
+      ],
+      "tipologie_beneficiari": [
+        "PMI"
+      ],
+      "agevolazione": "fondo_perduto"
+    },
+    "expected_target_id": "SICILIA-SOLAR-GREEN",
+    "expected_keywords": [
+      "Autoconsumo",
+      "Energetica",
+      "Sicilia"
+    ]
+  },
+  {
+    "id": "DUAL_09",
+    "title": "Riqualificazione Strutture Alberghiere Veneto",
+    "domain": "Turismo & Ospitalità",
+    "simplified_nlp_query": "Albergo a Venezia cerca contributi a fondo perduto per ristrutturazione camere, efficienza termica e digitalizzazione dell accoglienza",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Veneto"
+      ],
+      "settori": [
+        "55.10.00"
+      ],
+      "tipologie_beneficiari": [
+        "PMI"
+      ],
+      "agevolazione": "fondo_perduto"
+    },
+    "expected_target_id": "VENETO-TURISMO-2026",
+    "expected_keywords": [
+      "Veneto",
+      "Strutture Ricettive",
+      "Turismo"
+    ]
+  },
+  {
+    "id": "DUAL_10",
+    "title": "Internazionalizzazione & Export Consorzi Veneto",
+    "domain": "Export & Commercio Estero",
+    "simplified_nlp_query": "Consorzio di imprese di Verona cerca voucher per fiere internazionali ed export di prodotti tipici verso mercati extra-UE",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Veneto"
+      ],
+      "settori": [
+        "46.00.00"
+      ],
+      "tipologie_beneficiari": [
+        "PMI"
+      ],
+      "agevolazione": "voucher"
+    },
+    "expected_target_id": "VENETO-CONSORZI-EXPORT",
+    "expected_keywords": [
+      "Internazionalizzazione",
+      "Export",
+      "Veneto"
+    ]
+  },
+  {
+    "id": "DUAL_11",
+    "title": "Distretto Tessile & Moda Sostenibile Prato",
+    "domain": "Tessile, Moda & Economia Circolare",
+    "simplified_nlp_query": "Azienda tessile a Prato cerca agevolazioni per riciclo filati, tinture ecologiche e macchinari di tessitura a basso impatto",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Toscana"
+      ],
+      "settori": [
+        "13.20.00"
+      ],
+      "tipologie_beneficiari": [
+        "PMI"
+      ],
+      "agevolazione": "fondo_perduto"
+    },
+    "expected_target_id": "TOSCANA-MODA-TESSILE",
+    "expected_keywords": [
+      "Prato",
+      "Tessile",
+      "Moda"
+    ]
+  },
+  {
+    "id": "DUAL_12",
+    "title": "Ricerca & Sviluppo Biotech Firenze",
+    "domain": "Scienze della Vita & Pharma",
+    "simplified_nlp_query": "Spin-off biotecnologico a Firenze cerca finanziamenti per ricerca clinica su farmaci oncologici e life sciences",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Toscana"
+      ],
+      "settori": [
+        "72.11.00"
+      ],
+      "tipologie_beneficiari": [
+        "Startup_Innovative",
+        "Enti_Ricerca"
+      ],
+      "agevolazione": "fondo_perduto"
+    },
+    "expected_target_id": "TOSCANA-BIOTECH-PHARMA",
+    "expected_keywords": [
+      "Biotech",
+      "Scienze della Vita",
+      "Toscana"
+    ]
+  },
+  {
+    "id": "DUAL_13",
+    "title": "PIA Aerospazio & Tecnologie Satellitari Puglia",
+    "domain": "Aerospazio & Tecnologie Avanzate",
+    "simplified_nlp_query": "Impresa aerospaziale a Brindisi cerca fondi per sviluppo componenti satellitari e droni con contratto di programma regionale",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Puglia"
+      ],
+      "settori": [
+        "30.30.00"
+      ],
+      "tipologie_beneficiari": [
+        "Grandi_Imprese",
+        "PMI"
+      ],
+      "agevolazione": "fondo_perduto"
+    },
+    "expected_target_id": "PUGLIA-AEROSPACE-TECH",
+    "expected_keywords": [
+      "Aerospazio",
+      "PIA",
+      "Puglia"
+    ]
+  },
+  {
+    "id": "DUAL_14",
+    "title": "Precision Farming & Droni Agricoli Bari",
+    "domain": "Agritech & Agricoltura 4.0",
+    "simplified_nlp_query": "Azienda agricola a Bari cerca contributi per acquisto droni agricoli, sensori suolo IoT e intelligenza artificiale per irrigazione",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Puglia"
+      ],
+      "settori": [
+        "01.11.00"
+      ],
+      "tipologie_beneficiari": [
+        "PMI",
+        "Startup_Innovative"
+      ],
+      "agevolazione": "fondo_perduto"
+    },
+    "expected_target_id": "PUGLIA-AGRITECH-PRECISION",
+    "expected_keywords": [
+      "Agritech",
+      "Precision Farming",
+      "Puglia"
+    ]
+  },
+  {
+    "id": "DUAL_15",
+    "title": "Riconversione Automotive Elettrico Torino",
+    "domain": "Automotive & Mobilità Elettrica",
+    "simplified_nlp_query": "Fornitore componentistica auto a Torino cerca aiuti per riconvertire la produzione verso motori elettrici e pacchi batterie EV",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Piemonte"
+      ],
+      "settori": [
+        "29.00.00"
+      ],
+      "tipologie_beneficiari": [
+        "PMI"
+      ],
+      "agevolazione": "fondo_perduto"
+    },
+    "expected_target_id": "PIEMONTE-AUTOMOTIVE-EV",
+    "expected_keywords": [
+      "Automotive",
+      "Piemonte",
+      "Mobilità"
+    ]
+  },
+  {
+    "id": "DUAL_16",
+    "title": "Industria Meccanica Avanzata & Robotica Bologna",
+    "domain": "Meccanica & Automazione Industriale",
+    "simplified_nlp_query": "Officina meccanica di precisione a Bologna cerca agevolazioni per torni a controllo numerico, robot antropomorfi e automazione 4.0",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Emilia-Romagna"
+      ],
+      "settori": [
+        "28.00.00"
+      ],
+      "tipologie_beneficiari": [
+        "PMI"
+      ],
+      "agevolazione": "fondo_perduto"
+    },
+    "expected_target_id": "EMILIA-MECCANICA-4-0",
+    "expected_keywords": [
+      "Meccanica",
+      "Robotica",
+      "Emilia"
+    ]
+  },
+  {
+    "id": "DUAL_17",
+    "title": "Cybersecurity & Migrazione Cloud Roma",
+    "domain": "Sicurezza Informatica & Cloud Infrastructure",
+    "simplified_nlp_query": "Società di consulenza IT a Roma cerca voucher a fondo perduto per audit di sicurezza informatica, SOC e migrazione su cloud sicuro",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Lazio"
+      ],
+      "settori": [
+        "62.01.00"
+      ],
+      "tipologie_beneficiari": [
+        "PMI"
+      ],
+      "agevolazione": "voucher"
+    },
+    "expected_target_id": "LAZIO-CYBER-SECURITY",
+    "expected_keywords": [
+      "Cyber Security",
+      "Lazio",
+      "Cloud"
+    ]
+  },
+  {
+    "id": "DUAL_18",
+    "title": "Agroalimentare di Qualità & Tipicità Abruzzo",
+    "domain": "Agroalimentare & Packaging",
+    "simplified_nlp_query": "Pastificio artigianale a Chieti cerca fondi per nuovo packaging biodegradabile e impianto di essiccazione ad alta efficienza",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Abruzzo"
+      ],
+      "settori": [
+        "10.89.00"
+      ],
+      "tipologie_beneficiari": [
+        "PMI"
+      ],
+      "agevolazione": "fondo_perduto"
+    },
+    "expected_target_id": "ABRUZZO-FOOD-PROCESSING",
+    "expected_keywords": [
+      "Abruzzo",
+      "Agroalimentare",
+      "Sviluppo Rurale"
+    ]
+  },
+  {
+    "id": "DUAL_19",
+    "title": "Filiera Legno Arredo & Design Friuli",
+    "domain": "Legno Arredo & Manifattura Design",
+    "simplified_nlp_query": "Fabbrica di mobili a Udine cerca agevolazioni per taglio laser legno, software CAD/CAM e verniciatura ecologica all acqua",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Friuli-Venezia Giulia"
+      ],
+      "settori": [
+        "31.00.00"
+      ],
+      "tipologie_beneficiari": [
+        "PMI"
+      ],
+      "agevolazione": "fondo_perduto"
+    },
+    "expected_target_id": "FRIULI-MANIFATTURA-LEGNO",
+    "expected_keywords": [
+      "Friuli",
+      "Legno",
+      "Arredo"
+    ]
+  },
+  {
+    "id": "DUAL_20",
+    "title": "Brevetti+ & Valorizzazione Marchi MIMIT",
+    "domain": "Proprietà Intellettuale & Brevetti",
+    "simplified_nlp_query": "PMI con brevetto industriale registrato cerca contributo per estensione internazionale, consulenza legale IP e industrializzazione",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Tutte"
+      ],
+      "settori": [
+        "TUTTI"
+      ],
+      "tipologie_beneficiari": [
+        "PMI",
+        "Startup_Innovative"
+      ],
+      "agevolazione": "fondo_perduto"
+    },
+    "expected_target_id": "MIMIT-BREVETTI-PLUS",
+    "expected_keywords": [
+      "Brevetti+",
+      "Marchi+",
+      "MIMIT"
+    ]
+  },
+  {
+    "id": "DUAL_21",
+    "title": "Smart&Start Finanziamento Startup Innovative",
+    "domain": "Startup Innovative & Finanziamento Agevolato",
+    "simplified_nlp_query": "Nuova startup innovativa ad alto contenuto tecnologico cerca finanziamento a tasso zero fino all 80% per spese di sviluppo e personale",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Tutte"
+      ],
+      "settori": [
+        "62.01.00"
+      ],
+      "tipologie_beneficiari": [
+        "Startup_Innovative"
+      ],
+      "agevolazione": "tasso_agevolato"
+    },
+    "expected_target_id": "INVITALIA-SMART-START-2026",
+    "expected_keywords": [
+      "Smart&Start",
+      "Invitalia",
+      "Startup Innovative"
+    ]
+  },
+  {
+    "id": "DUAL_22",
+    "title": "Mobilità Sostenibile & Flotte Green Genova",
+    "domain": "Logistica, Porti & Trasporti",
+    "simplified_nlp_query": "Azienda di trasporti e logistica a Genova cerca contributi per acquisto furgoni commerciali 100% elettrici e stazioni di ricarica",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Liguria"
+      ],
+      "settori": [
+        "49.41.00"
+      ],
+      "tipologie_beneficiari": [
+        "PMI"
+      ],
+      "agevolazione": "fondo_perduto"
+    },
+    "expected_target_id": "LIGURIA-LOGISTICA-GREEN",
+    "expected_keywords": [
+      "Liguria",
+      "Mobilità Sostenibile",
+      "FILSE"
+    ]
+  },
+  {
+    "id": "DUAL_23",
+    "title": "Biomedicale & Dispositivi Medici Marche",
+    "domain": "Biomedicale & Sanità",
+    "simplified_nlp_query": "Azienda biomedicale ad Ancona cerca voucher per certificazione marcatura CE dispositivi medici e software diagnostico AI",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Marche"
+      ],
+      "settori": [
+        "32.50.00"
+      ],
+      "tipologie_beneficiari": [
+        "PMI"
+      ],
+      "agevolazione": "voucher"
+    },
+    "expected_target_id": "MARCHE-BIOMEDICALE",
+    "expected_keywords": [
+      "Marche",
+      "Biomedicale",
+      "Digitalizzazione"
+    ]
+  },
+  {
+    "id": "DUAL_24",
+    "title": "Economia Circolare & Riciclo Rifiuti Umbria",
+    "domain": "Economia Circolare & Rifiuti",
+    "simplified_nlp_query": "Impianto di gestione rifiuti a Perugia cerca agevolazioni per linea di separazione e riciclo polimeri plastici post-consumo",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Umbria"
+      ],
+      "settori": [
+        "38.21.00"
+      ],
+      "tipologie_beneficiari": [
+        "PMI"
+      ],
+      "agevolazione": "fondo_perduto"
+    },
+    "expected_target_id": "UMBRIA-CIRCOLARE",
+    "expected_keywords": [
+      "Umbria",
+      "Economia Circolare",
+      "Sviluppumbria"
+    ]
+  },
+  {
+    "id": "DUAL_25",
+    "title": "Credito d Imposta ZES Unica Mezzogiorno",
+    "domain": "Agevolazioni Fiscali & Investimenti Sud",
+    "simplified_nlp_query": "Media impresa manifatturiera cerca credito d imposta per nuovi investimenti in macchinari e capannoni industriali al Sud ZES Unica",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Campania"
+      ],
+      "settori": [
+        "28.00.00"
+      ],
+      "tipologie_beneficiari": [
+        "PMI",
+        "Grandi_Imprese"
+      ],
+      "agevolazione": "credito_imposta"
+    },
+    "expected_target_id": "CAMPANIA-ZES-UNICA",
+    "expected_keywords": [
+      "ZES Unica",
+      "Credito d Imposta",
+      "Mezzogiorno"
+    ]
+  },
+  {
+    "id": "DUAL_26",
+    "title": "Produzione Audiovisiva & Cinema Piemonte",
+    "domain": "Industria Culturale & Cinema",
+    "simplified_nlp_query": "Casa di produzione cinematografica cerca contributi per riprese di un lungometraggio e serie TV girata in location piemontesi",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Piemonte"
+      ],
+      "settori": [
+        "59.11.00"
+      ],
+      "tipologie_beneficiari": [
+        "PMI"
+      ],
+      "agevolazione": "fondo_perduto"
+    },
+    "expected_target_id": "PIEMONTE-FILM-FUND",
+    "expected_keywords": [
+      "Piemonte Film",
+      "Audiovisiva",
+      "Cinema"
+    ]
+  },
+  {
+    "id": "DUAL_27",
+    "title": "Imprenditoria Femminile & Pari Opportunità Sardegna",
+    "domain": "Impresa Donna & Pari Opportunità",
+    "simplified_nlp_query": "Impresa a prevalente partecipazione femminile a Cagliari cerca contributi a fondo perduto per acquisto attrezzature e digitalizzazione",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Sardegna"
+      ],
+      "settori": [
+        "TUTTI"
+      ],
+      "tipologie_beneficiari": [
+        "PMI",
+        "Micro"
+      ],
+      "agevolazione": "fondo_perduto"
+    },
+    "expected_target_id": "SARDEGNA-IMPRESA-FEMMINILE",
+    "expected_keywords": [
+      "Femminile",
+      "Sardegna",
+      "Donne"
+    ]
+  },
+  {
+    "id": "DUAL_28",
+    "title": "Voucher Innovation Manager Specialistica MIMIT",
+    "domain": "Consulenza Direzionale & Innovation Management",
+    "simplified_nlp_query": "PMI cerca contributi al 50% per ingaggiare un Innovation Manager qualificato per progetti di big data e intelligenza artificiale",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Tutte"
+      ],
+      "settori": [
+        "70.22.09"
+      ],
+      "tipologie_beneficiari": [
+        "PMI"
+      ],
+      "agevolazione": "voucher"
+    },
+    "expected_target_id": "MIMIT-VOUCHER-INNOVATION-AI",
+    "expected_keywords": [
+      "Innovation Manager",
+      "MIMIT",
+      "Voucher"
+    ]
+  },
+  {
+    "id": "DUAL_29",
+    "title": "Commercio al Dettaglio & Casse Telematiche Roma",
+    "domain": "Commercio di Vicinato & Sicurezza Punti Vendita",
+    "simplified_nlp_query": "Negozio di abbigliamento a Roma cerca contributi per acquisto registratore telematico di cassa, sistemi antitaccheggio ed e-commerce",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Lazio"
+      ],
+      "settori": [
+        "47.71.10"
+      ],
+      "tipologie_beneficiari": [
+        "PMI",
+        "Micro"
+      ],
+      "agevolazione": "voucher"
+    },
+    "expected_target_id": "CCIAA-ROMA-COMMERCIO-2026",
+    "expected_keywords": [
+      "CCIAA Roma",
+      "Commercio",
+      "Registratori Telematici"
+    ]
+  },
+  {
+    "id": "DUAL_30",
+    "title": "Sanità Digitale & Piattaforme E-Health TED UE",
+    "domain": "Bandi Europei Diretti & Sanità Elettronica",
+    "simplified_nlp_query": "Azienda software ospedaliero cerca appalti e bandi europei per telemedicina, cartella clinica elettronica e sanità digitale su TED",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Tutte"
+      ],
+      "settori": [
+        "62.01.00"
+      ],
+      "tipologie_beneficiari": [
+        "PMI",
+        "Grandi_Imprese"
+      ],
+      "agevolazione": "appalto"
+    },
+    "expected_target_id": "EU-TED-DIGITAL-HEALTH",
+    "expected_keywords": [
+      "TED",
+      "Sanità Digitale",
+      "E-Health"
+    ]
+  },
+  {
+    "id": "DUAL_31",
+    "title": "Fondo Rotazione Finaosta Sostegno Imprese VDA",
+    "domain": "Finanziamenti Agevolati Valle d Aosta",
+    "simplified_nlp_query": "Impresa artigiana ad Aosta cerca finanziamento a tasso agevolato del fondo rotazione per acquisto macchinari ed efficientamento",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Valle d'Aosta"
+      ],
+      "tipologie_beneficiari": [
+        "PMI"
+      ],
+      "agevolazione": "tasso_agevolato"
+    },
+    "expected_target_id": "VALLE-AOSTA-ROTAZIONE",
+    "expected_keywords": [
+      "Valle d'Aosta",
+      "Finaosta",
+      "Rotazione"
+    ]
+  },
+  {
+    "id": "DUAL_32",
+    "title": "Puglia Sviluppo Blue Economy & Cantieristica Nautica",
+    "domain": "Cantieristica Navale & Economia del Mare",
+    "simplified_nlp_query": "Cantiere nautico a Taranto cerca contributi a fondo perduto per la cantieristica navale e la blue economy in Puglia",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Puglia"
+      ],
+      "settori": [
+        "30.11.00"
+      ],
+      "tipologie_beneficiari": [
+        "PMI",
+        "Grandi_Imprese"
+      ],
+      "agevolazione": "fondo_perduto"
+    },
+    "expected_target_id": "PUGLIA-BLUE-ECONOMY",
+    "expected_keywords": [
+      "Puglia",
+      "Blue Economy",
+      "nautica"
+    ]
+  },
+  {
+    "id": "DUAL_33",
+    "title": "Artigianato Artistico & Ceramica Faenza Emilia-Romagna",
+    "domain": "Artigianato Tradizionale & Ceramica Artistica",
+    "simplified_nlp_query": "Laboratorio artigianale di ceramica artistica a Faenza cerca contributi a fondo perduto per forni elettrici innovativi e bottega",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Emilia-Romagna"
+      ],
+      "settori": [
+        "23.41.00"
+      ],
+      "tipologie_beneficiari": [
+        "Micro",
+        "PMI"
+      ],
+      "agevolazione": "fondo_perduto"
+    },
+    "expected_target_id": "EMILIA-ARTIGIANATO-CERAMICA",
+    "expected_keywords": [
+      "Emilia-Romagna",
+      "ceramica",
+      "artigianato"
+    ]
+  },
+  {
+    "id": "DUAL_34",
+    "title": "PSR Puglia Gestione Risorse Idriche & Invasi",
+    "domain": "Agricoltura Sostenibile & Irrigazione",
+    "simplified_nlp_query": "Azienda agricola a Foggia cerca contributi PSR a fondo perduto per la realizzazione di invasi idrici e impianti di irrigazione sostenibile",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Puglia"
+      ],
+      "settori": [
+        "01.11.00"
+      ],
+      "tipologie_beneficiari": [
+        "PMI"
+      ],
+      "agevolazione": "fondo_perduto"
+    },
+    "expected_target_id": "PUGLIA-IDRICO-AGRICOLTURA",
+    "expected_keywords": [
+      "Puglia",
+      "idriche",
+      "invasi",
+      "agricoltura"
+    ]
+  },
+  {
+    "id": "DUAL_35",
+    "title": "Distretto Aerospaziale Campania DAC Droni & Materiali Avanzati",
+    "domain": "Aerospazio & Droni Avanzati",
+    "simplified_nlp_query": "PMI aerospaziale a Napoli cerca contributi a fondo perduto per ricerca e sviluppo su droni civili e materiali compositi avanzati",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Campania"
+      ],
+      "settori": [
+        "30.30.00"
+      ],
+      "tipologie_beneficiari": [
+        "PMI",
+        "Startup_Innovative"
+      ],
+      "agevolazione": "fondo_perduto"
+    },
+    "expected_target_id": "CAMPANIA-AEROSPAZIO-DRONI",
+    "expected_keywords": [
+      "Campania",
+      "droni",
+      "aerospaziale",
+      "DAC"
+    ]
+  },
+  {
+    "id": "DUAL_36",
+    "title": "Logistica Intermodale & Catena del Freddo Verona Veneto",
+    "domain": "Logistica Refrigerata & Trasporti Agroalimentari",
+    "simplified_nlp_query": "Azienda logistica a Verona cerca contributi a fondo perduto per ammodernamento celle frigorifere e polo della catena del freddo",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Veneto"
+      ],
+      "settori": [
+        "52.10.00"
+      ],
+      "tipologie_beneficiari": [
+        "PMI"
+      ],
+      "agevolazione": "fondo_perduto"
+    },
+    "expected_target_id": "VENETO-LOGISTICA-FREDDO",
+    "expected_keywords": [
+      "Veneto",
+      "logistica",
+      "freddo"
+    ]
+  },
+  {
+    "id": "DUAL_37",
+    "title": "Fondo Starter Nuove Imprese Emilia-Romagna",
+    "domain": "Finanziamenti Nuove Imprese & Microcredito",
+    "simplified_nlp_query": "Nuova impresa a Modena cerca finanziamento a tasso agevolato e garanzia pubblica del fondo starter per avvio di nuova attivita",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Emilia-Romagna"
+      ],
+      "tipologie_beneficiari": [
+        "Startup_Innovative",
+        "PMI"
+      ],
+      "agevolazione": "tasso_agevolato"
+    },
+    "expected_target_id": "EMILIA-FONDO-STARTER-2026",
+    "expected_keywords": [
+      "Emilia-Romagna",
+      "Starter",
+      "finanziamento"
+    ]
+  },
+  {
+    "id": "DUAL_38",
+    "title": "Programma LIFE EU Economia Circolare & Clima",
+    "domain": "Ambiente Comunitario & Transizione Ecologica",
+    "simplified_nlp_query": "Consorzio di imprese cerca contributi europei LIFE a fondo perduto per progetto di economia circolare e riduzione CO2",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Tutte"
+      ],
+      "tipologie_beneficiari": [
+        "PMI",
+        "Grandi_Imprese"
+      ],
+      "agevolazione": "fondo_perduto"
+    },
+    "expected_target_id": "EU-SEDIA-LIFE-CIRCULAR",
+    "expected_keywords": [
+      "LIFE",
+      "Unione Europea",
+      "circolare",
+      "clima"
+    ]
+  },
+  {
+    "id": "DUAL_39",
+    "title": "Incentivi.gov.it Misura Agevolativa CAR R&S Nazionale",
+    "domain": "Incentivi Nazionali MIMIT & RNA CAR",
+    "simplified_nlp_query": "Impresa manifatturiera cerca finanziamento a tasso agevolato su Incentivi.gov.it con codice CAR per ricerca e sviluppo industriale",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Tutte"
+      ],
+      "settori": [
+        "28.00.00"
+      ],
+      "tipologie_beneficiari": [
+        "PMI",
+        "Grandi_Imprese"
+      ],
+      "agevolazione": "tasso_agevolato"
+    },
+    "expected_target_id": "INCENTIVI-GOV-CAR-NATIONAL",
+    "expected_keywords": [
+      "Incentivi.gov.it",
+      "CAR",
+      "RNA",
+      "R&S"
+    ]
+  },
+  {
+    "id": "DUAL_40",
+    "title": "Voucher Digitalizzazione Camere di Commercio PID",
+    "domain": "Voucher Digitalizzazione Unioncamere & CCIAA",
+    "simplified_nlp_query": "Piccola impresa commerciale cerca voucher a fondo perduto delle Camere di Commercio PID per software cloud e transizione digitale",
+    "expert_parametric_payload": {
+      "regioni": [
+        "Tutte"
+      ],
+      "settori": [
+        "TUTTI"
+      ],
+      "tipologie_beneficiari": [
+        "Micro",
+        "Piccola",
+        "PMI"
+      ],
+      "agevolazione": "voucher"
+    },
+    "expected_target_id": "UNIONCAMERE-PID-DIGIT-2026",
+    "expected_keywords": [
+      "Unioncamere",
+      "PID",
+      "voucher",
+      "Camere di Commercio"
+    ]
+  }
+]

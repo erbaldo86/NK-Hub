@@ -159,26 +159,44 @@ class ParametricFilterCriteria(BaseModel):
     @classmethod
     def map_convenience_aliases(cls, data: Any) -> Any:
         if isinstance(data, dict):
-            # ateco_code -> ateco_codes
-            if "ateco_code" in data and data["ateco_code"] and "ateco_codes" not in data:
-                data["ateco_codes"] = [data["ateco_code"]] if isinstance(data["ateco_code"], str) else data["ateco_code"]
+            # ateco_codes aliases: settori, settore, ateco, codici_ateco, ateco_code
+            for k in ("settori", "settore", "ateco", "codici_ateco", "ateco_code"):
+                if k in data and data[k] and "ateco_codes" not in data:
+                    val = data[k]
+                    data["ateco_codes"] = [val] if isinstance(val, str) else list(val)
+                    break
+
             # normalizza ateco_codes se presenti (es. 'C.28' -> '28')
             if "ateco_codes" in data and isinstance(data["ateco_codes"], list):
-                data["ateco_codes"] = [normalize_ateco_code_str(c) for c in data["ateco_codes"] if c]
-            # region -> regioni_target
-            if "region" in data and data["region"] and "regioni_target" not in data:
-                reg_val = data["region"]
-                if reg_val and str(reg_val).lower() != "tutte":
-                    data["regioni_target"] = [reg_val] if isinstance(reg_val, str) else reg_val
-            # beneficiary -> tipologia_beneficiari
-            if "beneficiary" in data and data["beneficiary"] and "tipologia_beneficiari" not in data:
-                data["tipologia_beneficiari"] = [data["beneficiary"]] if isinstance(data["beneficiary"], str) else data["beneficiary"]
-            # aid_type -> tipo_agevolazione
-            if "aid_type" in data and data["aid_type"] is not None and "tipo_agevolazione" not in data:
-                data["tipo_agevolazione"] = data["aid_type"]
+                data["ateco_codes"] = [normalize_ateco_code_str(c) for c in data["ateco_codes"] if c and str(c).upper() != "TUTTI"]
+
+            # regioni_target aliases: regioni, regione, region
+            for k in ("regioni", "regione", "region"):
+                if k in data and data[k] and "regioni_target" not in data:
+                    val = data[k]
+                    val_list = [val] if isinstance(val, str) else list(val)
+                    clean_regs = [r for r in val_list if r and str(r).lower() not in ("tutte", "nazionale", "italia")]
+                    if clean_regs:
+                        data["regioni_target"] = clean_regs
+                    break
+
+            # tipologia_beneficiari aliases: tipologie_beneficiari, beneficiari, beneficiary, beneficiario
+            for k in ("tipologie_beneficiari", "beneficiari", "beneficiary", "beneficiario"):
+                if k in data and data[k] and "tipologia_beneficiari" not in data:
+                    val = data[k]
+                    data["tipologia_beneficiari"] = [val] if isinstance(val, str) else list(val)
+                    break
+
+            # tipo_agevolazione aliases: agevolazione, aid_type, forma_agevolazione, tipo_contributo
+            for k in ("agevolazione", "aid_type", "forma_agevolazione", "tipo_contributo"):
+                if k in data and data[k] is not None and "tipo_agevolazione" not in data:
+                    data["tipo_agevolazione"] = data[k]
+                    break
+
             # normalizza tipo_agevolazione se presente (snake_case -> spazio)
             if "tipo_agevolazione" in data and isinstance(data["tipo_agevolazione"], str):
                 data["tipo_agevolazione"] = data["tipo_agevolazione"].replace("_", " ").strip()
+
             # min_coverage -> min_percentuale_copertura
             if "min_coverage" in data and data["min_coverage"] is not None and "min_percentuale_copertura" not in data:
                 data["min_percentuale_copertura"] = data["min_coverage"]

@@ -20,8 +20,12 @@ from pathlib import Path
 CURRENT_DIR = Path(__file__).resolve().parent
 STAGING_DIR = CURRENT_DIR.parent
 SCRIPTS_DIR = STAGING_DIR / "scripts"
+STAGING_SCRIPTS_DIR = STAGING_DIR / ".staging" / "scripts"
 
-if str(SCRIPTS_DIR) not in sys.path:
+if STAGING_SCRIPTS_DIR.exists() and (STAGING_SCRIPTS_DIR / "ast_repo_mapper.py").exists():
+    if str(STAGING_SCRIPTS_DIR) not in sys.path:
+        sys.path.insert(0, str(STAGING_SCRIPTS_DIR))
+elif str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 if str(STAGING_DIR) not in sys.path:
     sys.path.insert(0, str(STAGING_DIR))
@@ -265,6 +269,62 @@ class ServiceB:
 
             self.assertTrue(snap_file.exists())
             self.assertIn("TestObj", snap_file.read_text(encoding="utf-8"))
+
+    # 34. test_tier3_elastic_compaction_headroom (New CRV 4.0 Tier-3 Elastic Compactor)
+    def test_tier3_elastic_compaction_headroom(self):
+        """34. Validates Tier-3 Elastic Compactor: guaranteed headroom (<=850 tok / >=170 free), all classes preserved, zero omissions."""
+        testnk_path = Path("g:/Il mio Drive/Programmi di test/TestNK")
+
+        # Part A: Test on real TestNK repository if present
+        if testnk_path.exists():
+            cfg = RepoMapConfig(max_tokens=1024, polyglot=True, cache_enabled=False)
+            res = RepoMapGenerator.generate(root_dir=testnk_path, config=cfg)
+
+            # Guaranteed headroom
+            self.assertLessEqual(res.token_count, 850)
+            self.assertGreaterEqual(1024 - res.token_count, 170)
+
+            # Zero omissions
+            self.assertNotIn("omessi per budget", res.content)
+            self.assertNotIn("... [+", res.content)
+
+            # Verify all classes in Python files are present in the map
+            expected_classes = set()
+            for py_file in testnk_path.rglob("*.py"):
+                if any(x in py_file.parts for x in (".venv", ".git", "__pycache__")):
+                    continue
+                try:
+                    tree = ast.parse(py_file.read_text(encoding="utf-8"))
+                    for n in ast.walk(tree):
+                        if isinstance(n, ast.ClassDef):
+                            expected_classes.add(n.name)
+                except Exception:
+                    pass
+
+            for cls_name in expected_classes:
+                self.assertIn(cls_name, res.content, f"Class '{cls_name}' missing from repo map")
+
+        # Part B: Synthetic multi-module repository with 35 classes to test invariant everywhere
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            synthetic_classes = set()
+            for m_idx in range(7):
+                lines = []
+                for c_idx in range(5):
+                    c_name = f"SyntheticEntity_{m_idx}_{c_idx}"
+                    synthetic_classes.add(c_name)
+                    lines.append(f"class {c_name}:\n    def op_{c_idx}(self, x: int) -> int:\n        return x * {c_idx}\n")
+                (tmp_path / f"service_mod_{m_idx}.py").write_text("\n".join(lines), encoding="utf-8")
+
+            cfg_syn = RepoMapConfig(max_tokens=1024, polyglot=False, cache_enabled=False)
+            res_syn = RepoMapGenerator.generate(root_dir=tmp_path, config=cfg_syn)
+
+            self.assertLessEqual(res_syn.token_count, 850)
+            self.assertGreaterEqual(1024 - res_syn.token_count, 170)
+            self.assertNotIn("omessi per budget", res_syn.content)
+
+            for cls_name in synthetic_classes:
+                self.assertIn(cls_name, res_syn.content, f"Synthetic class '{cls_name}' missing from repo map")
 
 
 if __name__ == "__main__":

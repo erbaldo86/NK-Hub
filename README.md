@@ -1,4 +1,4 @@
-# 🏛️ Lab NK Hub — Sovereign AI Agentic OS (v1.7.0)
+# 🏛️ Lab NK Hub — Sovereign AI Agentic OS (v1.7.2-PlatformHardened)
 ### *The Sovereign Cognitive Operating System, Multi-Agent Swarm Orchestrator & Vibe Coding Engine for Google Antigravity*
 
 <p align="center">
@@ -7,21 +7,74 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Release-v1.7.0-0052FF?style=for-the-badge&logo=shield&logoColor=white" alt="Release Badge" />
+  <img src="https://img.shields.io/badge/Release-v1.7.2--PlatformHardened-0052FF?style=for-the-badge&logo=shield&logoColor=white" alt="Release Badge" />
   <img src="https://img.shields.io/badge/Standard-CRV_4.0_Universal-00C853?style=for-the-badge&logo=checkmarx&logoColor=white" alt="CRV 4.0 Standard" />
   <img src="https://img.shields.io/badge/Zero--Mock-100%25_Real_Certified-FF6D00?style=for-the-badge&logo=databricks&logoColor=white" alt="Zero-Mock Certified" />
-  <img src="https://img.shields.io/badge/Permanent_Tests-122%2F122_100%25_PASS-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Permanent Tests" />
-  <img src="https://img.shields.io/badge/Anti--Freeze-Pulse_Sentinel_Active-brightgreen?style=for-the-badge&logo=prometheus&logoColor=white" alt="Anti-Freeze Sentinel" />
-  <img src="https://img.shields.io/badge/Vibe_Coding-Triple--Speed_Mode_C%2FB%2FA-9C27B0?style=for-the-badge&logo=speedtest&logoColor=white" alt="Triple Speed Vibe Coding" />
+  <img src="https://img.shields.io/badge/Permanent_Tests-127%2F127_100%25_PASS-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Permanent Tests" />
+  <img src="https://img.shields.io/badge/Tier--3_Elastic_RepoMap-Active-blueviolet?style=for-the-badge&logo=diagramsdotnet&logoColor=white" alt="Elastic Repo-Map" />
+  <img src="https://img.shields.io/badge/Runtime_Discovery-Preflight_Probe-teal?style=for-the-badge&logo=python&logoColor=white" alt="Runtime Discovery" />
   <img src="https://img.shields.io/badge/Commit_Lock-Win32_2PC_Named_Mutex-E91E63?style=for-the-badge&logo=windows&logoColor=white" alt="Win32 2PC Mutex" />
   <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License MIT" />
 </p>
 
 ---
 
-## ⚡ Patch Notes & v1.6.0-VibeEnhanced What's New
+## ⚡ Patch Notes: What's New in v1.7.2-PlatformHardened
 
-> **Executive Spotlight:** If you are familiar with the previous release (**v1.1.0-Universal**), here is the high-level summary of improvements, reinforcements, and optimizations delivered in **v1.6.0-VibeEnhanced**:
+> **Executive Spotlight:** Here is the complete breakdown of new capabilities, architectural hardening, and the real-world **"Proof of Work"** benchmark delivered in **v1.7.2-PlatformHardened**, explained transparently **for both non-technical users and senior engineers**:
+
+---
+
+### 1. 🗺️ Tier-3 Elastic Repo-Mapper & Dense Packing ([`scripts/ast_repo_mapper.py`](scripts/ast_repo_mapper.py))
+* **For Non-Technical Users (In Plain English):**  
+  As a software codebase expands with dozens of files, AI models frequently hit context window limits and become "partially blind". Previous algorithms truncated files with warnings like *"8 other modules omitted due to budget"*. With this upgrade, the AI compresses complex classes into concise, single-line signatures without losing a single function. Consequently, **the AI always sees 100% of your repository files**, consuming 20% fewer tokens and leaving abundant headroom for deep reasoning.
+* **For Senior Engineers (Technical Specification):**  
+  Solves token budget saturation (1024-token ceiling in Mode A) and eliminates selective module omission. Introduces the **Tier-3 Elastic Compactor**:
+  - *Tier-1 Expanded:* Full typed signatures for focal and primary modules.
+  - *Tier-3 Inline Class Compactor:* When a module contains numerous classes or remaining budget is tight, compresses classes to:  
+    `class ClassName: [m1, m2, m3]` and `functions: [f1, f2]`, slashing token overhead per class by 80%.
+  - *Dense Secondary Module Packing:* Eliminates the truncation line `[+N modules omitted]`, grouping secondary modules by directory if required.
+  - **Real-World Benchmark on TestNK:** Token count dropped from **1022 down to 827 tokens (-19.1%)**, omitted modules reduced from **8 to 0 (100% visibility)** with **197 tokens of guaranteed headroom**.
+
+---
+
+### 2. 🔍 Pre-Flight Environment Capability Discovery ([`scripts/env_capability_probe.py`](scripts/env_capability_probe.py))
+* **For Non-Technical Users (In Plain English):**  
+  Before attempting to build or modify any code, the AI performs an instant sub-second check-up of your machine. It checks your exact Python version and which libraries are actually installed on your disk. This guarantees the AI will never attempt to write code relying on software or packages you do not have (preventing sudden runtime crashes).
+* **For Senior Engineers (Technical Specification):**  
+  Deterministic read-only probing integrated prior to Turn 1 of the Auto-Brief Swarm FSM. Detects Python runtime version, CPU topology, system encodings, and scans real on-disk presence for standard libraries (`sqlite3`, `json`, `csv`, `asyncio`, `pathlib`, `typing`) and third-party packages (`fastapi`, `pydantic`, `pytest`, `uvicorn`, `httpx`, `psutil`, `pywin32`, `sqlalchemy`). Prevents architectural hallucinations regarding missing dependencies (such as the SQLAlchemy trap on Python 3.14).
+
+---
+
+### 3. 🌐 Universal UTF-8 Stream Bootstrap ([`scripts/platform_runner.py`](scripts/platform_runner.py))
+* **For Non-Technical Users (In Plain English):**  
+  On Windows computers, modern emojis, symbols, and accented letters inside background logs often triggered sudden crashes due to unrecognized character errors. This engine enforces universal UTF-8 character handling across all background processes, eliminating text crashes on Windows.
+* **For Senior Engineers (Technical Specification):**  
+  Protected execution runner via `reconfigure_streams()` and `safe_subprocess_run()`. Injects `PYTHONIOENCODING="utf-8"` and `PYTHONUTF8="1"`, decoding streams with `errors='replace'`. Neutralizes at the root the `UnicodeDecodeError: 'charmap' codec can't decode byte` exception endemic to Windows CP1252/OEM consoles.
+
+---
+
+### 4. 🎯 Hermetic Test Discovery & Noise Elimination ([`pytest.ini`](pytest.ini))
+* **For Non-Technical Users (In Plain English):**  
+  Builds a protective wall around Lab NK's core system test suite. When running tests, it never accidentally confuses system tests with personal projects or temporary files, and mutes unnecessary technical deprecation warnings to deliver clean, unambiguous PASS or FAIL results.
+* **For Senior Engineers (Technical Specification):**  
+  Canonical root configuration enforcing `testpaths = tests` and `norecursedirs = .staging "Programmi di test" temp* .git .pytest_cache`. Selectively suppresses Starlette/FastAPI TestClient deprecation warnings (`StarletteDeprecationWarning`), delivering a **100% warning-free** execution and strict isolation of platform tests.
+
+---
+
+### 5. 🚀 The "Proof of Work": Autonomous Enterprise CRM ([`Programmi di test/TestNK/`](file:///g:/Il%20mio%20Drive/Programmi%20di%20test/TestNK/))
+* **For Non-Technical Users (In Plain English):**  
+  To empirically prove the power of Lab NK Hub, the system autonomously engineered a complete business CRM application from scratch:
+  - **Smart Client Directory:** Neatly categorizes contacts into SMEs/Corporations, Freelancers/Studios, Craftsmen/Shops, and Non-profits/Private entities.
+  - **Smartphone Address Book Import:** Export your phone contacts from Android, iPhone, or Google Contacts into a `.vcf` vCard file and drag-and-drop it straight into the web dashboard! Also supports Excel/CSV spreadsheets and JSON backups.
+  - **Automated Validation:** Computes official European Union enterprise sizes (Micro, Small, Medium, Large) and verifies Italian VAT/Tax IDs.
+* **For Senior Engineers (Technical Specification):**  
+  Autonomous microservice compliant with the CRV 4.0 protocol:
+  - **Pure SQLite3 Native Persistence:** Completely rewritten with standard library `sqlite3` (zero SQLAlchemy dependency), thread-safe connection pooling, `PRAGMA journal_mode=WAL` for high concurrency, B-Tree indexes, and Pydantic v2 serialization.
+  - **Multi-Channel Ingestion:** RFC 6350 vCard smartphone parser with line unfolding, delimiter sniffer for CSV/TSV, and preview engine with deduplication on VAT, Tax Code, Email, and Company Name.
+  - **Zero-Mock Certification:** **23/23 unit and integration tests PASSED (100.0%)** on real databases and disk storage, AST Guard 26/26 files PASS, equipped with the Sovereign Tetralogy v1.7.0 (`concept_map.md`, `structural_tree.md`, `implementation_plan.md`, `repo_map.md`).
+
+---
 
 ### 1. 💓 Anti-Freeze Pulse Sentinel ([`scripts/async_heartbeat_signaler.py`](scripts/async_heartbeat_signaler.py))
 - **Previous Bottleneck:** During prolonged tasks, benchmarks, or complex multi-agent reasoning (>45 seconds), the absence of active terminal output caused IDE freezes, timeouts, or thread starvation. Furthermore, writing diagnostic dumps directly to cloud-synced folders (Google Drive, OneDrive) triggered `WinError 32` / `WinError 5` sharing violations and I/O deadlocks.
@@ -256,17 +309,21 @@ When the output reports `{"status": "HEALTHY_GREEN"}`, the platform is ready for
 
 | Audit Check / Invariant | Verification Method | Certified Outcome |
 | :--- | :--- | :---: |
-| **Core Platform Test Suite** | `pytest tests/test_win32_2pc.py tests/test_dast_sandbox.py ...` | 🟢 **PASS (100.0%)** |
-| **AST Syntactic & Scope Purity** | `scripts/ast_guard_validator.py --target all` | 🟢 **PASS (0 violations)** |
-| **Preflight Health Check** | `scripts/preflight_health_check.py` | 🟢 **HEALTHY_GREEN** |
-| **Quality Baseline Ratchet** | `scripts/quality_baseline_manager.py --check` | 🟢 **ZERO REGRESSIONS** |
+| **Permanent Platform Test Suite** | `pytest tests/ -q` (127 unit & integration tests) | 🟢 **PASS (127/127 100.0%, 0 Failures, 0 Warnings)** |
+| **Tier-3 Elastic Repo-Map** | `scripts/ast_repo_mapper.py` on `TestNK` & `NKHub` | 🟢 **ACTIVE (827 tok, Zero Omissions, >=190 tok Headroom)** |
+| **Runtime Capability Discovery** | `scripts/env_capability_probe.py` | 🟢 **ACTIVE (Deterministic pre-flight probe)** |
+| **Universal UTF-8 Runner** | `scripts/platform_runner.py` (safe subprocess I/O) | 🟢 **ACTIVE (Zero charmap/CP1252 crashes on Windows)** |
+| **AST Syntactic & Scope Purity** | `scripts/ast_guard_validator.py` on `scripts/` & `tests/` | 🟢 **PASS (43/43 files, 0 violations)** |
+| **Preflight Health Check** | `scripts/preflight_health_check.py` | 🟢 **HEALTHY_GREEN (Caches purged, 0 stale WAL)** |
+| **Quality Baseline Ratchet** | `scripts/quality_baseline_manager.py --check` | 🟢 **ZERO REGRESSIONS (100.0% ratchet quality)** |
 | **Anti-Freeze Pulse Sentinel** | Cadenced keepalive (15-20s) & watchdog (45s) | 🟢 **ACTIVE (%TEMP% ISOLATED)** |
-| **Win32 Named Mutex 2PC** | Kernel-level atomic commit with SHA-256 WAL | 🟢 **VERIFIED ON DISK** |
-| **Zero Mock Mandate** | Total prohibition of synthetic mocks or stubs | 🟢 **100% REAL PROCESSES** |
+| **Win32 Named Mutex 2PC** | Kernel-level atomic commit with SHA-256 WAL | 🟢 **VERIFIED ON DISK (Shadow Swap Fallback)** |
+| **Zero Mock Mandate** | Total prohibition of synthetic mocks or stubs | 🟢 **100% REAL PROCESSES & DISK STORAGE** |
 
 ---
 
 <p align="center">
-  <b>Lab NK Hub (Nexus Keystone v1.6.0-VibeEnhanced)</b> — <i>Sovereign Agentic Operating System.</i><br>
+  <b>Lab NK Hub (Nexus Keystone v1.7.2-PlatformHardened)</b> — <i>Sovereign Agentic Operating System.</i><br>
   Built to govern AI, field-tested under pressure, optimized for true Vibe Coding.
 </p>
+

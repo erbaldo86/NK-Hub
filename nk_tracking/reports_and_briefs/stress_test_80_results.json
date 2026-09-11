@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-10T23:55:47Z",
+  "timestamp": "2026-09-11T00:07:14Z",
   "batch": "all",
   "batch_title": "SUITE COMPLETA 80 SCENARI (40 NLP + 40 PARAM)",
   "total_queries": 80,
@@ -10,156 +10,156 @@
     {
       "id": "NLP_01",
       "status": "PASS",
-      "latency_ms": 28.76,
+      "latency_ms": 27.58,
       "count": 3,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "target": "Lombardia (Brescia), ATECO C.28, MIMIT Transizione 5.0",
       "inferred_region": null,
       "inferred_ateco": [
-        "30.00.00",
         "28.99.00",
         "28.00.00",
+        "30.00.00",
         "25.00.00"
       ]
     },
     {
       "id": "NLP_02",
       "status": "PASS",
-      "latency_ms": 6.57,
-      "count": 5,
+      "latency_ms": 6.65,
+      "count": 7,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "target": "Emilia-Romagna (Bologna) + UE Direct Boost, ATECO A.01/J.62, EIC Accelerator",
       "inferred_region": "Emilia-Romagna",
       "inferred_ateco": [
-        "01.21.00",
-        "62.01.00",
-        "01.11.00",
         "30.30.09",
-        "30.30.00"
+        "30.30.00",
+        "62.01.00",
+        "01.21.00",
+        "01.11.00"
       ]
     },
     {
       "id": "NLP_03",
       "status": "PASS",
-      "latency_ms": 5.81,
+      "latency_ms": 6.09,
       "count": 1,
       "verdict": "🟢 STESSI_RISULTATI (PASS)",
       "target": "Veneto (Verona), ATECO C.11/A.01, Veneto Consorzi Export",
       "inferred_region": "Veneto",
       "inferred_ateco": [
-        "70.22.09",
+        "73.11.00",
         "46.90.00",
-        "73.11.00"
+        "70.22.09"
       ]
     },
     {
       "id": "NLP_04",
       "status": "PASS",
-      "latency_ms": 6.48,
+      "latency_ms": 5.74,
       "count": 1,
       "verdict": "🟢 STESSI_RISULTATI (PASS)",
       "target": "Veneto (Belluno), ATECO I.55, Bando Turismo Veneto",
       "inferred_region": "Veneto",
       "inferred_ateco": [
-        "55.10.00",
         "79.11.00",
-        "55.20.51"
+        "55.20.51",
+        "55.10.00"
       ]
     },
     {
       "id": "NLP_05",
       "status": "PASS",
-      "latency_ms": 5.79,
+      "latency_ms": 5.3,
       "count": 1,
       "verdict": "🟢 STESSI_RISULTATI (PASS)",
       "target": "Piemonte (Torino), ATECO C.29, Piemonte Automotive EV",
       "inferred_region": "Piemonte",
       "inferred_ateco": [
-        "29.10.00",
         "28.11.00",
+        "29.10.00",
         "25.62.00"
       ]
     },
     {
       "id": "NLP_06",
       "status": "PASS",
-      "latency_ms": 6.7,
+      "latency_ms": 6.75,
       "count": 3,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "target": "Friuli-Venezia Giulia (Pordenone), ATECO C.16, Manifattura Legno FVG",
       "inferred_region": null,
       "inferred_ateco": [
-        "16.29.00",
-        "31.09.00",
         "35.11.00",
-        "71.12.10"
+        "71.12.10",
+        "31.09.00",
+        "16.29.00"
       ]
     },
     {
       "id": "NLP_07",
       "status": "PASS",
-      "latency_ms": 6.42,
+      "latency_ms": 7.21,
       "count": 1,
       "verdict": "🟢 STESSI_RISULTATI (PASS)",
       "target": "Liguria (Genova), ATECO H.52, Liguria Logistica Green",
       "inferred_region": "Liguria",
       "inferred_ateco": [
-        "52.29.00",
-        "43.21.01",
         "49.41.00",
+        "35.11.00",
+        "43.21.01",
         "52.10.10",
-        "71.12.10",
-        "35.11.00"
+        "52.29.00",
+        "71.12.10"
       ]
     },
     {
       "id": "NLP_08",
       "status": "PASS",
-      "latency_ms": 6.13,
+      "latency_ms": 8.36,
       "count": 1,
       "verdict": "🟢 STESSI_RISULTATI (PASS)",
       "target": "Emilia-Romagna (Faenza), ATECO C.23, Artigianato Ceramica E-R",
       "inferred_region": "Emilia-Romagna",
       "inferred_ateco": [
-        "31.09.00",
-        "23.41.00",
-        "16.29.00",
-        "13.99.00",
         "23.70.00",
-        "14.13.00"
+        "16.29.00",
+        "14.13.00",
+        "23.41.00",
+        "31.09.00",
+        "13.99.00"
       ]
     },
     {
       "id": "NLP_09",
       "status": "PASS",
-      "latency_ms": 9.1,
+      "latency_ms": 11.69,
       "count": 4,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "target": "Lombardia (Bergamo), ATECO C.17, CCIAA Milano/Lombardia Doppia Transizione",
       "inferred_region": null,
       "inferred_ateco": [
         "38.32.20",
-        "10.89.09",
-        "10.39.00"
+        "10.39.00",
+        "10.89.09"
       ]
     },
     {
       "id": "NLP_10",
       "status": "PASS",
-      "latency_ms": 5.47,
-      "count": 1,
-      "verdict": "🟢 STESSI_RISULTATI (PASS)",
+      "latency_ms": 6.77,
+      "count": 2,
+      "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "target": "Trentino-Alto Adige (Trento), ATECO F.41, Provincia Autonoma Trento",
       "inferred_region": null,
       "inferred_ateco": [
-        "16.29.00",
-        "31.09.00"
+        "31.09.00",
+        "16.29.00"
       ]
     },
     {
       "id": "NLP_11",
       "status": "PASS",
-      "latency_ms": 6.79,
+      "latency_ms": 8.7,
       "count": 1,
       "verdict": "🟢 STESSI_RISULTATI (PASS)",
       "target": "Toscana (Pisa), ATECO C.21, Toscana Biotech Pharma / Brevetti+",
@@ -167,72 +167,72 @@
       "inferred_ateco": [
         "72.19.09",
         "21.20.00",
-        "72.11.00",
-        "71.12.10"
+        "71.12.10",
+        "72.11.00"
       ]
     },
     {
       "id": "NLP_12",
       "status": "PASS",
-      "latency_ms": 6.61,
-      "count": 3,
+      "latency_ms": 7.84,
+      "count": 4,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "target": "Lazio (Roma), ATECO J.62, CCIAA Roma Voucher Doppia Transizione / Lazio Cyber",
       "inferred_region": "Lazio",
       "inferred_ateco": [
-        "62.09.09",
-        "63.11.00",
-        "62.02.00",
-        "62.03.00",
-        "62.01.00",
         "72.19.09",
-        "58.29.00"
+        "62.09.09",
+        "58.29.00",
+        "62.01.00",
+        "62.03.00",
+        "62.02.00",
+        "63.11.00"
       ]
     },
     {
       "id": "NLP_13",
       "status": "PASS",
-      "latency_ms": 6.17,
-      "count": 3,
+      "latency_ms": 8.08,
+      "count": 4,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "target": "Marche (Fermo), ATECO C.15, Distretto Calzaturiero Marche",
       "inferred_region": "Marche",
       "inferred_ateco": [
-        "31.09.00",
+        "23.70.00",
+        "16.29.00",
         "47.91.10",
         "62.01.00",
-        "16.29.00",
-        "13.99.00",
-        "23.70.00",
-        "14.13.00"
+        "14.13.00",
+        "31.09.00",
+        "13.99.00"
       ]
     },
     {
       "id": "NLP_14",
       "status": "PASS",
-      "latency_ms": 5.95,
+      "latency_ms": 6.43,
       "count": 1,
       "verdict": "🟢 STESSI_RISULTATI (PASS)",
       "target": "Umbria (Foligno), ATECO C.10/A.01, Economia Circolare Umbria",
       "inferred_region": "Umbria",
       "inferred_ateco": [
-        "10.41.00",
-        "38.21.00",
         "52.10.10",
-        "01.63.00"
+        "10.41.00",
+        "01.63.00",
+        "38.21.00"
       ]
     },
     {
       "id": "NLP_15",
       "status": "PASS",
-      "latency_ms": 6.37,
+      "latency_ms": 8.66,
       "count": 1,
       "verdict": "🟢 STESSI_RISULTATI (PASS)",
       "target": "Toscana (Prato), ATECO C.13, Distretto Tessile Prato",
       "inferred_region": "Toscana",
       "inferred_ateco": [
-        "38.21.00",
         "01.61.00",
+        "38.21.00",
         "13.10.00",
         "13.20.00",
         "38.32.20",
@@ -242,7 +242,7 @@
     {
       "id": "NLP_16",
       "status": "PASS",
-      "latency_ms": 6.09,
+      "latency_ms": 8.67,
       "count": 10,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "target": "Abruzzo (Pescara), ATECO Q.88, FSE+ Abruzzo Inclusione",
@@ -254,7 +254,7 @@
     {
       "id": "NLP_17",
       "status": "PASS",
-      "latency_ms": 5.43,
+      "latency_ms": 8.4,
       "count": 9,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "target": "Abruzzo (Chieti), ATECO C.10, Abruzzo Food Processing",
@@ -266,7 +266,7 @@
     {
       "id": "NLP_18",
       "status": "PASS",
-      "latency_ms": 5.55,
+      "latency_ms": 8.16,
       "count": 4,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "target": "Lazio (Viterbo), ATECO A.01, MASAF Parco Agrisolare",
@@ -279,37 +279,37 @@
     {
       "id": "NLP_19",
       "status": "PASS",
-      "latency_ms": 6.59,
+      "latency_ms": 8.13,
       "count": 3,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "target": "Campania (Napoli), ATECO J.62, Campania AI 2026 / Smart&Start",
       "inferred_region": "Campania",
       "inferred_ateco": [
+        "72.19.09",
         "62.09.09",
-        "63.11.00",
-        "62.02.00",
         "62.01.00",
-        "72.19.09"
+        "62.02.00",
+        "63.11.00"
       ]
     },
     {
       "id": "NLP_20",
       "status": "PASS",
-      "latency_ms": 5.42,
+      "latency_ms": 7.15,
       "count": 1,
       "verdict": "🟢 STESSI_RISULTATI (PASS)",
       "target": "Campania (Salerno), ATECO C.28, ZES Unica Mezzogiorno",
       "inferred_region": "Campania",
       "inferred_ateco": [
-        "30.00.00",
         "28.00.00",
+        "30.00.00",
         "25.00.00"
       ]
     },
     {
       "id": "NLP_21",
       "status": "PASS",
-      "latency_ms": 5.51,
+      "latency_ms": 7.08,
       "count": 2,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "target": "Puglia (Foggia), ATECO A.01, Puglia Idrico Agricoltura",
@@ -323,8 +323,8 @@
     {
       "id": "NLP_22",
       "status": "PASS",
-      "latency_ms": 4.8,
-      "count": 5,
+      "latency_ms": 5.53,
+      "count": 6,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "target": "Puglia (Taranto), ATECO A.03, Puglia Blue Economy",
       "inferred_region": "Puglia",
@@ -335,8 +335,8 @@
     {
       "id": "NLP_23",
       "status": "PASS",
-      "latency_ms": 4.81,
-      "count": 6,
+      "latency_ms": 5.66,
+      "count": 7,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "target": "Puglia (Bari), ATECO G.45, Resto al Sud 2.0",
       "inferred_region": "Puglia",
@@ -347,37 +347,37 @@
     {
       "id": "NLP_24",
       "status": "PASS",
-      "latency_ms": 5.15,
+      "latency_ms": 6.2,
       "count": 2,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "target": "Campania (Caserta), ATECO C.30, Campania Aerospazio e Droni",
       "inferred_region": null,
       "inferred_ateco": [
-        "30.30.00",
-        "30.30.09"
+        "30.30.09",
+        "30.30.00"
       ]
     },
     {
       "id": "NLP_25",
       "status": "PASS",
-      "latency_ms": 5.85,
+      "latency_ms": 6.2,
       "count": 2,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "target": "Sicilia (Catania), ATECO A.01, Sicilia Solar Green / Parco Agrisolare",
       "inferred_region": "Sicilia",
       "inferred_ateco": [
-        "01.21.00",
+        "35.11.00",
         "43.21.01",
-        "01.11.00",
+        "01.21.00",
         "71.12.10",
-        "35.11.00"
+        "01.11.00"
       ]
     },
     {
       "id": "NLP_26",
       "status": "PASS",
-      "latency_ms": 4.77,
-      "count": 3,
+      "latency_ms": 5.07,
+      "count": 4,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "target": "Sardegna (Cagliari), ATECO M.71, Sardegna Impresa Femminile",
       "inferred_region": "Sardegna",
@@ -388,7 +388,7 @@
     {
       "id": "NLP_27",
       "status": "PASS",
-      "latency_ms": 6.26,
+      "latency_ms": 6.47,
       "count": 5,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "target": "Calabria (Catanzaro), ATECO C.10, FESR Calabria Filiere",
@@ -396,31 +396,31 @@
       "inferred_ateco": [
         "10.39.00",
         "73.11.00",
+        "46.90.00",
         "70.22.09",
-        "10.89.09",
-        "46.90.00"
+        "10.89.09"
       ]
     },
     {
       "id": "NLP_28",
       "status": "PASS",
-      "latency_ms": 6.97,
-      "count": 6,
+      "latency_ms": 7.71,
+      "count": 7,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "target": "Basilicata (Matera), ATECO I.55, Sviluppo Basilicata Turismo",
       "inferred_region": null,
       "inferred_ateco": [
-        "79.11.00",
+        "62.01.00",
+        "55.20.51",
         "62.02.00",
         "55.10.00",
-        "62.01.00",
-        "55.20.51"
+        "79.11.00"
       ]
     },
     {
       "id": "NLP_29",
       "status": "PASS",
-      "latency_ms": 5.78,
+      "latency_ms": 5.57,
       "count": 4,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "target": "EU Direct (SEDIA), Topic Horizon Europe Climate & Batteries",
@@ -433,38 +433,38 @@
     {
       "id": "NLP_30",
       "status": "PASS",
-      "latency_ms": 6.81,
+      "latency_ms": 8.16,
       "count": 5,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "target": "EU Direct (TED v3), Appalto Sanità Digitale CPV 72",
       "inferred_region": null,
       "inferred_ateco": [
-        "63.11.00",
-        "62.02.00",
-        "62.03.00",
-        "62.01.00",
         "72.19.09",
-        "58.29.00"
+        "58.29.00",
+        "62.01.00",
+        "62.03.00",
+        "62.02.00",
+        "63.11.00"
       ]
     },
     {
       "id": "NLP_31",
       "status": "PASS",
-      "latency_ms": 4.38,
+      "latency_ms": 5.1,
       "count": 1,
       "verdict": "🟢 STESSI_RISULTATI (PASS)",
       "target": "UE Direct (EIC Accelerator) + Lombardia, Blended Finance",
       "inferred_region": "Lombardia",
       "inferred_ateco": [
-        "TUTTI",
         "72.19.09",
+        "TUTTI",
         "62.01.00"
       ]
     },
     {
       "id": "NLP_32",
       "status": "PASS",
-      "latency_ms": 5.35,
+      "latency_ms": 5.71,
       "count": 3,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "target": "UE Direct (SEDIA LIFE), Sottoprogramma Economia Circolare",
@@ -476,24 +476,24 @@
     {
       "id": "NLP_33",
       "status": "PASS",
-      "latency_ms": 6.53,
+      "latency_ms": 7.02,
       "count": 2,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "target": "Nazionale (INAIL), Tutte le Regioni, INAIL ISI 2026",
       "inferred_region": null,
       "inferred_ateco": [
-        "71.20.00",
-        "84.30.00",
+        "43.99.09",
         "25.00.00",
-        "39.00.00",
-        "43.99.09"
+        "84.30.00",
+        "71.20.00",
+        "39.00.00"
       ]
     },
     {
       "id": "NLP_34",
       "status": "PASS",
-      "latency_ms": 6.06,
-      "count": 5,
+      "latency_ms": 6.36,
+      "count": 6,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "target": "Nazionale (MIMIT/Invitalia), Brevetti+ 2026",
       "inferred_region": null,
@@ -505,7 +505,7 @@
     {
       "id": "NLP_35",
       "status": "PASS",
-      "latency_ms": 4.46,
+      "latency_ms": 5.3,
       "count": 2,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "target": "Piemonte (Torino), ATECO J.59, Piemonte Film Fund",
@@ -517,7 +517,7 @@
     {
       "id": "NLP_36",
       "status": "PASS",
-      "latency_ms": 6.72,
+      "latency_ms": 6.97,
       "count": 10,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "target": "UE Direct (SEDIA Digital Europe), EDIH Network",
@@ -531,55 +531,55 @@
     {
       "id": "NLP_37",
       "status": "PASS",
-      "latency_ms": 7.35,
-      "count": 3,
+      "latency_ms": 6.81,
+      "count": 4,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "target": "CCIAA Milano (Lombardia), Voucher SI4.0",
       "inferred_region": "Lombardia",
       "inferred_ateco": [
+        "72.19.09",
         "62.09.09",
         "47.91.10",
+        "62.01.00",
+        "46.90.00",
         "63.11.00",
         "62.02.00",
-        "62.01.00",
-        "72.19.09",
         "70.22.09",
         "71.12.10",
-        "46.90.00",
         "69.20.10"
       ]
     },
     {
       "id": "NLP_38",
       "status": "PASS",
-      "latency_ms": 5.35,
+      "latency_ms": 5.13,
       "count": 1,
       "verdict": "🟢 STESSI_RISULTATI (PASS)",
       "target": "CCIAA Roma (Lazio), Bando Innovazione Commercio",
       "inferred_region": "Lazio",
       "inferred_ateco": [
-        "46.90.00",
-        "47.91.10"
+        "47.91.10",
+        "46.90.00"
       ]
     },
     {
       "id": "NLP_39",
       "status": "PASS",
-      "latency_ms": 5.32,
+      "latency_ms": 5.12,
       "count": 1,
       "verdict": "🟢 STESSI_RISULTATI (PASS)",
       "target": "Valle d'Aosta, ATECO I.55, Rifugi Alpini VdA",
       "inferred_region": "Valle d'Aosta",
       "inferred_ateco": [
-        "43.21.01",
         "35.11.00",
-        "71.12.10"
+        "71.12.10",
+        "43.21.01"
       ]
     },
     {
       "id": "NLP_40",
       "status": "PASS",
-      "latency_ms": 6.1,
+      "latency_ms": 6.45,
       "count": 10,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "target": "Molise, ATECO H.49/C.10, Filiere Agroalimentari Molise",
@@ -593,7 +593,7 @@
     {
       "id": "PARAM_01",
       "status": "PASS",
-      "latency_ms": 5.6,
+      "latency_ms": 5.26,
       "count": 1,
       "verdict": "🟢 STESSI_RISULTATI (PASS)",
       "payload": {
@@ -610,7 +610,7 @@
     {
       "id": "PARAM_02",
       "status": "PASS",
-      "latency_ms": 3.41,
+      "latency_ms": 3.46,
       "count": 1,
       "verdict": "🟢 STESSI_RISULTATI (PASS)",
       "payload": {
@@ -625,8 +625,8 @@
     {
       "id": "PARAM_03",
       "status": "PASS",
-      "latency_ms": 3.09,
-      "count": 12,
+      "latency_ms": 3.28,
+      "count": 14,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "payload": {
         "regioni_target": [
@@ -644,8 +644,8 @@
     {
       "id": "PARAM_04",
       "status": "PASS",
-      "latency_ms": 4.15,
-      "count": 7,
+      "latency_ms": 4.4,
+      "count": 8,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "payload": {
         "regioni_target": [
@@ -661,7 +661,7 @@
     {
       "id": "PARAM_05",
       "status": "PASS",
-      "latency_ms": 4.28,
+      "latency_ms": 4.05,
       "count": 1,
       "verdict": "🟢 STESSI_RISULTATI (PASS)",
       "payload": {
@@ -678,8 +678,8 @@
     {
       "id": "PARAM_06",
       "status": "PASS",
-      "latency_ms": 4.3,
-      "count": 7,
+      "latency_ms": 3.68,
+      "count": 8,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "payload": {
         "regioni_target": [
@@ -695,8 +695,8 @@
     {
       "id": "PARAM_07",
       "status": "PASS",
-      "latency_ms": 4.22,
-      "count": 8,
+      "latency_ms": 3.79,
+      "count": 9,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "payload": {
         "regioni_target": [
@@ -713,7 +713,7 @@
     {
       "id": "PARAM_08",
       "status": "PASS",
-      "latency_ms": 3.79,
+      "latency_ms": 4.49,
       "count": 1,
       "verdict": "🟢 STESSI_RISULTATI (PASS)",
       "payload": {
@@ -730,8 +730,8 @@
     {
       "id": "PARAM_09",
       "status": "PASS",
-      "latency_ms": 3.46,
-      "count": 7,
+      "latency_ms": 3.48,
+      "count": 8,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "payload": {
         "regioni_target": [
@@ -746,7 +746,7 @@
     {
       "id": "PARAM_10",
       "status": "PASS",
-      "latency_ms": 2.87,
+      "latency_ms": 3.2,
       "count": 1,
       "verdict": "🟢 STESSI_RISULTATI (PASS)",
       "payload": {
@@ -761,8 +761,8 @@
     {
       "id": "PARAM_11",
       "status": "PASS",
-      "latency_ms": 3.58,
-      "count": 7,
+      "latency_ms": 3.52,
+      "count": 8,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "payload": {
         "regioni_target": [
@@ -777,7 +777,7 @@
     {
       "id": "PARAM_12",
       "status": "PASS",
-      "latency_ms": 3.38,
+      "latency_ms": 3.3,
       "count": 1,
       "verdict": "🟢 STESSI_RISULTATI (PASS)",
       "payload": {
@@ -792,8 +792,8 @@
     {
       "id": "PARAM_13",
       "status": "PASS",
-      "latency_ms": 3.92,
-      "count": 7,
+      "latency_ms": 4.18,
+      "count": 8,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "payload": {
         "regioni_target": [
@@ -809,8 +809,8 @@
     {
       "id": "PARAM_14",
       "status": "PASS",
-      "latency_ms": 3.6,
-      "count": 2,
+      "latency_ms": 3.76,
+      "count": 3,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "payload": {
         "regioni_target": [
@@ -826,8 +826,8 @@
     {
       "id": "PARAM_15",
       "status": "PASS",
-      "latency_ms": 3.06,
-      "count": 7,
+      "latency_ms": 2.61,
+      "count": 9,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "payload": {
         "regioni_target": [
@@ -861,8 +861,8 @@
     {
       "id": "PARAM_17",
       "status": "PASS",
-      "latency_ms": 3.5,
-      "count": 9,
+      "latency_ms": 3.53,
+      "count": 10,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "payload": {
         "regioni_target": [
@@ -877,7 +877,7 @@
     {
       "id": "PARAM_18",
       "status": "PASS",
-      "latency_ms": 2.81,
+      "latency_ms": 3.08,
       "count": 2,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "payload": {
@@ -892,8 +892,8 @@
     {
       "id": "PARAM_19",
       "status": "PASS",
-      "latency_ms": 2.18,
-      "count": 10,
+      "latency_ms": 2.31,
+      "count": 12,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "payload": {
         "regioni_target": [
@@ -906,8 +906,8 @@
     {
       "id": "PARAM_20",
       "status": "PASS",
-      "latency_ms": 3.79,
-      "count": 6,
+      "latency_ms": 3.55,
+      "count": 7,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "payload": {
         "regioni_target": [
@@ -922,8 +922,8 @@
     {
       "id": "PARAM_21",
       "status": "PASS",
-      "latency_ms": 3.5,
-      "count": 7,
+      "latency_ms": 3.6,
+      "count": 8,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "payload": {
         "regioni_target": [
@@ -938,8 +938,8 @@
     {
       "id": "PARAM_22",
       "status": "PASS",
-      "latency_ms": 4.34,
-      "count": 8,
+      "latency_ms": 3.81,
+      "count": 9,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "payload": {
         "regioni_target": [
@@ -955,8 +955,8 @@
     {
       "id": "PARAM_23",
       "status": "PASS",
-      "latency_ms": 3.76,
-      "count": 3,
+      "latency_ms": 3.44,
+      "count": 4,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "payload": {
         "regioni_target": [
@@ -970,7 +970,7 @@
     {
       "id": "PARAM_24",
       "status": "PASS",
-      "latency_ms": 3.13,
+      "latency_ms": 3.03,
       "count": 1,
       "verdict": "🟢 STESSI_RISULTATI (PASS)",
       "payload": {
@@ -985,7 +985,7 @@
     {
       "id": "PARAM_25",
       "status": "PASS",
-      "latency_ms": 3.41,
+      "latency_ms": 2.85,
       "count": 1,
       "verdict": "🟢 STESSI_RISULTATI (PASS)",
       "payload": {
@@ -1002,8 +1002,8 @@
     {
       "id": "PARAM_26",
       "status": "PASS",
-      "latency_ms": 4.55,
-      "count": 15,
+      "latency_ms": 5.13,
+      "count": 17,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "payload": {
         "regioni_target": [
@@ -1019,7 +1019,7 @@
     {
       "id": "PARAM_27",
       "status": "PASS",
-      "latency_ms": 3.62,
+      "latency_ms": 3.39,
       "count": 1,
       "verdict": "🟢 STESSI_RISULTATI (PASS)",
       "payload": {
@@ -1033,7 +1033,7 @@
     {
       "id": "PARAM_28",
       "status": "PASS",
-      "latency_ms": 3.36,
+      "latency_ms": 3.1,
       "count": 1,
       "verdict": "🟢 STESSI_RISULTATI (PASS)",
       "payload": {
@@ -1048,7 +1048,7 @@
     {
       "id": "PARAM_29",
       "status": "PASS",
-      "latency_ms": 3.8,
+      "latency_ms": 3.31,
       "count": 1,
       "verdict": "🟢 STESSI_RISULTATI (PASS)",
       "payload": {
@@ -1065,8 +1065,8 @@
     {
       "id": "PARAM_30",
       "status": "PASS",
-      "latency_ms": 3.25,
-      "count": 7,
+      "latency_ms": 3.89,
+      "count": 8,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "payload": {
         "regioni_target": [
@@ -1096,7 +1096,7 @@
     {
       "id": "PARAM_32",
       "status": "PASS",
-      "latency_ms": 3.65,
+      "latency_ms": 3.47,
       "count": 1,
       "verdict": "🟢 STESSI_RISULTATI (PASS)",
       "payload": {
@@ -1113,7 +1113,7 @@
     {
       "id": "PARAM_33",
       "status": "PASS",
-      "latency_ms": 3.38,
+      "latency_ms": 3.08,
       "count": 1,
       "verdict": "🟢 STESSI_RISULTATI (PASS)",
       "payload": {
@@ -1128,8 +1128,8 @@
     {
       "id": "PARAM_34",
       "status": "PASS",
-      "latency_ms": 3.5,
-      "count": 6,
+      "latency_ms": 4.28,
+      "count": 7,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "payload": {
         "regioni_target": [
@@ -1144,7 +1144,7 @@
     {
       "id": "PARAM_35",
       "status": "PASS",
-      "latency_ms": 3.6,
+      "latency_ms": 4.46,
       "count": 1,
       "verdict": "🟢 STESSI_RISULTATI (PASS)",
       "payload": {
@@ -1158,7 +1158,7 @@
     {
       "id": "PARAM_36",
       "status": "PASS",
-      "latency_ms": 3.29,
+      "latency_ms": 3.51,
       "count": 1,
       "verdict": "🟢 STESSI_RISULTATI (PASS)",
       "payload": {
@@ -1172,7 +1172,7 @@
     {
       "id": "PARAM_37",
       "status": "PASS",
-      "latency_ms": 3.22,
+      "latency_ms": 2.88,
       "count": 1,
       "verdict": "🟢 STESSI_RISULTATI (PASS)",
       "payload": {
@@ -1186,7 +1186,7 @@
     {
       "id": "PARAM_38",
       "status": "PASS",
-      "latency_ms": 4.34,
+      "latency_ms": 4.33,
       "count": 1,
       "verdict": "🟢 STESSI_RISULTATI (PASS)",
       "payload": {
@@ -1203,7 +1203,7 @@
     {
       "id": "PARAM_39",
       "status": "PASS",
-      "latency_ms": 3.86,
+      "latency_ms": 4.21,
       "count": 1,
       "verdict": "🟢 STESSI_RISULTATI (PASS)",
       "payload": {
@@ -1220,8 +1220,8 @@
     {
       "id": "PARAM_40",
       "status": "PASS",
-      "latency_ms": 2.45,
-      "count": 8,
+      "latency_ms": 2.77,
+      "count": 10,
       "verdict": "⭐ PIÙ_RISULTATI (EXCELLENT)",
       "payload": {
         "regioni_target": [
