@@ -9,6 +9,9 @@ on:
 jobs:
   verify:
     runs-on: windows-latest
+    env:
+      PYTHONIOENCODING: "utf-8"
+      PYTHONUTF8: "1"
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -24,6 +27,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Run Pre-Flight Environment Capability Discovery
+        run: |
+          python scripts/env_capability_probe.py
+
       - name: Run Preflight Health Check
         run: |
           python scripts/preflight_health_check.py
@@ -32,6 +39,7 @@ jobs:
         run: |
           python scripts/ast_guard_validator.py --target all
 
-      - name: Run Core Platform Test Suite
+      - name: Run Core Platform Test Suite (127 Permanent Tests)
         run: |
-          python -m unittest discover -s tests -p "test_*.py"
+          python -m pytest tests/ -v
+

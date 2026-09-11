@@ -669,30 +669,56 @@ class ASTGuardValidator:
 
 
 def main() -> int:
+    import argparse
     import sys
     from pathlib import Path
 
-    if len(sys.argv) < 2:
-        print("Usage: python scripts/ast_guard_validator.py <file_or_directory>")
-        return 0
+    parser = argparse.ArgumentParser(description="Deterministic AST Guard Validator")
+    parser.add_argument(
+        "target_path",
+        nargs="?",
+        default=None,
+        help="Path to Python file or directory to scan, or 'all'",
+    )
+    parser.add_argument(
+        "--target",
+        dest="target_flag",
+        default=None,
+        help="Target file or directory to scan, or 'all'",
+    )
 
-    target = Path(sys.argv[1])
-    if not target.exists():
-        print(f"[ERROR] Path does not exist: {target}")
-        return 1
+    args = parser.parse_args()
+    raw_target = args.target_flag or args.target_path
+
+    if not raw_target:
+        raw_target = "all"
+
+    targets_to_scan: List[Path] = []
+    if raw_target.lower() == "all":
+        workspace_root = Path(__file__).resolve().parent.parent
+        for candidate in ["scripts", "tests", "src_app"]:
+            cand_path = workspace_root / candidate
+            if cand_path.exists():
+                targets_to_scan.append(cand_path)
+    else:
+        p = Path(raw_target)
+        if not p.exists():
+            print(f"[ERROR] Path does not exist: {p}")
+            return 1
+        targets_to_scan.append(p)
 
     py_files: List[Path] = []
-    if target.is_file() and target.suffix == ".py":
-        py_files = [target]
-    elif target.is_dir():
-        py_files = sorted([f for f in target.rglob("*.py") if "__pycache__" not in f.parts])
-    else:
-        print(f"[ERROR] No python files found in: {target}")
-        return 1
+    for t in targets_to_scan:
+        if t.is_file() and t.suffix == ".py":
+            py_files.append(t)
+        elif t.is_dir():
+            py_files.extend(sorted([f for f in t.rglob("*.py") if "__pycache__" not in f.parts]))
+
+    py_files = sorted(list(dict.fromkeys(py_files)))
 
     total_violations = 0
     print("================================================================================")
-    print(f"AST GUARD VALIDATOR: Scanning {len(py_files)} files in {target}")
+    print(f"AST GUARD VALIDATOR: Scanning {len(py_files)} files across targets")
     print("================================================================================")
 
     for py_file in py_files:
@@ -726,4 +752,5 @@ def main() -> int:
 if __name__ == "__main__":
     import sys
     sys.exit(main())
+
 

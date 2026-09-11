@@ -6,15 +6,15 @@
     "passed": 40,
     "total": 40,
     "pass_rate_pct": 100.0,
-    "avg_latency_ms": 6.42,
-    "p95_latency_ms": 8.98
+    "avg_latency_ms": 6.65,
+    "p95_latency_ms": 9.42
   },
   "expert_parametric": {
     "passed": 40,
     "total": 40,
     "pass_rate_pct": 100.0,
-    "avg_latency_ms": 3.72,
-    "p95_latency_ms": 4.73
+    "avg_latency_ms": 4.02,
+    "p95_latency_ms": 5.83
   },
   "dual_agreement_pct": 100.0,
   "failures_count": 0,
@@ -29,13 +29,13 @@
         "passed": true,
         "rank": 1,
         "score": 100.0,
-        "latency_ms": 24.91,
+        "latency_ms": 25.63,
         "results_count": 2
       },
       "parametric": {
         "passed": true,
         "rank": 1,
-        "latency_ms": 5.9,
+        "latency_ms": 5.83,
         "results_count": 11
       },
       "dual_agreement": true
@@ -49,13 +49,13 @@
         "passed": true,
         "rank": 1,
         "score": 81.2,
-        "latency_ms": 7.81,
+        "latency_ms": 8.23,
         "results_count": 4
       },
       "parametric": {
         "passed": true,
         "rank": 1,
-        "latency_ms": 3.86,
+        "latency_ms": 3.88,
         "results_count": 2
       },
       "dual_agreement": true
@@ -69,13 +69,13 @@
         "passed": true,
         "rank": 1,
         "score": 94.8,
-        "latency_ms": 6.91,
+        "latency_ms": 6.56,
         "results_count": 2
       },
       "parametric": {
         "passed": true,
         "rank": 1,
-        "latency_ms": 3.62,
+        "latency_ms": 3.85,
         "results_count": 4
       },
       "dual_agreement": true
@@ -89,13 +89,13 @@
         "passed": true,
         "rank": 1,
         "score": 89.2,
-        "latency_ms": 7.76,
+        "latency_ms": 8.23,
         "results_count": 1
       },
       "parametric": {
         "passed": true,
         "rank": 3,
-        "latency_ms": 4.46,
+        "latency_ms": 3.74,
         "results_count": 14
       },
       "dual_agreement": true
@@ -109,13 +109,13 @@
         "passed": true,
         "rank": 1,
         "score": 84.7,
-        "latency_ms": 5.83,
+        "latency_ms": 5.79,
         "results_count": 2
       },
       "parametric": {
         "passed": true,
         "rank": 5,
-        "latency_ms": 3.2,
+        "latency_ms": 3.77,
         "results_count": 36
       },
       "dual_agreement": true
@@ -129,13 +129,13 @@
         "passed": true,
         "rank": 1,
         "score": 90.1,
-        "latency_ms": 4.95,
+        "latency_ms": 4.39,
         "results_count": 2
       },
       "parametric": {
         "passed": true,
         "rank": 4,
-        "latency_ms": 3.12,
+        "latency_ms": 3.23,
         "results_count": 13
       },
       "dual_agreement": true
@@ -149,13 +149,13 @@
         "passed": true,
         "rank": 1,
         "score": 89.8,
-        "latency_ms": 5.23,
+        "latency_ms": 5.35,
         "results_count": 4
       },
       "parametric": {
         "passed": true,
         "rank": 5,
-        "latency_ms": 4.73,
+        "latency_ms": 4.1,
         "results_count": 9
       },
       "dual_agreement": true
@@ -169,13 +169,13 @@
         "passed": true,
         "rank": 1,
         "score": 93.8,
-        "latency_ms": 6.0,
+        "latency_ms": 6.29,
         "results_count": 2
       },
       "parametric": {
         "passed": true,
         "rank": 5,
-        "latency_ms": 3.48,
+        "latency_ms": 3.72,
         "results_count": 8
       },
       "dual_agreement": true
@@ -189,13 +189,13 @@
         "passed": true,
         "rank": 2,
         "score": 76.2,
-        "latency_ms": 6.37,
+        "latency_ms": 5.97,
         "results_count": 3
       },
       "parametric": {
         "passed": true,
         "rank": 4,
-        "latency_ms": 4.17,
+        "latency_ms": 4.45,
         "results_count": 7
       },
       "dual_agreement": true
@@ -209,13 +209,13 @@
         "passed": true,
         "rank": 1,
         "score": 91.2,
-        "latency_ms": 5.59,
+        "latency_ms": 5.51,
         "results_count": 1
       },
       "parametric": {
         "passed": true,
         "rank": 1,
-        "latency_ms": 3.96,
+        "latency_ms": 4.1,
         "results_count": 3
       },
       "dual_agreement": true
@@ -229,13 +229,13 @@
         "passed": true,
         "rank": 1,
         "score": 93.0,
-        "latency_ms": 6.18,
+        "latency_ms": 6.29,
         "results_count": 1
       },
       "parametric": {
         "passed": true,
         "rank": 4,
-        "latency_ms": 4.14,
+        "latency_ms": 3.87,
         "results_count": 7
       },
       "dual_agreement": true
@@ -249,13 +249,13 @@
         "passed": true,
         "rank": 1,
         "score": 94.8,
-        "latency_ms": 6.16,
+        "latency_ms": 5.47,
         "results_count": 1
       },
       "parametric": {
         "passed": true,
         "rank": 4,
-        "latency_ms": 3.6,
+        "latency_ms": 4.27,
         "results_count": 9
       },
       "dual_agreement": true
@@ -269,13 +269,13 @@
         "passed": true,
         "rank": 2,
         "score": 88.9,
-        "latency_ms": 5.2,
+        "latency_ms": 5.4,
         "results_count": 2
       },
       "parametric": {
         "passed": true,
         "rank": 5,
-        "latency_ms": 4.27,
+        "latency_ms": 4.31,
         "results_count": 9
       },
       "dual_agreement": true
@@ -289,13 +289,13 @@
         "passed": true,
         "rank": 1,
         "score": 94.8,
-        "latency_ms": 7.18,
+        "latency_ms": 7.58,
         "results_count": 7
       },
       "parametric": {
         "passed": true,
         "rank": 5,
-        "latency_ms": 3.53,
+        "latency_ms": 4.15,
         "results_count": 9
       },
       "dual_agreement": true
@@ -309,13 +309,13 @@
         "passed": true,
         "rank": 1,
         "score": 86.6,
-        "latency_ms": 4.39,
+        "latency_ms": 4.42,
         "results_count": 2
       },
       "parametric": {
         "passed": true,
         "rank": 4,
-        "latency_ms": 3.5,
+        "latency_ms": 4.2,
         "results_count": 7
       },
       "dual_agreement": true
@@ -329,13 +329,13 @@
         "passed": true,
         "rank": 1,
         "score": 91.2,
-        "latency_ms": 4.87,
+        "latency_ms": 6.2,
         "results_count": 1
       },
       "parametric": {
         "passed": true,
         "rank": 4,
-        "latency_ms": 3.53,
+        "latency_ms": 4.52,
         "results_count": 9
       },
       "dual_agreement": true
@@ -349,13 +349,13 @@
         "passed": true,
         "rank": 1,
         "score": 94.8,
-        "latency_ms": 6.9,
+        "latency_ms": 7.54,
         "results_count": 2
       },
       "parametric": {
         "passed": true,
         "rank": 1,
-        "latency_ms": 3.63,
+        "latency_ms": 4.05,
         "results_count": 4
       },
       "dual_agreement": true
@@ -369,13 +369,13 @@
         "passed": true,
         "rank": 3,
         "score": 73.1,
-        "latency_ms": 6.88,
+        "latency_ms": 7.15,
         "results_count": 7
       },
       "parametric": {
         "passed": true,
         "rank": 5,
-        "latency_ms": 4.25,
+        "latency_ms": 4.35,
         "results_count": 8
       },
       "dual_agreement": true
@@ -389,13 +389,13 @@
         "passed": true,
         "rank": 1,
         "score": 92.2,
-        "latency_ms": 6.26,
+        "latency_ms": 6.88,
         "results_count": 4
       },
       "parametric": {
         "passed": true,
         "rank": 4,
-        "latency_ms": 3.45,
+        "latency_ms": 3.69,
         "results_count": 7
       },
       "dual_agreement": true
@@ -409,13 +409,13 @@
         "passed": true,
         "rank": 3,
         "score": 87.4,
-        "latency_ms": 6.17,
+        "latency_ms": 5.45,
         "results_count": 3
       },
       "parametric": {
         "passed": true,
         "rank": 20,
-        "latency_ms": 3.53,
+        "latency_ms": 3.48,
         "results_count": 36
       },
       "dual_agreement": true
@@ -429,13 +429,13 @@
         "passed": true,
         "rank": 1,
         "score": 90.9,
-        "latency_ms": 8.98,
+        "latency_ms": 9.42,
         "results_count": 4
       },
       "parametric": {
         "passed": true,
         "rank": 3,
-        "latency_ms": 3.82,
+        "latency_ms": 4.56,
         "results_count": 5
       },
       "dual_agreement": true
@@ -449,13 +449,13 @@
         "passed": true,
         "rank": 1,
         "score": 91.2,
-        "latency_ms": 5.23,
+        "latency_ms": 5.59,
         "results_count": 1
       },
       "parametric": {
         "passed": true,
         "rank": 5,
-        "latency_ms": 3.81,
+        "latency_ms": 3.8,
         "results_count": 7
       },
       "dual_agreement": true
@@ -469,13 +469,13 @@
         "passed": true,
         "rank": 1,
         "score": 91.2,
-        "latency_ms": 6.44,
+        "latency_ms": 6.95,
         "results_count": 3
       },
       "parametric": {
         "passed": true,
         "rank": 2,
-        "latency_ms": 3.46,
+        "latency_ms": 6.03,
         "results_count": 3
       },
       "dual_agreement": true
@@ -489,13 +489,13 @@
         "passed": true,
         "rank": 1,
         "score": 92.2,
-        "latency_ms": 4.87,
+        "latency_ms": 5.43,
         "results_count": 1
       },
       "parametric": {
         "passed": true,
         "rank": 5,
-        "latency_ms": 3.65,
+        "latency_ms": 4.3,
         "results_count": 7
       },
       "dual_agreement": true
@@ -509,13 +509,13 @@
         "passed": true,
         "rank": 1,
         "score": 87.4,
-        "latency_ms": 5.08,
+        "latency_ms": 7.47,
         "results_count": 1
       },
       "parametric": {
         "passed": true,
         "rank": 2,
-        "latency_ms": 3.6,
+        "latency_ms": 4.29,
         "results_count": 2
       },
       "dual_agreement": true
@@ -529,13 +529,13 @@
         "passed": true,
         "rank": 1,
         "score": 80.8,
-        "latency_ms": 5.18,
+        "latency_ms": 5.8,
         "results_count": 4
       },
       "parametric": {
         "passed": true,
         "rank": 5,
-        "latency_ms": 3.46,
+        "latency_ms": 3.97,
         "results_count": 7
       },
       "dual_agreement": true
@@ -549,13 +549,13 @@
         "passed": true,
         "rank": 1,
         "score": 90.9,
-        "latency_ms": 4.77,
+        "latency_ms": 5.28,
         "results_count": 2
       },
       "parametric": {
         "passed": true,
         "rank": 6,
-        "latency_ms": 2.84,
+        "latency_ms": 3.26,
         "results_count": 10
       },
       "dual_agreement": true
@@ -569,13 +569,13 @@
         "passed": true,
         "rank": 1,
         "score": 87.8,
-        "latency_ms": 6.46,
+        "latency_ms": 6.77,
         "results_count": 2
       },
       "parametric": {
         "passed": true,
         "rank": 5,
-        "latency_ms": 3.87,
+        "latency_ms": 4.35,
         "results_count": 6
       },
       "dual_agreement": true
@@ -589,13 +589,13 @@
         "passed": true,
         "rank": 1,
         "score": 93.0,
-        "latency_ms": 5.75,
+        "latency_ms": 6.26,
         "results_count": 1
       },
       "parametric": {
         "passed": true,
         "rank": 2,
-        "latency_ms": 3.62,
+        "latency_ms": 4.02,
         "results_count": 3
       },
       "dual_agreement": true
@@ -609,13 +609,13 @@
         "passed": true,
         "rank": 1,
         "score": 90.9,
-        "latency_ms": 6.45,
+        "latency_ms": 6.55,
         "results_count": 1
       },
       "parametric": {
         "passed": true,
         "rank": 1,
-        "latency_ms": 3.61,
+        "latency_ms": 4.04,
         "results_count": 1
       },
       "dual_agreement": true
@@ -629,13 +629,13 @@
         "passed": true,
         "rank": 1,
         "score": 87.4,
-        "latency_ms": 4.11,
+        "latency_ms": 4.16,
         "results_count": 4
       },
       "parametric": {
         "passed": true,
         "rank": 2,
-        "latency_ms": 2.55,
+        "latency_ms": 3.01,
         "results_count": 3
       },
       "dual_agreement": true
@@ -649,13 +649,13 @@
         "passed": true,
         "rank": 1,
         "score": 91.2,
-        "latency_ms": 4.52,
+        "latency_ms": 4.64,
         "results_count": 1
       },
       "parametric": {
         "passed": true,
         "rank": 7,
-        "latency_ms": 3.64,
+        "latency_ms": 4.26,
         "results_count": 9
       },
       "dual_agreement": true
@@ -669,13 +669,13 @@
         "passed": true,
         "rank": 1,
         "score": 91.2,
-        "latency_ms": 6.89,
+        "latency_ms": 6.37,
         "results_count": 1
       },
       "parametric": {
         "passed": true,
         "rank": 5,
-        "latency_ms": 3.42,
+        "latency_ms": 3.65,
         "results_count": 8
       },
       "dual_agreement": true
@@ -689,13 +689,13 @@
         "passed": true,
         "rank": 1,
         "score": 93.0,
-        "latency_ms": 5.31,
+        "latency_ms": 5.54,
         "results_count": 1
       },
       "parametric": {
         "passed": true,
         "rank": 7,
-        "latency_ms": 3.87,
+        "latency_ms": 3.92,
         "results_count": 9
       },
       "dual_agreement": true
@@ -709,13 +709,13 @@
         "passed": true,
         "rank": 1,
         "score": 95.7,
-        "latency_ms": 5.5,
+        "latency_ms": 5.41,
         "results_count": 2
       },
       "parametric": {
         "passed": true,
         "rank": 6,
-        "latency_ms": 3.55,
+        "latency_ms": 3.51,
         "results_count": 8
       },
       "dual_agreement": true
@@ -729,13 +729,13 @@
         "passed": true,
         "rank": 1,
         "score": 90.3,
-        "latency_ms": 5.07,
+        "latency_ms": 5.55,
         "results_count": 1
       },
       "parametric": {
         "passed": true,
         "rank": 5,
-        "latency_ms": 3.44,
+        "latency_ms": 3.67,
         "results_count": 7
       },
       "dual_agreement": true
@@ -749,13 +749,13 @@
         "passed": true,
         "rank": 1,
         "score": 84.2,
-        "latency_ms": 5.33,
+        "latency_ms": 5.65,
         "results_count": 1
       },
       "parametric": {
         "passed": true,
         "rank": 3,
-        "latency_ms": 2.53,
+        "latency_ms": 3.02,
         "results_count": 4
       },
       "dual_agreement": true
@@ -769,13 +769,13 @@
         "passed": true,
         "rank": 1,
         "score": 83.9,
-        "latency_ms": 5.12,
+        "latency_ms": 5.17,
         "results_count": 2
       },
       "parametric": {
         "passed": true,
         "rank": 34,
-        "latency_ms": 3.35,
+        "latency_ms": 3.5,
         "results_count": 36
       },
       "dual_agreement": true
@@ -789,13 +789,13 @@
         "passed": true,
         "rank": 1,
         "score": 91.2,
-        "latency_ms": 6.67,
+        "latency_ms": 6.61,
         "results_count": 2
       },
       "parametric": {
         "passed": true,
         "rank": 5,
-        "latency_ms": 4.07,
+        "latency_ms": 4.11,
         "results_count": 5
       },
       "dual_agreement": true
@@ -809,13 +809,13 @@
         "passed": true,
         "rank": 1,
         "score": 85.7,
-        "latency_ms": 7.34,
+        "latency_ms": 7.08,
         "results_count": 2
       },
       "parametric": {
         "passed": true,
         "rank": 9,
-        "latency_ms": 4.6,
+        "latency_ms": 4.08,
         "results_count": 9
       },
       "dual_agreement": true
