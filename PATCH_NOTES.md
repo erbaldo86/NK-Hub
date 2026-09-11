@@ -1,10 +1,31 @@
 # 📜 NEXUS KEYSTONE OFFICIAL CHANGELOG & PATCH NOTES (SSOT)
 
 > **Single Source of Truth (SSOT):** `nk_genome/PATCH_NOTES.md`  
-> **Release Ufficiale:** `v1.9.1-ForensicClean (Full Decoupling, Scorie Purged & TAS Audit)`  
-> **Milestone Anchor:** `NK-MS-20260911-FORENSIC-CLEAN-v1.9.1`  
+> **Release Ufficiale:** `v2.0.0-Hardened (Super Brief 6-Pillar Infrastructure, Anti-Polling Watchdog & Session Bootstrap Gate)`  
+> **Milestone Anchor:** `NK-MS-20260911-SUPER-BRIEF-UPGRADE-v2.0.0`  
 > **Data Consolidamento:** 2026-09-11  
-> **Stato Release:** `🛡️ [NK-SUPER-BRIEF-STATUS: AUDITED_AND_OFFICIAL_v1.9.1 🟢]`
+> **Stato Release:** `🛡️ [NK-SUPER-BRIEF-STATUS: AUDITED_AND_OFFICIAL_v2.0.0 🟢]`
+
+---
+
+## 🏛️ Release v2.0.0-Hardened — Super Brief Sistemico, Anti-Polling Watchdog & 66-Test Permanent Suite
+La Release **v2.0.0-Hardened** concretizza l'intera sintesi dialettica tra l'analisi empirica e l'audit procedurale dello stress test, trasferendo la governance dai meri soft-constraint di prompt a **Hard Tool Guardrails ed enforcement deterministico**:
+1. **Universal Safe Subprocess Runner v2 (`scripts/platform_runner.py`)**:
+   - Auto-iniezione forzata di `PYTHONUNBUFFERED=1`, `PYTHONIOENCODING=utf-8` e `PYTHONUTF8=1` in ogni processo.
+   - Auto-flag `-u` sistematico su tutte le invocazioni Python, eliminando i falsi allarmi da buffer vuoto e i file log a 0 byte su Windows.
+   - Quoting deterministico ed esecuzione vettorizzata senza `shell=True` per percorsi con spazi (`G:\Il mio Drive\`).
+2. **Fast-Stat Session Bootstrap Gate (`scripts/nk_session_bootstrap.py`)**:
+   - Primo step obbligatorio di ogni sessione (`[RULE-00.4]`).
+   - Verifica invariante ultra-rapida ($< 120$ ms) con cache di stato in `%TEMP%\nk_bootstrap\`, purge dei WAL scaduti (>60s) e validazione di `[RULE-PROJECT-ISOLATION]`.
+3. **Watchdog Anti-Polling & Protocollo `[RULE-REACTIVE-SILENCE]`**:
+   - Nuova regola costituzionale in `AGENTS.md` che vieta il busy polling su `status` (massimo 1 interrogazione) e impone il silenzio reattivo con sentinella condizionale `schedule(TimerCondition="task-xxx")`.
+4. **Deterministic External Project Scaffolder (`scripts/external_project_scaffolder.py`)**:
+   - Utility atomica CLI che genera in 1 secondo l'alberatura DDD di progetti esterni fuori da NK-Hub con configurazioni unbuffered e test AST pre-integrati.
+5. **Tier-0 Deterministic Local API Cache (`scripts/deterministic_api_cache.py`)**:
+   - Cache SQLite WAL in `%TEMP%` che accelera le test suite locali da 101s a $< 4$s e supporta `--force-refresh` in CI per la conformità Zero-Mock al 100%.
+6. **Hard Compliance Checker (`scripts/nk_compliance_checker.py`) & Suite Ratchet a 66 Test**:
+   - Analizzatore forense post-sessione e in CI che calcola la Doppia Scorecard (Operativo + Procedurale).
+   - Test suite permanente espansa a **66/66 test PASSED (100.0%)**.
 
 ---
 

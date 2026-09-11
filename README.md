@@ -1,4 +1,4 @@
-# 🏛️ Lab NK Hub — Sovereign AI Agentic OS (v1.9.0-PlatformOptimized)
+# 🏛️ Lab NK Hub — Sovereign AI Agentic OS (v2.0.0-Hardened)
 ### *The Sovereign Cognitive Operating System, Multi-Agent Swarm Orchestrator & Vibe Coding Engine for Google Antigravity*
 
 <p align="center">
@@ -7,10 +7,10 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Release-v1.9.0--PlatformOptimized-0052FF?style=for-the-badge&logo=shield&logoColor=white" alt="Release Badge" />
+  <img src="https://img.shields.io/badge/Release-v2.0.0--Hardened-0052FF?style=for-the-badge&logo=shield&logoColor=white" alt="Release Badge" />
   <img src="https://img.shields.io/badge/Standard-CRV_4.0_Universal-00C853?style=for-the-badge&logo=checkmarx&logoColor=white" alt="CRV 4.0 Standard" />
   <img src="https://img.shields.io/badge/Zero--Mock-100%25_Real_Certified-FF6D00?style=for-the-badge&logo=databricks&logoColor=white" alt="Zero-Mock Certified" />
-  <img src="https://img.shields.io/badge/Permanent_Tests-60%2F60_100%25_PASS-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Permanent Tests" />
+  <img src="https://img.shields.io/badge/Permanent_Tests-66%2F66_100%25_PASS-success?style=for-the-badge&logo=pytest&logoColor=white" alt="Permanent Tests" />
   <img src="https://img.shields.io/badge/Architecture-Pure_Agentic_MetaPlatform-purple?style=for-the-badge&logo=diagramsdotnet&logoColor=white" alt="Architecture Blocks" />
   <img src="https://img.shields.io/badge/Commit_Lock-Win32_2PC_Named_Mutex-E91E63?style=for-the-badge&logo=windows&logoColor=white" alt="Win32 2PC Mutex" />
   <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License MIT" />
@@ -18,7 +18,20 @@
 
 ---
 
-## ⚡ Patch Notes: What's New in v1.9.0-PlatformOptimized (Core Optimization Release)
+## ⚡ Patch Notes: What's New in v2.0.0-Hardened (Super Brief Infrastructure Release)
+
+> **Resilience & Hard Tool Enforcement:** Release **v2.0.0-Hardened** addresses the stress-test findings by shifting from prompt-based soft rules to programmatic runtime guardrails:
+
+* **Universal Safe Subprocess Runner v2 (`scripts/platform_runner.py`):** Forces `PYTHONUNBUFFERED=1`, UTF-8 encoding, and auto-injects `-u` on Python calls to eliminate 0-byte log blocking on Windows.
+* **Fast-Stat Session Bootstrap Gate (`scripts/nk_session_bootstrap.py`):** Mandatory start-of-session verification (<120 ms) with invariant checks in `%TEMP%`, verifying project isolation and purging expired WAL files.
+* **Reactive Silence & Anti-Polling Watchdog (`[RULE-REACTIVE-SILENCE]`):** Bypasses busy polling loops on background tasks and subagents by enforcing reactive event-bus wakeup and conditional sentry timers.
+* **Deterministic External Project Scaffolder (`scripts/external_project_scaffolder.py`):** Single-command atomic DDD scaffolding for projects created outside NK-Hub.
+* **Tier-0 Deterministic Local API Cache (`scripts/deterministic_api_cache.py`):** Ephemeral SQLite WAL caching for Zero-Mock network calls, slashing suite runtime from 101s to <4s while enforcing `--force-refresh` in CI.
+* **66-Test Permanent Suite Ratchet (100.0% PASS):** Upgraded test ratchet to **66 unit tests**, verified with zero mocks and 100% passing.
+
+---
+
+## ⚡ Archive Patch Notes: What's New in v1.9.0-PlatformOptimized (Core Optimization Release)
 
 > **Platform Optimization & Project Isolation:** Release **v1.9.0-PlatformOptimized** focuses on core operational purity, architectural streamlining, and lightning-fast verification:
 

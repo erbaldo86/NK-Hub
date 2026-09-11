@@ -25,13 +25,13 @@
   functions: [get_docs_service, read_google_doc, append_to_google_doc]
 
 ### 📦 Moduli Secondari (Riepilogo Compatto)
-- `scripts/*`: ast_guard_validator.py, micro_hud_renderer.py, sbfl_engine.py, memory_3tier_engine.py, dast_sandbox_runner.py, invisible_healing_loop.py, win32_2pc_engine.py, preflight_health_check.py, vibe_sprint_router.py, async_heartbeat_signaler.py, quality_baseline_manager.py, env_capability_probe.py, platform_runner.py, safe_cleanup_dev_servers.py
+- `scripts/*`: ast_guard_validator.py, micro_hud_renderer.py, sbfl_engine.py, deterministic_api_cache.py, memory_3tier_engine.py, dast_sandbox_runner.py, invisible_healing_loop.py, win32_2pc_engine.py, preflight_health_check.py, external_project_scaffolder.py, nk_compliance_checker.py, vibe_sprint_router.py, async_heartbeat_signaler.py, nk_session_bootstrap.py, quality_baseline_manager.py, env_capability_probe.py, platform_runner.py, safe_cleanup_dev_servers.py
 - `scripts/schemas/*`: dual_ledgers.py, nk_ipc_contracts.py
 - `.agents/skills/NK-Master-Hub/scripts/*`: run_hub.py, change_router.py, ipc_engine.py, safe_parser.py, test_hub.py
 - `.agents/skills/NK-Oracle-Evaluator/resources/*`: dual_state_visual_comparator.py, runtime_trace_inspector.py
 - `.agents/skills/NK-Dynamic-Sandbox-StressTester/resources/*`: phase2_chaos_swarm_runner.py, dynamic_pool_dispatcher.py, phase1_surgical_runner.py
 - `.agents/skills/NK-Security-Auditor/resources/l1/*`: peer_review_validator.py, token_weighted_allocator.py, swarm_aggregator.py
-- `tests/*`: test_invisible_healing_loop.py, test_dast_sandbox.py, test_schemas_and_contracts.py, test_sbfl_engine.py, test_ast_guard_validator.py, test_memory_3tier.py, test_win32_2pc.py, test_ast_repo_mapper.py, conftest.py, test_platform_upgrades.py
+- `.agents/skills/NK-Oracle-Evaluator/scripts/*`: verifier_oracle.py, cross_drive_stager.py, discrepancy_report_generator.py
 - `google-docs-mcp/*`: auth.py, cli.py
 - `nk_tracking/cockpit/*`: nk_cockpit.html
-- `.agents/skills/NK-Oracle-Evaluator/scripts/*`, `.agents/skills/NK-Bug-Diagnostic-Engine/resources/*`
+- `tests/*`, `.agents/skills/NK-Bug-Diagnostic-Engine/resources/*`

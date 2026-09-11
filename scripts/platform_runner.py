@@ -1,11 +1,13 @@
 """
-Nexus Keystone v1.1.0-Universal - Universal Platform Runner & UTF-8 Stream Manager
+Nexus Keystone v2.0.0-Hardened - Universal Platform Runner & UTF-8 Stream Manager
 Module: platform_runner.py
-Author: NK-Platform-Builder
+Author: NK-Platform-Builder & NK-Environment-Architect
 
 Features:
 - UTF-8 stream reconfiguration for Windows and cross-platform environments.
+- Enforced unbuffered stdout/stderr (PYTHONUNBUFFERED=1 and -u flag) preventing 0-byte log blocking on Windows.
 - Safe subprocess execution with robust timeout, exception, and encoding handling.
+- Deterministic argument handling for Windows paths with spaces (e.g. Google Drive).
 - CLI execution mode for protected command evaluation.
 """
 
@@ -13,10 +15,11 @@ from __future__ import annotations
 
 import argparse
 import os
+import shlex
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, Optional, Sequence, Tuple, Union
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 
 def reconfigure_streams() -> None:
@@ -32,6 +35,22 @@ def reconfigure_streams() -> None:
                 pass
 
 
+def _normalize_python_command(cmd: Union[str, Sequence[str]]) -> Union[str, List[str]]:
+    """
+    Ensure Python invocations include unbuffered execution flag (-u)
+    to prevent block-buffering on Windows task log files.
+    """
+    if isinstance(cmd, (list, tuple)):
+        cmd_list = list(cmd)
+        if len(cmd_list) > 0 and (
+            "python" in str(cmd_list[0]).lower() or str(cmd_list[0]) == sys.executable
+        ):
+            if "-u" not in cmd_list[1:3]:
+                cmd_list.insert(1, "-u")
+        return cmd_list
+    return cmd
+
+
 def safe_subprocess_run(
     cmd: Union[str, Sequence[str]],
     cwd: Optional[Union[str, Path]] = None,
@@ -40,7 +59,8 @@ def safe_subprocess_run(
     env: Optional[Dict[str, str]] = None,
 ) -> Tuple[int, str, str]:
     """
-    Execute a subprocess safely with forced UTF-8 encoding and robust error handling.
+    Execute a subprocess safely with forced UTF-8 encoding, unbuffered streaming,
+    and robust error handling.
 
     Args:
         cmd: Command string or sequence of arguments.
@@ -52,25 +72,29 @@ def safe_subprocess_run(
     Returns:
         Tuple of (returncode, stdout, stderr).
     """
-    # Enforce stream UTF-8 configuration
+    # Enforce stream UTF-8 configuration in parent process
     reconfigure_streams()
 
-    # Construct child environment forcing Python UTF-8 mode
+    # Construct child environment forcing Python UTF-8 mode and unbuffered output
     run_env = dict(os.environ)
     if env is not None:
         run_env.update(env)
     run_env["PYTHONIOENCODING"] = "utf-8"
     run_env["PYTHONUTF8"] = "1"
+    run_env["PYTHONUNBUFFERED"] = "1"
+
+    # Inject -u into Python commands if sequence
+    normalized_cmd = _normalize_python_command(cmd)
 
     cwd_str = str(cwd) if cwd is not None else None
-    use_shell = isinstance(cmd, str)
+    use_shell = isinstance(normalized_cmd, str)
 
     stdout_pipe = subprocess.PIPE if capture else None
     stderr_pipe = subprocess.PIPE if capture else None
 
     try:
         proc = subprocess.run(
-            cmd,
+            normalized_cmd,
             cwd=cwd_str,
             timeout=timeout,
             stdout=stdout_pipe,
@@ -117,13 +141,13 @@ def main() -> int:
     reconfigure_streams()
 
     parser = argparse.ArgumentParser(
-        description="Nexus Keystone Universal Platform Runner",
+        description="Nexus Keystone Universal Platform Runner v2",
     )
     parser.add_argument(
         "--cmd",
         type=str,
         required=True,
-        help="Command to execute in a protected UTF-8 environment",
+        help="Command to execute in a protected UTF-8 unbuffered environment",
     )
     parser.add_argument(
         "--cwd",

@@ -1,8 +1,8 @@
-# 🏛️ Regolamento di Sistema: Ecosistema Antigravity (Nexus Keystone Official Release v1.7.0-RepoMap Refined)
+# 🏛️ Regolamento di Sistema: Ecosistema Antigravity (Nexus Keystone Official Release v2.0.0-Hardened)
 
 > **Ambito:** Regole del workspace a livello di progetto per tutti gli agenti, sub-agenti e nodi NK.  
 > **Applicazione:** Imperativo vincolante per l'Agente Principale, i Sub-Agenti e la FSM dell'Hub.  
-> **Versione Protocollo:** v1.7.0-RepoMap Refined (High-Density AST Repo-Map, Anti-Freeze Pulse Sentinel, Intrinsic /implementation & /goal, Vibe-Sprint Mode C, Brief-Aware Handoff, Decoupled Asymmetric Actor-Critic, Auto-Brief Swarm FSM a 5 Turni, Win32 2PC Mutex, Real DAST Sandbox, 3-Tier Episodic Memory & 115-Test Permanent Suite Ratchet)
+> **Versione Protocollo:** v2.0.0-Hardened (Session Bootstrap Gate, Universal Safe Subprocess Runner v2, Reactive Silence Anti-Polling, Deterministic DDD Scaffolder, Tier-0 Local API Cache Zero-Mock, Hard Compliance Ratchet, Win32 2PC Mutex & 65-Test Permanent Suite Ratchet)
 
 ---
 
@@ -10,8 +10,12 @@
 
 ### [RULE-PROJECT-ISOLATION] EXTERNAL_PROJECT_DIRECTORY_MANDATE
 * **DIVIETO ASSOLUTO DI CODICE APPLICATIVO NELL'HUB:** È fatto divieto tassativo a QUALSIASI agente o sub-agente di creare cartelle o file di codice sorgente applicativo di produzione (`src_app/`, `app/`, moduli di business) all'interno dell'albero del repository `NK-Hub`.
-* **MANDATO CARTELLA ESTERNA A SÉ STANTE:** Ogni nuovo progetto, applicazione, gestionale, script o prototipo sviluppato con l'ausilio di NK DEVE risiedere nella propria directory radice autonoma e dedicata all'esterno dell'Hub (es. `g:\Il mio Drive\<NomeProgetto>\` o workspace separato).
-* **RUOLO ESCLUSIVO DI NK-HUB:** NK-Hub opera rigorosamente come "Meta-Platform / Agentic Hub": contiene gli agenti, le skill, i guardiani di qualità e i tool di diagnostica, e lavora sui progetti esterni guidando i builder tramite puntamento a cartelle target esterne (come collaudato con `Programmi di test/TestNK` e progetti esterni dedicati), mantenendo la propria radice incontaminata.
+* **MANDATO CARTELLA ESTERNA A SÉ STANTE:** Ogni nuovo progetto, applicazione, gestionale, script o prototipo sviluppato con l'ausilio di NK DEVE risiedere nella propria directory radice autonoma e dedicata all'esterno dell'Hub (es. `g:\Il mio Drive\<NomeProgetto>\` o workspace separato). L'inizializzazione DEVE avvenire tramite `scripts/external_project_scaffolder.py`.
+* **RUOLO ESCLUSIVO DI NK-HUB:** NK-Hub opera rigorosamente come "Meta-Platform / Agentic Hub": contiene gli agenti, le skill, i guardiani di qualità e i tool di diagnostica, e lavora sui progetti esterni guidando i builder tramite puntamento a cartelle target esterne, mantenendo la propria radice incontaminata.
+
+### [RULE-00.4] SESSION_BOOTSTRAP_GATE
+* **PRIMO STEP DETERMINISTICO OBBLIGATORIO:** All'apertura di ogni nuova sessione o task operativo su NK-Hub, l'agente o il Session Controller DEVE eseguire `scripts/nk_session_bootstrap.py`.
+* **FAST-STAT VERIFICATION ($< 120$ ms):** Verifica in tempo reale dell'isolamento della radice, purge dei log WAL con TTL $> 60$s e validazione dello stato invariante da `%TEMP%\nk_bootstrap\`. Nessuna azione di build può procedere se il bootstrap restituisce `FAIL`.
 
 ### [RULE-00] ZERO_UNAUTHORIZED_FILE_MODIFICATION_MANDATE
 * **DIVIETO ASSOLUTO DI SCRITTURA PRE-APPROVAZIONE SU PRODUZIONE:** È fatto divieto tassativo a QUALSIASI agente o sub-agente di chiamare `write_to_file`, `replace_file_content` o modificare file di produzione (`".agents/AGENTS.md"`, `"scripts/*"`) durante richieste di sola consultazione, senza autorizzazione.
@@ -33,11 +37,16 @@
 
 ## 🛡️ 1. Principi Fondamentali & Protocollo CRV 4.0
 
+### [RULE-REACTIVE-SILENCE] ANTI_POLLING_WATCHDOG_MANDATE
+* **DIVIETO ASSOLUTO DI BUSY POLLING CONVULSO:** È fatto divieto categorico di chiamare ripetutamente `manage_task(Action='status')` o `manage_subagents(Action='list')` in un ciclo a vuoto. Limite massimo: **1 sola interrogazione status** per verificare l'avvio.
+* **OBBLIGO DEL SILENZIO REATTIVO:** Quando un processo viene inviato in background come task asincrono, l'agente DEVE cedere immediatamente il turno (Zero Tool Calls) per attendere il risveglio reattivo dell'Event Bus di Antigravity, OPPURE impostare un timer sentinella condizionale con `schedule(DurationSeconds=X, TimerCondition="<task-id>")`.
+* Qualsiasi violazione che superi il 15% delle chiamate tool in busy polling comporta il fallimento automatico del compliance check (`scripts/nk_compliance_checker.py`).
+
 ### [RULE-01] IDE_UNIFIED_BUILDER_ROUTING & REGOLA DDI
-* **Direttiva Context Hygiene:** L'Agente Principale e tutti i Worker Orchestratori hanno il DIVIETO ASSOLUTO di sporcare il contesto con modifiche sparse non coordinate.
+* **Direttiva Context Hygiene:** L'Agente Principale e tutti i Worker Orchestratori hanno il DIVIETO ASSOLUTO di sporcare il contesto con modifiche sparse non coordinate o scritture monolitiche dirette su codice di produzione.
 * **Regola DDI (Define, Delegate, Idle):** Per scrivere codice, l'Agente Principale DEVE:
   1. **Define:** Leggere la skill del builder corretto e formulare la specifica (con formato intrinseco `/implementation`).
-  2. **Delegate:** Usare `define_subagent` per creare un worker isolato e `invoke_subagent` per delegare il task.
+  2. **Delegate:** Usare `define_subagent` per creare un worker isolato e `invoke_subagent` per delegare il task (o invocare lo scaffolder deterministico).
   3. **Idle:** Mettersi in IDLE (End Turn) attendendo il verdetto dal sub-agente, senza compiere altre azioni.
 
 ### [RULE-01.1] PROTOCOLLO CRV 4.0 (4 Macro-Fasi in Swarm)
@@ -64,23 +73,23 @@
 * **Tooling Integrato:** Utilizzo del tool nativo `schedule(DurationSeconds=45)` o del daemon asincrono `scripts/async_heartbeat_signaler.py` (cadenza 15-20s).
 * **Isolamento Diagnostico:** In caso di watchdog alert, i dump diagnostici dei thread devono essere salvati rigorosamente in `"%TEMP%\nk_diagnostics\"` (mai sul mount Google Drive `G:\`) per prevenire lock I/O e deadlock con `GoogleDriveFS`.
 
-### [RULE-01.10] PERMANENT_TEST_SUITE_MANDATE (60 Test Core Platform Ratchet)
-* **È FATTO DIVIETO CATEGORICO E ASSOLUTO** di eliminare o degradare la suite permanente di **60 test unitari su 9 file** contenuti in `"tests/"` dedicati al core della piattaforma (AST Guard, Win32 2PC, Memory 3-Tier, SBFL Engine, DAST Sandbox, Platform Runner, Repo-Mapper elastico).
+### [RULE-01.10] PERMANENT_TEST_SUITE_MANDATE (65 Test Core Platform Ratchet)
+* **È FATTO DIVIETO CATEGORICO E ASSOLUTO** di eliminare o degradare la suite permanente di test unitari contenuti in `"tests/"` dedicati al core della piattaforma (AST Guard, Win32 2PC, Memory 3-Tier, SBFL Engine, DAST Sandbox, Platform Runner v2, Session Bootstrap, Scaffolder, Api Cache, Compliance Checker).
 * Il ratchet di qualità (`nk_tracking/quality_baseline.json`) impone che nessuna modifica possa ridurre la percentuale di PASS sotto il 100.0%.
 
 ### [RULE-01.11] INTRINSIC_IMPLEMENTATION_MANDATE
 * Qualsiasi richiesta utente contenente trigger verbali di pianificazione (*"crea un piano"*, *"progetta"*, *"definisci l'architettura"*, *"scrivi il brief"*, *"prepara le specifiche"*) attiva automaticamente e intrinsecamente il formato standard di `/implementation` (`implementation_plan.md`), comprendente panoramica, user review, link cliccabili a file e verification plan esaustivo, senza necessità di specificarlo manualmente.
 
 ### [RULE-01.12] INTRINSIC_GOAL_MANDATE
-* Qualsiasi richiesta utente espressa in ottica di obiettivo (*"realizza"*, *"costruisci"*, *"implementa"*, *"sviluppa"*, *"crea la feature X"*) impegna l'agente a una condotta goal-driven autonoma e ininterrotta fino al raggiungimento verificato della *Definition of Done*, attivando l'Invisible Self-Healing Loop in staging senza interruzioni premature per domande superflue.
+* Qualsiasi richiesta utente espressa in ottica di obiettivo (*"realizza"*, *"costruisci"*, *"implementa"*, *"sviluppa"*, *"crea la feature X"*) impegna l'agente a una condotta goal-driven autonoma e ininterrotta fino al raggiungimento verificato della *Definition of Done*, attivando l'Invisible Self-Healing Loop in staging senza interruzioni premature per domande superflue all'utente. Il mandato NON autorizza in alcun caso il bypass delle regole architetturali DDI o di Staging.
 
-### [RULE-01.13] INTRINSIC_REPO_MAP_MANDATE (Tetralogia Sovrana v1.7.0)
+### [RULE-01.13] INTRINSIC_REPO_MAP_MANDATE (Tetralogia Sovrana v2.0.0)
 * **AUTONOMIA TOTALE SENZA PROMPT UTENTE:** La generazione e l'aggiornamento della High-Density AST Repo-Map (`scripts/ast_repo_mapper.py`) è un processo intrinseco del genoma architetturale ("Tetralogia Sovrana": `concept_map.md`, `structural_tree.md`, `implementation_plan.md`, `repo_map.md`).
-* **AGGIORNAMENTO AUTONOMO AL COMMIT:** A ogni commit atomico (Macro-Fase 3), `NK-Scribe` aggiorna automaticamente `nk_genome/repo_map.md` e la mappa AST nella directory dell'applicazione generata (es. `Programmi di test/`).
-* **INIEZIONE GRADUATA NEL CONTESTO:** `NK-Session-Controller` inietta porzioni graduate della repo-map nei sub-agenti in base alla modalità (Mode C: $\le 256$ tok, Mode B: $\le 512$ tok, Mode A: $\le 1024$ tok), escludendo i nodi puramente testuali (`NK-Scribe`, `NK-Episodic-Memory-Engine`).
+* **AGGIORNAMENTO AUTONOMO AL COMMIT:** A ogni commit atomico (Macro-Fase 3), `NK-Scribe` aggiorna automaticamente `nk_genome/repo_map.md` e la mappa AST nella directory dell'applicazione generata.
 
-### [RULE-01.2] ZERO_MOCK_MANDATE
+### [RULE-01.2] ZERO_MOCK_MANDATE & TIER-0 LOCAL API CACHE
 * Divieto categorico di `MagicMock`, stub sintetici, fuzzer casuali o simulazioni in memoria. Ogni test deve validare codice reale su processi e filesystem reali.
+* **Tier-0 Deterministic Local API Cache:** Per prevenire latenze eccessive ($> 30$s) e rate-limiting (HTTP 429/504) su API esterne durante cicli di test o Self-Healing locali, è formalmente autorizzato l'impiego di `scripts/deterministic_api_cache.py` in modalità `READ_THROUGH` (payload reali verbatim salvati in SQLite WAL). Nelle pipeline di CI/CD e pre-commit release è obbligatorio il flag `--force-refresh` (`NK_FORCE_NETWORK_REFRESH=1`) per verificare i contratti di rete live al 100%.
 
 ### [RULE-01.3] DAEMON_RELOAD_SUPPRESSION & SHUTDOWN_BEFORE_EDIT
 * I processi demone in background non devono provocare reload continui o lock sui file. Prima di modifiche fisiche a codice sorgente, verificare ed arrestare eventuali server in background tramite `scripts/safe_cleanup_dev_servers.py`.

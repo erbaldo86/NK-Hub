@@ -35,11 +35,15 @@ jobs:
         run: |
           python scripts/preflight_health_check.py
 
+      - name: Run Fast-Stat Session Bootstrap Gate
+        run: |
+          python scripts/nk_session_bootstrap.py --force-full
+
       - name: Run Deterministic AST Guard Validator
         run: |
           python scripts/ast_guard_validator.py --target all
 
-      - name: Run Core Platform Test Suite (60 Permanent Tests)
+      - name: Run Core Platform Test Suite (66 Permanent Tests)
         run: |
           pip install pytest-github-actions-annotate-failures
           python -m pytest tests/ -v --tb=short --junitxml=pytest-results.xml

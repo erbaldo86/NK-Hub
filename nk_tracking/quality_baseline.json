@@ -1,5 +1,5 @@
 {
-  "_version": "1.9.0-PlatformOptimized",
+  "_version": "2.0.0-Hardened",
   "project": "NK_Project",
   "baseline_date": "2026-08-20T22:45:00.000000",
   "last_updated": "2026-09-11T03:40:00.000000",
@@ -9,11 +9,11 @@
       "direction": "higher_is_better"
     },
     "unit_tests_total": {
-      "value": 60,
+      "value": 66,
       "direction": "higher_is_better"
     },
     "unit_tests_passed": {
-      "value": 60,
+      "value": 66,
       "direction": "higher_is_better"
     },
     "unit_tests_pass_pct": {
@@ -82,6 +82,10 @@
     },
     "dual_agreement_pct": {
       "value": 100.0,
+      "direction": "higher_is_better"
+    },
+    "protocol_compliance_score": {
+      "value": 85.0,
       "direction": "higher_is_better"
     }
   },
