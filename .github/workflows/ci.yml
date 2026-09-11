@@ -41,5 +41,19 @@ jobs:
 
       - name: Run Core Platform Test Suite (127 Permanent Tests)
         run: |
-          python -m pytest tests/ -v --tb=short
+          pip install pytest-github-actions-annotate-failures
+          python -m pytest tests/ -v --tb=short --junitxml=pytest-results.xml
+
+      - name: Report Failing Tests Diagnostic
+        if: failure()
+        shell: pwsh
+        run: |
+          if (Test-Path pytest-results.xml) {
+            [xml]$xml = Get-Content pytest-results.xml
+            $failures = $xml.SelectNodes("//testcase[failure or error]")
+            foreach ($f in $failures) {
+              Write-Host "::error::TEST FAILED: $($f.classname).$($f.name) -> $($f.failure.message)"
+              Write-Host $f.failure.'#text'
+            }
+          }
 
