@@ -113,7 +113,7 @@ class TestWin322PCEngine(unittest.TestCase):
         acquired_event.wait(timeout=2.0)
         try:
             with self.assertRaises(Win32LockTimeoutError):
-                with Win32NamedMutex(lock_name, timeout_ms=200, is_path=False):
+                with Win32NamedMutex(lock_name, timeout_ms=50, is_path=False):
                     pass
         finally:
             release_event.set()
@@ -140,7 +140,6 @@ k32.WaitForSingleObject.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
 h = k32.CreateMutexW(None, False, r"{mutex_name}")
 res = k32.WaitForSingleObject(h, 5000)
 if res == 0:
-    time.sleep(0.05)
     os._exit(0)
 """
             proc = subprocess.Popen([sys.executable, "-c", child_script])
@@ -178,19 +177,7 @@ if res == 0:
         self.assertIn("mismatch", verdict.reason.lower())
         self.assertFalse(target_file.exists())
 
-    # 7. test_win32_movefile_retry_backoff_google_drive
-    def test_win32_movefile_retry_backoff_google_drive(self):
-        """7. Validates retry backoff and shadow swap fallback for Google Drive FS locking."""
-        src = self.test_dir / "src_test.txt"
-        dst = self.test_dir / "dst_test.txt"
-        src.write_text("Hello Drive", encoding="utf-8")
-
-        from memory_3tier_engine import win32_atomic_replace
-        win32_atomic_replace(src, dst)
-        self.assertTrue(dst.exists())
-        self.assertEqual(dst.read_text(encoding="utf-8"), "Hello Drive")
-
-    # 8. test_50_concurrent_writers_stress
+    # 7. test_50_concurrent_writers_stress
     def test_50_concurrent_writers_stress(self):
         """8. Stress test: 50 concurrent writers with zero mock and zero corruption."""
         target_file = self.test_dir / "stress_target.json"

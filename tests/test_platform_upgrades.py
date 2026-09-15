@@ -94,7 +94,7 @@ def test_platform_runner_safe_run() -> None:
     cmd = [
         sys.executable,
         "-c",
-        f"import sys; sys.stdout.write({utf8_payload!r} + '\\n'); sys.stdout.flush()",
+        f"import sys, os; assert os.environ.get('PYTHONUNBUFFERED') == '1'; sys.stdout.write({utf8_payload!r} + '\\n'); sys.stdout.flush()",
     ]
 
     rc, stdout, stderr = safe_subprocess_run(cmd)
@@ -127,25 +127,19 @@ def test_pytest_ini_content() -> None:
     Verifica che pytest.ini contenga testpaths e norecursedirs.
     """
     workspace_root = Path(__file__).resolve().parent.parent
+    if workspace_root.name == ".staging":
+        workspace_root = workspace_root.parent
     pytest_ini_path = workspace_root / "pytest.ini"
 
-    # If test is run before promotion or in staging, check root or staging
-    if not pytest_ini_path.exists():
-        staging_ini = workspace_root / ".staging" / "pytest.ini"
-        if staging_ini.exists():
-            pytest_ini_path = staging_ini
-
     assert pytest_ini_path.exists(), f"pytest.ini must exist: {pytest_ini_path}"
-
     content = pytest_ini_path.read_text(encoding="utf-8")
 
-    # Invariant checks
-    assert "[pytest]" in content, "pytest.ini must contain [pytest] section header"
-    assert "testpaths" in content, "pytest.ini must contain 'testpaths'"
-    assert "tests" in content, "pytest.ini must configure 'tests' in testpaths"
-    assert "norecursedirs" in content, "pytest.ini must contain 'norecursedirs'"
-    assert ".staging" in content, "pytest.ini must exclude '.staging' in norecursedirs"
-    assert "filterwarnings" in content, "pytest.ini must configure 'filterwarnings'"
+    assert "[pytest]" in content, "pytest.ini must contain [pytest] section"
+    assert "testpaths" in content, "pytest.ini must define testpaths"
+    assert "tests" in content, "testpaths should include 'tests'"
+    assert "norecursedirs" in content, "pytest.ini must define norecursedirs"
+    assert ".staging" in content, "norecursedirs should ignore '.staging'"
+    assert "filterwarnings" in content, "pytest.ini should specify warning filters"
 
 
 def test_platform_cli_integration(tmp_path: Path) -> None:
@@ -153,6 +147,8 @@ def test_platform_cli_integration(tmp_path: Path) -> None:
     Test CLI integration for both scripts: env_capability_probe and platform_runner.
     """
     workspace_root = Path(__file__).resolve().parent.parent
+    if workspace_root.name == ".staging":
+        workspace_root = workspace_root.parent
 
     probe_script = workspace_root / "scripts" / "env_capability_probe.py"
     if not probe_script.exists():

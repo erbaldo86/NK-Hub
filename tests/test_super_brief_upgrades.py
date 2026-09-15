@@ -24,6 +24,8 @@ import pytest
 
 # Dynamically locate module either in .staging/scripts or scripts/
 _workspace_root = Path(__file__).resolve().parent.parent
+if _workspace_root.name == ".staging":
+    _workspace_root = _workspace_root.parent
 if str(_workspace_root) not in sys.path:
     sys.path.insert(0, str(_workspace_root))
 
@@ -58,15 +60,6 @@ def test_platform_runner_v2_unbuffered_normalization():
     normalized = _normalize_python_command(cmd)
     assert "-u" in normalized, f"Expected -u in normalized command, got: {normalized}"
     assert normalized[1] == "-u"
-
-
-def test_platform_runner_v2_safe_subprocess_run():
-    """Verify safe_subprocess_run executes cleanly with unbuffered UTF-8 environment."""
-    reconfigure_streams()
-    cmd = [sys.executable, "-c", "import sys, os; assert os.environ.get('PYTHONUNBUFFERED') == '1'; print('UNBUFFERED_OK_⚡')"]
-    rc, stdout, stderr = safe_subprocess_run(cmd)
-    assert rc == 0, f"Command failed: {stderr}"
-    assert "UNBUFFERED_OK_⚡" in stdout
 
 
 def test_session_bootstrap_fast_stat():

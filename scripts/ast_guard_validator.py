@@ -262,6 +262,12 @@ class ScopeIntegrityChecker(ast.NodeVisitor):
         return names
 
     def visit_Lambda(self, node: ast.Lambda) -> None:
+        for d in node.args.defaults:
+            if d is not None:
+                self.visit(d)
+        for d in getattr(node.args, "kw_defaults", []):
+            if d is not None:
+                self.visit(d)
         local_scope: Set[str] = set()
         for arg in getattr(node.args, "posonlyargs", []) + node.args.args + node.args.kwonlyargs:
             local_scope.add(arg.arg)
@@ -270,18 +276,35 @@ class ScopeIntegrityChecker(ast.NodeVisitor):
         if node.args.kwarg:
             local_scope.add(node.args.kwarg.arg)
         self.scope_stack.append(local_scope)
-        self.generic_visit(node)
+        self.visit(node.body)
         self.scope_stack.pop()
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
+        for dec in node.decorator_list:
+            self.visit(dec)
+        for base in node.bases:
+            self.visit(base)
+        for kw in node.keywords:
+            self.visit(kw)
+
         self.scope_stack[-1].add(node.name)
         local_scope: Set[str] = set()
         # PEP 695 type parameters on class
         for tp in getattr(node, "type_params", []):
             if hasattr(tp, "name"):
                 local_scope.add(tp.name)
+
+        # Pre-scan class body assignments (e.g. class attributes used in method defaults)
+        for stmt in node.body:
+            if isinstance(stmt, ast.Assign):
+                for t in stmt.targets:
+                    self._extract_target_names(t, local_scope)
+            elif isinstance(stmt, ast.AnnAssign):
+                self._extract_target_names(stmt.target, local_scope)
+
         self.scope_stack.append(local_scope)
-        self.generic_visit(node)
+        for child in node.body:
+            self.visit(child)
         self.scope_stack.pop()
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
@@ -291,6 +314,16 @@ class ScopeIntegrityChecker(ast.NodeVisitor):
         self._process_func(node)
 
     def _process_func(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+        # Evaluate decorators and argument defaults in enclosing scope
+        for dec in node.decorator_list:
+            self.visit(dec)
+        for d in node.args.defaults:
+            if d is not None:
+                self.visit(d)
+        for d in getattr(node.args, "kw_defaults", []):
+            if d is not None:
+                self.visit(d)
+
         self.scope_stack[-1].add(node.name)
         local_scope: Set[str] = set()
 

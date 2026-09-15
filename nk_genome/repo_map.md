@@ -1,37 +1,37 @@
 # 🗺️ HIGH-DENSITY AST REPO-MAP (Tetralogia Sovrana Snapshot)
 
-## 📄 scripts/ast_repo_mapper.py
-  class SymbolType: [MODULE, CLASS, METHOD, FUNCTION, ASYNC_FUNCTION, CONSTANT, IMPORT, TYPE_ALIAS, JS_COMPONENT, CSS_RULE]
-  class EdgeType: [CALL, INHERITANCE, TYPE_REFERENCE, IMPORT_USAGE, CONTAINMENT, ATTRIBUTE_ACCESS]
-  class SymbolNode: []
-  class SymbolEdge: []
-  class SymbolGraph: [add_node, add_edge, get_node]
-  class PageRankResult: []
-  class SliceResult: []
-  class RepoMapConfig: []
-  class RepoMapResult: []
-  class ResilientParser: [parse_safe, _recover_ast_chunks, _offset_linenos, _extract_stubs_from_broken_block]
-  class SymbolExtractor: [__init__, _register_name_mapping, _get_raw_source, _format_signature, _format_arguments, visit_Import, visit_ImportFrom, visit_Assign, visit_ClassDef, visit_FunctionDef, visit_AsyncFunctionDef, _process_function, _link_type_references, visit_Call]
-  class PolyglotExtractor: [extract_symbols, _extract_js_ts, _extract_css, _extract_html]
-  class PersonalizedPageRank: [compute]
-  class KarpathySurgicalSlicer: [slice_module, _multi_focal_compress, _render_slice_nodes, _render_node_skeleton]
-  class AtomicCacheManager: [get_default_cache_path, save_atomic, load_safe]
-  class RepoMapGenerator: [generate, _render_expanded_module, _render_inline_compact_module, _render_two_tier_map]
-  class GraduatedSkillAdapter: [get_token_budget]
-  functions: [estimate_tokens, export_markdown_snapshot, main]
-
 ## 📄 google-docs-mcp/server.py
-  class IgnoreValidationErrors: [filter]
-  functions: [get_docs_service, read_google_doc, append_to_google_doc]
+  class IgnoreValidationErrors(logging.Filter):
+    def filter(self, record)
+  def get_docs_service()
+  def read_google_doc(document_id: str) -> str
+  def append_to_google_doc(document_id: str, text_to_append: str) -> str
+
+## 📄 scripts/preflight_health_check.py
+  class PreflightHealthChecker: [__init__, run_full_check, _check_ssot_anchor, _check_staging_and_temp, _check_and_purge_caches, _check_and_purge_stale_wals, _enforce_report_retention, _check_baseline_alignment]
+  functions: [safe_remove_dir, on_error, safe_remove_file]
+
+## 📄 scripts/win32_2pc_engine.py
+  class Win32LockError: []
+  class Win32LockTimeoutError: []
+  class TwoPhaseCommitError: []
+  class Win32NamedMutex: [__init__, __enter__, __exit__, acquire, release, _cleanup_handle]
+  class WriteAheadLogManager: [__init__, _get_wal_dir, get_wal_path, write_wal, update_wal_state, purge_wal, recover]
+  class TwoPhaseCommitEngine: [__init__, _backoff_sleep, prepare, commit, abort, _execute_atomic_commit, _shadow_swap_fallback, atomic_write, atomic_write_async, create_ipc_pointer]
+  functions: [compute_sha256, compute_crc32, get_mutex_name_for_path, record_session_anchor_commit, promote_staging_to_production, main]
+
+## 📄 scripts/micro_hud_renderer.py
+  class GateEntry: []
+  class HUDState: []
+  class MicroHUDRenderer: [__init__, set_progress, set_gate, set_all_gates, set_mutex, set_tier1_budget, set_agent_context, set_elapsed_time, _build_progress_bar, _build_gates_string, render, render_markdown_block, render_pulse]
 
 ### 📦 Moduli Secondari (Riepilogo Compatto)
-- `scripts/*`: ast_guard_validator.py, micro_hud_renderer.py, sbfl_engine.py, deterministic_api_cache.py, memory_3tier_engine.py, dast_sandbox_runner.py, invisible_healing_loop.py, win32_2pc_engine.py, preflight_health_check.py, external_project_scaffolder.py, nk_compliance_checker.py, vibe_sprint_router.py, async_heartbeat_signaler.py, nk_session_bootstrap.py, quality_baseline_manager.py, env_capability_probe.py, platform_runner.py, safe_cleanup_dev_servers.py
-- `scripts/schemas/*`: dual_ledgers.py, nk_ipc_contracts.py
-- `.agents/skills/NK-Master-Hub/scripts/*`: run_hub.py, change_router.py, ipc_engine.py, safe_parser.py, test_hub.py
+- `scripts/*`: sbfl_engine.py, dast_sandbox_runner.py, ast_repo_mapper.py, ast_guard_validator.py, memory_3tier_engine.py, invisible_healing_loop.py, async_heartbeat_signaler.py, vibe_sprint_router.py, deterministic_api_cache.py, external_project_scaffolder.py, nk_compliance_checker.py, nk_session_bootstrap.py, auto_heal_pipeline.py, healing_snapshot_rollback.py, sbfl_pytest_bridge.py, quality_baseline_manager.py, safe_cleanup_dev_servers.py, env_capability_probe.py, platform_runner.py
+- `tests/*`: test_win32_2pc.py, test_dast_sandbox.py, test_sbfl_engine.py, test_ast_repo_mapper.py, test_ast_guard_validator.py, test_memory_3tier.py, test_schemas_and_contracts.py, conftest.py, test_platform_upgrades.py, test_super_brief_upgrades.py, test_auto_heal_pipeline.py
+- `scripts/schemas/*`: nk_ipc_contracts.py, dual_ledgers.py
+- `.agents/skills/NK-Security-Auditor/resources/l1/*`: token_weighted_allocator.py, peer_review_validator.py, swarm_aggregator.py
 - `.agents/skills/NK-Oracle-Evaluator/resources/*`: dual_state_visual_comparator.py, runtime_trace_inspector.py
-- `.agents/skills/NK-Dynamic-Sandbox-StressTester/resources/*`: phase2_chaos_swarm_runner.py, dynamic_pool_dispatcher.py, phase1_surgical_runner.py
-- `.agents/skills/NK-Security-Auditor/resources/l1/*`: peer_review_validator.py, token_weighted_allocator.py, swarm_aggregator.py
 - `.agents/skills/NK-Oracle-Evaluator/scripts/*`: verifier_oracle.py, cross_drive_stager.py, discrepancy_report_generator.py
 - `google-docs-mcp/*`: auth.py, cli.py
 - `nk_tracking/cockpit/*`: nk_cockpit.html
-- `tests/*`, `.agents/skills/NK-Bug-Diagnostic-Engine/resources/*`
+- `.agents/skills/NK-Dynamic-Sandbox-StressTester/resources/*`, `.agents/skills/NK-Master-Hub/scripts/*`, `.agents/skills/NK-Bug-Diagnostic-Engine/resources/*`

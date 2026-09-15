@@ -25,27 +25,20 @@ from dast_sandbox_runner import DASTSandboxRunner, SandboxConfig, ShadowSandbox
 
 
 class TestDASTSandbox(unittest.IsolatedAsyncioTestCase):
-    # 9. test_sandbox_creation_and_isolation
-    async def test_sandbox_creation_and_isolation(self):
-        """9. Validates creation of isolated sandbox in %TEMP%\\nk_sandbox_*."""
+    # 9. test_sandbox_lifecycle_and_mirroring
+    async def test_sandbox_lifecycle_and_mirroring(self):
+        """9. Validates creation, tree mirroring, and clean teardown of isolated shadow sandbox."""
         sb = ShadowSandbox()
         created_path = sb.create()
         self.assertTrue(created_path.exists())
         self.assertIn("nk_sandbox_", str(created_path))
-        sb.cleanup()
-        self.assertFalse(created_path.exists())
-
-    # 10. test_sandbox_file_mirroring
-    async def test_sandbox_file_mirroring(self):
-        """10. Validates file writing and tree mirroring inside shadow sandbox."""
-        sb = ShadowSandbox()
-        sb.create()
         try:
             f = sb.write_file("nested/module.py", "X = 42\n")
             self.assertTrue(f.exists())
             self.assertEqual(f.read_text(encoding="utf-8"), "X = 42\n")
         finally:
             sb.cleanup()
+        self.assertFalse(created_path.exists())
 
     # 11. test_execution_line_tracer_accuracy
     async def test_execution_line_tracer_accuracy(self):

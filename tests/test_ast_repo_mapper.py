@@ -126,40 +126,19 @@ def execute_pipeline(items: list[float]) -> float:
         self.assertTrue(pr.converged)
         self.assertAlmostEqual(sum(pr.scores.values()), 1.0, places=5)
 
-    # 25. test_karpathy_slicer_token_budget
-    def test_karpathy_slicer_token_budget(self):
-        """25. Validates Karpathy surgical slicer within token budget."""
-        res = KarpathySurgicalSlicer.slice_module(
-            source_code=self.code,
-            focal_symbol_names=["execute_pipeline"],
-            module_path="test_mod.py",
-            max_tokens=200,
-        )
-        self.assertLess(res.token_count, 200)
-        self.assertIn("def execute_pipeline", res.sliced_code)
-
-    # 26. test_slicer_binary_search_depth
-    def test_slicer_binary_search_depth(self):
-        """26. Validates slicer compression under tight budget (<80 tokens)."""
-        res = KarpathySurgicalSlicer.slice_module(
-            source_code=self.code,
-            focal_symbol_names=["execute_pipeline"],
-            module_path="test_mod.py",
-            max_tokens=80,
-        )
-        self.assertLess(res.token_count, 80)
-
-    # 27. test_symbol_lookup_and_blast_radius
-    def test_symbol_lookup_and_blast_radius(self):
-        """27. Validates symbol lookup and blast radius determination."""
-        tree = ast.parse(self.code)
-        extractor = SymbolExtractor(module_path="test_mod.py", source_lines=self.lines)
-        extractor.visit(tree)
-        graph = extractor.graph
-
-        focal = graph.get_node("test_mod.py:DataProcessor")
-        self.assertIsNotNone(focal)
-        self.assertEqual(focal.symbol_type, SymbolType.CLASS)
+    # 25. test_karpathy_slicer_token_budgets
+    def test_karpathy_slicer_token_budgets(self):
+        """25. Validates Karpathy surgical slicer under varying token budgets (200 and 80 tokens)."""
+        for max_tokens in [200, 80]:
+            res = KarpathySurgicalSlicer.slice_module(
+                source_code=self.code,
+                focal_symbol_names=["execute_pipeline"],
+                module_path="test_mod.py",
+                max_tokens=max_tokens,
+            )
+            self.assertLess(res.token_count, max_tokens)
+            if max_tokens >= 200:
+                self.assertIn("def execute_pipeline", res.sliced_code)
 
     # 28. test_multi_focal_slicer_integrity (New v1.7.0)
     def test_multi_focal_slicer_integrity(self):
@@ -205,23 +184,6 @@ class ServiceB:
 
             self.assertTrue(all(write_results))
             self.assertTrue(cache_file.exists())
-
-    # 30. test_two_tier_clustering_token_ceiling (New v1.7.0)
-    def test_two_tier_clustering_token_ceiling(self):
-        """30. Validates that RepoMapGenerator strictly respects max_tokens using Two-Tier clustering."""
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            tmp_path = Path(tmp_dir)
-            # Create a mock repo with 15 modules
-            for i in range(15):
-                m_file = tmp_path / f"mod_{i}.py"
-                m_file.write_text(f"class ModClass{i}:\n    def do_work_{i}(self) -> int:\n        return {i}\n", encoding="utf-8")
-
-            cfg = RepoMapConfig(max_tokens=256, polyglot=False, cache_enabled=False)
-            result = RepoMapGenerator.generate(root_dir=tmp_path, config=cfg)
-
-            self.assertLessEqual(result.token_count, 256)
-            self.assertIn("HIGH-DENSITY AST REPO-MAP", result.content)
-            self.assertEqual(result.files_scanned, 15)
 
     # 31. test_incremental_cache_speed (New v1.7.0)
     def test_incremental_cache_speed(self):

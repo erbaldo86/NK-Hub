@@ -81,11 +81,27 @@ class TestSchemasAndContracts(unittest.TestCase):
         valid, _ = tl.verify_dag()
         self.assertTrue(valid)
 
+        # Tamper detection verification: alter node content on disk
+        raw_lines = ledger_path.read_text(encoding="utf-8").splitlines()
+        tampered_line = raw_lines[0].replace("NK-Architect", "TAMPERED_AGENT")
+        raw_lines[0] = tampered_line
+        ledger_path.write_text("\n".join(raw_lines) + "\n", encoding="utf-8")
+
+        with self.assertRaises(ValueError) as ctx:
+            TaskLedger(ledger_path)
+        self.assertIn("integrity violation", str(ctx.exception).lower())
+
     # 48. test_progress_ledger_pid_locking_stale_detect
     def test_progress_ledger_pid_locking_stale_detect(self):
-        """48. Validates append-only progress stream with PID-aware locking."""
+        """48. Validates append-only progress stream with PID-aware locking and stale lock recovery."""
         ledger_path = self.tmp_dir / "progress.jsonl"
+        lock_path = self.tmp_dir / "progress.jsonl.lock"
+
+        # Simulate orphaned lock with dead PID
+        lock_path.write_text(json.dumps({"pid": 99999999, "timestamp": 0.0}), encoding="utf-8")
+
         pl = ProgressLedger(ledger_path)
+        # Should detect dead PID and successfully break the stale lock
         ev1 = pl.append_event("EV1", "T1", 0, "STARTED", {"status": "init"})
         ev2 = pl.append_event("EV2", "T1", 1, "COMPLETED", {"status": "done"})
         events = pl.read_events("T1")

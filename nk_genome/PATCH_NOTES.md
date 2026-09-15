@@ -1,10 +1,31 @@
 # 📜 NEXUS KEYSTONE OFFICIAL CHANGELOG & PATCH NOTES (SSOT)
 
 > **Single Source of Truth (SSOT):** `nk_genome/PATCH_NOTES.md`  
-> **Release Ufficiale:** `v2.0.0-Hardened (Super Brief 6-Pillar Infrastructure, Anti-Polling Watchdog & Session Bootstrap Gate)`  
-> **Milestone Anchor:** `NK-MS-20260911-SUPER-BRIEF-UPGRADE-v2.0.0`  
-> **Data Consolidamento:** 2026-09-11  
-> **Stato Release:** `🛡️ [NK-SUPER-BRIEF-STATUS: AUDITED_AND_OFFICIAL_v2.0.0 🟢]`
+> **Release Ufficiale:** `v2.1.0-FastHealing (3-Pillar Fast-Healing Pipeline, AST Scope Hardening & 61 Golden Tests)`  
+> **Milestone Anchor:** `NK-MS-20260915-FAST-HEALING-v2.1.0`  
+> **Data Consolidamento:** 2026-09-15  
+> **Stato Release:** `🛡️ [NK-SUPER-BRIEF-STATUS: AUDITED_AND_OFFICIAL_v2.1.0 🟢]`
+
+---
+
+## 🏛️ Release v2.1.0-FastHealing — 3-Pillar Fast-Healing Pipeline, AST Scope Hardening & 61 Golden Tests
+La Release **v2.1.0-FastHealing** introduce l'architettura di riparazione autonoma di nuova generazione e razionalizza la suite di validazione permanente della piattaforma a 61 Golden Tests ad altissima densità:
+1. **Universal CLI Auto-Healer Pipeline (`scripts/auto_heal_pipeline.py`)**:
+   - Orchestratore universale di auto-riparazione azionabile via CLI con circuit breaker a 3 cicli.
+   - Piena conformità a `[RULE-PROJECT-ISOLATION]`: emissione di riga singola per `PATCH_NOTES.md` nel progetto target, con zero inquinamento di memoria o depositi globali promiscui.
+2. **Pytest Coverage & SBFL Ochiai Bridge (`scripts/sbfl_pytest_bridge.py`)**:
+   - Estrazione deterministica dei frame di fallimento da traceback Pytest ed esecuzione algoritmica di Ochiai su codice reale.
+   - Generazione di `OchiaiDiagnosticPayload` ultra-compatto vincolato a `< 80 token` BPE per prevenire token bloat nei prompt LLM.
+3. **Staging Snapshot & Transactional Rollback Engine (`scripts/healing_snapshot_rollback.py`)**:
+   - Snapshot atomici con hashing SHA-256 e Strict Monotonic Fitness Gate a 4 rami decisionali.
+   - Ripristino deterministico atomico su disco in caso di regressione o peggioramento delle metriche di test.
+4. **Hardening dello Scope Integrato in AST Guard (`scripts/ast_guard_validator.py`)**:
+   - Risolto bug silente: `ScopeIntegrityChecker` ora visita esplicitamente `decorator_list`, default arguments posizionali e keyword arguments nell'enclosing scope prima dell'ingresso nel corpo di funzioni e classi.
+   - Supporto completo per default attributes a livello di classe.
+5. **Razionalizzazione della Suite Permanente (61 Golden Tests / 100.0% PASS)**:
+   - Sostituiti 4 test deboli/in-memory obsoleti (`test_invisible_healing_loop.py`) con i 6 test reali Zero-Mock di `test_auto_heal_pipeline.py`.
+   - Eliminate 6 duplicazioni cross-file, compattato lo Slicer Karpathy con test parametrizzati e risolto collo di bottiglia I/O (-93% tempo in `test_memory_3tier.py`).
+   - Ratchet di conformità calibrato esattamente su **61/61 test con il 100.0% di PASS**.
 
 ---
 

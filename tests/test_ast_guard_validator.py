@@ -40,35 +40,32 @@ def calculate_sum(items: List[int], multiplier: int = 1) -> int:
         self.assertFalse(rep.is_valid)
         self.assertTrue(any(v.violation_type == ViolationType.SYNTAX_ERROR for v in rep.violations))
 
-    # 29. test_signature_preservation_invariant
-    def test_signature_preservation_invariant(self):
-        """29. Validates detection of parameter removal without authorization."""
-        mutated_post = """
+    # 29. test_signature_and_type_preservation
+    def test_signature_and_type_preservation(self):
+        """29. Validates detection of parameter removal and type annotation mutations."""
+        mutated_param = """
 from typing import List
 
 def calculate_sum(items: List[int]) -> int:
     return sum(items)
 """
-        rep = ASTGuardValidator.validate_code_edit(self.clean_pre, mutated_post)
-        self.assertFalse(rep.is_valid)
-        self.assertTrue(any(v.violation_type == ViolationType.SIGNATURE_MUTATION for v in rep.violations))
+        rep_a = ASTGuardValidator.validate_code_edit(self.clean_pre, mutated_param)
+        self.assertFalse(rep_a.is_valid)
+        self.assertTrue(any(v.violation_type == ViolationType.SIGNATURE_MUTATION for v in rep_a.violations))
 
-    # 30. test_type_annotation_preservation
-    def test_type_annotation_preservation(self):
-        """30. Validates detection of type annotation mutations."""
-        mutated_post = """
+        mutated_type = """
 from typing import List
 
 def calculate_sum(items: List[int], multiplier: int = 1) -> float:
     return float(sum(items) * multiplier)
 """
-        rep = ASTGuardValidator.validate_code_edit(self.clean_pre, mutated_post)
-        self.assertFalse(rep.is_valid)
-        self.assertTrue(any(v.violation_type == ViolationType.TYPE_MISMATCH for v in rep.violations))
+        rep_b = ASTGuardValidator.validate_code_edit(self.clean_pre, mutated_type)
+        self.assertFalse(rep_b.is_valid)
+        self.assertTrue(any(v.violation_type == ViolationType.TYPE_MISMATCH for v in rep_b.violations))
 
-    # 31. test_scope_integrity_unbound_name
+    # 30. test_scope_integrity_unbound_name
     def test_scope_integrity_unbound_name(self):
-        """31. Validates detection of undefined/unimported variables."""
+        """30. Validates detection of undefined variables, decorators, and default arguments."""
         unbound_post = """
 from typing import List
 
@@ -78,6 +75,16 @@ def calculate_sum(items: List[int], multiplier: int = 1) -> int:
         rep = ASTGuardValidator.validate_code_edit(self.clean_pre, unbound_post)
         self.assertFalse(rep.is_valid)
         self.assertTrue(any(v.violation_type == ViolationType.UNDEFINED_NAME for v in rep.violations))
+
+        # Undefined decorator
+        rep_dec = ASTGuardValidator.validate_code_edit("", "@undefined_decorator\ndef foo(): pass\n")
+        self.assertFalse(rep_dec.is_valid)
+        self.assertTrue(any(v.symbol_name == "undefined_decorator" for v in rep_dec.violations))
+
+        # Undefined default arg
+        rep_def = ASTGuardValidator.validate_code_edit("", "def bar(val=undefined_default): pass\n")
+        self.assertFalse(rep_def.is_valid)
+        self.assertTrue(any(v.symbol_name == "undefined_default" for v in rep_def.violations))
 
     # 32. test_scope_integrity_pep634_pattern_matching
     def test_scope_integrity_pep634_pattern_matching(self):

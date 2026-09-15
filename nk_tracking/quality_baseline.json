@@ -1,19 +1,19 @@
 {
-  "_version": "2.0.0-Hardened",
+  "_version": "2.1.0-FastHealing",
   "project": "NK_Project",
   "baseline_date": "2026-08-20T22:45:00.000000",
-  "last_updated": "2026-09-11T03:40:00.000000",
+  "last_updated": "2026-09-15T02:45:00.000000",
   "metrics": {
     "skills_audited": {
       "value": 16,
       "direction": "higher_is_better"
     },
     "unit_tests_total": {
-      "value": 66,
+      "value": 61,
       "direction": "higher_is_better"
     },
     "unit_tests_passed": {
-      "value": 66,
+      "value": 61,
       "direction": "higher_is_better"
     },
     "unit_tests_pass_pct": {

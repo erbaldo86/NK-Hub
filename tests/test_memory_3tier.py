@@ -63,10 +63,10 @@ class TestMemory3TierEngine(unittest.TestCase):
 
     # 36. test_tier2_scratchpad_sliding_window
     def test_tier2_scratchpad_sliding_window(self):
-        """36. Validates 200 events sliding window and surplus archiving to Tier 3."""
-        engine = ThreeTierMemoryEngine(base_dir=self.tmp_dir, sliding_window_max=200)
+        """36. Validates sliding window compaction and surplus archiving to Tier 3."""
+        engine = ThreeTierMemoryEngine(base_dir=self.tmp_dir, sliding_window_max=10)
         domain = "04_Governance_and_Rules"
-        for i in range(215):
+        for i in range(15):
             ep = MemoryEpisode(
                 episode_id=f"ep_{i:04d}",
                 domain=domain,
@@ -77,10 +77,10 @@ class TestMemory3TierEngine(unittest.TestCase):
             engine.append_episode(ep)
 
         t2_eps = engine.get_tier2_episodes(domain)
-        self.assertEqual(len(t2_eps), 200)
+        self.assertEqual(len(t2_eps), 10)
 
         t3_eps = engine.get_tier3_episodes(domain)
-        self.assertEqual(len(t3_eps), 15)
+        self.assertEqual(len(t3_eps), 5)
 
     # 37. test_tier3_hybrid_bm25_dense_rrf_search
     def test_tier3_hybrid_bm25_dense_rrf_search(self):
