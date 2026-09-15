@@ -39,3 +39,11 @@
 * **Direttiva:** Tutti i prompt di handoff, istruzioni tra agenti, o comandi di delega devono rispettare il formato `NK-Clean-Prompt`:
   1. **Zero Comandi Slash nei Testi:** Divieto assoluto di usare prefissi slash non supportati (es. `/system_command`) nei prompt interni per evitare crash del parser dell'interfaccia utente.
   2. **Formato Lineare e Pulito:** Testo piano, istruzioni numerate e percorsi racchiusi in virgolette doppie standard `""` con slashes in avanti `G:/...`.
+---
+
+## 🚫 5. Debloating & Swarm Message Hygiene
+
+### [GLOBAL-RULE-06] CONTEXT_DEBLOATING_AND_SWARM_HYGIENE
+* **Direttiva Mandatoria:** È fatto divieto categorico a sub-agenti e orchestratori di riversare output completi di comandi lunghi o report integrali nei messaggi inter-agente (`send_message`).
+* **Soglia Rigida:** Payload massimo per messaggio: 2.000 caratteri. I dati completi vanno scritti su file (`%TEMP%\nk_diagnostics\` o `scratch/`).
+* **Protezione 503:** Al raggiungimento di 70 step, l'agente deve avviare la preparazione per il rollover di sessione.

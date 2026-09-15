@@ -1,10 +1,29 @@
 # 📜 NEXUS KEYSTONE OFFICIAL CHANGELOG & PATCH NOTES (SSOT)
 
 > **Single Source of Truth (SSOT):** `nk_genome/PATCH_NOTES.md`  
-> **Release Ufficiale:** `v2.1.0-FastHealing (3-Pillar Fast-Healing Pipeline, AST Scope Hardening & 61 Golden Tests)`  
-> **Milestone Anchor:** `NK-MS-20260915-FAST-HEALING-v2.1.0`  
+> **Release Ufficiale:** `v2.2.0-AntiSaturation (Universal DDI, Swarm Message Hygiene, Cold Review Isolation & 66 Golden Tests)`  
+> **Milestone Anchor:** `NK-MS-20260915-ANTI-SATURATION-v2.2.0`  
 > **Data Consolidamento:** 2026-09-15  
-> **Stato Release:** `🛡️ [NK-SUPER-BRIEF-STATUS: AUDITED_AND_OFFICIAL_v2.1.0 🟢]`
+> **Stato Release:** `🛡️ [NK-SUPER-BRIEF-STATUS: AUDITED_AND_OFFICIAL_v2.2.0 🟢]`
+
+---
+
+## 🏛️ Release v2.2.0-AntiSaturation — Universal DDI, Swarm Message Hygiene, Cold Review Isolation & Context Sentry
+La Release **v2.2.0-AntiSaturation** risolve alla radice le cause sistemiche di saturazione del contesto e previene i drop di capacità backend `UNAVAILABLE (code 503): No capacity available for model on server` (mascherati a video come *"Error your servers are experiencing high traffic right now"*):
+1. **Universal DDI Mandate ([RULE-01] in `AGENTS.md`)**:
+   - Estensione della delega obbligatoria a sub-agenti sia per la scrittura codice sia per qualsiasi **Deep Audit o Stress-Testing** (>2 file o comandi di test).
+   - Preservata la modalità Fast-Track per micro-check rapidi (≤150 LOC, ≤2 file/comandi).
+2. **Swarm Message Hygiene Mandate ([RULE-SWARM-HYGIENE] in `AGENTS.md`)**:
+   - Hard cap tassativo a **2.000 caratteri** per i messaggi inter-agente (`send_message`).
+   - Obbligo di salvataggio artefatto diagnostico completo su disco (`%TEMP%\nk_diagnostics\` o `scratch/`) e trasmissione della sola sintesi esecutiva con path file.
+   - Fallback automatico in-band *Head-Tail* (400 chars contesto + 800 chars traceback con `__cause__`) in caso di eccezioni I/O.
+3. **Isolated Cold Review Protocol (`NK-Session-Controller/SKILL.md`)**:
+   - Macro-Fase 3 delegata mandatoriamente a sub-agente oracolo isolato in sandbox (`NK-Oracle-Evaluator` o `CriticAuditWorker`), azzerando il carico di letture e comandi nel thread principale.
+4. **Context Sentry Guard (`scripts/nk_context_sentry.py`)**:
+   - Motore deterministico ad alte prestazioni (<50 ms) con semaforo a 3 livelli: 🟢 GREEN (<70 step), 🟡 YELLOW (70-99 step), 🔴 RED (≥100 step con trigger rollover).
+   - Integrato nel Session Bootstrap Gate (`scripts/nk_session_bootstrap.py`) e nel Compliance Checker (`scripts/nk_compliance_checker.py`).
+5. **Ratchet Elevato a 66 Golden Tests (100.0% PASS)**:
+   - Integrazione della test suite `tests/test_context_sentry.py` (5 test Zero-Mock) portando la baseline permanente a **66/66 test passati in 29.32s**.
 
 ---
 

@@ -42,12 +42,17 @@
 * **OBBLIGO DEL SILENZIO REATTIVO:** Quando un processo viene inviato in background come task asincrono, l'agente DEVE cedere immediatamente il turno (Zero Tool Calls) per attendere il risveglio reattivo dell'Event Bus di Antigravity, OPPURE impostare un timer sentinella condizionale con `schedule(DurationSeconds=X, TimerCondition="<task-id>")`.
 * Qualsiasi violazione che superi il 15% delle chiamate tool in busy polling comporta il fallimento automatico del compliance check (`scripts/nk_compliance_checker.py`).
 
-### [RULE-01] IDE_UNIFIED_BUILDER_ROUTING & REGOLA DDI
-* **Direttiva Context Hygiene:** L'Agente Principale e tutti i Worker Orchestratori hanno il DIVIETO ASSOLUTO di sporcare il contesto con modifiche sparse non coordinate o scritture monolitiche dirette su codice di produzione.
-* **Regola DDI (Define, Delegate, Idle):** Per scrivere codice, l'Agente Principale DEVE:
-  1. **Define:** Leggere la skill del builder corretto e formulare la specifica (con formato intrinseco `/implementation`).
-  2. **Delegate:** Usare `define_subagent` per creare un worker isolato e `invoke_subagent` per delegare il task (o invocare lo scaffolder deterministico).
-  3. **Idle:** Mettersi in IDLE (End Turn) attendendo il verdetto dal sub-agente, senza compiere altre azioni.
+### [RULE-01] UNIVERSAL_DDI_MANDATE (Build & Deep Audit)
+* **Direttiva Context Hygiene & Anti-Saturation:** L'Agente Principale e tutti i nodi di supervisione hanno il DIVIETO ASSOLUTO di sporcare il contesto operando in modalità monolitica (scrittura codice o ispezioni massive nel thread principale).
+* **Universal DDI (Define, Delegate, Idle):**
+  1. **Scrittura Codice:** L'Agente Principale DEVE obbligatoriamente definire la specifica, delegare a un sub-agente builder in `.staging/` (o invocare lo scaffolder deterministico) e attendere in IDLE.
+  2. **Deep Audit & Stress-Testing (>2 file o >2 comandi):** L'Agente Principale ha il DIVIETO di eseguire loop di lettura (`view_file`) o esecuzione di test/comandi nel proprio thread. DEVE delegare l'ispezione/stress-test a un sub-agente oracolo/auditor (`NK-Oracle-Evaluator`, `CriticAuditWorker`) e attendere in IDLE la sola matrice di conformità.
+  3. **Micro-Check Fast Track:** Verifiche rapide (<= 150 LOC, <= 2 file letti, <= 2 comandi rapidi) rimangono autorizzate in-process per preservare fluidità e zero overhead.
+
+### [RULE-SWARM-HYGIENE] SWARM_MESSAGE_HYGIENE_MANDATE
+* **Hard Cap 2.000 Caratteri:** È fatto divieto a qualsiasi sub-agente di trasmettere tramite `send_message` messaggi superiori a 2.000 caratteri (~500 token).
+* **Obbligo Dump su File:** I report completi di threat modeling, DAST o architettura DEVONO essere salvati come artefatti su disco (`scratch/` o `%TEMP%\nk_diagnostics\`). Al genitore si invia SOLO l'Executive Summary (<2.000 caratteri) con il percorso del file.
+* **Head-Tail I/O Fallback:** In caso di errore I/O durante la scrittura del file, il sub-agente attiva la compressione in-band Head-Tail (primi 400 caratteri + ultimi 800 caratteri del traceback con `__cause__`), prevenendo perdite di contesto e ping-pong.
 
 ### [RULE-01.1] PROTOCOLLO CRV 4.0 (4 Macro-Fasi in Swarm)
 * **MACRO-FASE 1 (Build & Stage in Swarm):**

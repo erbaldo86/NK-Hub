@@ -71,9 +71,10 @@ Non chiedere all'utente di compiere azioni intermedie. Seleziona la modalità op
 
 ---
 
-## 🛡️ 3. Macro-Fase 3: Protocollo di Cold Review Deterministiche
+## 🛡️ 3. Macro-Fase 3: Protocollo di Cold Review Deterministiche (Isolated Subagent Delegation)
 
-Alla ricezione della Worker Execution Receipt, esegui la verifica rigorosa:
+Alla ricezione della Worker Execution Receipt, il Critico ha il DIVIETO ASSOLUTO di eseguire i Gate 1-5 di persona nel proprio thread. Invocherà mandatoriamente un sub-agente oracolo isolato (`NK-Oracle-Evaluator` o `CriticAuditWorker`) in sandbox:
+- L'oracolo esegue fisicamente le verifiche ed i test:
 
 1. **Gate 1 - Scope Audit:** Il Worker ha toccato SOLO i file autorizzati nel Blocco 2? *(Se NO -> `REJECT_SCOPE_CREEP`)*.
 2. **Gate 2 - Code Grounding Audit:** Nel transcript del Worker è presente la chiamata reale `view_file` sui range corretti? *(Se NO -> `REJECTED_BLIND_EXECUTION`)*.
