@@ -1,32 +1,43 @@
 import os
-import json
+import sys
+import argparse
+import hashlib
+import tempfile
 
-def send_message(sender, recipient, payload, payload_file=None):
-    if payload_file and os.path.exists(payload_file):
-        with open(payload_file, "r") as f:
-            payload = f.read()
-            
-    if len(payload) > 1800:
-        head = payload[:400]
-        tail = payload[-800:]
-        payload = f"{head}\n...\n{tail}"
+def process_payload(payload):
+    if len(payload) <= 1800:
+        return payload
         
-        # Spillover
-        temp_dir = os.path.expandvars("%TEMP%\\nk_diagnostics")
-        os.makedirs(temp_dir, exist_ok=True)
-        spillover_path = os.path.join(temp_dir, "spillover.txt")
-        with open(spillover_path, "w") as f:
-            f.write(payload)
-            
-    return payload
+    sha256 = hashlib.sha256(payload.encode('utf-8')).hexdigest()
+    temp_dir = os.path.join(tempfile.gettempdir(), 'nk_diagnostics')
+    os.makedirs(temp_dir, exist_ok=True)
+    dump_file = os.path.join(temp_dir, f'swarm_spillover_{sha256[:8]}.txt')
+    
+    with open(dump_file, 'w', encoding='utf-8') as f:
+        f.write(payload)
+        
+    head = payload[:400]
+    tail = payload[-800:]
+    
+    return f"{head}\n\n[...TRUNCATED, FULL PAYLOAD SAVED TO {dump_file}...]\n\n{tail}"
 
-if __name__ == "__main__":
-    import argparse
+def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--sender", required=True)
-    parser.add_argument("--recipient", required=True)
-    parser.add_argument("--payload", required=True)
-    parser.add_argument("--payload-file")
+    parser.add_argument('--sender')
+    parser.add_argument('--recipient')
+    parser.add_argument('--payload')
+    parser.add_argument('--payload-file')
     args = parser.parse_args()
     
-    send_message(args.sender, args.recipient, args.payload, args.payload_file)
+    payload = ""
+    if args.payload:
+        payload = args.payload
+    elif args.payload_file:
+        with open(args.payload_file, 'r', encoding='utf-8') as f:
+            payload = f.read()
+            
+    result = process_payload(payload)
+    print(result)
+
+if __name__ == '__main__':
+    main()
