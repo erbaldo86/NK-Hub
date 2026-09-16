@@ -1,10 +1,28 @@
 # 📜 NEXUS KEYSTONE OFFICIAL CHANGELOG & PATCH NOTES (SSOT)
 
 > **Single Source of Truth (SSOT):** `nk_genome/PATCH_NOTES.md`  
-> **Release Ufficiale:** `v2.4.1-TAS-Sandbox-Documentation (Active EGPWS Sentinel, Zero-Amnesia Handoff, Swarm MTU Gate, Auto-Inning & 10/10 GitHub Parity)`  
-> **Milestone Anchor:** `NK-MS-20260916-TAS-SANDBOX-GITHUB-v2.4.1`  
+> **Release Ufficiale:** `v2.4.2-PanoramicMastery (Full 16-Skill Catalog, Core Engines, Mathematical Rigor & 10/10 EN/IT Documentation Parity)`  
+> **Milestone Anchor:** `NK-MS-20260916-PANORAMIC-DOCS-v2.4.2`  
 > **Data Consolidamento:** 2026-09-16  
-> **Stato Release:** `🛡️ [NK-SUPER-BRIEF-STATUS: AUDITED_AND_OFFICIAL_v2.4.1 🟢]`
+> **Stato Release:** `🛡️ [NK-SUPER-BRIEF-STATUS: AUDITED_AND_OFFICIAL_v2.4.2 🟢]`
+
+---
+
+## 🏛️ Release v2.4.2 — Panoramic Mastery & Full Vocational Skills Restoration
+La Release **v2.4.2** espande e armonizza la documentazione del repository unendo sintesi rapida e profondità tecnica esaustiva:
+1. **Ripristino Integrale del Catalogo Panoramico delle 16 Skill**:
+   - Mappatura completa e dettagliata di tutte le 16 skill agentiche (`.agents/skills/*`), suddivise nei 5 tier funzionali (Ideazione/UX, Governance, Builder, Diagnostica/Oracolo, Sicurezza/Memoria), con ruoli, livelli (L0-L3), vincoli operativi e I/O contract.
+2. **Architettura Core & Directory Script Esaustiva**:
+   - Censimento e documentazione di tutti gli script del framework (`scripts/*.py`) raggruppati per domini (Runtime Defense, Swarm IPC, 2PC Named Mutex, SBFL Ochiai Auto-Healing, Memory 3-Tier, AST Scaffolding).
+3. **Formalizzazione Matematica & Rigore Tecnico per Esperti**:
+   - Equazioni formali KaTeX per SBFL Ochiai e Reciprocal Rank Fusion (BM25 + Cosine $k=60$).
+   - Specifiche algoritmiche per Kahn DAG Topological Sorting, Win32 2PC Named Mutex e EGPWS Active Sentinel FSM.
+   - Tabella rigida degli SLA di latenza di sistema.
+4. **Onboarding Istantaneo & Flusso Visuale per Principianti (10/10)**:
+   - Concetto intuitivo "Torre di Controllo per Agenti AI", Quickstart in 3 comandi e diagramma visuale Mermaid.
+5. **Parità Speculare 1:1 Assoluta EN/IT**:
+   - Perfetta corrispondenza capitolo per capitolo tra `README.md` e `README.it.md`.
+6. **Ratchet Permanente Verificato a 74 Golden Tests (100.0% PASS)**.
 
 ---
 
