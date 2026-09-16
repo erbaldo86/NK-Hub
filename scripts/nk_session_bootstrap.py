@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Nexus Keystone v2.0.0-Hardened - Fast-Stat Session Bootstrap Gate
+Nexus Keystone v2.3.0-Hardened - Fast-Stat Session Bootstrap Gate
 Module: nk_session_bootstrap.py
 Author: NK-Session-Controller & NK-Environment-Architect
 Implements: [RULE-00.4] SESSION_BOOTSTRAP_GATE & Two-Tier Fast-Stat Invariant Verification
 
 Features:
 - Fast-Stat Invariant Check (<120 ms) avoiding GDrive FS lock contention.
+- Integrated non-blocking NKContextSentry preflight health check.
 - Local state tracking in %TEMP%/nk_bootstrap/state.json.
 - Deterministic project isolation verification ([RULE-PROJECT-ISOLATION]).
 - Stale WAL purge (TTL > 60s) via win32_2pc_engine invariants.
@@ -35,11 +36,25 @@ else:
 
 if str(_workspace_root) not in sys.path:
     sys.path.insert(0, str(_workspace_root))
+if str(_scripts_dir) not in sys.path:
+    sys.path.insert(0, str(_scripts_dir))
 
 try:
     from scripts.platform_runner import reconfigure_streams
 except ImportError:
-    from platform_runner import reconfigure_streams
+    try:
+        from platform_runner import reconfigure_streams
+    except ImportError:
+        def reconfigure_streams():
+            pass
+
+try:
+    from nk_context_sentry import NKContextSentry
+except ImportError:
+    try:
+        from scripts.nk_context_sentry import NKContextSentry
+    except ImportError:
+        NKContextSentry = None
 
 
 class NKSessionBootstrap:
@@ -70,10 +85,14 @@ class NKSessionBootstrap:
 
         # 1. Check Fast-Stat cache if applicable
         if fast_stat and self._can_fast_pass():
+            context_check = self._verify_context_sentry()
             report["checks"]["fast_stat"] = {
                 "status": "PASS",
                 "details": "Fast-stat invariant verified. TTL valid (<15m).",
             }
+            report["checks"]["context_sentry"] = context_check
+            if context_check.get("warning"):
+                report["issues"].append(context_check["warning"])
             duration_ms = (time.perf_counter() - start_time) * 1000
             report["duration_ms"] = round(duration_ms, 2)
             self._save_state(report)
@@ -96,6 +115,12 @@ class NKSessionBootstrap:
         if not baseline_check["passed"]:
             report["status"] = "FAIL"
             report["issues"].append(baseline_check["details"])
+
+        # 5. Context Sentry Check (non-blocking)
+        context_check = self._verify_context_sentry()
+        report["checks"]["context_sentry"] = context_check
+        if context_check.get("warning"):
+            report["issues"].append(context_check["warning"])
 
         duration_ms = (time.perf_counter() - start_time) * 1000
         report["duration_ms"] = round(duration_ms, 2)
@@ -153,8 +178,10 @@ class NKSessionBootstrap:
 
     def _verify_baseline(self) -> Dict[str, Any]:
         """Ensure quality_baseline.json exists and metrics are sound."""
+        # Check in .staging first if running from staging
+        staging_baseline = self.workspace_root / ".staging" / "nk_tracking" / "quality_baseline.json"
         baseline_path = (
-            self.workspace_root / "nk_tracking" / "quality_baseline.json"
+            staging_baseline if staging_baseline.exists() else self.workspace_root / "nk_tracking" / "quality_baseline.json"
         )
         if not baseline_path.exists():
             return {"passed": False, "details": "quality_baseline.json missing."}
@@ -169,6 +196,47 @@ class NKSessionBootstrap:
             }
         except Exception as exc:
             return {"passed": False, "details": str(exc)}
+
+    def _verify_context_sentry(self) -> Dict[str, Any]:
+        """Non-blocking Context Sentry check for active conversation transcript."""
+        if NKContextSentry is None:
+            return {"passed": True, "details": "NKContextSentry module unavailable, skipped."}
+
+        brain_dir = Path(os.environ.get("USERPROFILE", "")) / ".gemini" / "antigravity" / "brain"
+        transcript_file: Optional[Path] = None
+        if brain_dir.exists():
+            candidates = list(brain_dir.glob("*/.system_generated/logs/transcript.jsonl"))
+            if candidates:
+                candidates.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+                transcript_file = candidates[0]
+
+        if not transcript_file or not transcript_file.exists():
+            return {
+                "passed": True,
+                "status": "GREEN",
+                "details": "No active transcript found. Fresh session assumed.",
+            }
+
+        try:
+            sentry = NKContextSentry(workspace_root=self.workspace_root)
+            res = sentry.analyze_transcript(transcript_file)
+            status = res.get("status", "GREEN")
+            warning = None
+            if status == "YELLOW":
+                warning = f"Context warning: session at {res.get('step_count', 0)} steps (~{res.get('estimated_tokens', 0):,} tokens)."
+            elif status == "RED":
+                warning = f"CRITICAL context saturation: session at {res.get('step_count', 0)} steps. Handover recommended."
+
+            return {
+                "passed": True,
+                "status": status,
+                "step_count": res.get("step_count", 0),
+                "estimated_tokens": res.get("estimated_tokens", 0),
+                "warning": warning,
+                "details": f"Context status {status} ({res.get('step_count', 0)} steps).",
+            }
+        except Exception as exc:
+            return {"passed": True, "details": f"Context Sentry check error: {exc}"}
 
     def _save_state(self, report: Dict[str, Any]) -> None:
         """Persist state locally in %TEMP%."""
@@ -211,6 +279,8 @@ def main() -> int:
         )
         for check_name, check_data in res.get("checks", {}).items():
             print(f"  - {check_name}: {check_data.get('details', check_data)}")
+        for issue in res.get("issues", []):
+            print(f"  ⚠️ [ALERT] {issue}")
 
     return 0 if res["status"] == "PASS" else 1
 

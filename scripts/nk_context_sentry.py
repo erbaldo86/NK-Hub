@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Nexus Keystone v2.2.0-AntiSaturation - Context Sentry Guard & Debloating Engine
+Nexus Keystone v2.3.0-Hardened - Context Sentry Guard & Debloating Engine
 Module: nk_context_sentry.py
 Author: NK-Session-Controller & NK-Security-Auditor
 Implements: [RULE-01] UNIVERSAL_DDI_MANDATE & [RULE-SWARM-HYGIENE]
@@ -127,13 +127,19 @@ class NKContextSentry:
                 chars_by_source[source] = chars_by_source.get(source, 0) + step_chars
 
                 # Check Swarm Hygiene on inter-agent messages
-                if source == "SYSTEM" and ("<SYSTEM_MESSAGE>" in content or "[Message]" in content):
-                    if len(content) > self.SWARM_MSG_HARD_CAP:
-                        swarm_hygiene_violations.append({
-                            "step_index": data.get("step_index", steps_count),
-                            "length": len(content),
-                            "limit": self.SWARM_MSG_HARD_CAP
-                        })
+                # Prioritize '[Message]' indicator for true inter-agent swarm messages
+                is_swarm_msg = False
+                if "[Message]" in content:
+                    is_swarm_msg = True
+                elif source == "SYSTEM" and "<SYSTEM_MESSAGE>" in content:
+                    is_swarm_msg = True
+
+                if is_swarm_msg and len(content) > self.SWARM_MSG_HARD_CAP:
+                    swarm_hygiene_violations.append({
+                        "step_index": data.get("step_index", steps_count),
+                        "length": len(content),
+                        "limit": self.SWARM_MSG_HARD_CAP
+                    })
 
                 # Check Universal DDI direct tool call streaks
                 tool_calls = data.get("tool_calls", []) or []
@@ -154,7 +160,7 @@ class NKContextSentry:
                     if consecutive_direct_audit_tools > max_consecutive_direct_audit:
                         max_consecutive_direct_audit = consecutive_direct_audit_tools
 
-        estimated_tokens = self.estimate_tokens(" " * total_chars)
+        estimated_tokens = max(1, total_chars // 4) if total_chars > 0 else 0
         health = self.get_traffic_light_status(steps_count, estimated_tokens)
 
         return {

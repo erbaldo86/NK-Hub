@@ -1,10 +1,30 @@
 # 📜 NEXUS KEYSTONE OFFICIAL CHANGELOG & PATCH NOTES (SSOT)
 
 > **Single Source of Truth (SSOT):** `nk_genome/PATCH_NOTES.md`  
-> **Release Ufficiale:** `v2.2.0-AntiSaturation (Universal DDI, Swarm Message Hygiene, Cold Review Isolation & 66 Golden Tests)`  
-> **Milestone Anchor:** `NK-MS-20260915-ANTI-SATURATION-v2.2.0`  
-> **Data Consolidamento:** 2026-09-15  
-> **Stato Release:** `🛡️ [NK-SUPER-BRIEF-STATUS: AUDITED_AND_OFFICIAL_v2.2.0 🟢]`
+> **Release Ufficiale:** `v2.4.1-TAS-Sandbox-Documentation (Active EGPWS Sentinel, Zero-Amnesia Handoff, Swarm MTU Gate, Auto-Inning & 10/10 GitHub Parity)`  
+> **Milestone Anchor:** `NK-MS-20260916-TAS-SANDBOX-GITHUB-v2.4.1`  
+> **Data Consolidamento:** 2026-09-16  
+> **Stato Release:** `🛡️ [NK-SUPER-BRIEF-STATUS: AUDITED_AND_OFFICIAL_v2.4.1 🟢]`
+
+---
+
+## 🏛️ Release v2.4.1 — TAS Audit, Sandbox Stress con Auto-Healing & Allineamento GitHub 10/10
+La Release **v2.4.1** consolida la difesa attiva a runtime contro l'errore 503 e raggiunge la parità documentale 10/10:
+1. **Active Runtime Sentinel (`scripts/nk_active_runtime_sentinel.py`)**:
+   - Watchdog EGPWS in streaming (<25 ms) con debouncing a stati discreti: GREEN (<60), CAUTION (60-84), CRITICAL (85-99 con Soft Lock), RED (≥100 con Hard Freeze Exit Code 1).
+2. **Deterministic Session Handoff Engine (`scripts/nk_session_handoff.py`)**:
+   - Zero-Amnesia Capsule (<800 token) e Stash Guard con snapshot `.patch` anti-data-loss.
+   - Generazione prompt turnkey `next_session_prompt.md`.
+3. **Swarm Hygiene Physical MTU Gate (`scripts/nk_swarm_messenger.py`)**:
+   - Hard-Gate 1.800 car., disk spillover su `%TEMP%\nk_diagnostics\` e compressione Head-Tail (<1.200 car.).
+4. **Continuous Auto-Inning & Monotonic Ratchet (`scripts/nk_auto_inning.py`)**:
+   - Chiusura formale dell'inning, compliance audit con penalità bloccanti per sessioni RED/DDI bypass, e ratchet monotono.
+5. **Collaudo TAS e Stress Test in Shadow Sandbox con Auto-Healing**:
+   - Simulazione di saturazione contesto ed EGPWS su progetto target in `%TEMP%`.
+   - Bug injection (`ZeroDivisionError`), localizzazione Ochiai SBFL (`sbfl_engine.py`) e auto-patching (`auto_heal_pipeline.py`) verificati al 100% PASS.
+6. **Armonizzazione Integrale GitHub (10/10 Parity)**:
+   - Allineamento speculare 1:1 tra `README.md` (EN) e `README.it.md` (IT).
+   - Valutazione doppia 10/10 certificata per Non-Esperti (Torre di Controllo, Quickstart) ed Esperti (formule Ochiai, RRF $k=60$, Kahn DAG, 2PC, EGPWS, 70 Golden Tests).
 
 ---
 
