@@ -2,9 +2,6 @@ import os
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-for key in list(sys.modules.keys()):
-    if key.startswith("scripts"):
-        del sys.modules[key]
 
 import tempfile
 import json
@@ -16,22 +13,22 @@ from scripts.nk_active_runtime_sentinel import run_sentinel
 from scripts.nk_swarm_messenger import process_payload
 
 def test_active_runtime_sentinel_states():
-    with tempfile.NamedTemporaryFile('w', delete=False) as f:
+    with tempfile.NamedTemporaryFile('w', delete=False, encoding='utf-8') as f:
         for _ in range(30):
             f.write('{"step": 1}\n')
         f30 = f.name
         
-    with tempfile.NamedTemporaryFile('w', delete=False) as f:
+    with tempfile.NamedTemporaryFile('w', delete=False, encoding='utf-8') as f:
         for _ in range(70):
             f.write('{"step": 1}\n')
         f70 = f.name
         
-    with tempfile.NamedTemporaryFile('w', delete=False) as f:
+    with tempfile.NamedTemporaryFile('w', delete=False, encoding='utf-8') as f:
         for _ in range(90):
             f.write('{"step": 1}\n')
         f90 = f.name
         
-    with tempfile.NamedTemporaryFile('w', delete=False) as f:
+    with tempfile.NamedTemporaryFile('w', delete=False, encoding='utf-8') as f:
         for _ in range(110):
             f.write('{"step": 1}\n')
         f110 = f.name
@@ -57,14 +54,14 @@ def test_active_runtime_sentinel_states():
     os.remove(f110)
 
 def _resolve_script(script_name: str) -> str:
-    for candidate in [Path("scripts") / script_name, Path(".staging/scripts") / script_name]:
+    for candidate in [Path(".staging/scripts") / script_name, Path("scripts") / script_name]:
         if candidate.exists():
             return str(candidate)
     return str(Path("scripts") / script_name)
 
 def test_session_handoff_capsule_and_stash(tmp_path):
     transcript = tmp_path / "transcript.jsonl"
-    transcript.write_text("line1\nline2\n")
+    transcript.write_text("line1\nline2\n", encoding="utf-8")
     
     output_dir = tmp_path / "handoff"
     
@@ -75,7 +72,7 @@ def test_session_handoff_capsule_and_stash(tmp_path):
     assert (output_dir / "session_handoff_latest.json").exists()
     assert (output_dir / "next_session_prompt.md").exists()
     
-    with open(output_dir / "session_handoff_latest.json") as f:
+    with open(output_dir / "session_handoff_latest.json", encoding="utf-8") as f:
         data = json.load(f)
         assert data["steps"] == 2
         
@@ -91,14 +88,14 @@ def test_swarm_messenger_mtu_spillover():
 
 def test_auto_inning_monotonic_ratchet(tmp_path):
     transcript = tmp_path / "transcript.jsonl"
-    transcript.write_text("line1\n")
+    transcript.write_text("line1\n", encoding="utf-8")
     
     env = os.environ.copy()
     script = _resolve_script("nk_auto_inning.py")
-    subprocess.run([sys.executable, script, "--transcript", str(transcript), "--close-inning"], env=env, check=True)
+    tuning_file = tmp_path / "tuning" / "session_tuning_params.json"
+    subprocess.run([sys.executable, script, "--transcript", str(transcript), "--close-inning", "--tuning-file", str(tuning_file)], env=env, check=True)
     
-    tuning_file = "nk_tracking/tuning/session_tuning_params.json"
-    assert os.path.exists(tuning_file)
-    with open(tuning_file) as f:
+    assert tuning_file.exists()
+    with open(tuning_file, encoding="utf-8") as f:
         data = json.load(f)
         assert "compliance_score" in data

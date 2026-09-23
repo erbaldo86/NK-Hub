@@ -6,6 +6,7 @@ Author: NK-Platform-Builder & NK-Environment-Architect
 Features:
 - UTF-8 stream reconfiguration for Windows and cross-platform environments.
 - Enforced unbuffered stdout/stderr (PYTHONUNBUFFERED=1 and -u flag) preventing 0-byte log blocking on Windows.
+- Automatic pytest command normalization to sys.executable -m pytest.
 - Safe subprocess execution with robust timeout, exception, and encoding handling.
 - Deterministic argument handling for Windows paths with spaces (e.g. Google Drive).
 - CLI execution mode for protected command evaluation.
@@ -38,7 +39,8 @@ def reconfigure_streams() -> None:
 def _normalize_python_command(cmd: Union[str, Sequence[str]]) -> Union[str, List[str]]:
     """
     Ensure Python invocations include unbuffered execution flag (-u)
-    to prevent block-buffering on Windows task log files.
+    to prevent block-buffering on Windows task log files, and ensure pytest
+    is invoked via sys.executable -m pytest.
     """
     if isinstance(cmd, (list, tuple)):
         cmd_list = list(cmd)
@@ -47,7 +49,14 @@ def _normalize_python_command(cmd: Union[str, Sequence[str]]) -> Union[str, List
         ):
             if "-u" not in cmd_list[1:3]:
                 cmd_list.insert(1, "-u")
+        elif len(cmd_list) > 0 and str(cmd_list[0]).lower() == "pytest":
+            cmd_list = [sys.executable, "-u", "-m", "pytest"] + cmd_list[1:]
         return cmd_list
+    elif isinstance(cmd, str):
+        clean = cmd.strip()
+        if clean == "pytest" or clean.startswith("pytest "):
+            rest = clean[6:].strip()
+            return f'"{sys.executable}" -u -m pytest {rest}'.strip()
     return cmd
 
 
@@ -83,7 +92,7 @@ def safe_subprocess_run(
     run_env["PYTHONUTF8"] = "1"
     run_env["PYTHONUNBUFFERED"] = "1"
 
-    # Inject -u into Python commands if sequence
+    # Inject -u into Python commands if sequence and normalize pytest
     normalized_cmd = _normalize_python_command(cmd)
 
     cwd_str = str(cwd) if cwd is not None else None

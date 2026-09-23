@@ -11,7 +11,7 @@ Features:
 - Integrated non-blocking NKContextSentry preflight health check.
 - Local state tracking in %TEMP%/nk_bootstrap/state.json.
 - Deterministic project isolation verification ([RULE-PROJECT-ISOLATION]).
-- Stale WAL purge (TTL > 60s) via win32_2pc_engine invariants.
+- Stale WAL purge (TTL > 60s) with target-scoped directory traversal.
 - Milestone Anchor generation and quality baseline consistency verification.
 """
 
@@ -167,13 +167,21 @@ class NKSessionBootstrap:
         """Purge any orphan .wal_2pc.jsonl or WAL files older than TTL."""
         purged = 0
         now = time.time()
-        for wal_file in self.workspace_root.glob("**/*.wal_2pc.jsonl"):
-            try:
-                if now - wal_file.stat().st_mtime > ttl_seconds:
-                    wal_file.unlink(missing_ok=True)
-                    purged += 1
-            except Exception:
-                pass
+        candidate_dirs = [
+            self.workspace_root,
+            self.workspace_root / ".staging",
+            self.workspace_root / ".wal",
+            self.workspace_root / "nk_tracking",
+        ]
+        for cdir in candidate_dirs:
+            if cdir.exists():
+                try:
+                    for wal_file in cdir.glob("*.wal_2pc.jsonl"):
+                        if now - wal_file.stat().st_mtime > ttl_seconds:
+                            wal_file.unlink(missing_ok=True)
+                            purged += 1
+                except Exception:
+                    pass
         return {"passed": True, "stale_wals_purged": purged}
 
     def _verify_baseline(self) -> Dict[str, Any]:

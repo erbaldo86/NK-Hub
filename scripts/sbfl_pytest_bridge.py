@@ -113,16 +113,17 @@ class SBFLPytestBridge:
                 if tname and tname not in failed_tests:
                     failed_tests.append(tname)
 
-        # Fallback regex search for summary line: e.g. "1 failed, 2 passed in 0.12s"
-        summary_match = re.search(r"(=+\s+)?(?:(\d+)\s+failed)?(?:,\s+)?(?:(\d+)\s+passed)?", stdout)
+        # Fallback regex search for summary line: e.g. "1 failed, 2 passed in 0.12s" or "6 passed in 11.12s"
         failed_cnt = len(failed_tests)
         passed_cnt = len(passed_tests)
 
-        if summary_match and (failed_cnt == 0 and passed_cnt == 0):
-            if summary_match.group(2):
-                failed_cnt = int(summary_match.group(2))
-            if summary_match.group(3):
-                passed_cnt = int(summary_match.group(3))
+        if failed_cnt == 0 and passed_cnt == 0:
+            p_match = re.search(r"(\d+)\s+passed", stdout)
+            f_match = re.search(r"(\d+)\s+failed", stdout)
+            if p_match:
+                passed_cnt = int(p_match.group(1))
+            if f_match:
+                failed_cnt = int(f_match.group(1))
 
         total_cnt = failed_cnt + passed_cnt
 

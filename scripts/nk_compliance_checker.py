@@ -129,7 +129,7 @@ class NKComplianceChecker:
                             write_calls += 1
                         elif tname == "run_command":
                             cmd = args.get("CommandLine", "")
-                            if "invisible_healing_loop.py" in cmd:
+                            if "invisible_healing_loop.py" in cmd or "auto_heal_pipeline.py" in cmd:
                                 healing_loop_executed = True
                             if "ast_guard_validator.py" in cmd:
                                 ast_guard_executed = True

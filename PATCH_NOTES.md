@@ -1,10 +1,75 @@
 # 📜 NEXUS KEYSTONE OFFICIAL CHANGELOG & PATCH NOTES (SSOT)
 
 > **Single Source of Truth (SSOT):** `nk_genome/PATCH_NOTES.md`  
-> **Release Ufficiale:** `v2.4.2-PanoramicMastery (Full 16-Skill Catalog, Core Engines, Mathematical Rigor & 10/10 EN/IT Documentation Parity)`  
-> **Milestone Anchor:** `NK-MS-20260916-PANORAMIC-DOCS-v2.4.2`  
-> **Data Consolidamento:** 2026-09-16  
-> **Stato Release:** `🛡️ [NK-SUPER-BRIEF-STATUS: AUDITED_AND_OFFICIAL_v2.4.2 🟢]`
+> **Release Ufficiale:** `v2.5.2-Hardened (Unified Onboarding Mandate, Controller-of-Controller & Platform Hardening)`  
+> **Milestone Anchor:** `NK-MS-20260923-CONTROLLER-OF-CONTROLLER-v2.5.2`  
+> **Data Consolidamento:** 2026-09-23  
+> **Stato Release:** `🛡️ [NK-SUPER-BRIEF-STATUS: AUDITED_AND_OFFICIAL_v2.5.2 🟢]`
+
+---
+
+## 🏛️ Release v2.5.2-Hardened — Unified Onboarding Mandate, Controller-of-Controller & Platform Hardening
+La Release **v2.5.2-Hardened** formalizza e consolida l'integrità normativa, i guardiani di qualità e l'hardening dei tool di esecuzione a valle della missione "Controllore del Controllore":
+1. **Consolidamento Vincolante di `[RULE-00.5] UNIFIED_ONBOARDING_DASHBOARD_MANDATE`**:
+   - Codificata stabilmente in `.agents/AGENTS.md` per agganciare in modo deterministico tutti i trigger verbali di avvio (*"avvia ambiente nk"*, *"avvia nk hub"*, *"avvia nk"*, *"avvia hub"*, *"start nk"*, *"start hub"*, *"attiva nk"*, *"attiva ambiente nk"*).
+   - Esecuzione rigorosa del solo Fast-Stat Session Bootstrap Gate ($< 120$ ms) tramite `scripts/nk_session_bootstrap.py`, con divieto espresso di lanciare la test suite completa o diagnostiche pesanti all'avvio sessione.
+   - Esposizione invariante della Master Dashboard a 15 nodi (`[0]` - `[14]`) con guida all'uso flessibile a due vie nel footer (Selezione Rapida vs Goal-Driven / Linguaggio Naturale).
+2. **Permanent Test Suite Coverage (`tests/test_unified_onboarding_mandate.py`)**:
+   - Introdotta la nuova test suite pytest permanente Zero-Mock a 4 verifiche deterministiche:
+     * `test_agents_md_rule_00_5_definition`: conformità trigger verbali, Fast-Stat e nodi [0]-[14] in `AGENTS.md`.
+     * `test_master_hub_15_nodes_and_guidance`: presenza dei 15 nodi e guida a due vie in `NK-Master-Hub/SKILL.md`.
+     * `test_session_controller_boundary_10`: verifica del vincolo 10 `UNIFIED_ONBOARDING_COMPLIANCE` in `NK-Session-Controller/SKILL.md`.
+     * `test_session_bootstrap_fast_stat_execution`: esecuzione programmatica con verdetto PASS di `scripts/nk_session_bootstrap.py`.
+3. **Hardening Encoding Windows CP1252 & ASCII Fallback (`scripts/micro_hud_renderer.py`)**:
+   - Introdotto il controllo preventivo `is_unicode_stream_supported()` e il fallback automatico su simboli ASCII puri (`#` / `-` per le barre di progresso, `[G1:OK]` per i gate) in caso di console legacy Windows CP1252 o sollevamento di `UnicodeEncodeError`.
+4. **Normalizzazione Pytest per Windows Path (`scripts/auto_heal_pipeline.py`)**:
+   - Normalizzazione automatica in `AutoHealPipeline`: se `test_cmd` inizia con `pytest `, viene convertito automaticamente in `f'"{sys.executable}" -m pytest '`, garantendo l'esecuzione anche se `pytest` non è presente nel PATH globale di sistema Windows.
+5. **Estensione Win32 2PC Engine con Git-Sync & Discovery Staging Root (`scripts/win32_2pc_engine.py`)**:
+   - Introdotto il flag opzionale `--git-sync` in `promote_staging_to_production` che sincronizza automaticamente nell'indice Git (`git add`) i file promossi e il componente untracked `scripts/oracle_evaluator_l3.py`.
+   - Esteso il discovery dei file in staging per promuovere sia i file posti direttamente alla radice di `.staging/` (es. `PATCH_NOTES.md`) sia quelli nelle relative sottocartelle target.
+6. **Integrazione del Modulo Oracolo L3 (`scripts/oracle_evaluator_l3.py`)**:
+   - Consolidato il modulo canonico L3 per `NK-Oracle-Evaluator` (DOM reader puro Python, delta evaluator, Pydantic v2 Strict Mode) garantendone il tracking e la conformità architetturale.
+
+---
+
+## 🏛️ Release v2.5.1-Hardened — Ecosystem Cohesion, Bootstrap Acceleration & 74 Golden Tests Ratchet
+La Release **v2.5.1** risolve i colli di bottiglia e armonizza l'intero ecosistema normativo, le 16 skill e la piattaforma di esecuzione:
+1. **Analisi Forense Sessione Precedente & Risoluzione Latenza di Avvio**:
+   - Individuata la causa della latenza iniziale (>10 min): concatenazione non necessaria di preflight health check, compliance checker, esecuzione dell'intera suite di test e scansioni disco su Google Drive FS.
+   - Chiarita la distinzione in `[RULE-02.3.1]` e `NK-Master-Hub/SKILL.md`: `scripts/preflight_health_check.py` e la suite completa sono riservati a manutenzioni esplicite. All'avvio ordinario si applica rigorosamente il Fast-Stat Bootstrap Gate `<120ms` (`[RULE-00.5]`).
+2. **Accelerazione Session Bootstrap Gate (<50 ms)**:
+   - Ottimizzata la funzione `_purge_stale_wal_files` in `scripts/nk_session_bootstrap.py`, restringendo la ricerca dei file WAL alle cartelle candidate ed eliminando il glob ricorsivo sull'intero filesystem virtuale. Tempo di bootstrap ridotto da **1.238 ms a 42-55 ms** (SLA <120 ms ampiamente soddisfatto).
+3. **Riconciliazione e Ratchet dei "72 Controlli" (74 Golden Tests Permanente)**:
+   - Tracciata l'evoluzione storica: v2.0.0 (72 test) -> v2.1.0 (61 Golden Tests hard-pruned) -> v2.2.0 (66 con Context Sentry) -> v2.4.1 (70 con Active Sentinel) -> v2.4.2/v2.5.1 (74 con Real Sandbox Concurrency Stress).
+   - Verificata la piena validità e non-obsolescenza di tutti i 74 test unitari e di stress in `tests/` (100% Zero-Mock, 0 mock sintetici).
+   - Ottimizzati i tempi di esecuzione della suite alleggerendo lo stress test 2PC a 20 worker concorrenti e isolando il modulo di test sentinella in `tmp_path`.
+4. **Risoluzione Bug Runtime Windows & Runner**:
+   - `scripts/platform_runner.py`: normalizzata l'invocazione di Pytest su Windows tramite `sys.executable -u -m pytest`, prevenendo errori `CommandNotFoundException` in PowerShell.
+   - `scripts/sbfl_pytest_bridge.py`: corretta la regex di matching dell'output Pytest per gestire stabilmente l'output sintetico (`-q`).
+   - `scripts/micro_hud_renderer.py`: risolto il crash su console Windows cp1252 con riconfigurazione UTF-8 e aggiunto l'entrypoint CLI (`--percent`, `--mutex`, `--agent`).
+   - Implementato il modulo canonico `scripts/oracle_evaluator_l3.py` (DOM reader puro Python, delta evaluator, Pydantic v2 Strict Mode) referenziato da `NK-Oracle-Evaluator`.
+5. **Armonizzazione Normativa e Coesione delle 16 Skill**:
+   - Bonificati tutti i residui riferimenti a `src_app/*` in `NK-Master-Hub`, `NK-App-UX-Architect`, `NK-Backend-Architect`, `NK-Plan-Aligner` e `NK-Scribe`, sostituendoli con riferimenti a cartelle esterne dedicate in ossequio a `[RULE-PROJECT-ISOLATION]`.
+   - Standardizzato l'ordine dei tag XML (`<strict_boundaries>` prima di `<directive>`) in tutte le 16 skill canoniche.
+   - Aggiornato `AGENTS.md` (`[RULE-01.10]`) e `nk_tracking/quality_baseline.json` con il ratchet permanente a 74 Golden Tests al 100.0% di PASS.
+6. **Validazione AST e Promozione Atomica Win32 2PC**:
+   - Tutti i 32 script e 15 file di test validati dall'AST Guard Validator (100% PASS, 0 violazioni).
+   - 20 file promossi da `.staging/` a produzione con lock Named Mutex Win32, checksum SHA-256 e WAL logging.
+
+---
+
+## 🏛️ Release v2.5.0 — Deterministic Onboarding Dashboard & Flexible Swarm Usage Guidance
+La Release **v2.5.0** formalizza e standardizza l'esperienza di ingresso e avvio sessione dell'Hub:
+1. **Integrazione Regola di Sistema `[RULE-00.5] UNIFIED_ONBOARDING_DASHBOARD_MANDATE`**:
+   - Codificata in `.agents/AGENTS.md` per agganciare in modo deterministico tutti i trigger verbali di avvio (*"avvia ambiente nk"*, *"avvia nk hub"*, *"avvia nk"*, *"avvia hub"*, *"start nk"*, *"start hub"*).
+   - Impone la Fast-Stat verification istantanea (<120 ms) tramite `scripts/nk_session_bootstrap.py`, vietando l'esecuzione della suite di test completa all'avvio sessione.
+   - Garantisce la visualizzazione uniforme e invariante della Master Dashboard a 15 nodi (`[0]` - `[14]`).
+2. **Guida Operativa a Due Vie in Calce alla Dashboard**:
+   - Inclusa stabilmente in `NK-Master-Hub/SKILL.md` e `NK-Session-Controller/SKILL.md`.
+   - Chiarisce che l'utente può scegliere tra selezione diretta manuale (`[0]`-`[14]`) e conversazione libera in linguaggio naturale, con Nexus Keystone che seleziona ed evoca automaticamente i sub-agenti e le skill idonee in background.
+3. **Ciclo di Auto-Healing & Verifiche AST Eseguito**:
+   - Esecuzione del test dell'auto-heal pipeline con fitness gate e rollback transazionale (`auto_heal_pipeline.py`).
+   - Verifica di conformità AST su tutti i 31 file della cartella `scripts/` (31/31 PASS).
 
 ---
 

@@ -1,8 +1,8 @@
-# 🏛️ Regolamento di Sistema: Ecosistema Antigravity (Nexus Keystone Official Release v2.0.0-Hardened)
+# 🏛️ Regolamento di Sistema: Ecosistema Antigravity (Nexus Keystone Official Release v2.5.1-Hardened)
 
 > **Ambito:** Regole del workspace a livello di progetto per tutti gli agenti, sub-agenti e nodi NK.  
 > **Applicazione:** Imperativo vincolante per l'Agente Principale, i Sub-Agenti e la FSM dell'Hub.  
-> **Versione Protocollo:** v2.0.0-Hardened (Session Bootstrap Gate, Universal Safe Subprocess Runner v2, Reactive Silence Anti-Polling, Deterministic DDD Scaffolder, Tier-0 Local API Cache Zero-Mock, Hard Compliance Ratchet, Win32 2PC Mutex & 65-Test Permanent Suite Ratchet)
+> **Versione Protocollo:** v2.5.1-Hardened (Session Bootstrap Gate, Universal Safe Subprocess Runner v2, Reactive Silence Anti-Polling, Deterministic DDD Scaffolder, Tier-0 Local API Cache Zero-Mock, Hard Compliance Ratchet, Win32 2PC Mutex & 74 Golden Tests Permanent Suite Ratchet)
 
 ---
 
@@ -16,6 +16,14 @@
 ### [RULE-00.4] SESSION_BOOTSTRAP_GATE
 * **PRIMO STEP DETERMINISTICO OBBLIGATORIO:** All'apertura di ogni nuova sessione o task operativo su NK-Hub, l'agente o il Session Controller DEVE eseguire `scripts/nk_session_bootstrap.py`.
 * **FAST-STAT VERIFICATION ($< 120$ ms):** Verifica in tempo reale dell'isolamento della radice, purge dei log WAL con TTL $> 60$s e validazione dello stato invariante da `%TEMP%\nk_bootstrap\`. Nessuna azione di build può procedere se il bootstrap restituisce `FAIL`.
+
+### [RULE-00.5] UNIFIED_ONBOARDING_DASHBOARD_MANDATE
+* **TRIGGER DETERMINISTICI DI AVVIO:** Qualsiasi richiesta utente contenente trigger verbali o intent di avvio sessione (*"avvia ambiente nk"*, *"avvia nk hub"*, *"avvia nk"*, *"avvia hub"*, *"start nk"*, *"start hub"*, *"attiva nk"*, *"attiva ambiente nk"*) attiva OBBLIGATORIAMENTE il seguente flusso invariante:
+  1. **Esecuzione Fast-Stat Session Bootstrap Gate:** Esecuzione immediata di `scripts/nk_session_bootstrap.py` ($< 120$ ms). È fatto espresso divieto di eseguire la test suite completa o comandi diagnostici pesanti a ogni avvio di sessione.
+  2. **Esposizione Master Dashboard Unificata:** Rendering deterministico e fedele della Master Dashboard a 15 nodi (`[0]` - `[14]`) definita in `NK-Master-Hub/SKILL.md`, senza omettere nodi, senza alterare l'ordine e senza riassunti riduttivi.
+  3. **Guida all'Uso Flessibile (In Calce al Menù):** Inclusione obbligatoria e costante delle indicazioni operative a due vie:
+     - *Modalità Diretta (Facoltativa):* Inserimento del numero `[0]` - `[14]` per interrogare o invocare direttamente un singolo nodo specialistico.
+     - *Modalità Goal-Driven (Consigliata):* L'utente può semplicemente descrivere l'obiettivo o il problema in linguaggio naturale; `NK-Session-Controller` e `NK-Master-Hub` coordinano automaticamente lo sciame di sub-agenti e skill idonee in background, senza richiedere all'utente la gestione manuale dei nodi.
 
 ### [RULE-00] ZERO_UNAUTHORIZED_FILE_MODIFICATION_MANDATE
 * **DIVIETO ASSOLUTO DI SCRITTURA PRE-APPROVAZIONE SU PRODUZIONE:** È fatto divieto tassativo a QUALSIASI agente o sub-agente di chiamare `write_to_file`, `replace_file_content` o modificare file di produzione (`".agents/AGENTS.md"`, `"scripts/*"`) durante richieste di sola consultazione, senza autorizzazione.
@@ -78,7 +86,7 @@
 * **Tooling Integrato:** Utilizzo del tool nativo `schedule(DurationSeconds=45)` o del daemon asincrono `scripts/async_heartbeat_signaler.py` (cadenza 15-20s).
 * **Isolamento Diagnostico:** In caso di watchdog alert, i dump diagnostici dei thread devono essere salvati rigorosamente in `"%TEMP%\nk_diagnostics\"` (mai sul mount Google Drive `G:\`) per prevenire lock I/O e deadlock con `GoogleDriveFS`.
 
-### [RULE-01.10] PERMANENT_TEST_SUITE_MANDATE (65 Test Core Platform Ratchet)
+### [RULE-01.10] PERMANENT_TEST_SUITE_MANDATE (74 Golden Tests Core Platform Ratchet)
 * **È FATTO DIVIETO CATEGORICO E ASSOLUTO** di eliminare o degradare la suite permanente di test unitari contenuti in `"tests/"` dedicati al core della piattaforma (AST Guard, Win32 2PC, Memory 3-Tier, SBFL Engine, DAST Sandbox, Platform Runner v2, Session Bootstrap, Scaffolder, Api Cache, Compliance Checker).
 * Il ratchet di qualità (`nk_tracking/quality_baseline.json`) impone che nessuna modifica possa ridurre la percentuale di PASS sotto il 100.0%.
 
@@ -108,7 +116,7 @@
 ## 🤝 2. Governance, Memoria & Tracciamento
 
 ### [RULE-02.3.1] HUB_PREFLIGHT_HEALTH_CHECK_DIRECTIVE
-* All'avvio dell'Hub, `NK-Master-Hub` esegue `scripts/preflight_health_check.py` con purge automatico dei file WAL aventi TTL > 60 secondi, verifica dell'Activity Anchor e pulizia cache.
+* **MANUTENZIONE DIAGNOSTICA ESPLICITA:** `scripts/preflight_health_check.py` con purge automatico dei file WAL aventi TTL > 60 secondi, verifica dell'Activity Anchor e pulizia cache è riservato a verifiche e sanitizzazioni di manutenzione straordinaria o cold start manuale. All'avvio ordinario dell'Hub si applica esclusivamente il Fast-Stat Session Bootstrap Gate (<120ms) definito in `[RULE-00.4]` e `[RULE-00.5]`.
 
 ### [RULE-03] AUTO-BRIEF SWARM FSM A 5 TURNI
 * Turno 1: Draft Synthesis (Proposta iniziale).

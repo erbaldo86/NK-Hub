@@ -8,13 +8,25 @@ Compliant with:
 - Mutex lock status tracking (LOCKED, UNLOCKED, ACQUIRING, STALE_RECOVERED)
 - In-Context Tier 1 Token Budget gauge (e.g., TIER1: 280/350 tok)
 - Pydantic v2 in Strict Mode.
+- Native Windows CP1252 / UTF-8 safe encoding resilience with pure ASCII fallback.
 """
 
 from __future__ import annotations
 
+import argparse
 import math
-from typing import Dict, List, Literal, Optional, Tuple, Union
+import sys
+from typing import Dict, List, Literal, Optional, Sequence, Tuple, Union
 from pydantic import BaseModel, Field, ConfigDict, field_validator
+
+try:
+    from platform_runner import reconfigure_streams
+except ImportError:
+    try:
+        from scripts.platform_runner import reconfigure_streams
+    except ImportError:
+        def reconfigure_streams():
+            pass
 
 
 GateStatus = Literal["PASSED", "RUNNING", "FAILED", "PENDING", "BLOCKED", "SKIPPED"]
@@ -28,6 +40,31 @@ GATE_SYMBOLS: Dict[GateStatus, str] = {
     "BLOCKED": "⏸",
     "SKIPPED": "⊘",
 }
+
+GATE_SYMBOLS_ASCII: Dict[GateStatus, str] = {
+    "PASSED": "[OK]",
+    "RUNNING": "[RUN]",
+    "FAILED": "[FAIL]",
+    "PENDING": "[WAIT]",
+    "BLOCKED": "[BLOCK]",
+    "SKIPPED": "[SKIP]",
+}
+
+
+def is_unicode_stream_supported(stream=None) -> bool:
+    """
+    Checks whether the target output stream can encode standard UTF-8 and block glyphs.
+    Returns False if encoding with stream.encoding fails with UnicodeEncodeError.
+    """
+    target_stream = stream or sys.stdout
+    encoding = getattr(target_stream, "encoding", None)
+    if not encoding:
+        return True
+    try:
+        "▓░✓⟳✗⏳⏸⊘".encode(encoding)
+        return True
+    except (UnicodeEncodeError, LookupError, AttributeError):
+        return False
 
 
 class GateEntry(BaseModel):
@@ -56,6 +93,7 @@ class HUDState(BaseModel):
 class MicroHUDRenderer:
     """
     Renders high-density deterministic markdown HUD widgets for user chat and log streaming.
+    Includes native CP1252 / pure ASCII fallback mode for legacy Windows consoles.
     """
 
     def __init__(
@@ -63,7 +101,9 @@ class MicroHUDRenderer:
         version: str = "v1.1",
         default_gates: Optional[Sequence[str]] = ("G1", "G2", "G3", "G4", "G5"),
         bar_width: int = 10,
+        ascii_mode: Optional[bool] = None,
     ) -> None:
+        reconfigure_streams()
         gates_list = [GateEntry(id=gid, status="PENDING") for gid in (default_gates or [])]
         self.state = HUDState(
             version=version,
@@ -72,10 +112,15 @@ class MicroHUDRenderer:
             gates=gates_list,
             mutex_status="UNLOCKED",
         )
+        self.ascii_mode = ascii_mode
 
     # ------------------------------------------------------------------
     # STATE MUTATORS
     # ------------------------------------------------------------------
+    def set_ascii_mode(self, ascii_mode: bool) -> MicroHUDRenderer:
+        self.ascii_mode = ascii_mode
+        return self
+
     def set_progress(self, percent: int) -> MicroHUDRenderer:
         self.state.progress_percent = max(0, min(100, int(percent)))
         return self
@@ -116,36 +161,40 @@ class MicroHUDRenderer:
     # ------------------------------------------------------------------
     # PROGRESS BAR BUILDER
     # ------------------------------------------------------------------
-    def _build_progress_bar(self) -> str:
+    def _build_progress_bar(self, ascii_mode: bool = False) -> str:
         width = self.state.bar_width
         filled_count = int(round((self.state.progress_percent / 100.0) * width))
         filled_count = max(0, min(width, filled_count))
         empty_count = width - filled_count
-        bar = "▓" * filled_count + "░" * empty_count
+        if ascii_mode:
+            bar = "#" * filled_count + "-" * empty_count
+        else:
+            bar = "▓" * filled_count + "░" * empty_count
         return f"{bar} {self.state.progress_percent}%"
 
     # ------------------------------------------------------------------
     # GATES RENDERER
     # ------------------------------------------------------------------
-    def _build_gates_string(self) -> str:
+    def _build_gates_string(self, ascii_mode: bool = False) -> str:
         if not self.state.gates:
             return ""
         rendered_gates = []
         for g in self.state.gates:
-            symbol = GATE_SYMBOLS.get(g.status, "⏳")
-            rendered_gates.append(f"[{g.id}:{symbol}]")
+            if ascii_mode:
+                raw_sym = GATE_SYMBOLS_ASCII.get(g.status, "[WAIT]")
+                sym = raw_sym.strip("[]")
+                rendered_gates.append(f"[{g.id}:{sym}]")
+            else:
+                symbol = GATE_SYMBOLS.get(g.status, "⏳")
+                rendered_gates.append(f"[{g.id}:{symbol}]")
         return "GATES: " + " ".join(rendered_gates)
 
     # ------------------------------------------------------------------
     # RENDER METHODS
     # ------------------------------------------------------------------
-    def render(self, include_extras: bool = False) -> str:
-        """
-        Renders standard HUD string:
-        [NK-HUD v1.1] ▓▓▓▓▓▓▓▓░░ 80% | GATES: [G1:✓] [G2:✓] [G3:✓] [G4:✓] [G5:⟳] | MUTEX: LOCKED
-        """
-        bar_part = self._build_progress_bar()
-        gates_part = self._build_gates_string()
+    def _render_internal(self, include_extras: bool = False, ascii_mode: bool = False) -> str:
+        bar_part = self._build_progress_bar(ascii_mode=ascii_mode)
+        gates_part = self._build_gates_string(ascii_mode=ascii_mode)
         mutex_part = f"MUTEX: {self.state.mutex_status}"
 
         segments = [f"[NK-HUD {self.state.version}] {bar_part}"]
@@ -164,18 +213,81 @@ class MicroHUDRenderer:
 
         return " | ".join(segments)
 
-    def render_markdown_block(self, include_extras: bool = False) -> str:
+    def render(self, include_extras: bool = False, ascii_mode: Optional[bool] = None) -> str:
+        """
+        Renders standard HUD string:
+        [NK-HUD v1.1] ▓▓▓▓▓▓▓▓░░ 80% | GATES: [G1:✓] [G2:✓] [G3:✓] [G4:✓] [G5:⟳] | MUTEX: LOCKED
+        Falls back automatically to pure ASCII ([#], [-], [G1:OK]) if output stream raises UnicodeEncodeError
+        or does not support UTF-8 on Windows CP1252 consoles.
+        """
+        use_ascii = self.ascii_mode if self.ascii_mode is not None else not is_unicode_stream_supported()
+        if ascii_mode is not None:
+            use_ascii = ascii_mode
+
+        if not use_ascii:
+            try:
+                candidate = self._render_internal(include_extras=include_extras, ascii_mode=False)
+                enc = getattr(sys.stdout, "encoding", None) or "utf-8"
+                candidate.encode(enc)
+                return candidate
+            except (UnicodeEncodeError, LookupError):
+                use_ascii = True
+
+        return self._render_internal(include_extras=include_extras, ascii_mode=True)
+
+    def render_markdown_block(self, include_extras: bool = False, ascii_mode: Optional[bool] = None) -> str:
         """Renders HUD enclosed in a clean markdown code/status container."""
-        hud_line = self.render(include_extras=include_extras)
+        hud_line = self.render(include_extras=include_extras, ascii_mode=ascii_mode)
         return f"```text\n{hud_line}\n```"
 
     @classmethod
-    def render_pulse(cls, step: str, percent: int, pulse_status: str = "ALIVE") -> str:
-        """Renders a fast inline pulse string: [NK-PULSE v1.6] ▓▓▓▓▓░░░░░ 50% | STEP: build | STATUS: ALIVE"""
+    def render_pulse(cls, step: str, percent: int, pulse_status: str = "ALIVE", ascii_mode: Optional[bool] = None) -> str:
+        """Renders a fast inline pulse string with cp1252 / unicode resilience."""
+        reconfigure_streams()
         bar_width = 10
         p = max(0, min(100, int(percent)))
         filled = int(round((p / 100.0) * bar_width))
         empty = bar_width - filled
-        bar = "▓" * filled + "░" * empty
+
+        use_ascii = ascii_mode if ascii_mode is not None else not is_unicode_stream_supported()
+        if not use_ascii:
+            try:
+                bar = "▓" * filled + "░" * empty
+                pulse_str = f"[NK-PULSE v1.6] {bar} {p}% | STEP: {step} | STATUS: {pulse_status}"
+                enc = getattr(sys.stdout, "encoding", None) or "utf-8"
+                pulse_str.encode(enc)
+                return pulse_str
+            except (UnicodeEncodeError, LookupError):
+                use_ascii = True
+
+        bar = "#" * filled + "-" * empty
         return f"[NK-PULSE v1.6] {bar} {p}% | STEP: {step} | STATUS: {pulse_status}"
 
+
+def main() -> int:
+    reconfigure_streams()
+    parser = argparse.ArgumentParser(description="Nexus Keystone Real-Time Micro-HUD Stream Renderer")
+    parser.add_argument("--percent", type=int, default=100, help="Progress percentage (0-100)")
+    parser.add_argument("--mutex", type=str, default="UNLOCKED", help="Mutex status")
+    parser.add_argument("--agent", type=str, default="NK-Master-Hub", help="Agent identifier")
+    parser.add_argument("--domain", type=str, default="DEVX", help="Domain identifier")
+    parser.add_argument("--ascii", action="store_true", help="Force pure ASCII fallback rendering")
+    parser.add_argument("--json", action="store_true", help="Output HUD state as JSON")
+    args = parser.parse_args()
+
+    renderer = MicroHUDRenderer(ascii_mode=args.ascii if args.ascii else None)
+    renderer.set_progress(args.percent)
+    renderer.set_mutex(args.mutex)
+    renderer.set_agent_context(args.agent, args.domain)
+    for g in ("G1", "G2", "G3", "G4", "G5"):
+        renderer.set_gate(g, "PASSED")
+
+    if args.json:
+        print(renderer.state.model_dump_json(indent=2))
+    else:
+        print(renderer.render(ascii_mode=args.ascii if args.ascii else None))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

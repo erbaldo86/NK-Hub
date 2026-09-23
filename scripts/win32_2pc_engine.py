@@ -35,11 +35,36 @@ except (ImportError, ModuleNotFoundError):
             IPCPointerReturn,
         )
     except (ImportError, ModuleNotFoundError):
-        from scripts.schemas.nk_ipc_contracts import (
-            TwoPhaseCommitPrepare,
-            TwoPhaseCommitVerdict,
-            IPCPointerReturn,
-        )
+        try:
+            from scripts.schemas.nk_ipc_contracts import (
+                TwoPhaseCommitPrepare,
+                TwoPhaseCommitVerdict,
+                IPCPointerReturn,
+            )
+        except (ImportError, ModuleNotFoundError):
+            curr_dir = Path(__file__).resolve().parent
+            candidates = [
+                curr_dir,
+                curr_dir.parent,
+                curr_dir.parent / "scripts",
+                Path.cwd(),
+                Path.cwd() / "scripts",
+            ]
+            for c in candidates:
+                if str(c) not in sys.path and c.exists():
+                    sys.path.insert(0, str(c))
+            try:
+                from schemas.nk_ipc_contracts import (
+                    TwoPhaseCommitPrepare,
+                    TwoPhaseCommitVerdict,
+                    IPCPointerReturn,
+                )
+            except (ImportError, ModuleNotFoundError):
+                from scripts.schemas.nk_ipc_contracts import (
+                    TwoPhaseCommitPrepare,
+                    TwoPhaseCommitVerdict,
+                    IPCPointerReturn,
+                )
 
 # ---------------------------------------------------------------------------
 # Win32 Kernel32 Constants & CTypes Definitions
@@ -85,7 +110,6 @@ if sys.platform == "win32":
     _kernel32.GetCurrentThreadId.restype = ctypes.c_uint32
 else:
     _kernel32 = None
-
 
 
 # ---------------------------------------------------------------------------
@@ -689,17 +713,35 @@ def promote_staging_to_production(
     milestone: Optional[str] = None,
     staging_dirname: str = ".staging",
     subdirs: Optional[List[str]] = None,
+    git_sync: bool = False,
 ) -> Dict[str, Any]:
     """
     Executes Win32 2PC atomic promotion of files from .staging/ to production.
     Ensures Named Mutex concurrency guard, SHA-256 verification, and WAL logging.
+    Optionally synchronizes the git index with --git-sync for promoted files
+    and scripts/oracle_evaluator_l3.py.
     """
-    root = Path(repo_root).resolve() if repo_root else Path(__file__).resolve().parent.parent
+    if repo_root:
+        root = Path(repo_root).resolve()
+    else:
+        file_path = Path(__file__).resolve()
+        if ".staging" in file_path.parts:
+            parts = file_path.parts
+            stg_idx = parts.index(".staging")
+            root = Path(*parts[:stg_idx])
+        else:
+            root = file_path.parent.parent
     staging_dir = root / staging_dirname
     if not staging_dir.exists():
         raise FileNotFoundError(f"Staging directory does not exist: {staging_dir}")
 
-    target_subdirs = subdirs or ["scripts", "tests", "data/snapshots"]
+    if subdirs:
+        target_subdirs = subdirs
+    else:
+        target_subdirs = sorted([
+            d.name for d in staging_dir.iterdir()
+            if d.is_dir() and not d.name.startswith(".git") and d.name != "__pycache__"
+        ])
     engine = TwoPhaseCommitEngine()
 
     committed: List[Dict[str, Any]] = []
@@ -714,7 +756,15 @@ def promote_staging_to_production(
     print(f"[*] Staging Root   : {staging_dir}")
     if milestone:
         print(f"[*] Milestone Anchor: {milestone}")
+    if git_sync:
+        print("[*] Git Sync Mode   : ENABLED (auto-stages index including oracle_evaluator_l3.py)")
     print("-" * 80)
+
+    # Collect files to promote: both top-level in staging_dir and within target_subdirs
+    staging_files: List[Path] = []
+    for top_file in sorted(staging_dir.iterdir()):
+        if top_file.is_file() and top_file.name != ".gitkeep" and "__pycache__" not in top_file.parts:
+            staging_files.append(top_file)
 
     for subdir in target_subdirs:
         stg_sub = staging_dir / subdir
@@ -726,44 +776,46 @@ def promote_staging_to_production(
                 continue
             if "__pycache__" in stg_file.parts or stg_file.name == ".gitkeep":
                 continue
+            staging_files.append(stg_file)
 
-            rel_path = stg_file.relative_to(staging_dir)
-            prod_file = root / rel_path
+    for stg_file in staging_files:
+        rel_path = stg_file.relative_to(staging_dir)
+        prod_file = root / rel_path
 
-            stg_bytes = stg_file.read_bytes()
-            stg_sha = compute_sha256(stg_bytes)
+        stg_bytes = stg_file.read_bytes()
+        stg_sha = compute_sha256(stg_bytes)
 
-            # Check if production file is identical
-            if prod_file.exists():
-                prod_bytes = prod_file.read_bytes()
-                prod_sha = compute_sha256(prod_bytes)
-                if stg_sha == prod_sha:
-                    unchanged.append(str(rel_path))
-                    continue
+        # Check if production file is identical
+        if prod_file.exists():
+            prod_bytes = prod_file.read_bytes()
+            prod_sha = compute_sha256(prod_bytes)
+            if stg_sha == prod_sha:
+                unchanged.append(str(rel_path))
+                continue
 
-            # File is modified or new in staging -> promote via 2PC
-            print(f"[>] Promoting via Win32 2PC: {rel_path}")
-            print(f"    Target : {prod_file}")
-            print(f"    Payload: {len(stg_bytes)} bytes, SHA-256: {stg_sha}")
+        # File is modified or new in staging -> promote via 2PC
+        print(f"[>] Promoting via Win32 2PC: {rel_path}")
+        print(f"    Target : {prod_file}")
+        print(f"    Payload: {len(stg_bytes)} bytes, SHA-256: {stg_sha}")
 
-            verdict = engine.atomic_write(prod_file, stg_bytes)
+        verdict = engine.atomic_write(prod_file, stg_bytes)
 
-            if verdict.verdict == "COMMIT":
-                committed.append({
-                    "relative_path": str(rel_path),
-                    "committed_path": verdict.committed_path,
-                    "sha256": stg_sha,
-                    "tx_id": verdict.transaction_id,
-                    "execution_time_ms": verdict.execution_time_ms,
-                })
-                print(f"    [+] VERDICT: COMMIT OK in {verdict.execution_time_ms:.2f}ms (tx_id: {verdict.transaction_id})")
-            else:
-                failed.append({
-                    "relative_path": str(rel_path),
-                    "reason": verdict.reason,
-                    "tx_id": verdict.transaction_id,
-                })
-                print(f"    [-] VERDICT: ABORT - Reason: {verdict.reason}")
+        if verdict.verdict == "COMMIT":
+            committed.append({
+                "relative_path": str(rel_path),
+                "committed_path": verdict.committed_path,
+                "sha256": stg_sha,
+                "tx_id": verdict.transaction_id,
+                "execution_time_ms": verdict.execution_time_ms,
+            })
+            print(f"    [+] VERDICT: COMMIT OK in {verdict.execution_time_ms:.2f}ms (tx_id: {verdict.transaction_id})")
+        else:
+            failed.append({
+                "relative_path": str(rel_path),
+                "reason": verdict.reason,
+                "tx_id": verdict.transaction_id,
+            })
+            print(f"    [-] VERDICT: ABORT - Reason: {verdict.reason}")
 
     if failed:
         raise TwoPhaseCommitError(f"2PC Promotion aborted! {len(failed)} files failed: {failed}")
@@ -772,6 +824,26 @@ def promote_staging_to_production(
     if milestone:
         record_session_anchor_commit(root, milestone, committed)
         print(f"[+] Milestone Anchor recorded in session_anchor.jsonl: {milestone}")
+
+    # Optional git sync (--git-sync)
+    if git_sync:
+        try:
+            import subprocess
+            files_to_sync: List[str] = [c["relative_path"] for c in committed]
+            oracle_file = "scripts/oracle_evaluator_l3.py"
+            if (root / oracle_file).exists() and oracle_file not in files_to_sync:
+                files_to_sync.append(oracle_file)
+
+            if files_to_sync:
+                print(f"[*] Running git-sync (git add) on {len(files_to_sync)} file(s)...")
+                cmd = ["git", "add"] + files_to_sync
+                res = subprocess.run(cmd, cwd=str(root), capture_output=True, text=True, check=False)
+                if res.returncode == 0:
+                    print(f"[+] git-sync successful: {len(files_to_sync)} file(s) added to git index.")
+                else:
+                    print(f"[!] git-sync warning: git add returned {res.returncode}: {res.stderr.strip()}", file=sys.stderr)
+        except Exception as git_exc:
+            print(f"[!] git-sync warning: {git_exc}", file=sys.stderr)
 
     print("=" * 80)
     print(f"PROMOTION SUMMARY: {len(committed)} committed, {len(unchanged)} unchanged, {len(failed)} failed.")
@@ -782,6 +854,7 @@ def promote_staging_to_production(
         "milestone": milestone,
         "committed_files": committed,
         "unchanged_files": unchanged,
+        "git_sync": git_sync,
     }
 
 
@@ -799,7 +872,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         "--milestone",
         type=str,
         default=None,
-        help="Milestone Anchor ID (e.g. NK-MS-20260903-STRESS-E2E-LOOP-v1.4.1)",
+        help="Milestone Anchor ID (e.g. NK-MS-20260923-STRESS-E2E-LOOP-v1.4.1)",
     )
     parser.add_argument(
         "--repo-root",
@@ -813,6 +886,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         default=".staging",
         help="Path or name of staging directory relative to repo-root (defaults to .staging)",
     )
+    parser.add_argument(
+        "--git-sync",
+        action="store_true",
+        help="Automatically run git add on promoted files and untracked scripts/oracle_evaluator_l3.py",
+    )
 
     args = parser.parse_args(argv)
 
@@ -822,6 +900,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                 repo_root=args.repo_root,
                 milestone=args.milestone,
                 staging_dirname=args.staging_dir,
+                git_sync=args.git_sync,
             )
             return 0
         except Exception as exc:
@@ -834,4 +913,3 @@ def main(argv: Optional[List[str]] = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-

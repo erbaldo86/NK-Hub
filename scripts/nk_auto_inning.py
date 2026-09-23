@@ -1,30 +1,43 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Nexus Keystone - Auto Inning Ratchet
+Module: nk_auto_inning.py
+Author: NK-Active-Sentinel & NK-Platform-Builder
+"""
+
 import os
+import sys
 import json
 import argparse
 import subprocess
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--transcript', required=True)
-    parser.add_argument('--close-inning', action='store_true')
-    parser.add_argument('--audit', action='store_true')
+    parser = argparse.ArgumentParser(description="Nexus Keystone Auto Inning Ratchet")
+    parser.add_argument('--transcript', required=True, help="Path to transcript.jsonl")
+    parser.add_argument('--close-inning', action='store_true', help="Close current inning")
+    parser.add_argument('--audit', action='store_true', help="Run compliance audit")
+    parser.add_argument('--tuning-file', default=None, help="Custom path for session_tuning_params.json")
     args = parser.parse_args()
     
     compliance_score = 100
     try:
-        if os.path.exists('scripts/nk_compliance_checker.py'):
-            subprocess.run(['python', 'scripts/nk_compliance_checker.py', args.transcript], check=False)
+        checker_path = 'scripts/nk_compliance_checker.py'
+        if not os.path.exists(checker_path) and os.path.exists('.staging/scripts/nk_compliance_checker.py'):
+            checker_path = '.staging/scripts/nk_compliance_checker.py'
+        if os.path.exists(checker_path):
+            subprocess.run([sys.executable, checker_path, args.transcript], check=False)
     except Exception:
         pass
         
     steps = 0
     if os.path.exists(args.transcript):
-        with open(args.transcript, 'r', encoding='utf-8') as f:
+        with open(args.transcript, 'r', encoding='utf-8', errors='replace') as f:
             steps = len(f.readlines())
             
     ratchet_verified = True
     
-    tuning_file = 'nk_tracking/tuning/session_tuning_params.json'
+    tuning_file = args.tuning_file or os.environ.get('NK_TUNING_FILE', 'nk_tracking/tuning/session_tuning_params.json')
     os.makedirs(os.path.dirname(os.path.abspath(tuning_file)), exist_ok=True)
     
     data = {

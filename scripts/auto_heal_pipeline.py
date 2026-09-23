@@ -8,6 +8,7 @@ Implements: Orchestrated Fast-Loop Healing CLI with SBFL Ochiai & Transactional 
 
 Features:
 - Single-command CLI bridge for real pytest test suites on staged source files.
+- Automatic pytest command normalization for Windows environments (sys.executable -m pytest).
 - Zero-overhead exit if tests pass on initial evaluation.
 - Micro-diagnostic SBFL Ochiai payload generation (<80 tokens).
 - Transactional staging rollback preventing regressive patches from corrupting source files.
@@ -21,7 +22,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 from pydantic import BaseModel, ConfigDict, Field
 
 _scripts_dir = Path(__file__).resolve().parent
@@ -38,6 +39,28 @@ except ImportError:
     from scripts.platform_runner import reconfigure_streams, safe_subprocess_run
     from scripts.sbfl_pytest_bridge import SBFLPytestBridge, PytestRunSummary, OchiaiBridgeLocation
     from scripts.healing_snapshot_rollback import HealingSnapshotManager, FitnessVerdict, FitnessReport
+
+
+def normalize_test_command(cmd: Union[str, Sequence[str]]) -> Union[str, List[str]]:
+    """
+    Normalizes test command: if it starts with 'pytest' or 'pytest ', converts
+    it to f'"{sys.executable}" -m pytest ...' so it always executes reliably
+    on Windows even if pytest is not in the system PATH.
+    """
+    if isinstance(cmd, str):
+        clean = cmd.strip()
+        if clean == "pytest":
+            return f'"{sys.executable}" -m pytest'
+        elif clean.startswith("pytest "):
+            rest = clean[7:].strip()
+            return f'"{sys.executable}" -m pytest {rest}'
+        return cmd
+    elif isinstance(cmd, (list, tuple)):
+        cmd_list = list(cmd)
+        if len(cmd_list) > 0 and str(cmd_list[0]).lower() == "pytest":
+            return [sys.executable, "-m", "pytest"] + cmd_list[1:]
+        return cmd_list
+    return cmd
 
 
 class AutoHealSessionReport(BaseModel):
@@ -67,6 +90,10 @@ class AutoHealPipeline:
         self.bridge = SBFLPytestBridge(cwd=self.cwd)
         self.snapshot_mgr = HealingSnapshotManager()
 
+    def normalize_test_cmd(self, test_cmd: Union[str, Sequence[str]]) -> Union[str, List[str]]:
+        """Convenience instance method for pytest command normalization."""
+        return normalize_test_command(test_cmd)
+
     def run_pipeline(
         self,
         test_cmd: Sequence[str] | str,
@@ -75,17 +102,19 @@ class AutoHealPipeline:
     ) -> AutoHealSessionReport:
         """
         Executes the autonomous healing cycle on target_file driven by test_cmd:
-        1. Takes initial baseline snapshot.
-        2. Evaluates test_cmd. If PASS -> returns immediately.
-        3. If FAIL -> runs SBFL diagnostic localization.
-        4. Iterates up to max_cycles with transactional fitness gate and rollback on regression.
-        5. Emits structured report & PATCH_NOTES single-line record.
+        1. Normalizes test_cmd for Windows pytest executable path.
+        2. Takes initial baseline snapshot.
+        3. Evaluates test_cmd. If PASS -> returns immediately.
+        4. If FAIL -> runs SBFL diagnostic localization.
+        5. Iterates up to max_cycles with transactional fitness gate and rollback on regression.
+        6. Emits structured report & PATCH_NOTES single-line record.
         """
+        norm_test_cmd = normalize_test_command(test_cmd)
         target_path = Path(self.cwd / target_file) if not Path(target_file).is_absolute() else Path(target_file)
         init_snap_id = self.snapshot_mgr.create_snapshot([target_path])
 
         # Initial baseline evaluation
-        summary, loc = self.bridge.run_and_diagnose(test_cmd=test_cmd, target_file_hint=str(target_file))
+        summary, loc = self.bridge.run_and_diagnose(test_cmd=norm_test_cmd, target_file_hint=str(target_file))
 
         if summary.exit_code == 0 and summary.failed_count == 0:
             self.snapshot_mgr.cleanup(init_snap_id)
@@ -116,7 +145,7 @@ class AutoHealPipeline:
 
             # If no programmatic callback, we check if external modifications were made
             # Re-evaluate test_cmd
-            new_summary, new_loc = self.bridge.run_and_diagnose(test_cmd=test_cmd, target_file_hint=str(target_file))
+            new_summary, new_loc = self.bridge.run_and_diagnose(test_cmd=norm_test_cmd, target_file_hint=str(target_file))
 
             fitness = self.snapshot_mgr.evaluate_fitness(
                 current_passed=new_summary.passed_count,
@@ -191,7 +220,8 @@ def main() -> int:
 
     args = parser.parse_args()
     pipeline = AutoHealPipeline(cwd=Path(args.cwd) if args.cwd else None, max_cycles=args.max_cycles)
-    report = pipeline.run_pipeline(test_cmd=args.test_cmd, target_file=args.target_file)
+    norm_cmd = normalize_test_command(args.test_cmd)
+    report = pipeline.run_pipeline(test_cmd=norm_cmd, target_file=args.target_file)
 
     if args.json:
         print(report.model_dump_json(indent=2))

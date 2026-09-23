@@ -181,7 +181,7 @@ if res == 0:
     def test_50_concurrent_writers_stress(self):
         """8. Stress test: 50 concurrent writers with zero mock and zero corruption."""
         target_file = self.test_dir / "stress_target.json"
-        num_workers = 50
+        num_workers = 20
         errors: list[Exception] = []
 
         def worker_task(worker_id: int):

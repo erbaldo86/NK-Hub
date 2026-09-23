@@ -19,6 +19,7 @@ nk_tas_date: "2026-09-10"
    3. I prompt di jump devono contenere la Zero-Amnesia Bootstrap Capsule per garantire la continuita' di stato.
 8. HANDOFF_VIEW_FILE_COMPLIANCE [RULE-02.5]: Nei prompt di handoff verso i Worker, includere SEMPRE l'istruzione obbligatoria di eseguire `view_file` sul file SKILL.md del Builder delegato prima di qualsiasi modifica al codice.
 9. INTRINSIC_REPO_MAP_INJECTION [RULE-01.13]: Inietta porzioni graduate della AST Repo-Map nel Blocco 1 in base alla modalità (Mode C: <= 256 tok, Mode B: <= 512 tok, Mode A: <= 1024 tok), con blacklist di esclusione per nodi testuali (Scribe, Episodic Memory).
+10. UNIFIED_ONBOARDING_COMPLIANCE [RULE-00.5]: Alla ricezione di comandi di avvio sessione ("avvia ambiente nk", "avvia nk hub", "avvia nk", "avvia hub", "/start"), il Session Controller assicura l'esecuzione della sola Fast-Stat verification (<120ms) e l'esposizione invariante della Master Dashboard a 15 nodi ([0]-[14]) con la guida d'uso a due vie in calce.
 </strict_boundaries>
 
 <directive>
