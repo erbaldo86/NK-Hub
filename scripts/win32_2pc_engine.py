@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Nexus Keystone v1.1.0-Universal
+Nexus Keystone v2.5.2-Hardened
 Win32 Two-Phase Commit (2PC) & High-Performance Concurrency Engine
 Protocol: CRV 4.0 / Zero-Mock / Pydantic v2 Strict Mode
 """
@@ -335,9 +335,12 @@ class WriteAheadLogManager:
 
     def purge_wal(self, target_path: Union[str, Path], tx_id: str) -> None:
         wal_path = self.get_wal_path(target_path, tx_id)
+        wal_dir = wal_path.parent
         try:
             if wal_path.exists():
                 wal_path.unlink()
+            if wal_dir.exists() and not any(wal_dir.iterdir()):
+                wal_dir.rmdir()
         except OSError:
             pass
 
@@ -718,8 +721,7 @@ def promote_staging_to_production(
     """
     Executes Win32 2PC atomic promotion of files from .staging/ to production.
     Ensures Named Mutex concurrency guard, SHA-256 verification, and WAL logging.
-    Optionally synchronizes the git index with --git-sync for promoted files
-    and scripts/oracle_evaluator_l3.py.
+    Optionally synchronizes the git index with --git-sync for promoted files.
     """
     if repo_root:
         root = Path(repo_root).resolve()
@@ -757,7 +759,7 @@ def promote_staging_to_production(
     if milestone:
         print(f"[*] Milestone Anchor: {milestone}")
     if git_sync:
-        print("[*] Git Sync Mode   : ENABLED (auto-stages index including oracle_evaluator_l3.py)")
+        print("[*] Git Sync Mode   : ENABLED (auto-stages index for promoted files)")
     print("-" * 80)
 
     # Collect files to promote: both top-level in staging_dir and within target_subdirs
@@ -830,9 +832,6 @@ def promote_staging_to_production(
         try:
             import subprocess
             files_to_sync: List[str] = [c["relative_path"] for c in committed]
-            oracle_file = "scripts/oracle_evaluator_l3.py"
-            if (root / oracle_file).exists() and oracle_file not in files_to_sync:
-                files_to_sync.append(oracle_file)
 
             if files_to_sync:
                 print(f"[*] Running git-sync (git add) on {len(files_to_sync)} file(s)...")
@@ -889,7 +888,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument(
         "--git-sync",
         action="store_true",
-        help="Automatically run git add on promoted files and untracked scripts/oracle_evaluator_l3.py",
+        help="Automatically run git add on promoted files",
     )
 
     args = parser.parse_args(argv)

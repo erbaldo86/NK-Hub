@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Nexus Keystone v2.1.0-FastHealing - Universal CLI Auto-Healer Pipeline
+Nexus Keystone v2.5.2-Hardened - Universal CLI Auto-Healer Pipeline
 Module: auto_heal_pipeline.py
 Author: NK-Bug-Diagnostic-Engine & NK-Platform-Builder
 Implements: Orchestrated Fast-Loop Healing CLI with SBFL Ochiai & Transactional Rollback
@@ -18,12 +18,10 @@ Features:
 from __future__ import annotations
 
 import argparse
-import json
-import os
 import sys
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Callable, List, Optional, Sequence, Union
+from pydantic import BaseModel, ConfigDict
 
 _scripts_dir = Path(__file__).resolve().parent
 _root_dir = _scripts_dir.parent.parent if _scripts_dir.parent.name == ".staging" else _scripts_dir.parent
@@ -32,13 +30,13 @@ for _d in (_scripts_dir, _root_dir / "scripts", _root_dir / ".staging" / "script
         sys.path.insert(0, str(_d))
 
 try:
-    from platform_runner import reconfigure_streams, safe_subprocess_run
-    from sbfl_pytest_bridge import SBFLPytestBridge, PytestRunSummary, OchiaiBridgeLocation
-    from healing_snapshot_rollback import HealingSnapshotManager, FitnessVerdict, FitnessReport
+    from platform_runner import reconfigure_streams
+    from sbfl_pytest_bridge import SBFLPytestBridge, OchiaiBridgeLocation
+    from healing_snapshot_rollback import HealingSnapshotManager, FitnessVerdict
 except ImportError:
-    from scripts.platform_runner import reconfigure_streams, safe_subprocess_run
-    from scripts.sbfl_pytest_bridge import SBFLPytestBridge, PytestRunSummary, OchiaiBridgeLocation
-    from scripts.healing_snapshot_rollback import HealingSnapshotManager, FitnessVerdict, FitnessReport
+    from scripts.platform_runner import reconfigure_streams
+    from scripts.sbfl_pytest_bridge import SBFLPytestBridge, OchiaiBridgeLocation
+    from scripts.healing_snapshot_rollback import HealingSnapshotManager, FitnessVerdict
 
 
 def normalize_test_command(cmd: Union[str, Sequence[str]]) -> Union[str, List[str]]:

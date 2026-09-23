@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Nexus Keystone v2.5.0-Hardened - L3 DOM Reader & E2E Oracle Evaluator
+Nexus Keystone v2.5.2-Hardened - L3 DOM Reader & E2E Oracle Evaluator
 Module: oracle_evaluator_l3.py
 Author: NK-Oracle-Evaluator (Node 10) & NK-Platform-Builder
 Implements: Macro-Fase 2 Cold Review E2E DOM Delta Verification
@@ -18,10 +18,9 @@ from __future__ import annotations
 
 import argparse
 from html.parser import HTMLParser
-import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 from pydantic import BaseModel, ConfigDict, Field
 
 _scripts_dir = Path(__file__).resolve().parent

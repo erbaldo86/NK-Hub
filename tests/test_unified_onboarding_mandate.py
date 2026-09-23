@@ -23,10 +23,8 @@ Permanent Zero-Mock Pytest Suite covering:
 from __future__ import annotations
 
 import importlib.util
-import os
 import sys
 from pathlib import Path
-import pytest
 
 # Determine repository root reliably whether executed from .staging/tests or tests
 _test_file = Path(__file__).resolve()
