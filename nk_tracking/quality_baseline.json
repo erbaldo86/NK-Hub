@@ -1,19 +1,19 @@
 {
-  "_version": "2.5.1-Hardened",
+  "_version": "2.5.2-Hardened",
   "project": "NK_Project",
   "baseline_date": "2026-08-20T22:45:00.000000",
-  "last_updated": "2026-09-23T14:48:00.000000",
+  "last_updated": "2026-09-23T21:12:41.174950",
   "metrics": {
     "skills_audited": {
       "value": 16,
       "direction": "higher_is_better"
     },
     "unit_tests_total": {
-      "value": 74,
+      "value": 78,
       "direction": "higher_is_better"
     },
     "unit_tests_passed": {
-      "value": 74,
+      "value": 78,
       "direction": "higher_is_better"
     },
     "unit_tests_pass_pct": {
@@ -89,5 +89,15 @@
       "direction": "higher_is_better"
     }
   },
-  "ratchet_rule": "no_metric_may_worsen"
+  "ratchet_rule": "no_metric_may_worsen",
+  "history": [
+    {
+      "timestamp": "2026-09-23T21:12:41.174982",
+      "metrics": {
+        "unit_tests_total": 78,
+        "unit_tests_passed": 78,
+        "unit_tests_pass_pct": 100.0
+      }
+    }
+  ]
 }
