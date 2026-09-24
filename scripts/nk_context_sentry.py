@@ -18,10 +18,9 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 _scripts_dir = Path(__file__).resolve().parent
 _workspace_root = _scripts_dir.parent

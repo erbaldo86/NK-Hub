@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Nexus Keystone v1.1.0-Universal
+Nexus Keystone v2.6.0-DualEngine-Symbiosis
 IPC Contracts & Pydantic v2 Schemas (Strict Mode)
 CRV 4.0 Protocol Compliant
 """
 
 from typing import Literal, Optional, List, Dict
-from pydantic import BaseModel, ConfigDict, Field, JsonValue
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class IPCPointerReturn(BaseModel):
@@ -123,3 +123,50 @@ class MicroUIHUDState(BaseModel):
     progress_pct: float = 0.0
     metrics: Dict[str, float] = Field(default_factory=dict)
     updated_at: float
+
+
+class RootCauseAnalysis(BaseModel):
+    """
+    RCA metadata for unattended execution blocks (C3 Protocol).
+    """
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    blocked_resource_type: str
+    resource_identifier: str
+    error_message: str
+    stack_trace_snippet: Optional[str] = None
+    zero_mock_violation_prevented: bool = True
+
+
+class StagingSnapshot(BaseModel):
+    """
+    Snapshot of modified staged files prior to unattended block/failure.
+    """
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    staging_path: str
+    modified_files: List[str] = Field(default_factory=list)
+    sha256_tree_hash: str
+
+
+class GoalFailureManifest(BaseModel):
+    """
+    Goal Execution Failure Manifest (C3 Unattended Failure Protocol).
+    Emitted when an unattended /goal execution is blocked by unavailable external resources,
+    strictly preventing the generation of fake mocks.
+    """
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True)
+
+    schema_version: Optional[str] = Field(
+        default="https://json-schema.org/draft/2020-12/schema",
+        alias="$schema",
+    )
+    manifest_version: str = "1.0.0"
+    timestamp: float
+    session_id: str
+    milestone_anchor_id: str
+    status: Literal["UNATTENDED_BLOCKED", "FAILED", "CIRCUIT_BREAKER_TRIPPED"] = "UNATTENDED_BLOCKED"
+    root_cause_analysis: RootCauseAnalysis
+    staging_snapshot: StagingSnapshot
+    user_remediation_steps: List[str] = Field(default_factory=list)
+    resume_command: str = "/goal --resume"

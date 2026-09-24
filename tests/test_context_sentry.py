@@ -9,7 +9,6 @@ import json
 import subprocess
 import sys
 from pathlib import Path
-import pytest
 
 try:
     from scripts.nk_context_sentry import NKContextSentry

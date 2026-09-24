@@ -1,36 +1,31 @@
 # 🗺️ HIGH-DENSITY AST REPO-MAP (Tetralogia Sovrana Snapshot)
 
-## 📄 google-docs-mcp/server.py
-  class IgnoreValidationErrors(logging.Filter):
-    def filter(self, record)
-  def get_docs_service()
-  def read_google_doc(document_id: str) -> str
-  def append_to_google_doc(document_id: str, text_to_append: str) -> str
-
-## 📄 scripts/preflight_health_check.py
-  class PreflightHealthChecker: [__init__, run_full_check, _check_ssot_anchor, _check_staging_and_temp, _check_and_purge_caches, _check_and_purge_stale_wals, _enforce_report_retention, _check_baseline_alignment]
-  functions: [safe_remove_dir, on_error, safe_remove_file]
-
-## 📄 scripts/win32_2pc_engine.py
-  class Win32LockError: []
-  class Win32LockTimeoutError: []
-  class TwoPhaseCommitError: []
-  class Win32NamedMutex: [__init__, __enter__, __exit__, acquire, release, _cleanup_handle]
-  class WriteAheadLogManager: [__init__, _get_wal_dir, get_wal_path, write_wal, update_wal_state, purge_wal, recover]
-  class TwoPhaseCommitEngine: [__init__, _backoff_sleep, prepare, commit, abort, _execute_atomic_commit, _shadow_swap_fallback, atomic_write, atomic_write_async, create_ipc_pointer]
-  functions: [compute_sha256, compute_crc32, get_mutex_name_for_path, record_session_anchor_commit, promote_staging_to_production, main]
-
 ## 📄 scripts/micro_hud_renderer.py
   class GateEntry: []
   class HUDState: []
-  class MicroHUDRenderer: [__init__, set_progress, set_gate, set_all_gates, set_mutex, set_tier1_budget, set_agent_context, set_elapsed_time, _build_progress_bar, _build_gates_string, render, render_markdown_block, render_pulse]
+  class MicroHUDRenderer: [__init__, set_ascii_mode, set_progress, set_gate, set_all_gates, set_mutex, set_tier1_budget, set_agent_context, set_elapsed_time, _build_progress_bar, _build_gates_string, _render_internal, render, render_markdown_block, render_pulse]
+  functions: [reconfigure_streams, is_unicode_stream_supported, main]
+
+## 📄 scripts/ast_guard_validator.py
+  class ViolationType: [SYNTAX_ERROR, SIGNATURE_MUTATION, UNAUTHORIZED_DELETION, UNDEFINED_NAME, MALFORMED_IMPORT, TYPE_MISMATCH]
+  class GuardViolation: []
+  class FunctionSignatureSnapshot: []
+  class ValidationReport: []
+  class SignatureCollector: [__init__, visit_ClassDef, visit_Import, visit_ImportFrom, _extract_target_names, visit_Assign, visit_AnnAssign, visit_For, visit_AsyncFor, visit_With, visit_AsyncWith, visit_ExceptHandler, visit_TypeAlias, visit_FunctionDef, visit_AsyncFunctionDef, _record_function]
+  class ScopeIntegrityChecker: [__init__, _current_visible_names, visit_Lambda, visit_ClassDef, visit_FunctionDef, visit_AsyncFunctionDef, _process_func, _extract_target_names, visit_Match, _extract_pattern_bindings, visit_TypeAlias, _visit_comprehension_common, visit_ListComp, visit_SetComp, visit_GeneratorExp, visit_DictComp, visit_kv, visit_NamedExpr, visit_Name]
+  class ASTGuardValidator: [validate_code_edit, _parse_or_report, _verify_signatures]
+  functions: [main]
+
+## 📄 scripts/nk_active_runtime_sentinel.py
+  functions: [calculate_state, run_sentinel, main]
 
 ### 📦 Moduli Secondari (Riepilogo Compatto)
-- `scripts/*`: sbfl_engine.py, dast_sandbox_runner.py, ast_repo_mapper.py, ast_guard_validator.py, memory_3tier_engine.py, invisible_healing_loop.py, async_heartbeat_signaler.py, vibe_sprint_router.py, deterministic_api_cache.py, external_project_scaffolder.py, nk_compliance_checker.py, nk_session_bootstrap.py, auto_heal_pipeline.py, healing_snapshot_rollback.py, sbfl_pytest_bridge.py, nk_context_sentry.py, quality_baseline_manager.py, safe_cleanup_dev_servers.py, env_capability_probe.py, platform_runner.py
-- `tests/*`: test_win32_2pc.py, test_dast_sandbox.py, test_sbfl_engine.py, test_ast_repo_mapper.py, test_ast_guard_validator.py, test_memory_3tier.py, test_schemas_and_contracts.py, conftest.py, test_platform_upgrades.py, test_super_brief_upgrades.py, test_auto_heal_pipeline.py, test_context_sentry.py
-- `scripts/schemas/*`: nk_ipc_contracts.py, dual_ledgers.py
-- `.agents/skills/NK-Security-Auditor/resources/l1/*`: token_weighted_allocator.py, peer_review_validator.py, swarm_aggregator.py
+- `scripts/*`: ast_repo_mapper.py, sbfl_engine.py, deterministic_api_cache.py, oracle_evaluator_l3.py, memory_3tier_engine.py, dast_sandbox_runner.py, invisible_healing_loop.py, win32_2pc_engine.py, sbfl_pytest_bridge.py, healing_snapshot_rollback.py, preflight_health_check.py, external_project_scaffolder.py, vibe_sprint_router.py, async_heartbeat_signaler.py, nk_compliance_checker.py, auto_heal_pipeline.py, nk_context_sentry.py, nk_session_bootstrap.py, quality_baseline_manager.py, nk_swarm_messenger.py, env_capability_probe.py, platform_runner.py, safe_cleanup_dev_servers.py, nk_auto_inning.py, nk_session_handoff.py
+- `scripts/schemas/*`: dual_ledgers.py, nk_ipc_contracts.py
+- `.agents/skills/NK-Master-Hub/scripts/*`: run_hub.py, change_router.py, ipc_engine.py, safe_parser.py, test_hub.py
+- `google-docs-mcp/*`: server.py, auth.py, cli.py
 - `.agents/skills/NK-Oracle-Evaluator/resources/*`: dual_state_visual_comparator.py, runtime_trace_inspector.py
-- `.agents/skills/NK-Oracle-Evaluator/scripts/*`: verifier_oracle.py, cross_drive_stager.py, discrepancy_report_generator.py
-- `google-docs-mcp/*`: auth.py, cli.py
-- `.agents/skills/NK-Dynamic-Sandbox-StressTester/resources/*`, `.agents/skills/NK-Master-Hub/scripts/*`, `nk_tracking/cockpit/*`, `.agents/skills/NK-Bug-Diagnostic-Engine/resources/*`
+- `.agents/skills/NK-Dynamic-Sandbox-StressTester/resources/*`: phase2_chaos_swarm_runner.py, dynamic_pool_dispatcher.py, phase1_surgical_runner.py
+- `.agents/skills/NK-Security-Auditor/resources/l1/*`: peer_review_validator.py, token_weighted_allocator.py, swarm_aggregator.py
+- `tests/stress/*`: test_real_sandbox_stress.py
+- `tests/*`, `.agents/skills/NK-Oracle-Evaluator/scripts/*`, `nk_tracking/cockpit/*`, `.agents/skills/NK-Bug-Diagnostic-Engine/resources/*`

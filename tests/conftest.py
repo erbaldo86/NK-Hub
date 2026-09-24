@@ -3,7 +3,6 @@
 Pytest configuration and global fixtures for Nexus Keystone v1.1.0-Universal test suite.
 """
 
-import os
 import sys
 import tempfile
 import shutil

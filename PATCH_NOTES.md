@@ -1,10 +1,37 @@
 # 📜 NEXUS KEYSTONE OFFICIAL CHANGELOG & PATCH NOTES (SSOT)
 
 > **Single Source of Truth (SSOT):** `nk_genome/PATCH_NOTES.md`  
-> **Release Ufficiale:** `v2.5.2-Hardened (Unified Onboarding Mandate, Controller-of-Controller & Platform Hardening)`  
-> **Milestone Anchor:** `NK-MS-20260923-CONTROLLER-OF-CONTROLLER-v2.5.2`  
-> **Data Consolidamento:** 2026-09-23  
-> **Stato Release:** `🛡️ [NK-SUPER-BRIEF-STATUS: AUDITED_AND_OFFICIAL_v2.5.2 🟢]`
+> **Release Ufficiale:** `v2.6.0-DualEngine-Symbiosis (Plan & Goal Integration, 4 Adversarial Shields, Zero-Mock Fast Healing & Dead Code Cleansing)`  
+> **Milestone Anchor:** `NK-MS-20260924-PLAN-GOAL-INTEGRATION-v2.6.0`  
+> **Data Consolidamento:** 2026-09-24  
+> **Stato Release:** `🛡️ [NK-SUPER-BRIEF-STATUS: AUDITED_AND_OFFICIAL_v2.6.0 🟢]`
+
+---
+
+## 🏛️ Release v2.6.0-DualEngine-Symbiosis — Plan & Goal Integration, 4 Adversarial Shields, Fast-Healing Zero-Mock & Dead Code Cleansing
+La Release **v2.6.0-DualEngine-Symbiosis** implementa la piena simbiosi nativa con l'ambiente Antigravity, integrando i comandi slash `/plan` e `/goal`, i 4 scudi avversariali per l'esecuzione autonoma e completando un'estesa bonifica di dead code:
+1. **Dual-Mirroring Artifact Bridge (`/plan` & `[RULE-01.11]`)**:
+   - Sincronizzazione atomica bidirezionale al termine del Turno 4 dell'Auto-Brief Swarm FSM: scrittura contemporanea della Single Source of Truth permanente in `nk_genome/implementation_plan.md` e dell'Artefatto Nativo Antigravity con `ArtifactMetadata.RequestFeedback: true`.
+   - Abilitazione del tasto interattivo 'Proceed' nell'IDE: il click dell'utente agisce da transizione automatica verso l'esecuzione senza permission ping-pong intermedio.
+2. **Autonomous Goal Drive (`/goal` & `[RULE-01.12]`)**:
+   - Esecuzione non-stop e resiliente dei task orientati all'obiettivo fino al superamento completo della Macro-Fase 2 del CRV 4.0 in ambiente di staging `.staging/`.
+   - Integrazione seamless dei 4 Scudi Avversariali di Protezione del Contesto (C1-C4):
+     * **C1 Target Resolution**: Isolamento rigoroso del workspace del progetto esterno tramite `scripts/external_project_scaffolder.py` ([RULE-PROJECT-ISOLATION]).
+     * **C2 Context Sentry**: Hard-cap a 4 tentativi cumulativi di self-healing con token budget sentinel e dump diagnostico progressivo se >80 step.
+     * **C3 Unattended Failure Manifest**: Rilevamento di blocchi su risorse esterne o fallimenti irrisolvibili, divieto di finti mock ([RULE-01.2]) ed emissione di `Goal_Failure_Manifest.json`.
+     * **C4 2PC Safety Gate**: Verifica formale, emissione dell'Execution Receipt e commit atomico in produzione tramite Win32 2PC Mutex Engine ([RULE-00]).
+3. **I 3 Pilastri del Fast-Healing Reale Zero-Mock**:
+   - Consolidamento della pipeline di auto-riparazione su codice reale senza simulazioni né mock sintetici:
+     * `scripts/auto_heal_pipeline.py`: Pipeline orchestratrice multi-ciclo con fitness gate e verifica AST/DAST.
+     * `scripts/sbfl_pytest_bridge.py`: Localizzazione delle anomalie tramite formula SBFL Ochiai compressa in payload diagnostico <80 token.
+     * `scripts/healing_snapshot_rollback.py`: Meccanismo di snapshot rollback transazionale con Strict Monotonic Gate basato su checksum SHA-256.
+4. **Dead Code Cleansing su 28 File (`scripts/` e `tests/`)**:
+   - Rimozione chirurgica di import inutilizzati, variabili obsolete e dead code rami non referenziati su 28 moduli del repository.
+   - Preservata al 100% l'integrità funzionale e dei contratti API/IPC.
+5. **Certificazioni e Golden Ratchet Permanente a 79 Golden Tests**:
+   - **Sandwich Audit NAS/TAS**: Doppia certificazione completa prima e dopo il cleansing (Pre & Post Cleansing) con verdetto 100% PASS.
+   - **Deterministic AST Guard**: 48/48 file validati con 0 violazioni sintattiche o di scope.
+   - **Permanent Test Suite**: Baseline elevata da 78 a 79 Golden Tests permanentemente verificati con il 100.0% di PASS Zero-Mock (aggiunto `test_goal_failure_manifest_and_ipc_contracts`).
 
 ---
 

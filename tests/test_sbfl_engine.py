@@ -25,7 +25,6 @@ from sbfl_engine import (
     CoverageMatrix,
     CoverageRecord,
     OchiaiDiagnosticPayload,
-    SBFLEngine,
     SpectrumCounts,
     calculate_dstar,
     calculate_ochiai,

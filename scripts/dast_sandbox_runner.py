@@ -24,7 +24,7 @@ import time
 import uuid
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence
 try:
     import psutil
     _HAS_PSUTIL = True

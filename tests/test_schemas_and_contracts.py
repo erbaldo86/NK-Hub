@@ -23,8 +23,8 @@ if str(SCRIPTS_DIR) not in sys.path:
 if str(STAGING_DIR) not in sys.path:
     sys.path.insert(0, str(STAGING_DIR))
 
-from schemas.nk_ipc_contracts import IPCPointerReturn, OchiaiDiagnosticPayload
-from schemas.dual_ledgers import TaskDAGNode, TaskLedger, ProgressLedger, PIDFileLock
+from schemas.nk_ipc_contracts import IPCPointerReturn
+from schemas.dual_ledgers import TaskDAGNode, TaskLedger, ProgressLedger
 
 
 class TestSchemasAndContracts(unittest.TestCase):

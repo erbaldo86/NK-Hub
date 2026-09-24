@@ -13,7 +13,6 @@ import time
 import json
 import uuid
 import shutil
-import hashlib
 import unittest
 import threading
 import subprocess
@@ -37,11 +36,7 @@ from win32_2pc_engine import (
     Win32LockError,
     Win32LockTimeoutError,
     TwoPhaseCommitError,
-    compute_sha256,
-    compute_crc32,
-    get_mutex_name_for_path,
     WAIT_ABANDONED_0,
-    WAIT_OBJECT_0,
     _kernel32,
 )
 

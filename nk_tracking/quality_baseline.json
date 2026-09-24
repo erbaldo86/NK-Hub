@@ -1,19 +1,19 @@
 {
-  "_version": "2.5.2-Hardened",
+  "_version": "2.6.0-DualEngine-Symbiosis",
   "project": "NK_Project",
   "baseline_date": "2026-08-20T22:45:00.000000",
-  "last_updated": "2026-09-23T21:12:41.174950",
+  "last_updated": "2026-09-24T16:01:00.000000",
   "metrics": {
     "skills_audited": {
       "value": 16,
       "direction": "higher_is_better"
     },
     "unit_tests_total": {
-      "value": 78,
+      "value": 79,
       "direction": "higher_is_better"
     },
     "unit_tests_passed": {
-      "value": 78,
+      "value": 79,
       "direction": "higher_is_better"
     },
     "unit_tests_pass_pct": {
@@ -96,6 +96,14 @@
       "metrics": {
         "unit_tests_total": 78,
         "unit_tests_passed": 78,
+        "unit_tests_pass_pct": 100.0
+      }
+    },
+    {
+      "timestamp": "2026-09-24T15:15:00.377047",
+      "metrics": {
+        "unit_tests_total": 79,
+        "unit_tests_passed": 79,
         "unit_tests_pass_pct": 100.0
       }
     }

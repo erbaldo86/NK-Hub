@@ -9,7 +9,6 @@ import os
 import sys
 import subprocess
 import time
-import json
 
 # Ensure UTF-8 output on Windows consoles
 if hasattr(sys.stdout, 'reconfigure'):

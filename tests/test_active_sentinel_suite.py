@@ -7,7 +7,6 @@ import tempfile
 import json
 import time
 import subprocess
-import pytest
 
 from scripts.nk_active_runtime_sentinel import run_sentinel
 from scripts.nk_swarm_messenger import process_payload

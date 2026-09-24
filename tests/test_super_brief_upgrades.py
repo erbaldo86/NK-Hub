@@ -1,5 +1,5 @@
 """
-Nexus Keystone v2.0.0-Hardened - Unit Test Suite for Super Brief Upgrades
+Nexus Keystone v2.6.0-DualEngine-Symbiosis - Unit Test Suite for Super Brief Upgrades
 Module: test_super_brief_upgrades.py
 Author: NK-QA-Engineer & NK-Oracle-Evaluator
 
@@ -9,18 +9,18 @@ Zero-Mock permanent test suite covering:
 3. External Project Scaffolder DDD generation.
 4. Tier-0 Deterministic Local API Cache (WAL mode, hash keys, refresh).
 5. Hard Compliance Checker & Dual-Scorecard scoring logic.
+6. GoalExecutionFailureManifest & IPC Contracts (C3 Unattended Protocol).
 """
 
 from __future__ import annotations
 
 import importlib.util
 import json
-import os
 import sys
-import tempfile
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 # Dynamically locate module either in .staging/scripts or scripts/
 _workspace_root = Path(__file__).resolve().parent.parent
@@ -36,6 +36,15 @@ def _import_module(mod_name: str):
     spec = importlib.util.spec_from_file_location(mod_name, str(target))
     mod = importlib.util.module_from_spec(spec)
     sys.modules[mod_name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+def _import_ipc_contracts():
+    staging_file = _workspace_root / ".staging" / "scripts" / "schemas" / "nk_ipc_contracts.py"
+    prod_file = _workspace_root / "scripts" / "schemas" / "nk_ipc_contracts.py"
+    target = staging_file if staging_file.exists() else prod_file
+    spec = importlib.util.spec_from_file_location("nk_ipc_contracts", str(target))
+    mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
 
@@ -145,3 +154,58 @@ def test_nk_compliance_checker(tmp_path: Path):
     assert scores["operational_score"] == 100
     assert scores["procedural_score"] == 100
     assert scores["composite_score"] == 100.0
+
+
+def test_goal_failure_manifest_and_ipc_contracts():
+    """Verify GoalFailureManifest strict schema compliance under C3 Unattended Failure Protocol."""
+    ipc_mod = _import_ipc_contracts()
+    GoalFailureManifest = ipc_mod.GoalFailureManifest
+    RootCauseAnalysis = ipc_mod.RootCauseAnalysis
+    StagingSnapshot = ipc_mod.StagingSnapshot
+
+    valid_payload = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "manifest_version": "1.0.0",
+        "timestamp": 1727182446.0,
+        "session_id": "sess_20260924_goal",
+        "milestone_anchor_id": "NK-MS-20260924-PLAN-GOAL-INTEGRATION-v2.6.0",
+        "status": "UNATTENDED_BLOCKED",
+        "root_cause_analysis": {
+            "blocked_resource_type": "EXTERNAL_API",
+            "resource_identifier": "https://api.service.com/v1",
+            "error_message": "HTTP 504 Gateway Timeout: External service unavailable",
+            "stack_trace_snippet": "httpx.ConnectTimeout: Connection timed out",
+            "zero_mock_violation_prevented": True,
+        },
+        "staging_snapshot": {
+            "staging_path": ".staging/src/",
+            "modified_files": ["src/service_client.py"],
+            "sha256_tree_hash": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
+        },
+        "user_remediation_steps": [
+            "Verificare la connettivita' di rete o configurare la chiave API in .env",
+            "Riavviare la sessione con /goal per riprendere dal checkpoint preservato",
+        ],
+        "resume_command": "/goal --resume",
+    }
+
+    manifest = GoalFailureManifest.model_validate(valid_payload)
+    assert manifest.status == "UNATTENDED_BLOCKED"
+    assert manifest.root_cause_analysis.zero_mock_violation_prevented is True
+    assert manifest.staging_snapshot.modified_files == ["src/service_client.py"]
+
+    dumped = manifest.model_dump(by_alias=True)
+    assert dumped["$schema"] == "https://json-schema.org/draft/2020-12/schema"
+    assert dumped["milestone_anchor_id"] == "NK-MS-20260924-PLAN-GOAL-INTEGRATION-v2.6.0"
+
+    # Rejection of unauthorized extra keys (strict extra='forbid')
+    invalid_payload = dict(valid_payload)
+    invalid_payload["unauthorized_mock"] = True
+    with pytest.raises(ValidationError):
+        GoalFailureManifest.model_validate(invalid_payload)
+
+    # Rejection of invalid status
+    invalid_status = dict(valid_payload)
+    invalid_status["status"] = "INVALID_STATUS"
+    with pytest.raises(ValidationError):
+        GoalFailureManifest.model_validate(invalid_status)

@@ -13,8 +13,8 @@ Implements deterministic Spectrum-Based Fault Localization:
 from __future__ import annotations
 
 import math
-from typing import Any, Dict, List, Optional, Sequence, Tuple
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from typing import Dict, List, Optional, Sequence, Tuple
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class SpectrumCounts(BaseModel):

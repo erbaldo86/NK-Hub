@@ -34,36 +34,26 @@ if str(STAGING_DIR) not in sys.path:
 try:
     from ast_repo_mapper import (
         AtomicCacheManager,
-        EdgeType,
         GraduatedSkillAdapter,
         KarpathySurgicalSlicer,
         PersonalizedPageRank,
         PolyglotExtractor,
         RepoMapConfig,
         RepoMapGenerator,
-        ResilientParser,
         SymbolExtractor,
-        SymbolGraph,
-        SymbolType,
-        estimate_tokens,
         export_markdown_snapshot,
     )
 except ImportError:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent / ".staging" / "scripts"))
     from ast_repo_mapper import (
         AtomicCacheManager,
-        EdgeType,
         GraduatedSkillAdapter,
         KarpathySurgicalSlicer,
         PersonalizedPageRank,
         PolyglotExtractor,
         RepoMapConfig,
         RepoMapGenerator,
-        ResilientParser,
         SymbolExtractor,
-        SymbolGraph,
-        SymbolType,
-        estimate_tokens,
         export_markdown_snapshot,
     )
 

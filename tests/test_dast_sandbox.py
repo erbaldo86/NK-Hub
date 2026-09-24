@@ -7,7 +7,6 @@ Test Module 2: DAST Sandbox Runner & Dynamic Line Tracer
 
 from __future__ import annotations
 
-import asyncio
 import sys
 import unittest
 from pathlib import Path

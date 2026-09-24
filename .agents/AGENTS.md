@@ -1,8 +1,8 @@
-# 🏛️ Regolamento di Sistema: Ecosistema Antigravity (Nexus Keystone Official Release v2.5.1-Hardened)
+# 🏛️ Regolamento di Sistema: Ecosistema Antigravity (Nexus Keystone Official Release v2.6.0-DualEngine-Symbiosis)
 
 > **Ambito:** Regole del workspace a livello di progetto per tutti gli agenti, sub-agenti e nodi NK.  
 > **Applicazione:** Imperativo vincolante per l'Agente Principale, i Sub-Agenti e la FSM dell'Hub.  
-> **Versione Protocollo:** v2.5.1-Hardened (Session Bootstrap Gate, Universal Safe Subprocess Runner v2, Reactive Silence Anti-Polling, Deterministic DDD Scaffolder, Tier-0 Local API Cache Zero-Mock, Hard Compliance Ratchet, Win32 2PC Mutex & 74 Golden Tests Permanent Suite Ratchet)
+> **Versione Protocollo:** v2.6.0-DualEngine-Symbiosis (Session Bootstrap Gate, Universal Safe Subprocess Runner v2, Reactive Silence Anti-Polling, Deterministic DDD Scaffolder, Tier-0 Local API Cache Zero-Mock, Hard Compliance Ratchet, Win32 2PC Mutex & 78 Golden Tests Permanent Suite Ratchet)
 
 ---
 
@@ -86,15 +86,23 @@
 * **Tooling Integrato:** Utilizzo del tool nativo `schedule(DurationSeconds=45)` o del daemon asincrono `scripts/async_heartbeat_signaler.py` (cadenza 15-20s).
 * **Isolamento Diagnostico:** In caso di watchdog alert, i dump diagnostici dei thread devono essere salvati rigorosamente in `"%TEMP%\nk_diagnostics\"` (mai sul mount Google Drive `G:\`) per prevenire lock I/O e deadlock con `GoogleDriveFS`.
 
-### [RULE-01.10] PERMANENT_TEST_SUITE_MANDATE (74 Golden Tests Core Platform Ratchet)
+### [RULE-01.10] PERMANENT_TEST_SUITE_MANDATE (78 Golden Tests Core Platform Ratchet)
 * **È FATTO DIVIETO CATEGORICO E ASSOLUTO** di eliminare o degradare la suite permanente di test unitari contenuti in `"tests/"` dedicati al core della piattaforma (AST Guard, Win32 2PC, Memory 3-Tier, SBFL Engine, DAST Sandbox, Platform Runner v2, Session Bootstrap, Scaffolder, Api Cache, Compliance Checker).
 * Il ratchet di qualità (`nk_tracking/quality_baseline.json`) impone che nessuna modifica possa ridurre la percentuale di PASS sotto il 100.0%.
 
 ### [RULE-01.11] INTRINSIC_IMPLEMENTATION_MANDATE
-* Qualsiasi richiesta utente contenente trigger verbali di pianificazione (*"crea un piano"*, *"progetta"*, *"definisci l'architettura"*, *"scrivi il brief"*, *"prepara le specifiche"*) attiva automaticamente e intrinsecamente il formato standard di `/implementation` (`implementation_plan.md`), comprendente panoramica, user review, link cliccabili a file e verification plan esaustivo, senza necessità di specificarlo manualmente.
+* **INTRINSIC IMPLEMENTATION & DUAL-MIRRORING ARTIFACT BRIDGE:** Qualsiasi comando slash `/plan` o richiesta contenente trigger verbali di pianificazione attiva l'Auto-Brief Swarm FSM a 5 turni.
+* **Sincronizzazione Atomica:** Al completamento del Turno 4 (`NK-Plan-Aligner`), il Session Controller DEVE emettere sia la SSOT permanente in `nk_genome/implementation_plan.md`, sia l'Artefatto Nativo Antigravity valorizzando `ArtifactMetadata.RequestFeedback: true` (abilitando il tasto cliccabile 'Proceed' nell'IDE).
+* **Transizione Determinista:** Il click dell'utente su 'Proceed' costituisce autorizzazione formale e innesca la transizione immediata a `/goal` senza permission ping-pong intermedio.
 
 ### [RULE-01.12] INTRINSIC_GOAL_MANDATE
-* Qualsiasi richiesta utente espressa in ottica di obiettivo (*"realizza"*, *"costruisci"*, *"implementa"*, *"sviluppa"*, *"crea la feature X"*) impegna l'agente a una condotta goal-driven autonoma e ininterrotta fino al raggiungimento verificato della *Definition of Done*, attivando l'Invisible Self-Healing Loop in staging senza interruzioni premature per domande superflue all'utente. Il mandato NON autorizza in alcun caso il bypass delle regole architetturali DDI o di Staging.
+* **INTRINSIC GOAL DRIVE & 4 SCUDI AVVERSARIALI:** Qualsiasi comando slash `/goal`, click su 'Proceed' o richiesta orientata all'obiettivo impegna l'agente a un'esecuzione autonoma e ininterrotta in `.staging/` fino al superamento della Macro-Fase 2 del CRV 4.0.
+* **3-Pillar Fast-Healing Reale:** L'auto-riparazione è vincolata a `scripts/auto_heal_pipeline.py`, `scripts/sbfl_pytest_bridge.py` (Ochiai <80 tok) e `scripts/healing_snapshot_rollback.py` (Strict Monotonic Gate SHA-256).
+* **I 4 Scudi di Sicurezza (C1-C4):**
+  1. *C1 Target Resolution:* Applicazione inderogabile di `[RULE-PROJECT-ISOLATION]` via `scripts/external_project_scaffolder.py`.
+  2. *C2 Context Sentry:* Hard-cap a 4 tentativi cumulativi di healing e serializzazione WAL con dump diagnostico se >80 step.
+  3. *C3 Unattended Failure:* Zero finti mock (`[RULE-01.2]`) ed emissione di `Goal_Failure_Manifest.json` su risorse esterne bloccate.
+  4. *C4 2PC Commit Safety:* Emissione dell'Execution Receipt prima della scrittura fisica atomica in produzione (`[RULE-00]`).
 
 ### [RULE-01.13] INTRINSIC_REPO_MAP_MANDATE (Tetralogia Sovrana v2.0.0)
 * **AUTONOMIA TOTALE SENZA PROMPT UTENTE:** La generazione e l'aggiornamento della High-Density AST Repo-Map (`scripts/ast_repo_mapper.py`) è un processo intrinseco del genoma architetturale ("Tetralogia Sovrana": `concept_map.md`, `structural_tree.md`, `implementation_plan.md`, `repo_map.md`).

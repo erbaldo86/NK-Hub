@@ -17,10 +17,9 @@ Features:
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 _scripts_dir = Path(__file__).resolve().parent
 _workspace_root = _scripts_dir.parent

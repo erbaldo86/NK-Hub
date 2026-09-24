@@ -3,7 +3,6 @@ import json
 import argparse
 import sys
 import tempfile
-import time
 
 def calculate_state(steps):
     if steps < 60:
