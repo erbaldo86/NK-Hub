@@ -4,7 +4,7 @@
 > **Badge di Certificazione:** 🛡️ [NK-SUPER-BRIEF-STATUS: AUDITED_AND_OFFICIAL_v2.6.0 🟢]  
 > **Milestone Anchor:** `NK-MS-20260924-PLAN-GOAL-INTEGRATION-v2.6.0`  
 > **Versione Target:** `v2.6.0-DualEngine-Symbiosis`  
-> **Dominio:** Nexus Keystone Hub — Meta-Framework Agentico, CRV 4.0, Win32 2PC, Antigravity Slash Commands (`/plan` & `/goal`), Native Artifacts & 78 Golden Tests
+> **Dominio:** Nexus Keystone Hub — Meta-Framework Agentico, CRV 4.0, Win32 2PC, Antigravity Slash Commands (`/plan` & `/goal`), Native Artifacts & 79 Golden Tests
 
 ---
 
@@ -18,8 +18,8 @@ Con la Release **v2.6.0-DualEngine-Symbiosis**, l'ecosistema Nexus Keystone cons
 2. **Integrazione Simbiotica `/goal` (Autonomous Fast-Healing Engine):**
    - La modalità goal-driven (`[RULE-01.12]`) opera in continuità ininterrotta senza ping-pong, alimentata dai 3 Pilastri di Auto-Guarigione Zero-Mock in `.staging/`.
    - SBFL Ochiai $<80$ token, Karpathy minimal code slicer e Strict Monotonic Fitness Gate con ripristino istantaneo via Snapshot SHA-256.
-3. **Piattaforma e Ratchet di Qualità (78 Golden Tests al 100% PASS):**
-   - Suite permanente consolidata a 78 Golden Tests con verifica su filesystem reale e processi isolati.
+3. **Piattaforma e Ratchet di Qualità (79 Golden Tests al 100% PASS):**
+   - Suite permanente consolidata a 79 Golden Tests con verifica su filesystem reale e processi isolati.
    - AST Guard statico certificato su tutti i 48 moduli Python (0 violazioni).
    - Fast-Stat Session Bootstrap Gate garantito $<50$ ms.
 

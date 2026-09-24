@@ -17,6 +17,7 @@ Features:
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 import hashlib
 import json
 import os
@@ -25,10 +26,12 @@ import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Iterator, Optional, Tuple
 
 _scripts_dir = Path(__file__).resolve().parent
-_workspace_root = _scripts_dir.parent
+_workspace_root = _scripts_dir.parent.parent if _scripts_dir.parent.name == ".staging" else _scripts_dir.parent
+if _scripts_dir.name == ".staging":
+    _workspace_root = _scripts_dir.parent
 if str(_workspace_root) not in sys.path:
     sys.path.insert(0, str(_workspace_root))
 
@@ -51,8 +54,21 @@ class DeterministicApiCache:
         self.ttl_seconds = ttl_seconds
         self._init_db()
 
+    @contextmanager
+    def _connection(self) -> Iterator[sqlite3.Connection]:
+        """Create a resilient SQLite connection and ensure explicit close."""
+        conn = sqlite3.connect(str(self.db_path), timeout=10.0)
+        try:
+            conn.execute("PRAGMA journal_mode = WAL;")
+            conn.execute("PRAGMA synchronous = NORMAL;")
+            conn.execute("PRAGMA busy_timeout = 5000;")
+            with conn:
+                yield conn
+        finally:
+            conn.close()
+
     def _get_connection(self) -> sqlite3.Connection:
-        """Create a resilient SQLite connection with WAL mode and busy timeout."""
+        """Legacy helper: returns raw connection."""
         conn = sqlite3.connect(str(self.db_path), timeout=10.0)
         conn.execute("PRAGMA journal_mode = WAL;")
         conn.execute("PRAGMA synchronous = NORMAL;")
@@ -61,7 +77,7 @@ class DeterministicApiCache:
 
     def _init_db(self) -> None:
         """Initialize cache schema."""
-        with self._get_connection() as conn:
+        with self._connection() as conn:
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS api_cache (
@@ -108,7 +124,7 @@ class DeterministicApiCache:
         req_hash = self.compute_hash(endpoint, method, params, body)
         now = time.time()
 
-        with self._get_connection() as conn:
+        with self._connection() as conn:
             cur = conn.execute(
                 """
                 SELECT status_code, response_body, response_headers, created_at
@@ -148,7 +164,7 @@ class DeterministicApiCache:
         headers_json = json.dumps(headers or {})
         now = time.time()
 
-        with self._get_connection() as conn:
+        with self._connection() as conn:
             conn.execute(
                 """
                 INSERT INTO api_cache (
@@ -169,7 +185,7 @@ class DeterministicApiCache:
     def health_check(self) -> bool:
         """Validate database accessibility and WAL mode."""
         try:
-            with self._get_connection() as conn:
+            with self._connection() as conn:
                 cur = conn.execute("PRAGMA journal_mode;")
                 mode = cur.fetchone()[0]
                 return mode.lower() == "wal"
@@ -178,7 +194,7 @@ class DeterministicApiCache:
 
     def clear(self) -> int:
         """Clear all cached entries."""
-        with self._get_connection() as conn:
+        with self._connection() as conn:
             cur = conn.execute("DELETE FROM api_cache;")
             return cur.rowcount
 

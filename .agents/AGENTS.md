@@ -2,7 +2,7 @@
 
 > **Ambito:** Regole del workspace a livello di progetto per tutti gli agenti, sub-agenti e nodi NK.  
 > **Applicazione:** Imperativo vincolante per l'Agente Principale, i Sub-Agenti e la FSM dell'Hub.  
-> **Versione Protocollo:** v2.6.0-DualEngine-Symbiosis (Session Bootstrap Gate, Universal Safe Subprocess Runner v2, Reactive Silence Anti-Polling, Deterministic DDD Scaffolder, Tier-0 Local API Cache Zero-Mock, Hard Compliance Ratchet, Win32 2PC Mutex & 78 Golden Tests Permanent Suite Ratchet)
+> **Versione Protocollo:** v2.6.0-DualEngine-Symbiosis (Session Bootstrap Gate, Universal Safe Subprocess Runner v2, Reactive Silence Anti-Polling, Deterministic DDD Scaffolder, Tier-0 Local API Cache Zero-Mock, Hard Compliance Ratchet, Win32 2PC Mutex & 79 Golden Tests Permanent Suite Ratchet)
 
 ---
 
@@ -86,7 +86,7 @@
 * **Tooling Integrato:** Utilizzo del tool nativo `schedule(DurationSeconds=45)` o del daemon asincrono `scripts/async_heartbeat_signaler.py` (cadenza 15-20s).
 * **Isolamento Diagnostico:** In caso di watchdog alert, i dump diagnostici dei thread devono essere salvati rigorosamente in `"%TEMP%\nk_diagnostics\"` (mai sul mount Google Drive `G:\`) per prevenire lock I/O e deadlock con `GoogleDriveFS`.
 
-### [RULE-01.10] PERMANENT_TEST_SUITE_MANDATE (78 Golden Tests Core Platform Ratchet)
+### [RULE-01.10] PERMANENT_TEST_SUITE_MANDATE (79 Golden Tests Core Platform Ratchet)
 * **È FATTO DIVIETO CATEGORICO E ASSOLUTO** di eliminare o degradare la suite permanente di test unitari contenuti in `"tests/"` dedicati al core della piattaforma (AST Guard, Win32 2PC, Memory 3-Tier, SBFL Engine, DAST Sandbox, Platform Runner v2, Session Bootstrap, Scaffolder, Api Cache, Compliance Checker).
 * Il ratchet di qualità (`nk_tracking/quality_baseline.json`) impone che nessuna modifica possa ridurre la percentuale di PASS sotto il 100.0%.
 

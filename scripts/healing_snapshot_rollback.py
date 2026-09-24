@@ -30,6 +30,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 _scripts_dir = Path(__file__).resolve().parent
 _root_dir = _scripts_dir.parent.parent if _scripts_dir.parent.name == ".staging" else _scripts_dir.parent
+if _scripts_dir.name == ".staging":
+    _root_dir = _scripts_dir.parent
 for _d in (_scripts_dir, _root_dir / "scripts", _root_dir / ".staging" / "scripts", _root_dir):
     if _d.exists() and str(_d) not in sys.path:
         sys.path.insert(0, str(_d))
@@ -115,8 +117,9 @@ class HealingSnapshotManager:
                     content=content,
                     exists_before=True,
                 )
-                # Backup copy
-                backup_dest = snap_temp_dir / p.name
+                # Backup copy with unique hash prefix to prevent collision across same-named files
+                prefix = hashlib.sha256(str(p).encode("utf-8")).hexdigest()[:8]
+                backup_dest = snap_temp_dir / f"{prefix}_{p.name}"
                 backup_dest.write_text(content, encoding="utf-8")
             else:
                 file_snap = FileSnapshot(

@@ -12,6 +12,7 @@ Features:
 - Traffic Light Status: GREEN (< 70 steps), YELLOW (70-99 steps), RED (>= 100 steps).
 - Head-Tail Fallback Extractor for I/O safe exception reporting.
 - CLI and Programmatic API for Preflight, Bootstrap, and Compliance audit.
+- Swarm Hygiene message tracking with background task notification exclusion.
 """
 
 from __future__ import annotations
@@ -26,6 +27,8 @@ _scripts_dir = Path(__file__).resolve().parent
 _workspace_root = _scripts_dir.parent
 if _scripts_dir.name == "scripts" and _scripts_dir.parent.name == ".staging":
     _workspace_root = _scripts_dir.parent.parent
+elif _scripts_dir.name == ".staging":
+    _workspace_root = _scripts_dir.parent
 if str(_workspace_root) not in sys.path:
     sys.path.insert(0, str(_workspace_root))
 
@@ -87,6 +90,36 @@ class NKContextSentry:
             "recommendation": recommendation,
         }
 
+    @staticmethod
+    def is_background_task_message(data: Dict[str, Any], content: str) -> bool:
+        """
+        Detect if a transcript record is an automated background task notification/log
+        rather than a genuine inter-agent swarm message.
+        """
+        sender = str(data.get("sender") or data.get("sender_id") or "").lower()
+        if "task-" in sender or "task_id" in sender:
+            return True
+        if "task" in data and isinstance(data.get("task"), (dict, str)):
+            return True
+
+        content_lower = content.lower()
+        if "finished with result" in content_lower:
+            return True
+        if "sender=" in content_lower and ("task-" in content_lower or "task_id" in content_lower):
+            return True
+        if 'task id "' in content_lower or "task id '" in content_lower:
+            return True
+        return False
+
+    def count_swarm_hygiene_violations(self, transcript_path: Path) -> int:
+        """Count swarm hygiene violations in transcript, strictly ignoring background tasks."""
+        res = self.analyze_transcript(transcript_path)
+        return int(res.get("swarm_hygiene_violations_count", 0))
+
+    def inspect(self, transcript_path: Path) -> Dict[str, Any]:
+        """Inspect transcript and return comprehensive sentry and hygiene report."""
+        return self.analyze_transcript(transcript_path)
+
     def analyze_transcript(self, transcript_path: Path) -> Dict[str, Any]:
         """Parse transcript.jsonl and evaluate context metrics and hygiene compliance."""
         transcript_path = Path(transcript_path).resolve()
@@ -127,11 +160,14 @@ class NKContextSentry:
 
                 # Check Swarm Hygiene on inter-agent messages
                 # Prioritize '[Message]' indicator for true inter-agent swarm messages
+                # Exclude background task notifications and execution output logs
+                is_background = self.is_background_task_message(data, content)
                 is_swarm_msg = False
-                if "[Message]" in content:
-                    is_swarm_msg = True
-                elif source == "SYSTEM" and "<SYSTEM_MESSAGE>" in content:
-                    is_swarm_msg = True
+                if not is_background:
+                    if "[Message]" in content:
+                        is_swarm_msg = True
+                    elif source == "SYSTEM" and "<SYSTEM_MESSAGE>" in content:
+                        is_swarm_msg = True
 
                 if is_swarm_msg and len(content) > self.SWARM_MSG_HARD_CAP:
                     swarm_hygiene_violations.append({

@@ -19,7 +19,7 @@ Con la release **v2.6.0-DualEngine-Symbiosis**, l'ecosistema Nexus Keystone real
    - La modalità goal-driven ininterrotta (`[RULE-01.12]`) viene alimentata dai **3 Pilastri di Fast-Healing Zero-Mock** in `.staging/` (`auto_heal_pipeline.py`, `sbfl_pytest_bridge.py`, `healing_snapshot_rollback.py`).
    - Cicli di auto-riparazione (max 3) guidati da SBFL Ochiai $<80$ token con Strict Monotonic Fitness Gate e ripristino istantaneo in caso di regressione.
 3. **Preservazione dei Ratchet di Qualità:**
-   - Suite permanente di 78 Golden Tests validata al 100% di PASS.
+   - Suite permanente di 79 Golden Tests validata al 100% di PASS.
    - AST Guard statico certificato su tutti i 48 moduli di piattaforma (0 violazioni).
    - Fast-Stat Session Bootstrap Gate garantito a $<50$ ms (SLA $<120$ ms).
 
@@ -70,7 +70,7 @@ flowchart TD
 
 ## 🧪 3. Invarianti di Governance & Salvaguardia Ratchet
 
-1. **Ratchet Rule (`[RULE-01.10]`):** La suite permanente di 78 Golden Tests deve mantenere costantemente il 100.0% di PASS.
+1. **Ratchet Rule (`[RULE-01.10]`):** La suite permanente di 79 Golden Tests deve mantenere costantemente il 100.0% di PASS.
 2. **Project Isolation Mandate (`[RULE-PROJECT-ISOLATION]`):** Nessun codice di prodotto viene scritto all'interno dell'Hub; ogni target vive nella propria cartella autonoma esterna.
 3. **Zero-Mock Mandate (`[RULE-01.2]`):** Ogni test convalida processi, sandbox e filesystem reali su Windows.
 4. **Fast-Stat Bootstrap Guarantee (`[RULE-00.4]` / `[RULE-00.5]`):** Tempo di bootstrap sempre $<120$ ms.

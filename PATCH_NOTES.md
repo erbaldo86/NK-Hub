@@ -1,10 +1,24 @@
 # 📜 NEXUS KEYSTONE OFFICIAL CHANGELOG & PATCH NOTES (SSOT)
 
 > **Single Source of Truth (SSOT):** `nk_genome/PATCH_NOTES.md`  
-> **Release Ufficiale:** `v2.6.0-DualEngine-Symbiosis (Plan & Goal Integration, 4 Adversarial Shields, Zero-Mock Fast Healing & Dead Code Cleansing)`  
-> **Milestone Anchor:** `NK-MS-20260924-PLAN-GOAL-INTEGRATION-v2.6.0`  
+> **Release Ufficiale:** `v2.6.1-Controller-Hotfix (Dual Audit Controller Verification, SQLite Resource Closure & WinError 32 Mitigation, Collision-Proof Snapshots, Background Task Sentry Filter & 79 Golden Tests Ratchet Alignment)`  
+> **Milestone Anchor:** `NK-MS-20260924-AUDIT-CONTROLLER-HOTFIX-v2.6.1`  
 > **Data Consolidamento:** 2026-09-24  
-> **Stato Release:** `🛡️ [NK-SUPER-BRIEF-STATUS: AUDITED_AND_OFFICIAL_v2.6.0 🟢]`
+> **Stato Release:** `🛡️ [NK-SUPER-BRIEF-STATUS: AUDITED_AND_OFFICIAL_v2.6.1 🟢]`
+
+---
+
+## 🏛️ Release v2.6.1-Controller-Hotfix — Dual Audit Controller Verification, SQLite Resource Closure & WinError 32 Mitigation, Collision-Proof Snapshots & Background Task Filter
+A seguito dell'audit dual-track condotto dal controllore esterno (Track 1 Tecnico + Track 2 Governance NK), la Release **v2.6.1-Controller-Hotfix** introduce le patch chirurgiche di hardening e l'allineamento della documentazione:
+1. **Risoluzione Connection Leak SQLite & WinError 32 ([scripts/deterministic_api_cache.py](file:///g:/Il%20mio%20Drive/Antigravity/scripts/deterministic_api_cache.py))**:
+   - Implementato context manager resiliente `_connection()` con blocco `try...finally: conn.close()` e gestione transazionale atomica `with conn:`.
+   - Eliminato `ResourceWarning: unclosed database` e prevenuto il lock Win32 su Windows durante l'epurazione dei percorsi temporanei.
+2. **Snapshot su Disco Collision-Proof ([scripts/healing_snapshot_rollback.py](file:///g:/Il%20mio%20Drive/Antigravity/scripts/healing_snapshot_rollback.py))**:
+   - Assegnato prefisso hash SHA-256 a 8 caratteri ai file di backup temporanei (`snap_temp_dir / f"{prefix}_{p.name}"`), eliminando il rischio di collisioni per file omonimi in cartelle diverse.
+3. **Filtro Anti-Falsi-Positivi per Swarm Hygiene ([scripts/nk_context_sentry.py](file:///g:/Il%20mio%20Drive/Antigravity/scripts/nk_context_sentry.py))**:
+   - Aggiunto `is_background_task_message()` per escludere i dump stdout dei task asincroni (`task-*`) dal computo dei messaggi inter-agente eccedenti i 2.000 caratteri.
+4. **Allineamento Ratchet Permanente a 79 Golden Tests**:
+   - Aggiornato `.agents/AGENTS.md` e la Tetralogia Sovrana in `nk_genome/` per riflettere con precisione matematica i 79 Golden Tests al 100% PASS.
 
 ---
 
