@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Nexus Keystone v1.1.0-Universal
-Test Module 6: 3-Tier Episodic Memory Engine
-6 Tests: Tier 1 Cap 350 tok, Tier 2 Sliding Window 200, Tier 3 RRF k=60, Shadow Cache, Circular Backups, CTypes MoveFileExW.
+Nexus Keystone v3.0.0-STE100-Unified
+Modulo di test 6: 3-Tier Episodic Memory Engine.
 """
 
 from __future__ import annotations
@@ -13,6 +12,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import importlib.util
+
 CURRENT_DIR = Path(__file__).resolve().parent
 STAGING_DIR = CURRENT_DIR.parent
 SCRIPTS_DIR = STAGING_DIR / "scripts"
@@ -22,15 +23,24 @@ if str(SCRIPTS_DIR) not in sys.path:
 if str(STAGING_DIR) not in sys.path:
     sys.path.insert(0, str(STAGING_DIR))
 
-from memory_3tier_engine import (
-    ThreeTierMemoryEngine,
-    MemoryEpisode,
-    Tier1CoreMemory,
-    HybridRRFSearchEngine,
-    rotate_circular_backups,
-    win32_atomic_replace,
-    TIER1_TOKEN_CAP,
-)
+
+def _load_staging_memory_module():
+    target = SCRIPTS_DIR / "memory_3tier_engine.py"
+    spec = importlib.util.spec_from_file_location("memory_3tier_engine", str(target))
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules["memory_3tier_engine"] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+_mem_mod = _load_staging_memory_module()
+ThreeTierMemoryEngine = _mem_mod.ThreeTierMemoryEngine
+MemoryEpisode = _mem_mod.MemoryEpisode
+Tier1CoreMemory = _mem_mod.Tier1CoreMemory
+HybridRRFSearchEngine = _mem_mod.HybridRRFSearchEngine
+rotate_circular_backups = _mem_mod.rotate_circular_backups
+win32_atomic_replace = _mem_mod.win32_atomic_replace
+TIER1_TOKEN_CAP = _mem_mod.TIER1_TOKEN_CAP
 
 
 class TestMemory3TierEngine(unittest.TestCase):
@@ -46,7 +56,7 @@ class TestMemory3TierEngine(unittest.TestCase):
 
     # 35. test_tier1_core_memory_350_tokens_cap
     def test_tier1_core_memory_350_tokens_cap(self):
-        """35. Validates hard enforcement of <= 350 tokens cap per domain."""
+        """35. Valida il rispetto del limite massimo di 350 token per dominio."""
         t1 = Tier1CoreMemory(token_cap=TIER1_TOKEN_CAP)
         domain = "02_Development_Patterns"
         for i in range(25):
@@ -61,7 +71,7 @@ class TestMemory3TierEngine(unittest.TestCase):
 
     # 36. test_tier2_scratchpad_sliding_window
     def test_tier2_scratchpad_sliding_window(self):
-        """36. Validates sliding window compaction and surplus archiving to Tier 3."""
+        """36. Valida la compattazione a finestra scorrevole verso il Tier 3."""
         engine = ThreeTierMemoryEngine(base_dir=self.tmp_dir, sliding_window_max=10)
         domain = "04_Governance_and_Rules"
         for i in range(15):
@@ -82,7 +92,7 @@ class TestMemory3TierEngine(unittest.TestCase):
 
     # 37. test_tier3_hybrid_bm25_dense_rrf_search
     def test_tier3_hybrid_bm25_dense_rrf_search(self):
-        """37. Validates Pure BM25 + Dense Cosine with RRF rank fusion (k=60)."""
+        """37. Valida la ricerca ibrida BM25 e Dense Cosine con RRF k=60."""
         episodes = [
             MemoryEpisode(
                 episode_id=f"ep_{i}",
@@ -109,7 +119,7 @@ class TestMemory3TierEngine(unittest.TestCase):
 
     # 38. test_shadow_read_cache_invalidation
     def test_shadow_read_cache_invalidation(self):
-        """38. Validates shadow cache fast read and invalidation upon modification."""
+        """38. Valida la lettura rapida da shadow cache e l'invalidazione su scrittura."""
         engine = ThreeTierMemoryEngine(base_dir=self.tmp_dir, sliding_window_max=50)
         domain = "03_Ideation_and_Decisions"
         ep = MemoryEpisode(episode_id="ep1", domain=domain, title="Title 1", content="Content 1")
@@ -123,7 +133,7 @@ class TestMemory3TierEngine(unittest.TestCase):
 
     # 39. test_circular_backup_rotation_streaming
     def test_circular_backup_rotation_streaming(self):
-        """39. Validates circular backup rotation (.bak_1, .bak_2) using streaming copy."""
+        """39. Valida la rotazione circolare dei backup tramite copia streaming."""
         target_file = self.tmp_dir / "test.jsonl"
         target_file.write_text("INITIAL_CONTENT", encoding="utf-8")
 
@@ -134,13 +144,33 @@ class TestMemory3TierEngine(unittest.TestCase):
 
     # 40. test_win32_atomic_replace_ctypes_safety
     def test_win32_atomic_replace_ctypes_safety(self):
-        """40. Validates MoveFileExW with explicit Win64 CTypes argtypes/restype."""
+        """40. Valida MoveFileExW con firme ctypes Win64 esplicite."""
         src = self.tmp_dir / "src.txt"
         dst = self.tmp_dir / "dst.txt"
         src.write_text("ATOMIC_DATA", encoding="utf-8")
         win32_atomic_replace(src, dst)
         self.assertTrue(dst.exists())
         self.assertEqual(dst.read_text(encoding="utf-8"), "ATOMIC_DATA")
+
+    # 41. test_tier1_active_capsule_cli_sync_and_token_cap
+    def test_tier1_active_capsule_cli_sync_and_token_cap(self):
+        """41. Valida la persistenza atomica di tier1_active_capsule.json entro 350 token."""
+        engine = ThreeTierMemoryEngine(base_dir=self.tmp_dir, sliding_window_max=10)
+        ep = MemoryEpisode(
+            episode_id="ep_cap_01",
+            domain="02_Development_Patterns",
+            title="Pattern Atomico Tier-1",
+            content="Regola deterministica per il pre-warming della capsula Mode C.",
+            tags=["tier1", "capsule"],
+        )
+        engine.append_episode(ep)
+        capsule = engine.sync_tier1_capsule()
+        capsule_file = self.tmp_dir / "tier1_active_capsule.json"
+        self.assertTrue(capsule_file.exists())
+        self.assertEqual(capsule["token_cap"], TIER1_TOKEN_CAP)
+        for dom_info in capsule["domains"].values():
+            self.assertLessEqual(dom_info["total_tokens"], TIER1_TOKEN_CAP)
+        self.assertGreaterEqual(len(capsule["lessons"]), 1)
 
 
 if __name__ == "__main__":

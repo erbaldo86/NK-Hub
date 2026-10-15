@@ -1,12 +1,6 @@
 """
-Nexus Keystone v1.1.0-Universal - Unit Tests for Platform Upgrades
-Module: test_platform_upgrades.py
-Author: NK-Platform-Builder
-
-Zero-mock test suite validating:
-- env_capability_probe discovery, module auditing, and CLI execution.
-- platform_runner safe subprocess execution and UTF-8 stream robustness.
-- pytest.ini configuration invariants.
+Nexus Keystone v3.0.0-STE100-Unified - Unit Tests per Platform Upgrades.
+Modulo: test_platform_upgrades.py
 """
 
 from __future__ import annotations
@@ -90,7 +84,7 @@ def test_platform_runner_safe_run() -> None:
     reconfigure_streams()
 
     # 1. UTF-8 & Emoji output execution
-    utf8_payload = "Nexus Keystone UTF-8 Test: 🚀 ✅ ⚡ — áéíóú €"
+    utf8_payload = "Nexus Keystone UTF-8 Test: 🚀 ✅ ⚡ - áéíóú €"
     cmd = [
         sys.executable,
         "-c",
@@ -144,15 +138,15 @@ def test_pytest_ini_content() -> None:
 
 def test_platform_cli_integration(tmp_path: Path) -> None:
     """
-    Test CLI integration for both scripts: env_capability_probe and platform_runner.
+    Testa l'integrazione CLI per env_capability_probe e platform_runner.
     """
     workspace_root = Path(__file__).resolve().parent.parent
     if workspace_root.name == ".staging":
         workspace_root = workspace_root.parent
 
-    probe_script = workspace_root / "scripts" / "env_capability_probe.py"
+    probe_script = workspace_root / ".staging" / "scripts" / "env_capability_probe.py"
     if not probe_script.exists():
-        probe_script = workspace_root / ".staging" / "scripts" / "env_capability_probe.py"
+        probe_script = workspace_root / "scripts" / "env_capability_probe.py"
 
     # 1. Test env_capability_probe CLI with --json
     rc, stdout, stderr = safe_subprocess_run([sys.executable, str(probe_script), "--json"])
@@ -171,9 +165,9 @@ def test_platform_cli_integration(tmp_path: Path) -> None:
     assert exported_data["summary"]["total_probed"] > 0
 
     # 3. Test platform_runner CLI with --cmd
-    runner_script = workspace_root / "scripts" / "platform_runner.py"
+    runner_script = workspace_root / ".staging" / "scripts" / "platform_runner.py"
     if not runner_script.exists():
-        runner_script = workspace_root / ".staging" / "scripts" / "platform_runner.py"
+        runner_script = workspace_root / "scripts" / "platform_runner.py"
 
     cli_cmd = f'"{sys.executable}" -c "print(\'CLI_RUNNER_SUCCESS_🚀\')"'
     rc_runner, stdout_runner, stderr_runner = safe_subprocess_run(

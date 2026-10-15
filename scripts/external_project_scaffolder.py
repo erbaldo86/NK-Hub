@@ -1,17 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Nexus Keystone v2.0.0-Hardened - External Project Scaffolder
-Module: external_project_scaffolder.py
-Author: NK-Platform-Builder & NK-Environment-Architect
-Implements: [RULE-PROJECT-ISOLATION] & Scaffolding deterministico ad alta efficienza
-
-Features:
-- Single-command atomic project scaffolding outside NK-Hub.
-- Complete DDD directory tree generation (src/core, src/engine, src/api, src/ui, tests/, scripts/).
-- Preconfigured unbuffered pytest.ini, requirements.txt, .gitignore, and stream-reconfigured __init__.py.
-- Built-in tests/test_ast_purity.py running ast_guard_validator automatically.
-- Instant validation before completion.
+Scaffolder deterministico per progetti esterni di Nexus Keystone v3.0.0-STE100-Unified.
+Impedisce la creazione di progetti dentro NK-Hub ([RULE-PROJECT-ISOLATION]) e crea nk_genome/.
 """
 
 from __future__ import annotations
@@ -22,31 +13,52 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 _scripts_dir = Path(__file__).resolve().parent
-_workspace_root = _scripts_dir.parent
+if _scripts_dir.parent.name == ".staging":
+    _workspace_root = _scripts_dir.parent.parent
+else:
+    _workspace_root = _scripts_dir.parent
+
 if str(_workspace_root) not in sys.path:
     sys.path.insert(0, str(_workspace_root))
+if str(_scripts_dir) not in sys.path:
+    sys.path.insert(0, str(_scripts_dir))
 
-from scripts.platform_runner import reconfigure_streams
+try:
+    from platform_runner import reconfigure_streams
+except ImportError:
+    from scripts.platform_runner import reconfigure_streams
 
 
 class ExternalProjectScaffolder:
-    """Deterministic 1-command DDD Scaffolder for external projects."""
+    """Genera la struttura DDD completa e la Tetralogia Sovrana in una cartella esterna."""
 
     def __init__(self, project_name: str, target_dir: Path):
         reconfigure_streams()
-        self.project_name = project_name
+        self.project_name = project_name.strip()
         self.target_dir = Path(target_dir).resolve()
+        self.hub_root = _workspace_root.resolve()
+        self._validate_isolation()
+
+    def _validate_isolation(self) -> None:
+        """Rifiuta qualsiasi percorso target situato dentro la radice di NK-Hub."""
+        if self.target_dir == self.hub_root or self.hub_root in self.target_dir.parents:
+            raise ValueError(
+                f"Violazione [RULE-PROJECT-ISOLATION]: la cartella target '{self.target_dir}' "
+                f"non puo risiedere dentro NK-Hub ('{self.hub_root}')."
+            )
 
     def scaffold(self) -> Dict[str, Any]:
-        """Generate the complete project tree and configurations atomically."""
+        """Crea l'albero delle cartelle, i file di configurazione e la Tetralogia nk_genome/."""
+        self._validate_isolation()
+
         if not self.target_dir.exists():
             self.target_dir.mkdir(parents=True, exist_ok=True)
 
         created_files: List[str] = []
         created_dirs: List[str] = []
 
-        # 1. Directory Tree
         dirs_to_create = [
+            self.target_dir / "nk_genome",
             self.target_dir / "src",
             self.target_dir / "src" / "core",
             self.target_dir / "src" / "engine",
@@ -62,20 +74,17 @@ class ExternalProjectScaffolder:
             d.mkdir(parents=True, exist_ok=True)
             created_dirs.append(str(d))
 
-        # 2. Config & Root Files
-        # requirements.txt
         req_content = (
             "fastapi>=0.111.0,<1.0.0\n"
             "uvicorn>=0.30.0,<1.0.0\n"
             "pydantic>=2.7.0,<3.0.0\n"
             "httpx>=0.27.0,<1.0.0\n"
-            "pytest>=8.0.0,<9.0.0\n"
+            "pytest>=8.2.0,<10.0.0\n"
             "pytest-asyncio>=0.23.0,<1.0.0\n"
         )
         (self.target_dir / "requirements.txt").write_text(req_content, encoding="utf-8")
         created_files.append("requirements.txt")
 
-        # pytest.ini
         pytest_ini_content = (
             "[pytest]\n"
             "testpaths = tests\n"
@@ -89,7 +98,6 @@ class ExternalProjectScaffolder:
         (self.target_dir / "pytest.ini").write_text(pytest_ini_content, encoding="utf-8")
         created_files.append("pytest.ini")
 
-        # .gitignore
         gitignore_content = (
             "__pycache__/\n"
             "*.py[cod]\n"
@@ -101,24 +109,27 @@ class ExternalProjectScaffolder:
         (self.target_dir / ".gitignore").write_text(gitignore_content, encoding="utf-8")
         created_files.append(".gitignore")
 
-        # README.md
         readme_content = (
             f"# {self.project_name}\n\n"
-            f"> Developed with Nexus Keystone Sovereign Ecosystem v2.0.\n"
-            f"> Target Directory: `{self.target_dir}`\n\n"
-            f"## Architecture\n"
-            f"- `src/core/`: Configuration and strict Pydantic schemas.\n"
-            f"- `src/engine/`: Core business and async algorithms.\n"
-            f"- `src/api/`: FastAPI routes and endpoints.\n"
-            f"- `src/ui/`: Reactive frontend templates and static assets.\n"
-            f"- `tests/`: Zero-Mock test suite.\n"
+            f"Progetto esterno inizializzato con Nexus Keystone v3.0.0-STE100-Unified.\n"
+            f"Percorso: `{self.target_dir}`\n"
         )
         (self.target_dir / "README.md").write_text(readme_content, encoding="utf-8")
         created_files.append("README.md")
 
-        # 3. Source Packages __init__.py with stream reconfiguration
+        tetralogy_files = {
+            "concept_map.md": f"# Concept Map: {self.project_name}\n\nVisione architetturale del progetto.\n",
+            "structural_tree.md": f"# Structural Tree: {self.project_name}\n\nAlbero strutturale DDD del progetto.\n",
+            "implementation_plan.md": f"# Implementation Plan: {self.project_name}\n\nPiano esecutivo atomico.\n",
+            "repo_map.md": f"# Repo Map: {self.project_name}\n\nMappa AST del repository.\n",
+        }
+        for t_name, t_body in tetralogy_files.items():
+            t_path = self.target_dir / "nk_genome" / t_name
+            t_path.write_text(t_body, encoding="utf-8")
+            created_files.append(f"nk_genome/{t_name}")
+
         init_content = (
-            f'"""{self.project_name} - Nexus Keystone Autonomous Ecosystem."""\n\n'
+            f'"""{self.project_name} - Progetto esterno Nexus Keystone."""\n\n'
             f"import sys\n\n"
             f"if hasattr(sys.stdout, 'reconfigure'):\n"
             f"    try:\n"
@@ -140,9 +151,8 @@ class ExternalProjectScaffolder:
             pkg.write_text(init_content, encoding="utf-8")
             created_files.append(str(pkg.relative_to(self.target_dir)))
 
-        # 4. Built-in tests/test_ast_purity.py
         ast_test_content = (
-            '"""Built-in AST Guard validation test."""\n\n'
+            '"""Test automatico di purezza sintattica AST."""\n\n'
             "import ast\n"
             "from pathlib import Path\n\n"
             "def test_ast_syntax_purity():\n"
@@ -155,7 +165,8 @@ class ExternalProjectScaffolder:
             "        assert tree is not None, f'Failed parsing {py_file}'\n"
         )
         (self.target_dir / "tests" / "test_ast_purity.py").write_text(
-            ast_test_content, encoding="utf-8"
+            ast_test_content,
+            encoding="utf-8",
         )
         created_files.append("tests/test_ast_purity.py")
 
@@ -170,6 +181,7 @@ class ExternalProjectScaffolder:
 
 
 def main() -> int:
+    """Punto di ingresso CLI per lo scaffolder dei progetti esterni."""
     reconfigure_streams()
     parser = argparse.ArgumentParser(
         description="Nexus Keystone Deterministic External Project Scaffolder"
@@ -178,23 +190,27 @@ def main() -> int:
         "--name",
         type=str,
         required=True,
-        help="Name of the project to scaffold",
+        help="Nome del progetto da inizializzare",
     )
     parser.add_argument(
         "--target",
         type=str,
         required=True,
-        help="Absolute path to target directory outside NK-Hub",
+        help="Percorso assoluto esterno a NK-Hub",
     )
 
     args = parser.parse_args()
-    scaffolder = ExternalProjectScaffolder(project_name=args.name, target_dir=Path(args.target))
-    res = scaffolder.scaffold()
-
-    print(f"🟢 [NK-SCAFFOLDER] Scaffolding completed for {res['project_name']}")
-    print(f"  Target: {res['target_dir']}")
-    print(f"  Files created: {res['created_files_count']}")
-    return 0
+    try:
+        scaffolder = ExternalProjectScaffolder(
+            project_name=args.name,
+            target_dir=Path(args.target),
+        )
+        res = scaffolder.scaffold()
+        print(f"[NK-SCAFFOLDER] Progetto creato: {res['project_name']} -> {res['target_dir']}")
+        return 0
+    except ValueError as exc:
+        print(f"[ERRORE] {exc}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":

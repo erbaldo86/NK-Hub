@@ -1,36 +1,38 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-SBFL Engine - Spectrum-Based Fault Localization Module
-Nexus Keystone v1.1.0-Universal | Grand Master Brief Node 2
+Motore matematico SBFL (Spectrum-Based Fault Localization) per Nexus Keystone v3.0.0.
+Modulo: sbfl_engine.py.
 
-Implements deterministic Spectrum-Based Fault Localization:
-- Ochiai, Tarantula, and DStar (alpha=2.0) suspiciousness metrics.
-- Binary Coverage Matrix A in {0, 1}^(m x n) and outcome vector e in {0, 1}^m.
-- Tri-Pass Voting Filter for flaky test eradication (3/3 deterministic matching).
-- Coincidental Correctness Def-Use weighting for suspiciousness calibration.
-- Ultra-compact OchiaiDiagnosticPayload (<80 tokens) with Pydantic v2 Strict Mode.
+Funzionalita principali:
+1. Calcola le metriche di sospettosita Ochiai, Tarantula e DStar (alpha=2.0).
+2. Costruisce la matrice di copertura binaria A e il vettore di esito e.
+3. Applica il filtro Tri-Pass Voting per l'eliminazione dei test instabili (flaky).
+4. Calibra la coincidental correctness tramite pesi Def-Use.
+5. Genera il payload diagnostico OchiaiDiagnosticPayload sotto gli 80 token con CLI dedicata.
 """
 
 from __future__ import annotations
 
+import argparse
+import json
 import math
+import sys
+from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
 class SpectrumCounts(BaseModel):
-    """
-    Counts of test executions for a specific code statement:
-    - n_ef: Number of failing tests that executed the statement.
-    - n_ep: Number of passing tests that executed the statement.
-    - n_nf: Number of failing tests that did NOT execute the statement.
-    - n_np: Number of passing tests that did NOT execute the statement.
-    """
+    """Conteggi delle esecuzioni di test per una specifica istruzione di codice."""
+
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
-    n_ef: int = Field(ge=0, description="Failing tests executing statement")
-    n_ep: int = Field(ge=0, description="Passing tests executing statement")
-    n_nf: int = Field(ge=0, description="Failing tests not executing statement")
-    n_np: int = Field(ge=0, description="Passing tests not executing statement")
+    n_ef: int = Field(ge=0, description="Test falliti che eseguono l'istruzione")
+    n_ep: int = Field(ge=0, description="Test passati che eseguono l'istruzione")
+    n_nf: int = Field(ge=0, description="Test falliti che non eseguono l'istruzione")
+    n_np: int = Field(ge=0, description="Test passati che non eseguono l'istruzione")
 
     @property
     def total_failed(self) -> int:
@@ -50,9 +52,8 @@ class SpectrumCounts(BaseModel):
 
 
 class DefUseWeight(BaseModel):
-    """
-    Def-Use weighting information for coincidental correctness calibration.
-    """
+    """Informazioni di peso Def-Use per la calibrazione della coincidental correctness."""
+
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
     statement: str
@@ -62,9 +63,8 @@ class DefUseWeight(BaseModel):
 
 
 class CoverageRecord(BaseModel):
-    """
-    Coverage trace record for a single test run execution.
-    """
+    """Record di copertura per l'esecuzione di un singolo caso di test."""
+
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
     test_id: str
@@ -73,9 +73,8 @@ class CoverageRecord(BaseModel):
 
 
 class SBFLScore(BaseModel):
-    """
-    Calculated SBFL metrics for a single statement.
-    """
+    """Metriche SBFL calcolate per una singola istruzione."""
+
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
     statement: str
@@ -88,26 +87,25 @@ class SBFLScore(BaseModel):
 
 
 class OchiaiDiagnosticPayload(BaseModel):
-    """
-    High-density diagnostic payload formatted for strict token efficiency (<80 tokens).
-    """
+    """Payload diagnostico ad alta densita garantito sotto la soglia di 80 token."""
+
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
-    top_fault: str = Field(description="Statement ID with highest Ochiai suspiciousness")
+    top_fault: str = Field(
+        description="Identificativo dell'istruzione con massima sospettosita Ochiai"
+    )
     ochiai_score: float = Field(ge=0.0, le=1.0)
     spectrum_tuple: Tuple[int, int, int, int] = Field(
         description="(n_ef, n_ep, n_nf, n_np)"
     )
     top_candidates: List[Tuple[str, float]] = Field(
-        description="List of (statement, score) for top suspicious statements",
-        max_length=5
+        description="Lista di (statement, score) per le prime istruzioni sospette",
+        max_length=5,
     )
     flaky_filtered_count: int = Field(ge=0, default=0)
 
     def to_compact_json(self) -> str:
-        """
-        Returns an ultra-compact JSON representation (<80 tokens).
-        """
+        """Restituisce la rappresentazione JSON ultra-compatta (< 80 token)."""
         candidates_str = ",".join(
             f'["{stmt}",{score:.4f}]' for stmt, score in self.top_candidates
         )
@@ -120,17 +118,14 @@ class OchiaiDiagnosticPayload(BaseModel):
         )
 
     def estimate_token_count(self) -> int:
-        """
-        Estimates the token count based on standard BPE tokenization heuristics (~3.5-4 chars/token).
-        """
+        """Stima il conteggio dei token sulla base della lunghezza in caratteri."""
         payload = self.to_compact_json()
         return math.ceil(len(payload) / 3.2)
 
 
 class TriPassFilterResult(BaseModel):
-    """
-    Result of the Tri-Pass Voting Filter for flaky test eradication.
-    """
+    """Risultato del filtro Tri-Pass Voting per l'eliminazione dei test flaky."""
+
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
     retained_records: List[CoverageRecord]
@@ -140,13 +135,7 @@ class TriPassFilterResult(BaseModel):
 
 
 class CoverageMatrix:
-    """
-    Binary Coverage Matrix A in {0, 1}^(m x n) and Outcome Vector e in {0, 1}^m.
-    - m: number of test cases.
-    - n: number of distinct executable statements.
-    - A[i][j] = 1 if test i executed statement j, else 0.
-    - e[i] = 1 if test i FAILED, 0 if test i PASSED.
-    """
+    """Matrice binaria di copertura A e vettore degli esiti e."""
 
     def __init__(
         self,
@@ -167,18 +156,26 @@ class CoverageMatrix:
                 )
             for val in row:
                 if val not in (0, 1):
-                    raise ValueError(f"Matrix elements must be binary (0 or 1), found {val}")
+                    raise ValueError(
+                        f"Matrix elements must be binary (0 or 1), found {val}"
+                    )
         for out in outcomes:
             if out not in (0, 1):
-                raise ValueError(f"Outcome elements must be binary (0=PASS, 1=FAIL), found {out}")
+                raise ValueError(
+                    f"Outcome elements must be binary (0=PASS, 1=FAIL), found {out}"
+                )
 
         self._statements = list(statements)
         self._test_ids = list(test_ids)
         self._matrix = [list(r) for r in matrix]
         self._outcomes = list(outcomes)
 
-        self._stmt_to_col: Dict[str, int] = {stmt: i for i, stmt in enumerate(self._statements)}
-        self._test_to_row: Dict[str, int] = {t_id: i for i, t_id in enumerate(self._test_ids)}
+        self._stmt_to_col: Dict[str, int] = {
+            stmt: i for i, stmt in enumerate(self._statements)
+        }
+        self._test_to_row: Dict[str, int] = {
+            t_id: i for i, t_id in enumerate(self._test_ids)
+        }
 
     @property
     def statements(self) -> List[str]:
@@ -206,9 +203,7 @@ class CoverageMatrix:
 
     @classmethod
     def from_records(cls, records: Sequence[CoverageRecord]) -> CoverageMatrix:
-        """
-        Constructs binary coverage matrix A and outcome vector e from CoverageRecords.
-        """
+        """Costruisce la matrice di copertura dai CoverageRecord forniti."""
         all_stmts_set = set()
         for rec in records:
             all_stmts_set.update(rec.executed_statements)
@@ -235,9 +230,7 @@ class CoverageMatrix:
         )
 
     def get_spectrum(self, statement: str) -> SpectrumCounts:
-        """
-        Computes (n_ef, n_ep, n_nf, n_np) for a specific statement.
-        """
+        """Calcola (n_ef, n_ep, n_nf, n_np) per una specifica istruzione."""
         if statement not in self._stmt_to_col:
             raise KeyError(f"Statement '{statement}' not found in coverage matrix")
 
@@ -264,11 +257,7 @@ class CoverageMatrix:
 
 
 def calculate_ochiai(spectrum: SpectrumCounts) -> float:
-    """
-    Computes Ochiai suspiciousness metric:
-    S_Ochiai = n_ef / sqrt(n_f * (n_ef + n_ep))
-    Returns 0.0 if denominator is 0.
-    """
+    """Calcola la metrica di sospettosita Ochiai: n_ef / sqrt(n_f * (n_ef + n_ep))."""
     n_ef = float(spectrum.n_ef)
     n_f = float(spectrum.total_failed)
     total_exec = float(spectrum.total_executed)
@@ -282,11 +271,7 @@ def calculate_ochiai(spectrum: SpectrumCounts) -> float:
 
 
 def calculate_tarantula(spectrum: SpectrumCounts) -> float:
-    """
-    Computes Tarantula suspiciousness metric:
-    S_Tarantula = (n_ef / n_f) / ((n_ef / n_f) + (n_ep / n_p))
-    Returns 0.0 if denominator is 0 or no failing tests.
-    """
+    """Calcola la metrica di sospettosita Tarantula."""
     n_f = float(spectrum.total_failed)
     n_p = float(spectrum.total_passed)
 
@@ -309,21 +294,16 @@ def calculate_tarantula(spectrum: SpectrumCounts) -> float:
 
 
 def calculate_dstar(spectrum: SpectrumCounts, alpha: float = 2.0) -> float:
-    """
-    Computes DStar (D*) suspiciousness metric:
-    S_DStar = (n_ef ^ alpha) / (n_ep + n_nf)
-    If (n_ep + n_nf) == 0 and n_ef > 0, returns high score sentinel (1e6 * n_ef).
-    Returns 0.0 if n_ef == 0.
-    """
+    """Calcola la metrica di sospettosita DStar (D*): (n_ef ^ alpha) / (n_ep + n_nf)."""
     n_ef = float(spectrum.n_ef)
     if n_ef == 0.0:
         return 0.0
 
     denominator = float(spectrum.n_ep + spectrum.n_nf)
     if denominator == 0.0:
-        return float(1_000_000.0 * (n_ef ** alpha))
+        return float(1_000_000.0 * (n_ef**alpha))
 
-    return (n_ef ** alpha) / denominator
+    return (n_ef**alpha) / denominator
 
 
 def calibrate_coincidental_correctness(
@@ -331,17 +311,10 @@ def calibrate_coincidental_correctness(
     def_use_weight: float = 0.0,
     gamma: float = 0.5,
 ) -> float:
-    """
-    Calibrates Ochiai suspiciousness score to account for Coincidental Correctness:
-    When a buggy statement is executed in passing tests, coincidental correctness
-    artificially inflates n_ep. Using def-use data propagation factor, we discount n_ep:
-    n_ep_adj = n_ep * (1.0 - gamma * def_use_weight)
-    S_calibrated = n_ef / sqrt(n_f * (n_ef + n_ep_adj))
-    """
+    """Calibra il punteggio Ochiai scontando n_ep tramite il fattore di propagazione Def-Use."""
     n_ef = float(spectrum.n_ef)
     n_f = float(spectrum.total_failed)
 
-    # Constrain weight and gamma to [0.0, 1.0]
     weight = min(1.0, max(0.0, def_use_weight))
     g = min(1.0, max(0.0, gamma))
 
@@ -359,23 +332,21 @@ def calibrate_coincidental_correctness(
 def tri_pass_voting_filter(
     pass_runs: Sequence[Sequence[CoverageRecord]],
 ) -> TriPassFilterResult:
-    """
-    Tri-Pass Voting Filter for flaky test eradication (RULE: 3/3 deterministic matching).
-    - Requires 3 consecutive passes of the test suite.
-    - A test is retained ONLY if outcome is 3/3 unanimous (all PASS or all FAIL).
-    - If outcomes fluctuate across the 3 passes, the test is classified as flaky and purged.
-    """
+    """Applica il filtro Tri-Pass mantenendo solo i test con esito unanime 3 su 3."""
     if len(pass_runs) < 3:
-        raise ValueError(f"Tri-Pass filter requires exactly 3 run passes, got {len(pass_runs)}")
+        raise ValueError(
+            f"Tri-Pass filter requires exactly 3 run passes, got {len(pass_runs)}"
+        )
 
-    # Index records by test_id per pass
     pass_maps: List[Dict[str, CoverageRecord]] = []
     for run in pass_runs[:3]:
         p_map = {rec.test_id: rec for rec in run}
         pass_maps.append(p_map)
 
     all_test_ids = sorted(
-        set(pass_maps[0].keys()) & set(pass_maps[1].keys()) & set(pass_maps[2].keys())
+        set(pass_maps[0].keys())
+        & set(pass_maps[1].keys())
+        & set(pass_maps[2].keys())
     )
 
     retained_records: List[CoverageRecord] = []
@@ -389,23 +360,28 @@ def tri_pass_voting_filter(
         outcomes = (r1.passed, r2.passed, r3.passed)
 
         if outcomes == (True, True, True):
-            # Deterministic PASS: consolidate trace (union of executed statements)
             unified_stmts = sorted(
-                set(r1.executed_statements) | set(r2.executed_statements) | set(r3.executed_statements)
+                set(r1.executed_statements)
+                | set(r2.executed_statements)
+                | set(r3.executed_statements)
             )
             retained_records.append(
-                CoverageRecord(test_id=t_id, passed=True, executed_statements=unified_stmts)
+                CoverageRecord(
+                    test_id=t_id, passed=True, executed_statements=unified_stmts
+                )
             )
         elif outcomes == (False, False, False):
-            # Deterministic FAIL: consolidate trace
             unified_stmts = sorted(
-                set(r1.executed_statements) | set(r2.executed_statements) | set(r3.executed_statements)
+                set(r1.executed_statements)
+                | set(r2.executed_statements)
+                | set(r3.executed_statements)
             )
             retained_records.append(
-                CoverageRecord(test_id=t_id, passed=False, executed_statements=unified_stmts)
+                CoverageRecord(
+                    test_id=t_id, passed=False, executed_statements=unified_stmts
+                )
             )
         else:
-            # Flaky test detected: discordant outcomes across 3 runs
             flaky_test_ids.append(t_id)
 
     total = len(all_test_ids)
@@ -420,9 +396,7 @@ def tri_pass_voting_filter(
 
 
 class SBFLEngine:
-    """
-    Orchestrator for Spectrum-Based Fault Localization diagnostics.
-    """
+    """Orchestratore per la diagnostica Spectrum-Based Fault Localization."""
 
     def __init__(self, alpha: float = 2.0, cc_gamma: float = 0.5) -> None:
         self.alpha = alpha
@@ -433,10 +407,7 @@ class SBFLEngine:
         matrix: CoverageMatrix,
         def_use_weights: Optional[Dict[str, float]] = None,
     ) -> List[SBFLScore]:
-        """
-        Computes Ochiai, Tarantula, DStar and Calibrated Ochiai for all statements in the matrix.
-        Returns ranked list of SBFLScore (descending by Ochiai / Calibrated Ochiai).
-        """
+        """Calcola tutte le metriche SBFL e restituisce la classifica ordinata."""
         weights = def_use_weights or {}
         scores: List[SBFLScore] = []
 
@@ -465,13 +436,11 @@ class SBFLEngine:
                 )
             )
 
-        # Sort descending by calibrated Ochiai, then Ochiai, then DStar
         scores.sort(
             key=lambda x: (x.calibrated_ochiai, x.ochiai, x.dstar),
             reverse=True,
         )
 
-        # Assign 1-indexed ranks
         ranked_scores: List[SBFLScore] = []
         for rank_idx, s in enumerate(scores, start=1):
             ranked_scores.append(
@@ -494,9 +463,7 @@ class SBFLEngine:
         flaky_filtered_count: int = 0,
         top_k: int = 3,
     ) -> OchiaiDiagnosticPayload:
-        """
-        Generates ultra-compact diagnostic payload guaranteed to fit under 80 tokens.
-        """
+        """Genera il payload diagnostico compatto garantito sotto 80 token."""
         if not ranked_scores:
             return OchiaiDiagnosticPayload(
                 top_fault="NONE:0",
@@ -521,10 +488,8 @@ class SBFLEngine:
             flaky_filtered_count=flaky_filtered_count,
         )
 
-        # Safety check for token limit (<80 tokens)
         estimated_tokens = payload.estimate_token_count()
         if estimated_tokens > 80:
-            # Prune candidates to top 1 if token budget is tight
             payload = OchiaiDiagnosticPayload(
                 top_fault=top_item.statement,
                 ochiai_score=top_item.ochiai,
@@ -534,3 +499,47 @@ class SBFLEngine:
             )
 
         return payload
+
+
+def main() -> int:
+    """Interfaccia CLI per l'esecuzione diretta di sbfl_engine.py."""
+    parser = argparse.ArgumentParser(
+        description="Motore Matematico SBFL Ochiai/Tarantula/DStar Nexus Keystone v3.0.0"
+    )
+    parser.add_argument(
+        "--records-file",
+        type=str,
+        default=None,
+        help="File JSON contenente una lista di CoverageRecord",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Stampa il payload diagnostico compatto (< 80 token)",
+    )
+    args = parser.parse_args()
+
+    if args.records_file:
+        raw_data = json.loads(Path(args.records_file).read_text(encoding="utf-8"))
+        records = [CoverageRecord.model_validate(item) for item in raw_data]
+    else:
+        records = [
+            CoverageRecord(
+                test_id="T1", passed=False, executed_statements=["module.py:10"]
+            ),
+            CoverageRecord(
+                test_id="T2", passed=True, executed_statements=["module.py:20"]
+            ),
+        ]
+
+    matrix = CoverageMatrix.from_records(records)
+    engine = SBFLEngine()
+    ranked = engine.analyze(matrix)
+    payload = engine.generate_diagnostic_payload(ranked)
+
+    print(payload.to_compact_json())
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

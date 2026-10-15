@@ -1,10 +1,7 @@
+# -*- coding: utf-8 -*-
 """
-Nexus Keystone v1.1.0-Universal: Dual Ledgers Architecture.
-Compliant with:
-- task_ledger.jsonl: Declarative immutable DAG with SHA-256 hash-chaining and topological validation.
-- progress_ledger.jsonl: Append-only event stream protected by PID-aware file locking with stale detection.
-- Pydantic v2 in Strict Mode.
-- Win32 atomic operations & cross-platform lock fallback.
+Architettura Dual Ledgers per Nexus Keystone v3.0.0-STE100-Unified.
+Gestisce il DAG immutabile dei task e il registro eventi protetto da PID lock.
 """
 
 from __future__ import annotations
@@ -17,10 +14,17 @@ import os
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Sequence, Set, Tuple
-from pydantic import BaseModel, Field, ConfigDict, JsonValue
+from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
 
-TaskStatus = Literal["PENDING", "IN_PROGRESS", "BLOCKED", "COMPLETED", "FAILED", "ROLLED_BACK"]
+TaskStatus = Literal[
+    "PENDING",
+    "IN_PROGRESS",
+    "BLOCKED",
+    "COMPLETED",
+    "FAILED",
+    "ROLLED_BACK",
+]
 EventType = Literal[
     "STARTED",
     "CHECKPOINT",
@@ -30,35 +34,70 @@ EventType = Literal[
     "FAILED",
 ]
 
+PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+STILL_ACTIVE = 259
+ERROR_ACCESS_DENIED = 5
+INVALID_HANDLE_VALUE = ctypes.c_void_p(-1).value
 
-# ----------------------------------------------------------------------
-# CANONICAL HASH HELPERS
-# ----------------------------------------------------------------------
+if os.name == "nt":
+    _kernel32 = ctypes.windll.kernel32
+    _kernel32.OpenProcess.argtypes = [ctypes.c_uint32, ctypes.c_bool, ctypes.c_uint32]
+    _kernel32.OpenProcess.restype = ctypes.c_void_p
+
+    _kernel32.GetExitCodeProcess.argtypes = [
+        ctypes.c_void_p,
+        ctypes.POINTER(ctypes.c_ulong),
+    ]
+    _kernel32.GetExitCodeProcess.restype = ctypes.c_bool
+
+    _kernel32.CloseHandle.argtypes = [ctypes.c_void_p]
+    _kernel32.CloseHandle.restype = ctypes.c_bool
+
+    _kernel32.GetLastError.argtypes = []
+    _kernel32.GetLastError.restype = ctypes.c_uint32
+else:
+    _kernel32 = None
+
+
 def canonical_json_bytes(data: Dict[str, Any]) -> bytes:
-    """Produces deterministic UTF-8 JSON bytes with sorted keys."""
-    return json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    """Genera byte JSON UTF-8 deterministici con chiavi ordinate."""
+    return json.dumps(
+        data,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
 
 
 def sha256_hex(data: bytes) -> str:
+    """Calcola il digest esadecimale SHA-256 dei byte forniti."""
     return hashlib.sha256(data).hexdigest()
 
 
-# ----------------------------------------------------------------------
-# PYDANTIC V2 STRICT MODELS
-# ----------------------------------------------------------------------
 class TaskDAGNode(BaseModel):
+    """Nodo immutabile del grafo aciclico diretto dei task."""
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    task_id: str = Field(description="Unique task identifier in DAG")
-    parent_ids: List[str] = Field(default_factory=list, description="Direct upstream task IDs")
-    action: str = Field(description="Declarative action verb/type")
-    target_agent: str = Field(description="Assigned NK Agent")
-    status: TaskStatus = Field(default="PENDING", description="Current DAG node status")
-    payload: Dict[str, JsonValue] = Field(default_factory=dict, description="Task configuration and payload")
-    created_at: float = Field(default_factory=time.time, description="Creation timestamp")
-    payload_hash: str = Field(description="SHA-256 of canonical payload JSON")
-    prev_hash: str = Field(description="SHA-256 of preceding DAG entry (hash chain link)")
-    node_hash: str = Field(description="SHA-256 of full node content")
+    task_id: str = Field(description="Identificatore univoco del task nel DAG")
+    parent_ids: List[str] = Field(
+        default_factory=list,
+        description="Lista degli ID dei task genitori",
+    )
+    action: str = Field(description="Verbo dichiarativo dell'azione")
+    target_agent: str = Field(description="Agente NK assegnato al task")
+    status: TaskStatus = Field(default="PENDING", description="Stato corrente del nodo")
+    payload: Dict[str, JsonValue] = Field(
+        default_factory=dict,
+        description="Configurazione e dati del task",
+    )
+    created_at: float = Field(
+        default_factory=time.time,
+        description="Timestamp di creazione del nodo",
+    )
+    payload_hash: str = Field(description="Hash SHA-256 del payload JSON canonico")
+    prev_hash: str = Field(description="Hash SHA-256 della voce precedente nel DAG")
+    node_hash: str = Field(description="Hash SHA-256 dell'intero contenuto del nodo")
 
     @classmethod
     def create(
@@ -71,6 +110,7 @@ class TaskDAGNode(BaseModel):
         prev_hash: str = "0" * 64,
         status: TaskStatus = "PENDING",
     ) -> TaskDAGNode:
+        """Crea un nuovo nodo DAG e calcola gli hash crittografici."""
         p_dict = payload or {}
         p_bytes = canonical_json_bytes(p_dict)
         p_hash = sha256_hex(p_bytes)
@@ -102,6 +142,7 @@ class TaskDAGNode(BaseModel):
         )
 
     def verify_integrity(self, expected_prev_hash: str) -> bool:
+        """Verifica la catena di hash SHA-256 del nodo corrente."""
         if self.prev_hash != expected_prev_hash:
             return False
         if sha256_hex(canonical_json_bytes(self.payload)) != self.payload_hash:
@@ -120,25 +161,27 @@ class TaskDAGNode(BaseModel):
 
 
 class ProgressEvent(BaseModel):
+    """Evento sequenziale registrato nel Progress Ledger."""
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    event_id: str = Field(description="Unique event ID")
-    task_id: str = Field(description="Associated DAG task ID")
-    step_index: int = Field(ge=0, description="Sequential step index within task")
-    event_type: EventType = Field(description="Lifecycle event category")
-    timestamp: float = Field(default_factory=time.time, description="Event emission timestamp")
-    details: Dict[str, JsonValue] = Field(default_factory=dict, description="Event payload/metrics")
-    pid: int = Field(default_factory=os.getpid, description="Emitting process ID")
+    event_id: str = Field(description="Identificatore univoco dell'evento")
+    task_id: str = Field(description="Identificatore del task associato")
+    step_index: int = Field(ge=0, description="Indice sequenziale dello step")
+    event_type: EventType = Field(description="Categoria del ciclo di vita")
+    timestamp: float = Field(
+        default_factory=time.time,
+        description="Timestamp di emissione",
+    )
+    details: Dict[str, JsonValue] = Field(
+        default_factory=dict,
+        description="Dettagli e metriche dell'evento",
+    )
+    pid: int = Field(default_factory=os.getpid, description="PID del processo")
 
 
-# ----------------------------------------------------------------------
-# PID-AWARE FILE LOCKING (Win32 + POSIX Fallback)
-# ----------------------------------------------------------------------
 class PIDFileLock:
-    """
-    Cooperative lock file storing the owning PID and timestamp.
-    Includes stale lock detection (>30s or dead PID).
-    """
+    """Gestisce un file di lock cooperativo con verifica di vitalita del PID."""
 
     def __init__(self, lock_file: Path, stale_timeout_sec: float = 30.0) -> None:
         self.lock_file = lock_file
@@ -147,52 +190,63 @@ class PIDFileLock:
 
     @staticmethod
     def _is_pid_alive(pid: int) -> bool:
+        """Verifica se il processo associato al PID esiste ed e attivo."""
         if pid <= 0:
             return False
-        if os.name == "nt":
-            # Win32 check via OpenProcess
-            PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
-            STILL_ACTIVE = 259
-            kernel32 = ctypes.windll.kernel32
-            handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
-            if not handle:
+        if os.name == "nt" and _kernel32 is not None:
+            handle = _kernel32.OpenProcess(
+                PROCESS_QUERY_LIMITED_INFORMATION,
+                False,
+                pid,
+            )
+            if not handle or handle == INVALID_HANDLE_VALUE:
+                err = _kernel32.GetLastError()
+                if err == ERROR_ACCESS_DENIED:
+                    return True
                 return False
-            exit_code = ctypes.c_ulong()
-            kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code))
-            kernel32.CloseHandle(handle)
-            return exit_code.value == STILL_ACTIVE
+            try:
+                exit_code = ctypes.c_ulong()
+                ok = _kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code))
+                if not ok:
+                    return False
+                return exit_code.value == STILL_ACTIVE
+            finally:
+                _kernel32.CloseHandle(handle)
         else:
             try:
                 os.kill(pid, 0)
+                return True
+            except PermissionError:
                 return True
             except OSError:
                 return False
 
     def acquire(self, timeout_sec: float = 5.0) -> bool:
+        """Acquisisce il file di lock e rimuove eventuali lock orfani."""
         deadline = time.time() + timeout_sec
         current_pid = os.getpid()
 
         while time.time() < deadline:
             try:
-                # O_EXCL | O_CREAT guarantees atomic file creation
-                fd = os.open(str(self.lock_file), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                fd = os.open(
+                    str(self.lock_file),
+                    os.O_CREAT | os.O_EXCL | os.O_WRONLY,
+                )
                 with os.fdopen(fd, "w", encoding="utf-8") as f:
                     json.dump({"pid": current_pid, "timestamp": time.time()}, f)
                 self.acquired = True
                 return True
             except FileExistsError:
-                # Lock exists - check if stale
                 try:
                     content = self.lock_file.read_text(encoding="utf-8")
                     lock_data = json.loads(content)
-                    lock_pid = lock_data.get("pid", 0)
-                    lock_time = lock_data.get("timestamp", 0)
+                    lock_pid = int(lock_data.get("pid", 0))
+                    lock_time = float(lock_data.get("timestamp", 0.0))
 
                     is_stale_time = (time.time() - lock_time) > self.stale_timeout_sec
                     is_dead_pid = not self._is_pid_alive(lock_pid)
 
                     if is_stale_time or is_dead_pid:
-                        # Break stale lock safely
                         try:
                             self.lock_file.unlink()
                         except OSError:
@@ -205,6 +259,7 @@ class PIDFileLock:
         return False
 
     def release(self) -> None:
+        """Rilascia ed elimina il file di lock acquisito."""
         if self.acquired and self.lock_file.exists():
             try:
                 self.lock_file.unlink()
@@ -214,20 +269,15 @@ class PIDFileLock:
 
     def __enter__(self) -> PIDFileLock:
         if not self.acquire():
-            raise TimeoutError(f"Could not acquire lock: {self.lock_file}")
+            raise TimeoutError(f"Impossibile acquisire il lock: {self.lock_file}")
         return self
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         self.release()
 
 
-# ----------------------------------------------------------------------
-# TASK LEDGER (Immutable DAG)
-# ----------------------------------------------------------------------
 class TaskLedger:
-    """
-    Manages task_dag.jsonl: Declarative immutable DAG with hash-chaining.
-    """
+    """Gestisce il registro immutabile dei task con catena crittografica SHA-256."""
 
     def __init__(self, ledger_path: Path | str) -> None:
         self.ledger_path = Path(ledger_path)
@@ -237,6 +287,7 @@ class TaskLedger:
         self._load_and_verify()
 
     def _load_and_verify(self) -> None:
+        """Carica i nodi dal disco e verifica la catena di integrita."""
         self._nodes.clear()
         self._last_hash = "0" * 64
 
@@ -267,6 +318,7 @@ class TaskLedger:
         parent_ids: Sequence[str] = (),
         payload: Optional[Dict[str, Any]] = None,
     ) -> TaskDAGNode:
+        """Aggiunge un nuovo task al DAG sotto protezione PID lock."""
         if task_id in self._nodes:
             raise ValueError(f"Duplicate task_id: {task_id}")
 
@@ -284,7 +336,6 @@ class TaskLedger:
             status="PENDING",
         )
 
-        # Append atomically under PID lock
         lock = PIDFileLock(self.ledger_path.with_suffix(".lock"))
         with lock:
             with open(self.ledger_path, "a", encoding="utf-8") as f:
@@ -295,15 +346,15 @@ class TaskLedger:
         return node
 
     def get_task(self, task_id: str) -> Optional[TaskDAGNode]:
+        """Restituisce il nodo associato all'identificatore specificato."""
         return self._nodes.get(task_id)
 
     def list_tasks(self) -> List[TaskDAGNode]:
+        """Restituisce la lista completa dei nodi nel DAG."""
         return list(self._nodes.values())
 
     def verify_dag(self) -> Tuple[bool, str]:
-        """
-        Validates topological sorting and ensures no cycles exist in DAG.
-        """
+        """Esegue l'ordinamento topologico di Kahn e rileva eventuali cicli."""
         in_degree: Dict[str, int] = {k: 0 for k in self._nodes}
         adj: Dict[str, List[str]] = collections.defaultdict(list)
 
@@ -328,23 +379,19 @@ class TaskLedger:
         return True, "DAG is valid and acyclic"
 
     def get_roots(self) -> List[TaskDAGNode]:
+        """Restituisce i nodi radice privi di dipendenze in ingresso."""
         return [n for n in self._nodes.values() if not n.parent_ids]
 
     def get_leaves(self) -> List[TaskDAGNode]:
+        """Restituisce i nodi foglia privi di nodi dipendenti."""
         all_parents: Set[str] = set()
         for n in self._nodes.values():
             all_parents.update(n.parent_ids)
         return [n for n in self._nodes.values() if n.task_id not in all_parents]
 
 
-# ----------------------------------------------------------------------
-# PROGRESS LEDGER (Append-Only Event Stream)
-# ----------------------------------------------------------------------
 class ProgressLedger:
-    """
-    Manages progress_ledger.jsonl: High-frequency append-only event stream
-    protected by PID-aware file locking.
-    """
+    """Gestisce il flusso append-only degli eventi di avanzamento."""
 
     def __init__(self, ledger_path: Path | str) -> None:
         self.ledger_path = Path(ledger_path)
@@ -359,6 +406,7 @@ class ProgressLedger:
         event_type: EventType,
         details: Optional[Dict[str, Any]] = None,
     ) -> ProgressEvent:
+        """Registra un nuovo evento in coda al file protetto da lock."""
         event = ProgressEvent(
             event_id=event_id,
             task_id=task_id,
@@ -375,6 +423,7 @@ class ProgressLedger:
         return event
 
     def read_events(self, task_id: Optional[str] = None) -> List[ProgressEvent]:
+        """Legge gli eventi registrati e filtra opzionalmente per task."""
         if not self.ledger_path.exists():
             return []
 
@@ -391,5 +440,6 @@ class ProgressLedger:
         return events
 
     def get_latest_event(self, task_id: str) -> Optional[ProgressEvent]:
+        """Restituisce l'ultimo evento registrato per il task indicato."""
         events = self.read_events(task_id)
         return events[-1] if events else None

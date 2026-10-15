@@ -1,19 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-Nexus Keystone v2.6.0-DualEngine-Symbiosis
-IPC Contracts & Pydantic v2 Schemas (Strict Mode)
-CRV 4.0 Protocol Compliant
+Contratti IPC e schemi Pydantic v2 per Nexus Keystone v3.0.0-STE100-Unified.
+Tutti i modelli applicano la validazione rigorosa e vietano campi extra.
 """
 
-from typing import Literal, Optional, List, Dict
+from typing import Dict, List, Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 
 class IPCPointerReturn(BaseModel):
-    """
-    Compact IPC Pointer Return contract (<80 tokens).
-    Passes references to atomic storage payloads instead of large inline objects.
-    """
+    """Contratto compatto di ritorno per puntatori IPC sotto 80 token."""
+
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     status: Literal["OK", "ERROR"] = "OK"
@@ -25,10 +22,8 @@ class IPCPointerReturn(BaseModel):
 
 
 class OchiaiDiagnosticPayload(BaseModel):
-    """
-    Ochiai Fault Localization Diagnostic Payload (<80 tokens).
-    Calculates suspiciousness ranking for localized software components.
-    """
+    """Contratto diagnostico Ochiai per la localizzazione dei guasti sotto 80 token."""
+
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     component_id: str
@@ -40,10 +35,8 @@ class OchiaiDiagnosticPayload(BaseModel):
 
 
 class TwoPhaseCommitPrepare(BaseModel):
-    """
-    2PC Phase 1 (Prepare) Contract.
-    Captures intent, staging paths, and cryptographic integrity hashes.
-    """
+    """Contratto della Fase 1 (Prepare) per il motore transazionale 2PC."""
+
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     transaction_id: str
@@ -56,9 +49,8 @@ class TwoPhaseCommitPrepare(BaseModel):
 
 
 class TwoPhaseCommitVerdict(BaseModel):
-    """
-    2PC Phase 2 (Commit/Abort) Verdict Contract.
-    """
+    """Contratto della Fase 2 (Commit o Abort) per il motore transazionale 2PC."""
+
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     transaction_id: str
@@ -69,9 +61,8 @@ class TwoPhaseCommitVerdict(BaseModel):
 
 
 class GateEvaluationResult(BaseModel):
-    """
-    Evaluation verdict from Quality/Security Gates.
-    """
+    """Verdetto di valutazione emesso dai gate di sicurezza e qualita."""
+
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     gate_name: str
@@ -83,9 +74,8 @@ class GateEvaluationResult(BaseModel):
 
 
 class DASTSandboxReport(BaseModel):
-    """
-    Dynamic Application Security Testing (DAST) Sandbox Execution Report.
-    """
+    """Rapporto di esecuzione dinamica generato dalla sandbox DAST."""
+
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     sandbox_id: str
@@ -98,10 +88,8 @@ class DASTSandboxReport(BaseModel):
 
 
 class RRFSearchQuery(BaseModel):
-    """
-    Reciprocal Rank Fusion (RRF) Hybrid Search Query Contract.
-    Combines vector and BM25 search rank scores.
-    """
+    """Contratto di ricerca ibrida basato su Reciprocal Rank Fusion."""
+
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     query_text: str
@@ -112,9 +100,8 @@ class RRFSearchQuery(BaseModel):
 
 
 class MicroUIHUDState(BaseModel):
-    """
-    Real-time State for Micro-UI / Status HUD.
-    """
+    """Stato in tempo reale per il renderer telemetrico Micro-HUD."""
+
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     session_id: str
@@ -126,9 +113,8 @@ class MicroUIHUDState(BaseModel):
 
 
 class RootCauseAnalysis(BaseModel):
-    """
-    RCA metadata for unattended execution blocks (C3 Protocol).
-    """
+    """Metadati RCA per blocchi di esecuzione non presidiata (Protocollo C3)."""
+
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     blocked_resource_type: str
@@ -139,9 +125,8 @@ class RootCauseAnalysis(BaseModel):
 
 
 class StagingSnapshot(BaseModel):
-    """
-    Snapshot of modified staged files prior to unattended block/failure.
-    """
+    """Snapshot dei file modificati in staging prima di un blocco operativo."""
+
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     staging_path: str
@@ -150,12 +135,14 @@ class StagingSnapshot(BaseModel):
 
 
 class GoalFailureManifest(BaseModel):
-    """
-    Goal Execution Failure Manifest (C3 Unattended Failure Protocol).
-    Emitted when an unattended /goal execution is blocked by unavailable external resources,
-    strictly preventing the generation of fake mocks.
-    """
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True)
+    """Manifesto di fallimento emesso quando una risorsa esterna blocca il task."""
+
+    model_config = ConfigDict(
+        strict=True,
+        extra="forbid",
+        frozen=True,
+        populate_by_name=True,
+    )
 
     schema_version: Optional[str] = Field(
         default="https://json-schema.org/draft/2020-12/schema",
@@ -165,8 +152,72 @@ class GoalFailureManifest(BaseModel):
     timestamp: float
     session_id: str
     milestone_anchor_id: str
-    status: Literal["UNATTENDED_BLOCKED", "FAILED", "CIRCUIT_BREAKER_TRIPPED"] = "UNATTENDED_BLOCKED"
+    status: Literal[
+        "UNATTENDED_BLOCKED",
+        "FAILED",
+        "CIRCUIT_BREAKER_TRIPPED",
+    ] = "UNATTENDED_BLOCKED"
     root_cause_analysis: RootCauseAnalysis
     staging_snapshot: StagingSnapshot
     user_remediation_steps: List[str] = Field(default_factory=list)
     resume_command: str = "/goal --resume"
+
+
+try:
+    from rsi_convergence_engine import (
+        RSIDefectVector,
+        RSIIterationRecord,
+        RSISessionReport,
+    )
+except Exception:
+    try:
+        from scripts.rsi_convergence_engine import (
+            RSIDefectVector,
+            RSIIterationRecord,
+            RSISessionReport,
+        )
+    except Exception:
+
+        class RSIDefectVector(BaseModel):
+            """Vettore dei difetti rilevati in una singola iterazione del motore RSI."""
+
+            model_config = ConfigDict(strict=True, extra="forbid")
+
+            sast: int = Field(default=0, ge=0)
+            t_fail: int = Field(default=0, ge=0)
+            c_violations: int = Field(default=0, ge=0)
+            h_violations: int = Field(default=0, ge=0)
+            m_gaps: int = Field(default=0, ge=0)
+            l_warnings: int = Field(default=0, ge=0)
+            g_drift: int = Field(default=0, ge=0)
+            t_pass: int = Field(default=0, ge=0)
+            t_total: int = Field(default=1, ge=1)
+
+        class RSIIterationRecord(BaseModel):
+            """Singolo record crittografico di iterazione per il ledger RSI."""
+
+            model_config = ConfigDict(strict=True, extra="forbid")
+
+            iteration: int = Field(ge=0)
+            delta_k: float = Field(ge=0.0)
+            fitness_q: float = Field(ge=0.0, le=100.0)
+            status: str
+            state_hash: str
+            prev_hash: str = "0" * 64
+            record_hash: str = ""
+            timestamp_utc: float = 0.0
+
+        class RSISessionReport(BaseModel):
+            """Rapporto finale di convergenza prodotto dal motore RSI."""
+
+            model_config = ConfigDict(strict=True, extra="forbid")
+
+            session_id: str
+            mode: Literal["mode_a", "mode_b", "mode_c", "verify"] = "mode_a"
+            converged: bool
+            final_status: str
+            iterations_used: int = Field(ge=0)
+            final_delta: float = Field(ge=0.0)
+            final_fitness_q: float = Field(ge=0.0, le=100.0)
+            records: List[RSIIterationRecord] = Field(default_factory=list)
+

@@ -1,19 +1,24 @@
-# 🔬 Specifiche Operative degli Oracoli Deterministici (CRV 2.0)
+# 🔬 Specifiche degli Oracoli Deterministici (CRV 4.0 : `v3.0.0-STE100-Unified`)
 
-## 1. DOM Reader Oracle (Chrome DevTools / Puppeteer)
-- **Scopo:** Ispezionare gli elementi reali del DOM renderizzato dall'applicazione web nel browser.
-- **Tool Usato:** `chrome-devtools-mcp` -> `evaluate_script` oppure `puppeteer` -> `puppeteer_evaluate`.
-- **Timeout:** 20 secondi (con kill ricorsivo `psutil` in caso di hang).
-- **Regola:** Leggere `innerText` o `value` dei selettori specificati nel test (es. `#ceTableBody tr:last-child td:nth-child(2)`).
+> **Nodo Proprietario:** `NK-Oracle-Evaluator` (`[RULE-01.1]`, `[RULE-RSI]`).  
+> **Standard Linguistico:** ASD-STE100 Italiano Tecnico (`[RULE-STE100]`).
 
-## 2. AST & Sandbox Oracle (Python Execution Engine)
-- **Scopo:** Eseguire l'analisi sintattica (`ast.parse`) e i test unitari in un ambiente effimero (%TEMP%).
-- **Timeout:** 10 secondi.
-- **Requisito:** Exit Code `0`. Qualsiasi exit code > 0 determina la bocciatura immediata della patch.
+---
 
-## 3. Math Ground Truth Oracle (Extractor Engine)
-- **Scopo:** Estrarre la tabella di verità (Ground Truth) direttamente dal file sorgente dell'utente (ODS, PDF, XLSX) tramite librerie esterne isolate (`pandas`, `ezodf`, `pypdf`).
-- **Verifica:** Calcolo della discrepanza assoluta $| \text{Valore DOM} - \text{Valore Sorgente} |$. Tolleranza massima per arrotondamenti: $\le €0.01$.
+## 1. AST & Sandbox Oracle (`scripts/ast_guard_validator.py`)
+1. **Scopo:** Verifica la validità sintattica (`ast.parse`), la preservazione delle firme e l'esecuzione dei test unitari in `%TEMP%\nk_sandbox_<uuid>\`.
+2. **Timeout:** 30 secondi con terminazione ricorsiva dell'albero processi tramite `psutil`.
+3. **Criterio di Superamento:** `exit_code: 0` e zero violazioni strutturali rilevate.
 
-## 4. Visual Layout Oracle (Visual Diffing)
-- **Scopo:** Catturare uno screenshot headless tramite Puppeteer per verificare assenza di sovrapposizioni visive o UI freeze.
+## 2. DOM & UI Structure Oracle (`scripts/oracle_evaluator_l3.py`)
+1. **Scopo:** Valida la struttura DOM HTML5 (ignorando correttamente i void tag HTML5) e ispeziona il rendering tramite `chrome-devtools-mcp` o `/browser`.
+2. **Timeout:** 20 secondi.
+3. **Criterio di Superamento:** Assenza di tag non chiusi, zero errori nella console browser e presenza dei selettori richiesti.
+
+## 3. Math Ground Truth & Ratchet Oracle (`scripts/quality_baseline_manager.py`)
+1. **Scopo:** Confronta i risultati numerici e la percentuale di superamento dei 100 Golden Tests (`[RULE-01.10]`) contro `nk_tracking/quality_baseline.json`.
+2. **Criterio di Superamento:** Pass rate pari al `100.0%` e zero regressioni rispetto alla baseline registrata.
+
+## 4. RSI Convergence Oracle (`scripts/rsi_convergence_engine.py --verify`)
+1. **Scopo:** Verifica che $\Delta_k$ sia pari a `0` e che la fitness $Q(S_k)$ sia `100.0`.
+2. **Criterio di Superamento:** Stato finale `CONVERGED_OPTIMAL` e conformità verificata allo standard `[RULE-STE100]`.

@@ -1,10 +1,41 @@
 # 🗺️ HIGH-DENSITY AST REPO-MAP (Tetralogia Sovrana Snapshot)
 
+## 📄 scripts/sbfl_engine.py
+  class SpectrumCounts: [total_failed, total_passed, total_executed, total_tests]
+  class DefUseWeight: []
+  class CoverageRecord: []
+  class SBFLScore: []
+  class OchiaiDiagnosticPayload: [to_compact_json, estimate_token_count]
+  class TriPassFilterResult: []
+  class CoverageMatrix: [__init__, statements, test_ids, num_tests, num_statements, matrix, outcomes, from_records, get_spectrum]
+  class SBFLEngine: [__init__, analyze, generate_diagnostic_payload]
+  functions: [calculate_ochiai, calculate_tarantula, calculate_dstar, calibrate_coincidental_correctness, tri_pass_voting_filter, main]
+
 ## 📄 scripts/micro_hud_renderer.py
   class GateEntry: []
   class HUDState: []
-  class MicroHUDRenderer: [__init__, set_ascii_mode, set_progress, set_gate, set_all_gates, set_mutex, set_tier1_budget, set_agent_context, set_elapsed_time, _build_progress_bar, _build_gates_string, _render_internal, render, render_markdown_block, render_pulse]
+  class MicroHUDRenderer: [__init__, set_ascii_mode, set_progress, set_gate, set_all_gates, set_mutex, set_tier1_budget, set_agent_context, set_elapsed_time, set_rsi_metrics, to_ipc_state, _build_progress_bar, _build_gates_string, _render_internal, render, render_markdown_block, render_pulse]
   functions: [reconfigure_streams, is_unicode_stream_supported, main]
+
+## 📄 scripts/ast_repo_mapper.py
+  class SymbolType: [MODULE, CLASS, METHOD, FUNCTION, ASYNC_FUNCTION, CONSTANT, IMPORT, TYPE_ALIAS, JS_COMPONENT, CSS_RULE]
+  class EdgeType: [CALL, INHERITANCE, TYPE_REFERENCE, IMPORT_USAGE, CONTAINMENT, ATTRIBUTE_ACCESS]
+  class SymbolNode: []
+  class SymbolEdge: []
+  class SymbolGraph: [add_node, add_edge, get_node]
+  class PageRankResult: []
+  class SliceResult: []
+  class RepoMapConfig: []
+  class RepoMapResult: []
+  class ResilientParser: [parse_safe, _recover_ast_chunks, _offset_linenos, _extract_stubs_from_broken_block]
+  class SymbolExtractor: [__init__, _register_name_mapping, _get_raw_source, _format_signature, _format_arguments, visit_Import, visit_ImportFrom, visit_Assign, visit_ClassDef, visit_FunctionDef, visit_AsyncFunctionDef, _process_function, _link_type_references, visit_Call]
+  class PolyglotExtractor: [extract_symbols, _extract_js_ts, _extract_css, _extract_html]
+  class PersonalizedPageRank: [compute]
+  class KarpathySurgicalSlicer: [slice_module, _multi_focal_compress, _render_slice_nodes, _render_node_skeleton]
+  class AtomicCacheManager: [get_default_cache_path, save_atomic, load_safe]
+  class RepoMapGenerator: [generate, _link_cross_module_edges, _render_expanded_module, _render_inline_compact_module, _render_two_tier_map]
+  class GraduatedSkillAdapter: [get_token_budget]
+  functions: [estimate_tokens, export_markdown_snapshot, main]
 
 ## 📄 scripts/ast_guard_validator.py
   class ViolationType: [SYNTAX_ERROR, SIGNATURE_MUTATION, UNAUTHORIZED_DELETION, UNDEFINED_NAME, MALFORMED_IMPORT, TYPE_MISMATCH]
@@ -12,20 +43,97 @@
   class FunctionSignatureSnapshot: []
   class ValidationReport: []
   class SignatureCollector: [__init__, visit_ClassDef, visit_Import, visit_ImportFrom, _extract_target_names, visit_Assign, visit_AnnAssign, visit_For, visit_AsyncFor, visit_With, visit_AsyncWith, visit_ExceptHandler, visit_TypeAlias, visit_FunctionDef, visit_AsyncFunctionDef, _record_function]
-  class ScopeIntegrityChecker: [__init__, _current_visible_names, visit_Lambda, visit_ClassDef, visit_FunctionDef, visit_AsyncFunctionDef, _process_func, _extract_target_names, visit_Match, _extract_pattern_bindings, visit_TypeAlias, _visit_comprehension_common, visit_ListComp, visit_SetComp, visit_GeneratorExp, visit_DictComp, visit_kv, visit_NamedExpr, visit_Name]
+  class ScopeIntegrityChecker: [__init__, _current_visible_names, visit_Lambda, visit_ClassDef, visit_FunctionDef, visit_AsyncFunctionDef, _process_func, _extract_target_names, visit_Match, _extract_pattern_bindings, visit_TypeAlias, _visit_comprehension_common, visit_ListComp, visit_SetComp, visit_GeneratorExp, visit_DictComp, visit_NamedExpr, visit_Name]
   class ASTGuardValidator: [validate_code_edit, _parse_or_report, _verify_signatures]
-  functions: [main]
+  functions: [_resolve_production_counterpart, main]
 
-## 📄 scripts/nk_active_runtime_sentinel.py
-  functions: [calculate_state, run_sentinel, main]
+## 📄 scripts/rsi_convergence_engine.py
+  class RSIDefectVector: [effective_totals]
+  class RSIIterationRecord: []
+  class RSISessionReport: []
+  class RSIConvergenceEngine: [__init__, get_max_iterations, compute_delta, compute_fitness, is_converged, check_hard_gate_regression, compute_files_state_hash, _compute_record_hash, _get_last_telemetry_hash, append_telemetry_record, verify_telemetry_chain, run_convergence_loop, _resolve_candidate, verify_ecosystem]
+  functions: [reconfigure_streams, compute_delta, compute_fitness, verify_ste100_compliance, main]
+
+## 📄 scripts/win32_2pc_engine.py
+  class Win32LockError: []
+  class Win32LockTimeoutError: []
+  class TwoPhaseCommitError: []
+  class Win32NamedMutex: [__init__, __enter__, __exit__, acquire, release, _cleanup_handle]
+  class WriteAheadLogManager: [__init__, _get_wal_dir, get_wal_path, write_wal, update_wal_state, purge_wal, recover]
+  class TwoPhaseCommitEngine: [__init__, _backoff_sleep, prepare, commit, abort, _execute_atomic_commit, _shadow_swap_fallback, atomic_write, atomic_write_async, create_ipc_pointer]
+  functions: [compute_sha256, compute_crc32, get_mutex_name_for_path, record_session_anchor_commit, promote_staging_to_production, main]
+
+## 📄 scripts/memory_3tier_engine.py
+  class MemoryEpisode: [_validate_and_normalize_domain]
+  class Tier1Item: []
+  class Tier1DomainState: []
+  class PureBM25: [__init__, _tokenize, score]
+  class DenseEmbedder: [vector_from_text, cosine_similarity]
+  class HybridRRFSearchEngine: [__init__, search]
+  class Tier1CoreMemory: [__init__, set_item, get_item, get_token_usage, get_context_string, _enforce_budget]
+  class ThreeTierMemoryEngine: [__init__, _init_storage, append_episode, get_tier2_episodes, get_tier3_episodes, recall_hybrid, _archive_to_tier3, _load_tier2_raw, _read_shadow_cache, _update_shadow_cache]
+  functions: [resolve_domain, win32_atomic_replace, rotate_circular_backups, estimate_tokens]
+
+## 📄 scripts/dast_sandbox_runner.py
+  class PROCESSENTRY32: []
+  class PROCESS_MEMORY_COUNTERS: []
+  class SandboxConfig: []
+  class CoverageTraceItem: [statement_id]
+  class SandboxTelemetryReport: []
+  class ShadowSandbox: [__init__, create, write_file, copy_file, copy_tree, cleanup, __enter__, __exit__, __aenter__, __aexit__]
+  class DASTSandboxRunner: [__init__, run_in_sandbox, _watchdog, _kill_process_tree]
+  functions: [_handle_remove_readonly, _get_process_memory_rss, _generate_trace_harness_script, main, _run]
+
+## 📄 scripts/nk_compliance_checker.py
+  class NKComplianceChecker: [__init__, audit_transcript]
+  functions: [reconfigure_streams, _is_subagent_transcript, find_active_transcript, _is_production_code_write, main]
 
 ### 📦 Moduli Secondari (Riepilogo Compatto)
-- `scripts/*`: ast_repo_mapper.py, sbfl_engine.py, deterministic_api_cache.py, oracle_evaluator_l3.py, memory_3tier_engine.py, dast_sandbox_runner.py, invisible_healing_loop.py, win32_2pc_engine.py, sbfl_pytest_bridge.py, healing_snapshot_rollback.py, preflight_health_check.py, external_project_scaffolder.py, vibe_sprint_router.py, async_heartbeat_signaler.py, nk_compliance_checker.py, auto_heal_pipeline.py, nk_context_sentry.py, nk_session_bootstrap.py, quality_baseline_manager.py, nk_swarm_messenger.py, env_capability_probe.py, platform_runner.py, safe_cleanup_dev_servers.py, nk_auto_inning.py, nk_session_handoff.py
-- `scripts/schemas/*`: dual_ledgers.py, nk_ipc_contracts.py
-- `.agents/skills/NK-Master-Hub/scripts/*`: run_hub.py, change_router.py, ipc_engine.py, safe_parser.py, test_hub.py
-- `google-docs-mcp/*`: server.py, auth.py, cli.py
-- `.agents/skills/NK-Oracle-Evaluator/resources/*`: dual_state_visual_comparator.py, runtime_trace_inspector.py
-- `.agents/skills/NK-Dynamic-Sandbox-StressTester/resources/*`: phase2_chaos_swarm_runner.py, dynamic_pool_dispatcher.py, phase1_surgical_runner.py
-- `.agents/skills/NK-Security-Auditor/resources/l1/*`: peer_review_validator.py, token_weighted_allocator.py, swarm_aggregator.py
+- `scripts/nk_context_sentry.py`: [NKContextSentry, reconfigure_streams, main]
+- `scripts/nk_session_bootstrap.py`: [NKSessionBootstrap, reconfigure_streams, main]
+- `scripts/oracle_evaluator_l3.py`: [DOMNode, DOMDeltaItem, DOMEvaluationReport, _DOMBuilderParser, DOMOracleEvaluator]
+- `scripts/schemas/nk_ipc_contracts.py`: [IPCPointerReturn, OchiaiDiagnosticPayload, TwoPhaseCommitPrepare, TwoPhaseCommitVerdict, GateEvaluationResult, DASTSandboxReport, RRFSearchQuery, MicroUIHUDState, RootCauseAnalysis, StagingSnapshot, GoalFailureManifest, RSIDefectVector, RSIIterationRecord, RSISessionReport]
+- `scripts/deterministic_api_cache.py`: [DeterministicApiCache, main]
+- `scripts/schemas/dual_ledgers.py`: [TaskDAGNode, ProgressEvent, PIDFileLock, TaskLedger, ProgressLedger]
+- `scripts/invisible_healing_loop.py`: [SBFLLocation, CodeSlice, HealingCycleLog, HealingResult, DSPyTelemetryRecord, KarpathySlicer, SBFLEngine, DSPyTelemetryHook, InvisibleHealingLoop]
+- `scripts/healing_snapshot_rollback.py`: [FitnessVerdict, FitnessReport, FileSnapshot, SnapshotBundle, HealingSnapshotManager]
+- `scripts/sbfl_pytest_bridge.py`: [PytestRunSummary, OchiaiBridgeLocation, SBFLPytestBridge]
+- `scripts/auto_heal_pipeline.py`: [AutoHealSessionReport, AutoHealPipeline, normalize_test_command]
+- `scripts/external_project_scaffolder.py`: [ExternalProjectScaffolder, main]
+- `scripts/preflight_health_check.py`: [PreflightHealthChecker, safe_remove_dir, on_error]
+- `scripts/vibe_sprint_router.py`: [_ASTDepthVisitor, VibeSprintRouter, run_test]
+- `scripts/async_heartbeat_signaler.py`: [AsyncHeartbeatSignaler, run_standalone_test]
+- `tests/test_dast_sandbox.py`: [TestDASTSandbox]
+- `tests/test_ast_guard_validator.py`: [TestASTGuardValidator]
+- `tests/test_schemas_and_contracts.py`: [TestSchemasAndContracts]
+- `tests/test_sbfl_engine.py`: [TestSBFLEngine]
+- `tests/test_memory_3tier.py`: [TestMemory3TierEngine]
+- `tests/test_win32_2pc.py`: [TestWin322PCEngine]
+- `tests/test_ast_repo_mapper.py`: [TestASTRepoMapper]
+- `tests/test_rsi_convergence_engine.py`: [_load_rsi_module, test_rsi_delta_and_fitness_monotonicity, test_rsi_guardrail_g1_early_stop_zero_defects]
+- `scripts/platform_runner.py`: [reconfigure_streams, _normalize_python_command, _kill_process_tree_sync]
+- `scripts/nk_swarm_messenger.py`: [reconfigure_streams, process_payload, main]
+- `scripts/env_capability_probe.py`: [reconfigure_streams, check_module_availability, probe_environment]
+- `tests/test_super_brief_upgrades.py`: [_import_module, _import_ipc_contracts, test_platform_runner_v2_unbuffered_normalization]
+- `tests/test_auto_heal_pipeline.py`: [_import_module, test_sbfl_pytest_bridge_parsing_and_ochiai, test_healing_snapshot_and_rollback]
+- `tests/test_platform_runner.py`: [_load_runner_module, test_platform_runner_string_command_unbuffered_injection, test_platform_runner_tree_kill_on_timeout_and_utf8]
+- `scripts/nk_active_runtime_sentinel.py`: [calculate_state, _discover_active_transcript, run_sentinel]
+- `tests/test_active_sentinel_suite.py`: [test_active_runtime_sentinel_states, _resolve_script, test_session_handoff_capsule_and_stash]
+- `scripts/quality_baseline_manager.py`: [load_baseline, create_default_baseline, check_baseline_compliance]
+- `tests/test_env_capability_probe.py`: [_load_probe_module, test_env_probe_core_vs_optional_separation_and_gt09_invariance]
+- `tests/test_external_scaffolder.py`: [_load_scaffolder_module, test_external_scaffolder_rejects_hub_internal_path, test_external_scaffolder_generates_full_ddd_and_tetralogy]
+- `tests/test_safe_cleanup_dev_servers.py`: [_load_cleanup_module, test_safe_cleanup_workspace_filter_cwd_and_cmdline, test_safe_cleanup_protects_current_pid]
+- `tests/test_deterministic_api_cache.py`: [_load_cache_module, test_api_cache_persistent_wal_connection_and_close, test_api_cache_ttl_expiration_and_eviction]
+- `scripts/safe_cleanup_dev_servers.py`: [is_target_workspace_process, get_pids_listening_on_ports, kill_pid_tree]
+- `tests/test_preflight_health_check.py`: [_load_preflight_module, test_preflight_corrupted_baseline_fails_even_with_autofix, test_preflight_check_only_cli_mode]
+- `tests/test_quality_baseline_manager.py`: [_load_baseline_module, test_baseline_fail_closed_on_corrupted_json, test_baseline_ratchet_regression_rejection_exit_1]
+- `tests/test_vibe_sprint_router.py`: [_load_router_module, test_vibe_sprint_router_real_ast_max_depth_and_routing]
+- `scripts/nk_session_handoff.py`: [_read_baseline_tests_count, main]
+- `scripts/nk_auto_inning.py`: [main]
+- `tests/conftest.py`: [temp_test_dir, clean_sandbox_dir]
+- `tests/test_platform_upgrades.py`: [test_env_capability_probe, test_platform_runner_safe_run, test_pytest_ini_content]
+- `tests/test_context_sentry.py`: [test_estimate_tokens, test_format_head_tail, test_get_traffic_light_status]
+- `tests/test_unified_onboarding_mandate.py`: [test_agents_md_rule_00_5_definition, test_master_hub_15_nodes_and_guidance, test_session_controller_boundary_10]
+- `tests/*`: test_oracle_l3_and_hud.py
 - `tests/stress/*`: test_real_sandbox_stress.py
-- `tests/*`, `.agents/skills/NK-Oracle-Evaluator/scripts/*`, `nk_tracking/cockpit/*`, `.agents/skills/NK-Bug-Diagnostic-Engine/resources/*`
+- `nk_tracking/cockpit/*`: nk_cockpit.html

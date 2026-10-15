@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Nexus Keystone v1.1.0-Universal
-Test Module 3: SBFL Fault Localization Engine
-7 Tests: Ochiai, Tarantula, DStar, Def-Use Discount, Tri-Pass Filter, Token Cap, Coverage Matrix.
+Nexus Keystone v3.0.0-STE100-Unified
+Modulo di test 3: SBFL Fault Localization Engine.
 """
 
 from __future__ import annotations
@@ -47,7 +46,7 @@ class TestSBFLEngine(unittest.TestCase):
 
     # 15. test_ochiai_mathematical_precision
     def test_ochiai_mathematical_precision(self):
-        """15. Validates Ochiai formula precision: nef / sqrt(nf * (nef + nep))."""
+        """15. Valida la precisione della formula Ochiai."""
         spec_s1 = self.matrix.get_spectrum("s1")
         och_s1 = calculate_ochiai(spec_s1)
         expected_s1 = 2.0 / math.sqrt(6.0)
@@ -58,21 +57,21 @@ class TestSBFLEngine(unittest.TestCase):
 
     # 16. test_tarantula_calculation_precision
     def test_tarantula_calculation_precision(self):
-        """16. Validates Tarantula formula precision with zero division safeguards."""
+        """16. Valida la precisione della formula Tarantula con guardia divisione per zero."""
         spec_s1 = self.matrix.get_spectrum("s1")
         tar_s1 = calculate_tarantula(spec_s1)
         self.assertAlmostEqual(tar_s1, 0.75, places=6)
 
     # 17. test_dstar_alpha_scaling
     def test_dstar_alpha_scaling(self):
-        """17. Validates DStar formula with alpha=2.0."""
+        """17. Valida la formula DStar con alpha=2.0."""
         spec_s1 = self.matrix.get_spectrum("s1")
         dst_s1 = calculate_dstar(spec_s1, alpha=2.0)
         self.assertAlmostEqual(dst_s1, 4.0, places=6)
 
     # 18. test_coincidental_correctness_def_use
     def test_coincidental_correctness_def_use(self):
-        """18. Validates Def-Use coincidental correctness calibration."""
+        """18. Valida la calibrazione Def-Use della coincidental correctness."""
         spec = SpectrumCounts(n_ef=2, n_ep=1, n_nf=0, n_np=2)
         base = calculate_ochiai(spec)
         calibrated = calibrate_coincidental_correctness(spec, def_use_weight=0.8, gamma=0.7)
@@ -80,7 +79,7 @@ class TestSBFLEngine(unittest.TestCase):
 
     # 19. test_tri_pass_filter_flaky_removal
     def test_tri_pass_filter_flaky_removal(self):
-        """19. Validates tri-pass voting filter eliminates flaky test traces."""
+        """19. Valida che il filtro tri-pass elimini le tracce di test instabili."""
         p1 = [
             CoverageRecord(test_id="T_STABLE", passed=True, executed_statements=["s1"]),
             CoverageRecord(test_id="T_FLAKY", passed=True, executed_statements=["s2"]),
@@ -100,7 +99,7 @@ class TestSBFLEngine(unittest.TestCase):
 
     # 20. test_ochiai_diagnostic_payload_token_cap
     def test_ochiai_diagnostic_payload_token_cap(self):
-        """20. Validates compact diagnostic payload strictly < 80 tokens."""
+        """20. Valida il payload diagnostico compatto sotto gli 80 token."""
         payload = OchiaiDiagnosticPayload(
             top_fault="core/engine.py:142",
             ochiai_score=0.9487,
@@ -112,7 +111,7 @@ class TestSBFLEngine(unittest.TestCase):
 
     # 21. test_coverage_matrix_builder_from_traces
     def test_coverage_matrix_builder_from_traces(self):
-        """21. Validates coverage matrix dimensions and outcome vector."""
+        """21. Valida le dimensioni della matrice di copertura e il vettore esiti."""
         self.assertEqual(self.matrix.num_tests, 5)
         self.assertEqual(self.matrix.num_statements, 3)
         self.assertEqual(self.matrix.outcomes, [1, 1, 0, 0, 0])

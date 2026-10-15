@@ -1,7 +1,6 @@
-# Nexus Keystone Multi-Agent Ecosystem - Core Platform Dependencies
+# Nexus Keystone Multi-Agent Ecosystem - Core Platform Dependencies (v3.0.0-STE100-Unified)
 pydantic>=2.7.0,<3.0.0
-psutil>=5.9.8,<6.0.0
-pytest>=8.2.0,<9.0.0
-pytest-asyncio>=0.23.0,<1.0.0
+psutil>=5.9.8,<8.0.0
+pytest>=8.2.0,<10.0.0
+pytest-asyncio>=0.23.0,<2.0.0
 httpx>=0.27.0,<1.0.0
-

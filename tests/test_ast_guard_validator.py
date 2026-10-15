@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Nexus Keystone v1.1.0-Universal
-Test Module 5: Static AST Guard Validator
-7 Tests: Syntactic Purity, Signatures, Type Annotations, Scope Integrity, PEP 634 Match, PEP 695 Type Params, Comprehensions & Walrus.
+Nexus Keystone v3.0.0-STE100-Unified
+Modulo di test 5: Static AST Guard Validator.
+Valida purezza sintattica, firme, annotazioni di tipo, scope, PEP 634, PEP 695 e walrus.
 """
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ def calculate_sum(items: List[int], multiplier: int = 1) -> int:
 
     # 28. test_syntactic_purity_ast_check
     def test_syntactic_purity_ast_check(self):
-        """28. Validates immediate rejection of code with syntax errors."""
+        """28. Valida il rifiuto immediato di codice con errori di sintassi."""
         broken_post = "def calculate_sum(items: List[int]:\n    return 42"
         rep = ASTGuardValidator.validate_code_edit(self.clean_pre, broken_post)
         self.assertFalse(rep.is_valid)
@@ -42,7 +42,7 @@ def calculate_sum(items: List[int], multiplier: int = 1) -> int:
 
     # 29. test_signature_and_type_preservation
     def test_signature_and_type_preservation(self):
-        """29. Validates detection of parameter removal and type annotation mutations."""
+        """29. Valida il rilevamento di rimozione parametri e mutazioni di tipo."""
         mutated_param = """
 from typing import List
 
@@ -65,7 +65,7 @@ def calculate_sum(items: List[int], multiplier: int = 1) -> float:
 
     # 30. test_scope_integrity_unbound_name
     def test_scope_integrity_unbound_name(self):
-        """30. Validates detection of undefined variables, decorators, and default arguments."""
+        """30. Valida il rilevamento di variabili, decoratori e default non definiti."""
         unbound_post = """
 from typing import List
 
@@ -88,7 +88,7 @@ def calculate_sum(items: List[int], multiplier: int = 1) -> int:
 
     # 32. test_scope_integrity_pep634_pattern_matching
     def test_scope_integrity_pep634_pattern_matching(self):
-        """32. Validates zero false positives on PEP 634 ast.Match and ast.MatchCase."""
+        """32. Valida zero falsi positivi su PEP 634 ast.Match e ast.MatchCase."""
         pep634_code = """
 def process_command(command):
     match command:
@@ -105,7 +105,7 @@ def process_command(command):
     # 33. test_scope_integrity_pep695_type_parameters
     @unittest.skipIf(sys.version_info < (3, 12), "PEP 695 type parameters require Python 3.12+")
     def test_scope_integrity_pep695_type_parameters(self):
-        """33. Validates zero false positives on PEP 695 type parameters & TypeAlias."""
+        """33. Valida zero falsi positivi su PEP 695 type parameters e TypeAlias."""
         code = """
 type Vector[T] = list[T]
 
@@ -121,7 +121,7 @@ class Container[T]:
 
     # 34. test_scope_integrity_comprehensions_walrus
     def test_scope_integrity_comprehensions_walrus(self):
-        """34. Validates zero false positives on comprehensions and walrus operator (:=)."""
+        """34. Valida zero falsi positivi su comprehension e operatore walrus."""
         code = """
 def process_data(raw_items: list[str]) -> list[int]:
     results = [n for item in raw_items if (n := len(item)) > 3]

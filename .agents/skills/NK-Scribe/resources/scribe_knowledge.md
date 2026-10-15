@@ -1,31 +1,24 @@
-# 📍 Knowledge Base: NK-Scribe Engine
+# 📍 Knowledge Base Operativa: NK-Scribe (`v3.0.0-STE100-Unified`)
 
-## 1. Regola di Consolidamento Giornaliero ([RULE-05.1])
-1. Data corrente: Formato `YYYY-MM-DD` (es. `2026-08-20`).
-2. Regex di ricerca blocco odierno: `###\s*\[PATCH\s+v[\d\.]+\]\s*-\s*YYYY-MM-DD`
-3. Se presente:
-   - Individua la fine dell'elenco puntato del blocco odierno.
-   - Inserisci le nuove modifiche come sotto-punti o nuovi bullet point.
-4. Se assente:
-   - Calcola la nuova versione incrementando il minor/patch number.
-   - Inserisci il nuovo blocco subito sotto `## 🚀 Rilascio Corrente`.
+> **Ambito:** Regole di mirroring documentale, changelog SSOT e staging Git sicuro (`[RULE-00.2]`, `[RULE-05.1]`).  
+> **Standard Linguistico:** ASD-STE100 Italiano Tecnico (`[RULE-STE100]`).
 
-## 2. Parsing Activity Anchor (`nk_tracking/anchor/session_anchor.jsonl`)
-File JSONL contenente righe con i campi:
-- `ts`: Timestamp ISO / HH:MM:SS
-- `act`: Codice azione (es. `CREATE`, `MODIFY`, `DELETE`, `REFACTOR`, `AUDIT`, `FIX`, `SYNC`)
-- `target`: File o componente impattato
-- `detail`: Descrizione sintetica
-- `skill`: Skill utilizzata
-- `status`: OK / FAIL / WARN
+---
 
-## 3. Git Command Sequence (Safe Execution)
-1. `git status` -> Verifica stato working tree.
-2. `git add <target_files>` -> Staging mirato o globale.
-3. `git commit -m "<commit_message>"` -> Commit atomico.
-4. `git push origin main` -> Push su branch sovrano remoto.
+## 1. Consolidamento Giornaliero del Changelog (`[RULE-05.1]`)
+1. Il file `nk_genome/PATCH_NOTES.md` costituisce la Single Source of Truth (SSOT) del changelog.
+2. Verifica la presenza di un blocco con la data odierna `YYYY-MM-DD`.
+3. Se il blocco odierno esiste, inserisci le nuove voci come punti elenco sotto l'intestazione esistente.
+4. Se il blocco odierno non esiste, crea una nuova sezione con la versione semantica aggiornata.
+5. Esegui sempre il mirroring atomico di `nk_genome/PATCH_NOTES.md` su `PATCH_NOTES.md` nella radice dell'Hub.
 
-## 4. Separazione Documentale Sovrana
-- `PATCH_NOTES.md` alla radice è l'UNICO file canonico in cui vengono registrate le Patch Notes storiche e di release.
-- `README.md` alla radice è la guida architetturale permanente ufficiale dell'ecosistema.
-- `nk_tracking/quality_baseline.json` è la Single Source of Truth per i punteggi di qualità e conformità Ratchet (aggiornato atomicamente in Macro-Fase 3).
+## 2. Sincronizzazione della Tetralogia e dei File Root
+1. Rigenera `nk_genome/repo_map.md` tramite `python scripts/ast_repo_mapper.py --snapshot-out nk_genome/repo_map.md` (`[RULE-01.13]`).
+2. Allinea `README.md` e `README.it.md` al numero reale di moduli (`30` logici, `33` file Python) e Golden Tests.
+3. Verifica il ratchet di qualità in `nk_tracking/quality_baseline.json` tramite `scripts/quality_baseline_manager.py` (`[RULE-01.10]`).
+
+## 3. Sequenza Git Sicura con Staging Esplicito (`U-52`)
+1. Esegui `git status --short` per ispezionare lo stato dell'albero di lavoro.
+2. Esegui `git add <file1> <file2>` specificando esplicitamente i soli file autorizzati. Non usare mai `git add .` per evitare l'inclusione di file temporanei o segreti.
+3. Esegui `git commit -m "<messaggio in standard ASD-STE100>"`.
+4. Esegui `git push origin main` solo se l'utente ha autorizzato esplicitamente la sincronizzazione remota.

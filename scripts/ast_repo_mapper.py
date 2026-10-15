@@ -1,16 +1,16 @@
 """
-Nexus Keystone v1.7.0-RepoMap Refined - High-Density AST Repo-Map Engine
+Nexus Keystone v3.0.0 - High-Density AST Repo-Map Engine
 Module: scripts/ast_repo_mapper.py
 Author: NK-Python-Async-Builder (CRV 4.0 Macro-Fase 1)
 
 Key Capabilities:
-- Symbol Graph Generator (Python AST + Polyglot JS/TS/CSS/HTML).
-- Personalized PageRank (d=0.85) with multi-focal teleport vector.
-- Multi-Focal Karpathy Surgical Slicer with exact parameter preservation.
-- Two-Tier Hierarchical Clustering to prevent token dilution on large repos (>=200 files).
-- Incremental Per-File Cache (<15ms delta re-parse) with atomic temp-rename (%TEMP%).
-- Graduated Skill Adapter (Mode C: 256 tok, Mode B: 512 tok, Mode A: 1024 tok, Blacklist).
-- Autonomous Snapshot Exporter (generates nk_genome/repo_map.md).
+- Genera il grafo dei simboli (Python AST e Polyglot JS/TS/CSS/HTML).
+- Calcola Personalized PageRank (d=0.85) con vettore di teletrasporto multi-focale.
+- Esegue lo slicing chirurgico Karpathy preservando i parametri esatti.
+- Applica il clustering gerarchico a due livelli contro la diluizione dei token.
+- Gestisce la cache incrementale per file (nodi ed archi) con rename atomico in %TEMP%.
+- Adatta il budget token per skill (Mode C/B/A e profili Argon).
+- Esporta autonomamente lo snapshot in nk_genome/repo_map.md.
 """
 
 from __future__ import annotations
@@ -61,39 +61,39 @@ class EdgeType(str, Enum):
 class SymbolNode(BaseModel):
     model_config = ConfigDict(strict=False, frozen=True)
 
-    id: str = Field(description="Unique fully qualified symbol identifier, e.g. module:ClassName.method")
-    name: str = Field(description="Short symbol name")
-    symbol_type: SymbolType = Field(description="Type of code symbol")
-    module_path: str = Field(description="File or module relative path")
-    parent_id: Optional[str] = Field(default=None, description="Parent container ID if method or nested")
-    line_start: int = Field(ge=1, description="1-indexed starting line")
-    line_end: int = Field(ge=1, description="1-indexed ending line")
-    signature: Optional[str] = Field(default=None, description="Full signature representation")
-    docstring: Optional[str] = Field(default=None, description="Extracted docstring")
-    return_type: Optional[str] = Field(default=None, description="Return type annotation as string")
-    is_async: bool = Field(default=False, description="Whether the function is async")
-    raw_source: Optional[str] = Field(default=None, description="Original source snippet for symbol")
+    id: str = Field(description="Identificatore univoco qualificato del simbolo")
+    name: str = Field(description="Nome breve del simbolo")
+    symbol_type: SymbolType = Field(description="Categoria del simbolo di codice")
+    module_path: str = Field(description="Percorso relativo del modulo o file")
+    parent_id: Optional[str] = Field(default=None, description="ID del contenitore padre")
+    line_start: int = Field(ge=1, description="Riga iniziale (1-indexed)")
+    line_end: int = Field(ge=1, description="Riga finale (1-indexed)")
+    signature: Optional[str] = Field(default=None, description="Rappresentazione completa della firma")
+    docstring: Optional[str] = Field(default=None, description="Docstring estratta")
+    return_type: Optional[str] = Field(default=None, description="Annotazione del tipo di ritorno")
+    is_async: bool = Field(default=False, description="Indica se la funzione e' asincrona")
+    raw_source: Optional[str] = Field(default=None, description="Frammento di codice sorgente originale")
 
 
 class SymbolEdge(BaseModel):
     model_config = ConfigDict(strict=False, frozen=True)
 
-    source_id: str = Field(description="Source symbol ID")
-    target_id: str = Field(description="Target symbol ID")
-    edge_type: EdgeType = Field(description="Relationship category")
-    weight: float = Field(default=1.0, ge=0.0, description="Edge weight for PageRank transition")
+    source_id: str = Field(description="ID del simbolo sorgente")
+    target_id: str = Field(description="ID del simbolo destinazione")
+    edge_type: EdgeType = Field(description="Categoria della relazione")
+    weight: float = Field(default=1.0, ge=0.0, description="Peso dell'arco per PageRank")
 
 
 class SymbolGraph(BaseModel):
     model_config = ConfigDict(strict=True)
 
-    nodes: Dict[str, SymbolNode] = Field(default_factory=dict, description="Lookup map of nodes by ID")
-    edges: List[SymbolEdge] = Field(default_factory=list, description="Directed edges between symbols")
+    nodes: Dict[str, SymbolNode] = Field(default_factory=dict, description="Mappa dei nodi per ID")
+    edges: List[SymbolEdge] = Field(default_factory=list, description="Archi diretti tra simboli")
     adjacency_out: Dict[str, List[Tuple[str, float]]] = Field(
-        default_factory=dict, description="Outgoing adjacency list: source -> list of (target, weight)"
+        default_factory=dict, description="Lista di adiacenza in uscita"
     )
     adjacency_in: Dict[str, List[Tuple[str, float]]] = Field(
-        default_factory=dict, description="Incoming adjacency list: target -> list of (source, weight)"
+        default_factory=dict, description="Lista di adiacenza in ingresso"
     )
 
     def add_node(self, node: SymbolNode) -> None:
@@ -119,44 +119,44 @@ class SymbolGraph(BaseModel):
 class PageRankResult(BaseModel):
     model_config = ConfigDict(strict=True)
 
-    scores: Dict[str, float] = Field(description="Symbol ID to PageRank score mapping")
-    ranked_symbols: List[Tuple[str, float]] = Field(description="Sorted list of (symbol_id, score) descending")
-    iterations: int = Field(description="Number of power iterations to convergence")
-    converged: bool = Field(description="Whether power iteration converged under epsilon")
+    scores: Dict[str, float] = Field(description="Mappa ID simbolo e punteggio PageRank")
+    ranked_symbols: List[Tuple[str, float]] = Field(description="Lista ordinata decrescente")
+    iterations: int = Field(description="Numero di iterazioni fino a convergenza")
+    converged: bool = Field(description="Indica se la convergenza sotto epsilon e' raggiunta")
 
 
 class SliceResult(BaseModel):
     model_config = ConfigDict(strict=True, frozen=True)
 
-    sliced_code: str = Field(description="Surgically sliced source code text")
-    token_count: int = Field(description="Estimated token count")
-    focal_symbols: List[str] = Field(description="List of focal symbol IDs preserved in full")
-    collapsed_symbols: List[str] = Field(description="List of symbols collapsed into skeleton signatures")
-    omitted_symbols: List[str] = Field(description="List of low-relevance symbols omitted")
-    compression_ratio: float = Field(description="Ratio of sliced chars to original chars")
+    sliced_code: str = Field(description="Codice sorgente ridotto chirurgicamente")
+    token_count: int = Field(description="Stima dei token")
+    focal_symbols: List[str] = Field(description="ID dei simboli focali preservati per intero")
+    collapsed_symbols: List[str] = Field(description="ID dei simboli compressi in firme scheletro")
+    omitted_symbols: List[str] = Field(description="ID dei simboli a bassa rilevanza omessi")
+    compression_ratio: float = Field(description="Rapporto tra caratteri ridotti e originali")
 
 
 class RepoMapConfig(BaseModel):
     model_config = ConfigDict(strict=True)
 
-    max_tokens: int = Field(default=1024, ge=128, le=4096, description="Strict token budget ceiling")
-    mode: str = Field(default="auto", description="Execution mode: auto, mode_c, mode_b, mode_a")
-    cache_enabled: bool = Field(default=True, description="Enable NVMe atomic disk cache")
-    cache_dir: Optional[str] = Field(default=None, description="Custom cache directory")
-    polyglot: bool = Field(default=True, description="Include JS/TS/CSS/HTML frontend contracts")
-    focal_files: List[str] = Field(default_factory=list, description="Target focal file paths")
-    focal_symbols: List[str] = Field(default_factory=list, description="Target focal symbol names")
+    max_tokens: int = Field(default=1024, ge=128, le=4096, description="Tetto massimo del budget token")
+    mode: str = Field(default="auto", description="Modalita' esecuzione: auto, mode_c, mode_b, mode_a")
+    cache_enabled: bool = Field(default=True, description="Abilita la cache atomica su disco")
+    cache_dir: Optional[str] = Field(default=None, description="Directory personalizzata per la cache")
+    polyglot: bool = Field(default=True, description="Include contratti frontend JS/TS/CSS/HTML")
+    focal_files: List[str] = Field(default_factory=list, description="Percorsi dei file focali target")
+    focal_symbols: List[str] = Field(default_factory=list, description="Nomi dei simboli focali target")
 
 
 class RepoMapResult(BaseModel):
     model_config = ConfigDict(strict=True)
 
-    content: str = Field(description="Formatted High-Density Repo-Map Markdown")
-    token_count: int = Field(description="Estimated token count strictly <= max_tokens")
-    files_scanned: int = Field(description="Total count of files parsed or loaded from cache")
-    cached_hits: int = Field(description="Count of files served from incremental cache")
-    elapsed_ms: float = Field(description="Total generation time in milliseconds")
-    focal_files: List[str] = Field(default_factory=list, description="Focal files prioritized")
+    content: str = Field(description="Contenuto Markdown della Repo-Map")
+    token_count: int = Field(description="Conteggio stimato dei token <= max_tokens")
+    files_scanned: int = Field(description="Totale dei file analizzati o letti da cache")
+    cached_hits: int = Field(description="Conteggio dei file serviti dalla cache incrementale")
+    elapsed_ms: float = Field(description="Tempo totale di generazione in millisecondi")
+    focal_files: List[str] = Field(default_factory=list, description="File focali prioritizzati")
 
 
 # ============================================================================
@@ -165,8 +165,8 @@ class RepoMapResult(BaseModel):
 
 def estimate_tokens(text: str) -> int:
     """
-    Deterministic Token Estimator compatible with BPE (GPT-4 / Claude / TikToken).
-    Combines word/punctuation fragmentation with byte-length safeguards.
+    Stima il numero di token in modo deterministico compatibile con BPE.
+    Combina la frammentazione lessicale con la lunghezza in caratteri.
     """
     if not text:
         return 0
@@ -182,8 +182,8 @@ def estimate_tokens(text: str) -> int:
 
 class ResilientParser:
     """
-    Parser resilient to intermediate syntax and indentation errors.
-    Preserves partial parameter tokens without emitting misleading empty () stubs.
+    Analizza il codice sorgente resistendo a errori intermedi di sintassi.
+    Preserva i token parziali dei parametri senza emettere firme vuote.
     """
 
     @classmethod
@@ -245,7 +245,6 @@ class ResilientParser:
         lines = block_code.splitlines()
         for idx, line in enumerate(lines):
             stripped = line.strip()
-            # Match function header even if open parentheses or parameters are incomplete
             fn_match = re.match(r"^(async\s+)?def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\((.*?)(?:\)|:|$)", stripped)
             if fn_match:
                 is_async = bool(fn_match.group(1))
@@ -253,7 +252,6 @@ class ResilientParser:
                 raw_params = fn_match.group(3).strip()
                 cur_line = line_offset + idx + 1
                 try:
-                    # Clean params to valid identifiers for AST representation
                     param_names = [p.split(":")[0].strip() for p in raw_params.split(",") if p.strip()]
                     cleaned_params = [p for p in param_names if re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", p)]
                     param_sig = ", ".join(cleaned_params)
@@ -289,7 +287,7 @@ class ResilientParser:
 
 class SymbolExtractor(ast.NodeVisitor):
     """
-    Extracts structured symbols and dependency relationships from AST.
+    Estrae i simboli strutturati e le relazioni di dipendenza dall'AST.
     """
 
     def __init__(self, module_path: str, source_lines: List[str]):
@@ -583,8 +581,7 @@ class SymbolExtractor(ast.NodeVisitor):
 
 class PolyglotExtractor:
     """
-    Lightweight deterministic token/regex extractor for Frontend contracts.
-    Avoids binary C-compilers while extracting accurate export signatures.
+    Estrae in modo deterministico i contratti frontend da JS, TS, CSS e HTML.
     """
 
     @classmethod
@@ -607,7 +604,6 @@ class PolyglotExtractor:
         nodes: List[SymbolNode] = []
         lines = content.splitlines()
 
-        # Matches ES6 exports: function, class, const arrow
         fn_pattern = re.compile(
             r"^(?:export\s+)?(?:async\s+)?function\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\((.*?)\)",
             re.MULTILINE
@@ -721,8 +717,8 @@ class PolyglotExtractor:
 
 class PersonalizedPageRank:
     """
-    Computes Personalized PageRank on a SymbolGraph with damping factor d=0.85
-    and teleport vector concentrated on target focal symbols.
+    Calcola Personalized PageRank su un SymbolGraph con fattore di smorzamento d=0.85.
+    Concentra il vettore di teletrasporto sui simboli focali target.
     """
 
     @classmethod
@@ -806,9 +802,8 @@ class PersonalizedPageRank:
 
 class KarpathySurgicalSlicer:
     """
-    Karpathy Surgical Slicer with Semantic Binary Search & Multi-Focal Integrity.
-    Extracts the outline of the target module, preserves ALL focal symbols in full,
-    and strictly respects a hard limit of < max_tokens.
+    Esegue lo slicing chirurgico Karpathy con ricerca binaria semantica.
+    Preserva tutti i simboli focali per intero e rispetta il limite max_tokens.
     """
 
     TOKEN_BUDGET: int = 780
@@ -882,7 +877,6 @@ class KarpathySurgicalSlicer:
             if best_slice is not None and best_tokens < max_tokens:
                 break
 
-        # Emergency Fallback: Multi-Focal preserving compression (fixes line 851 bug)
         if best_slice is None:
             best_slice, best_collapsed, best_omitted = cls._multi_focal_compress(
                 graph=graph,
@@ -910,7 +904,7 @@ class KarpathySurgicalSlicer:
         focal_ids: Set[str],
         max_tokens: int,
     ) -> Tuple[str, List[str], List[str]]:
-        """Multi-Focal fallback: preserves signatures of ALL focal symbols without cutting syntax."""
+        """Preserva le firme di tutti i simboli focali senza troncare la sintassi."""
         rendered_parts: List[str] = []
         collapsed: List[str] = []
         omitted: List[str] = []
@@ -924,7 +918,6 @@ class KarpathySurgicalSlicer:
 
         text = "\n\n".join(rendered_parts) + "\n"
         if estimate_tokens(text) > max_tokens:
-            # If still over budget, retain only names
             names = [f"# {graph.nodes[f].name}" for f in focal_ids if f in graph.nodes]
             text = "\n".join(names[:10]) + "\n"
 
@@ -1044,8 +1037,8 @@ class KarpathySurgicalSlicer:
 
 class AtomicCacheManager:
     """
-    Manages atomic writing and reading of the Repo-Map cache in %TEMP%\\nk_diagnostics\\.
-    Uses unique uuid.tmp and os.replace with retry backoff to prevent WinError 32 sharing violations.
+    Gestisce la lettura e scrittura atomica della cache in %TEMP%\\nk_diagnostics\\.
+    Usa file temporanei univoci e os.replace con retry contro WinError 32.
     """
 
     @classmethod
@@ -1067,7 +1060,6 @@ class AtomicCacheManager:
                     return True
                 except (PermissionError, OSError):
                     time.sleep(0.01 * (attempt + 1))
-            # Fallback if os.replace fails after retries: try direct atomic write
             return False
         except Exception:
             return False
@@ -1099,11 +1091,27 @@ class AtomicCacheManager:
 
 class RepoMapGenerator:
     """
-    High-Density AST Repo-Map Generator.
-    Coordinates incremental parsing, PageRank weighting, and Two-Tier Clustering.
+    Genera la High-Density AST Repo-Map.
+    Coordina il parsing incrementale, PageRank con archi cross-modulo e clustering.
     """
 
     SUPPORTED_EXTS = {".py", ".js", ".ts", ".jsx", ".tsx", ".css", ".html"}
+    EXCLUDED_DIRS = {
+        ".venv",
+        ".git",
+        "__pycache__",
+        "node_modules",
+        ".staging",
+        ".pytest_cache",
+        ".wal",
+        "google-docs-mcp",
+        "Output Business Keystone",
+        "Antigravity model",
+        "fonti",
+        "scratch",
+        "test_scratch",
+        "System_Documentation",
+    }
 
     @classmethod
     def generate(cls, root_dir: Path, config: Optional[RepoMapConfig] = None) -> RepoMapResult:
@@ -1117,9 +1125,11 @@ class RepoMapGenerator:
         all_files: List[Path] = []
         for p in root_dir.rglob("*"):
             if p.is_file() and p.suffix.lower() in cls.SUPPORTED_EXTS:
-                # Exclude noisy build folders
-                parts = p.parts
-                if any(x in parts for x in (".venv", ".git", "__pycache__", "node_modules", ".staging", ".pytest_cache")):
+                try:
+                    rel_parts = p.relative_to(root_dir).parts
+                except ValueError:
+                    rel_parts = p.parts
+                if any(part in cls.EXCLUDED_DIRS for part in rel_parts):
                     continue
                 all_files.append(p)
 
@@ -1132,9 +1142,8 @@ class RepoMapGenerator:
             mtime = file_path.stat().st_mtime
             size = file_path.stat().st_size
 
-            # Check cache hit
             c_entry = cached_files.get(rel_str)
-            if c_entry and c_entry.get("mtime") == mtime and c_entry.get("size") == size:
+            if c_entry and c_entry.get("mtime") == mtime and c_entry.get("size") == size and "edges" in c_entry:
                 nodes_data = c_entry.get("nodes", [])
                 for nd in nodes_data:
                     try:
@@ -1142,17 +1151,24 @@ class RepoMapGenerator:
                         master_graph.add_node(node)
                     except Exception:
                         pass
+                edges_data = c_entry.get("edges", [])
+                for ed in edges_data:
+                    try:
+                        edge = SymbolEdge.model_validate(ed)
+                        master_graph.add_edge(edge)
+                    except Exception:
+                        pass
                 new_cached_files[rel_str] = c_entry
                 hits += 1
                 continue
 
-            # Parse fresh file
             try:
                 content = file_path.read_text(encoding="utf-8", errors="replace")
             except Exception:
                 continue
 
             file_nodes: List[SymbolNode] = []
+            file_edges: List[SymbolEdge] = []
             if file_path.suffix.lower() == ".py":
                 lines = content.splitlines(keepends=True)
                 tree, _ = ResilientParser.parse_safe(content, filename=rel_str)
@@ -1164,6 +1180,7 @@ class RepoMapGenerator:
                     file_nodes.append(node)
                 for edge in extractor.graph.edges:
                     master_graph.add_edge(edge)
+                    file_edges.append(edge)
             elif config.polyglot:
                 p_nodes = PolyglotExtractor.extract_symbols(rel_str, content)
                 for node in p_nodes:
@@ -1173,14 +1190,15 @@ class RepoMapGenerator:
             new_cached_files[rel_str] = {
                 "mtime": mtime,
                 "size": size,
-                "nodes": [n.model_dump() for n in file_nodes]
+                "nodes": [n.model_dump() for n in file_nodes],
+                "edges": [e.model_dump() for e in file_edges],
             }
 
-        # Save cache atomically
-        if config.cache_enabled:
-            AtomicCacheManager.save_atomic({"version": "1.7.0", "files": new_cached_files}, cache_path)
+        cls._link_cross_module_edges(master_graph)
 
-        # Compute PageRank focused on focal targets
+        if config.cache_enabled:
+            AtomicCacheManager.save_atomic({"version": "3.0.0", "files": new_cached_files}, cache_path)
+
         focal_ids: Set[str] = set()
         clean_focals = [f.replace("\\", "/") for f in config.focal_files]
         for fid in master_graph.nodes:
@@ -1189,7 +1207,6 @@ class RepoMapGenerator:
 
         pr_result = PersonalizedPageRank.compute(master_graph, target_symbol_ids=focal_ids)
 
-        # Format map with Two-Tier Clustering
         formatted_map, final_tokens = cls._render_two_tier_map(
             root_dir=root_dir,
             graph=master_graph,
@@ -1207,6 +1224,38 @@ class RepoMapGenerator:
             elapsed_ms=elapsed,
             focal_files=config.focal_files,
         )
+
+    @classmethod
+    def _link_cross_module_edges(cls, graph: SymbolGraph) -> None:
+        """Collega gli import ai simboli definiti in altri moduli del grafo."""
+        name_to_defs: Dict[str, List[SymbolNode]] = {}
+        module_stem_to_defs: Dict[str, List[SymbolNode]] = {}
+
+        for node in graph.nodes.values():
+            if node.symbol_type != SymbolType.IMPORT:
+                name_to_defs.setdefault(node.name, []).append(node)
+                stem = Path(node.module_path).stem
+                module_stem_to_defs.setdefault(stem, []).append(node)
+
+        for node in list(graph.nodes.values()):
+            if node.symbol_type != SymbolType.IMPORT:
+                continue
+            target_candidates: List[SymbolNode] = []
+            if node.name in name_to_defs:
+                target_candidates.extend(name_to_defs[node.name])
+            if node.name in module_stem_to_defs:
+                target_candidates.extend(module_stem_to_defs[node.name])
+
+            for target in target_candidates:
+                if target.module_path != node.module_path:
+                    graph.add_edge(
+                        SymbolEdge(
+                            source_id=node.id,
+                            target_id=target.id,
+                            edge_type=EdgeType.IMPORT_USAGE,
+                            weight=1.2,
+                        )
+                    )
 
     @classmethod
     def _render_expanded_module(cls, mod: str, syms: List[SymbolNode]) -> str:
@@ -1277,11 +1326,8 @@ class RepoMapGenerator:
         max_tokens: int,
     ) -> Tuple[str, int]:
         """
-        Renders the high-density map with Tier-3 Elastic Compactor:
-        1. Tier-1 Expanded: Full signatures with types/returns for focal/priority modules.
-        2. Tier-3 Inline Class Compaction: High-density single-line representation for rich modules.
-        3. Tier-2 Dense Packing & Zero Omissions: Dense symbol outlines with adaptive directory grouping.
-        4. Guaranteed Headroom: Output constrained to <= 82% of max_tokens (<= 850 tokens for 1024 budget).
+        Formatta la mappa ad alta densita' con compattazione elastica a tre livelli.
+        Garantisce un margine di sicurezza <= 82% di max_tokens.
         """
         modules: Dict[str, List[SymbolNode]] = {}
         for node in graph.nodes.values():
@@ -1292,15 +1338,18 @@ class RepoMapGenerator:
             header = "# 🗺️ HIGH-DENSITY AST REPO-MAP (Tetralogia Sovrana Snapshot)\n"
             return header, estimate_tokens(header)
 
+        mod_pr_map: Dict[str, float] = {}
         module_scores: List[Tuple[str, float, bool]] = []
         for mod, syms in modules.items():
             is_focal = any(s.id in focal_ids for s in syms)
-            score = max((pr_scores.get(s.id, 0.0) for s in syms), default=0.0)
+            base_pr = max((pr_scores.get(s.id, 0.0) for s in syms), default=0.0)
+            mod_pr_map[mod] = base_pr
+            score = base_pr
             if is_focal:
-                score += 1000.0  # Strongly prioritize focal modules to Tier 1
+                score += 1000.0
             has_cls = any(s.symbol_type == SymbolType.CLASS for s in syms)
             if has_cls:
-                score += 0.01  # Prioritize class-containing modules
+                score += 0.01
             module_scores.append((mod, score, is_focal))
 
         module_scores.sort(key=lambda x: x[1], reverse=True)
@@ -1327,7 +1376,6 @@ class RepoMapGenerator:
                 (len(classes) + len(functions) >= 7)
             )
 
-            # Try Expanded format if focal or not large
             if not is_large or is_focal:
                 exp_block = cls._render_expanded_module(mod, syms)
                 cand = header + "\n".join(tier1_blocks + [exp_block])
@@ -1336,7 +1384,6 @@ class RepoMapGenerator:
                     tier1_mods.add(mod)
                     continue
 
-            # Fallback to Tier-3 Inline Class Compaction
             inline_block = cls._render_inline_compact_module(mod, syms)
             cand = header + "\n".join(tier1_blocks + [inline_block])
             if estimate_tokens(cand) <= tier1_budget:
@@ -1366,7 +1413,7 @@ class RepoMapGenerator:
         tier2_mods.sort(
             key=lambda m: (
                 any(s.symbol_type == SymbolType.CLASS for s in modules[m]),
-                pr_scores.get(m, 0.0),
+                mod_pr_map.get(m, 0.0),
             ),
             reverse=True,
         )
@@ -1381,7 +1428,7 @@ class RepoMapGenerator:
             key_syms = classes + fns
             if not key_syms:
                 key_syms = [s.name for s in syms if s.symbol_type != SymbolType.IMPORT]
-            top_syms = key_syms[:3]
+            top_syms = classes if len(classes) >= 3 else key_syms[:3]
             line = f"- `{mod}`: [{', '.join(top_syms)}]" if top_syms else f"- `{mod}`: []"
 
             unprocessed = tier2_mods[idx + 1:]
@@ -1465,7 +1512,7 @@ class RepoMapGenerator:
 # ============================================================================
 
 class GraduatedSkillAdapter:
-    """Provides speed-mode and skill-aware token budget graduation."""
+    """Fornisce la graduazione del budget token in base alla modalita' e alla skill."""
 
     BLACKLIST = {"NK-Scribe", "NK-Episodic-Memory-Engine", "NK-Agent-Instruction-Forge"}
 
@@ -1474,6 +1521,12 @@ class GraduatedSkillAdapter:
         if skill_name in cls.BLACKLIST:
             return 0
         mode = speed_mode.lower()
+        if "argon_mode_c" in mode:
+            return 512
+        if "argon_mode_b" in mode:
+            return 1500
+        if "argon_mode_a" in mode:
+            return 4000
         if "mode_c" in mode or "vibe" in mode:
             return 256
         elif "mode_b" in mode or "fast" in mode:
@@ -1487,7 +1540,7 @@ class GraduatedSkillAdapter:
 # ============================================================================
 
 def export_markdown_snapshot(root_dir: Path, output_path: Path, max_tokens: int = 1024) -> RepoMapResult:
-    """Generates and writes the canonical repo_map.md snapshot autonomously."""
+    """Genera e scrive autonomamente lo snapshot canonico repo_map.md."""
     cfg = RepoMapConfig(max_tokens=max_tokens, polyglot=True)
     res = RepoMapGenerator.generate(root_dir=root_dir, config=cfg)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1502,14 +1555,14 @@ def main() -> None:
     except Exception:
         pass
 
-    parser = argparse.ArgumentParser(description="High-Density AST Repo-Map Engine v1.7.0")
-    parser.add_argument("--repo-map", action="store_true", help="Generate and print repo map")
-    parser.add_argument("--root", default=".", help="Root directory to scan")
-    parser.add_argument("--max-tokens", type=int, default=1024, help="Max token budget")
-    parser.add_argument("--mode", default="auto", help="Speed mode: auto, mode_c, mode_b, mode_a")
-    parser.add_argument("--json", action="store_true", help="Output as JSON")
-    parser.add_argument("--snapshot-out", "--export", dest="snapshot_out", type=str, help="Export snapshot to markdown file")
-    parser.add_argument("--focus-files", type=str, default="", help="Comma-separated focal files")
+    parser = argparse.ArgumentParser(description="High-Density AST Repo-Map Engine v3.0.0")
+    parser.add_argument("--repo-map", action="store_true", help="Genera e stampa la repo map")
+    parser.add_argument("--root", default=".", help="Directory radice da analizzare")
+    parser.add_argument("--max-tokens", type=int, default=1024, help="Budget massimo di token")
+    parser.add_argument("--mode", default="auto", help="Modalita': auto, mode_c, mode_b, mode_a, argon_mode_*")
+    parser.add_argument("--json", action="store_true", help="Output in formato JSON")
+    parser.add_argument("--snapshot-out", "--export", dest="snapshot_out", type=str, help="Esporta snapshot su file")
+    parser.add_argument("--focus-files", type=str, default="", help="Lista di file focali separati da virgola")
 
     args = parser.parse_args()
     root_path = Path(args.root).resolve()
@@ -1533,7 +1586,9 @@ def main() -> None:
     if args.json:
         print(json.dumps(result.model_dump(), indent=2))
     elif args.repo_map or not args.snapshot_out:
-        safe_text = result.content.encode(sys.stdout.encoding or "utf-8", errors="replace").decode(sys.stdout.encoding or "utf-8")
+        safe_text = result.content.encode(sys.stdout.encoding or "utf-8", errors="replace").decode(
+            sys.stdout.encoding or "utf-8"
+        )
         print(safe_text)
 
 

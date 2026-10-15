@@ -1,79 +1,70 @@
 # -*- coding: utf-8 -*-
 """
-Nexus Keystone v2.5.2-Hardened
-Win32 Two-Phase Commit (2PC) & High-Performance Concurrency Engine
-Protocol: CRV 4.0 / Zero-Mock / Pydantic v2 Strict Mode
+Motore transazionale Win32 Two-Phase Commit per Nexus Keystone v3.0.0-STE100-Unified.
+Garantisce mutua esclusione inter-processo, integrita SHA-256 e promozione atomica.
 """
 
 from __future__ import annotations
 
-import os
-import sys
-import time
-import zlib
+import argparse
+import asyncio
 import ctypes
 import hashlib
-import uuid
 import json
+import os
 import random
-import asyncio
-import argparse
+import subprocess
+import sys
+import time
+import uuid
+import zlib
 from pathlib import Path
-from typing import Optional, Union, List, Dict, Any
+from typing import Any, Dict, List, Optional, Union
 
 try:
     from schemas.nk_ipc_contracts import (
+        IPCPointerReturn,
         TwoPhaseCommitPrepare,
         TwoPhaseCommitVerdict,
-        IPCPointerReturn,
     )
 except (ImportError, ModuleNotFoundError):
     try:
         from .schemas.nk_ipc_contracts import (
+            IPCPointerReturn,
             TwoPhaseCommitPrepare,
             TwoPhaseCommitVerdict,
-            IPCPointerReturn,
         )
     except (ImportError, ModuleNotFoundError):
+        curr_dir = Path(__file__).resolve().parent
+        candidates = [
+            curr_dir,
+            curr_dir.parent,
+            curr_dir.parent / "scripts",
+            Path.cwd(),
+            Path.cwd() / "scripts",
+        ]
+        for c in candidates:
+            if str(c) not in sys.path and c.exists():
+                sys.path.insert(0, str(c))
         try:
-            from scripts.schemas.nk_ipc_contracts import (
+            from schemas.nk_ipc_contracts import (
+                IPCPointerReturn,
                 TwoPhaseCommitPrepare,
                 TwoPhaseCommitVerdict,
-                IPCPointerReturn,
             )
         except (ImportError, ModuleNotFoundError):
-            curr_dir = Path(__file__).resolve().parent
-            candidates = [
-                curr_dir,
-                curr_dir.parent,
-                curr_dir.parent / "scripts",
-                Path.cwd(),
-                Path.cwd() / "scripts",
-            ]
-            for c in candidates:
-                if str(c) not in sys.path and c.exists():
-                    sys.path.insert(0, str(c))
-            try:
-                from schemas.nk_ipc_contracts import (
-                    TwoPhaseCommitPrepare,
-                    TwoPhaseCommitVerdict,
-                    IPCPointerReturn,
-                )
-            except (ImportError, ModuleNotFoundError):
-                from scripts.schemas.nk_ipc_contracts import (
-                    TwoPhaseCommitPrepare,
-                    TwoPhaseCommitVerdict,
-                    IPCPointerReturn,
-                )
+            from scripts.schemas.nk_ipc_contracts import (
+                IPCPointerReturn,
+                TwoPhaseCommitPrepare,
+                TwoPhaseCommitVerdict,
+            )
 
-# ---------------------------------------------------------------------------
-# Win32 Kernel32 Constants & CTypes Definitions
-# ---------------------------------------------------------------------------
 WAIT_OBJECT_0 = 0x00000000
 WAIT_ABANDONED_0 = 0x00000080
 WAIT_TIMEOUT = 0x00000102
 WAIT_FAILED = 0xFFFFFFFF
 INFINITE = 0xFFFFFFFF
+INVALID_HANDLE_VALUE = ctypes.c_void_p(-1).value
 
 MOVEFILE_REPLACE_EXISTING = 0x00000001
 MOVEFILE_COPY_ALLOWED = 0x00000002
@@ -88,7 +79,11 @@ ERROR_ALREADY_EXISTS = 183
 if sys.platform == "win32":
     _kernel32 = ctypes.windll.kernel32
 
-    _kernel32.CreateMutexW.argtypes = [ctypes.c_void_p, ctypes.c_bool, ctypes.c_wchar_p]
+    _kernel32.CreateMutexW.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_bool,
+        ctypes.c_wchar_p,
+    ]
     _kernel32.CreateMutexW.restype = ctypes.c_void_p
 
     _kernel32.WaitForSingleObject.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
@@ -100,7 +95,11 @@ if sys.platform == "win32":
     _kernel32.CloseHandle.argtypes = [ctypes.c_void_p]
     _kernel32.CloseHandle.restype = ctypes.c_bool
 
-    _kernel32.MoveFileExW.argtypes = [ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_uint32]
+    _kernel32.MoveFileExW.argtypes = [
+        ctypes.c_wchar_p,
+        ctypes.c_wchar_p,
+        ctypes.c_uint32,
+    ]
     _kernel32.MoveFileExW.restype = ctypes.c_bool
 
     _kernel32.GetLastError.argtypes = []
@@ -112,55 +111,39 @@ else:
     _kernel32 = None
 
 
-# ---------------------------------------------------------------------------
-# Custom Exceptions
-# ---------------------------------------------------------------------------
 class Win32LockError(RuntimeError):
-    """Raised when Win32 mutex operations encounter unrecoverable OS errors."""
-    pass
+    """Sollevata quando il mutex Win32 incontra un errore di sistema."""
 
 
 class Win32LockTimeoutError(TimeoutError):
-    """Raised when a Win32 Named Mutex acquisition times out."""
-    pass
+    """Sollevata quando l'acquisizione del mutex Win32 supera il timeout."""
 
 
 class TwoPhaseCommitError(RuntimeError):
-    """Raised when a 2PC atomic commit operation fails integrity or I/O checks."""
-    pass
+    """Sollevata quando il commit atomico 2PC fallisce i controlli di integrita."""
 
 
-# ---------------------------------------------------------------------------
-# Cryptographic & Checksum Utilities
-# ---------------------------------------------------------------------------
 def compute_sha256(data: Union[bytes, str]) -> str:
-    """Computes deterministic SHA-256 hexadecimal digest."""
+    """Calcola il digest esadecimale SHA-256 deterministico."""
     raw = data.encode("utf-8") if isinstance(data, str) else data
     return hashlib.sha256(raw).hexdigest()
 
 
 def compute_crc32(data: Union[bytes, str]) -> int:
-    """Computes standard unsigned 32-bit CRC32 checksum."""
+    """Calcola il checksum CRC32 senza segno a 32 bit."""
     raw = data.encode("utf-8") if isinstance(data, str) else data
     return zlib.crc32(raw) & 0xFFFFFFFF
 
 
 def get_mutex_name_for_path(file_path: Union[str, Path]) -> str:
-    """Derives a deterministic SHA256-based Win32 Named Mutex identifier."""
+    """Deriva il nome deterministico del mutex Win32 dal percorso file."""
     norm_path = os.path.abspath(str(file_path)).lower().replace("/", "\\")
     path_hash = hashlib.sha256(norm_path.encode("utf-8")).hexdigest()
     return f"Global\\NK_FileLock_{path_hash}"
 
 
-# ---------------------------------------------------------------------------
-# Win32 Named Mutex RAII Context Manager (Thread-Bound Synchronous)
-# ---------------------------------------------------------------------------
 class Win32NamedMutex:
-    """
-    RAII Context Manager wrapping Win32 Named Mutex.
-    Provides robust inter-process mutual exclusion with thread-affinity checks,
-    automatic recovery from WAIT_ABANDONED, and strict WAIT_TIMEOUT enforcement.
-    """
+    """Gestore di contesto RAII per il Named Mutex di Windows."""
 
     def __init__(
         self,
@@ -189,38 +172,34 @@ class Win32NamedMutex:
         self.release()
 
     def acquire(self) -> None:
-        """Acquires the named mutex handle and ownership."""
+        """Acquisisce l'handle e la proprieta del mutex con verifica del thread."""
         if self.acquired:
             return
 
         current_thread = _kernel32.GetCurrentThreadId()
-
-        # Attempt to create/open Global named mutex
         handle = _kernel32.CreateMutexW(None, False, self.name)
         err = _kernel32.GetLastError()
 
-        # If Global namespace is forbidden due to UAC/permissions, fallback to Local
-        if (not handle or handle == 0) and err == ERROR_ACCESS_DENIED:
+        if (not handle or handle == INVALID_HANDLE_VALUE) and err == ERROR_ACCESS_DENIED:
             handle = _kernel32.CreateMutexW(None, False, self._local_fallback_name)
             err = _kernel32.GetLastError()
 
-        if not handle or handle == 0:
+        if not handle or handle == INVALID_HANDLE_VALUE:
             raise Win32LockError(
                 f"Failed to create/open mutex '{self.name}'. Win32 Error: {err}"
             )
 
         self.handle = handle
-
-        # Wait for ownership
-        wait_res = _kernel32.WaitForSingleObject(self.handle, ctypes.c_uint32(self.timeout_ms))
+        wait_res = _kernel32.WaitForSingleObject(
+            self.handle,
+            ctypes.c_uint32(self.timeout_ms),
+        )
 
         if wait_res == WAIT_OBJECT_0:
             self.acquired = True
             self.abandoned = False
             self._owning_thread_id = current_thread
         elif wait_res == WAIT_ABANDONED_0:
-            # Previous owning process terminated abnormally without releasing the mutex.
-            # Win32 grants ownership to this thread.
             self.acquired = True
             self.abandoned = True
             self._owning_thread_id = current_thread
@@ -237,11 +216,14 @@ class Win32NamedMutex:
             )
 
     def release(self) -> None:
-        """Releases mutex ownership with strict thread-affinity validation and closes handle."""
+        """Rilascia il mutex verificando l'affinita del thread proprietario."""
         if self.handle:
             current_thread = _kernel32.GetCurrentThreadId()
             if self.acquired:
-                if self._owning_thread_id is not None and self._owning_thread_id != current_thread:
+                if (
+                    self._owning_thread_id is not None
+                    and self._owning_thread_id != current_thread
+                ):
                     raise Win32LockError(
                         f"Win32 Named Mutex thread affinity violation: acquired by thread {self._owning_thread_id} "
                         f"but released by thread {current_thread}."
@@ -252,18 +234,14 @@ class Win32NamedMutex:
             self._cleanup_handle()
 
     def _cleanup_handle(self) -> None:
-        if self.handle:
+        """Chiude l'handle nativo del kernel."""
+        if self.handle and self.handle != INVALID_HANDLE_VALUE:
             _kernel32.CloseHandle(self.handle)
             self.handle = None
 
 
-# ---------------------------------------------------------------------------
-# Write-Ahead Logging (WAL) Subsystem
-# ---------------------------------------------------------------------------
 class WriteAheadLogManager:
-    """
-    Manages Write-Ahead Log records for atomic 2PC isolation and recovery.
-    """
+    """Gestisce i file Write-Ahead Log per l'isolamento e il ripristino 2PC."""
 
     def __init__(self, wal_dir: Optional[Union[str, Path]] = None) -> None:
         self.custom_wal_dir = Path(wal_dir) if wal_dir else None
@@ -290,6 +268,7 @@ class WriteAheadLogManager:
         payload_crc32: int,
         state: str = "PREPARED",
     ) -> Path:
+        """Scrive su disco un record WAL atomico con fsync."""
         wal_path = self.get_wal_path(target_path, tx_id)
         record = {
             "tx_id": tx_id,
@@ -315,6 +294,7 @@ class WriteAheadLogManager:
         tx_id: str,
         state: str,
     ) -> None:
+        """Aggiorna lo stato di un record WAL esistente."""
         wal_path = self.get_wal_path(target_path, tx_id)
         if not wal_path.exists():
             return
@@ -334,6 +314,7 @@ class WriteAheadLogManager:
         os.replace(temp_wal, wal_path)
 
     def purge_wal(self, target_path: Union[str, Path], tx_id: str) -> None:
+        """Elimina il file WAL completato e pulisce la cartella se vuota."""
         wal_path = self.get_wal_path(target_path, tx_id)
         wal_dir = wal_path.parent
         try:
@@ -344,12 +325,15 @@ class WriteAheadLogManager:
         except OSError:
             pass
 
-    def recover(self, root_dir: Union[str, Path]) -> List[Dict[str, Any]]:
-        """
-        Scans directory for .wal files and replays or cleans orphaned transactions.
-        """
+    def recover(
+        self,
+        root_dir: Union[str, Path],
+        stale_age_sec: float = 10.0,
+    ) -> List[Dict[str, Any]]:
+        """Scansiona i file WAL e ripristina o annulla le transazioni interrotte."""
         root = Path(root_dir).resolve()
         recovered: List[Dict[str, Any]] = []
+        now = time.time()
 
         wal_dirs = list(root.rglob(".wal"))
         for w_dir in wal_dirs:
@@ -365,29 +349,33 @@ class WriteAheadLogManager:
                     staging = Path(data.get("staging_path", ""))
                     state = data.get("state", "")
                     expected_sha = data.get("payload_sha256", "")
+                    ts_utc = float(data.get("timestamp_utc", 0.0))
+                    age = (now - ts_utc) if ts_utc > 0.0 else (stale_age_sec + 1.0)
 
                     action_taken = "NONE"
 
-                    if state == "COMMITTED":
-                        # If destination missing or corrupted, replay staging if available
-                        if staging.exists():
-                            stg_bytes = staging.read_bytes()
-                            if compute_sha256(stg_bytes) == expected_sha:
-                                target.write_bytes(stg_bytes)
-                                action_taken = "REPLAYED_COMMIT"
-                            staging.unlink(missing_ok=True)
-                        wal_file.unlink(missing_ok=True)
-                    elif state == "PREPARED":
-                        # If prepared but stale (>10s old), abort and clean staging
-                        if staging.exists():
-                            staging.unlink(missing_ok=True)
-                        wal_file.unlink(missing_ok=True)
-                        action_taken = "ABORTED_STALE"
-                    elif state == "ABORTED":
-                        if staging.exists():
-                            staging.unlink(missing_ok=True)
-                        wal_file.unlink(missing_ok=True)
-                        action_taken = "PURGED_ABORTED"
+                    with Win32NamedMutex(target, timeout_ms=2000):
+                        if state == "COMMITTED":
+                            if staging.exists():
+                                stg_bytes = staging.read_bytes()
+                                if compute_sha256(stg_bytes) == expected_sha:
+                                    target.write_bytes(stg_bytes)
+                                    action_taken = "REPLAYED_COMMIT"
+                                staging.unlink(missing_ok=True)
+                            wal_file.unlink(missing_ok=True)
+                        elif state == "PREPARED":
+                            if age >= stale_age_sec:
+                                if staging.exists():
+                                    staging.unlink(missing_ok=True)
+                                wal_file.unlink(missing_ok=True)
+                                action_taken = "ABORTED_STALE"
+                            else:
+                                action_taken = "SKIPPED_ACTIVE"
+                        elif state == "ABORTED":
+                            if staging.exists():
+                                staging.unlink(missing_ok=True)
+                            wal_file.unlink(missing_ok=True)
+                            action_taken = "PURGED_ABORTED"
 
                     recovered.append({
                         "wal_file": str(wal_file),
@@ -405,18 +393,8 @@ class WriteAheadLogManager:
         return recovered
 
 
-# ---------------------------------------------------------------------------
-# Two-Phase Commit (2PC) Atomic Engine
-# ---------------------------------------------------------------------------
 class TwoPhaseCommitEngine:
-    """
-    Two-Phase Commit Atomic Engine for Windows and Cloud Filesystems (Google Drive FS).
-    Features:
-    - Win32 Named Mutex concurrency guard.
-    - Full Jitter Exponential Backoff (25ms base, 1500ms max, 8 attempts).
-    - MoveFileExW atomic replacement with Shadow Swap fallback.
-    - Write-Ahead Logging (WAL) with CRC32 and SHA-256 validation.
-    """
+    """Motore di commit atomico a due fasi per Windows e Google Drive FS."""
 
     MAX_RETRIES = 8
     BASE_DELAY_MS = 25.0
@@ -427,8 +405,11 @@ class TwoPhaseCommitEngine:
 
     @staticmethod
     def _backoff_sleep(attempt: int) -> None:
-        """Calculates and executes Full Jitter Exponential Backoff sleep."""
-        cap_ms = min(TwoPhaseCommitEngine.MAX_DELAY_MS, TwoPhaseCommitEngine.BASE_DELAY_MS * (2 ** attempt))
+        """Esegue una pausa esponenziale con full jitter."""
+        cap_ms = min(
+            TwoPhaseCommitEngine.MAX_DELAY_MS,
+            TwoPhaseCommitEngine.BASE_DELAY_MS * (2 ** attempt),
+        )
         sleep_s = random.uniform(0.0, cap_ms) / 1000.0
         time.sleep(sleep_s)
 
@@ -438,10 +419,7 @@ class TwoPhaseCommitEngine:
         content: Union[bytes, str],
         timeout_ms: int = 5000,
     ) -> TwoPhaseCommitPrepare:
-        """
-        Phase 1: Prepare.
-        Writes payload to isolated staging file, hashes payload, and records WAL.
-        """
+        """Fase 1 (Prepare): scrive il file temporaneo di staging e registra il WAL."""
         target = Path(target_path).resolve()
         target.parent.mkdir(parents=True, exist_ok=True)
 
@@ -457,7 +435,6 @@ class TwoPhaseCommitEngine:
             f.flush()
             os.fsync(f.fileno())
 
-        # Record WAL in PREPARED state
         self.wal.write_wal(
             tx_id=tx_id,
             target_path=target,
@@ -478,41 +455,52 @@ class TwoPhaseCommitEngine:
         )
 
     def commit(self, prepare_req: TwoPhaseCommitPrepare) -> TwoPhaseCommitVerdict:
-        """
-        Phase 2: Commit.
-        Acquires Win32 Mutex, executes MoveFileExW with Jitter Backoff and Shadow Swap,
-        verifies SHA-256/CRC32, updates and purges WAL.
-        """
+        """Fase 2 (Commit): acquisisce il mutex Win32 e promuove il file in modo atomico."""
         start_time = time.perf_counter()
         target = Path(prepare_req.target_path).resolve()
         staging = Path(prepare_req.staging_path).resolve()
 
         if not staging.exists():
-            return self.abort(prepare_req, reason=f"Staging file {staging} does not exist")
+            return self.abort(
+                prepare_req,
+                reason=f"Staging file {staging} does not exist",
+            )
 
-        # Verify staging file integrity before attempting lock/commit
         staging_data = staging.read_bytes()
         if compute_sha256(staging_data) != prepare_req.expected_sha256:
-            return self.abort(prepare_req, reason="Staging file SHA-256 mismatch during commit phase")
+            return self.abort(
+                prepare_req,
+                reason="Staging file SHA-256 mismatch during commit phase",
+            )
 
         if compute_crc32(staging_data) != prepare_req.crc32:
-            return self.abort(prepare_req, reason="Staging file CRC32 mismatch during commit phase")
+            return self.abort(
+                prepare_req,
+                reason="Staging file CRC32 mismatch during commit phase",
+            )
 
         with Win32NamedMutex(target, timeout_ms=prepare_req.timeout_ms):
             success = self._execute_atomic_commit(staging, target)
             if not success:
-                return self.abort(prepare_req, reason="Atomic move and Shadow Swap fallback exhausted all retries")
+                return self.abort(
+                    prepare_req,
+                    reason="Atomic move and Shadow Swap fallback exhausted all retries",
+                )
 
-            # Verify target file on disk
             written_bytes = target.read_bytes()
             if compute_sha256(written_bytes) != prepare_req.expected_sha256:
-                return self.abort(prepare_req, reason="Committed file SHA-256 verification failed on disk")
+                return self.abort(
+                    prepare_req,
+                    reason="Committed file SHA-256 verification failed on disk",
+                )
 
-            # Finalize WAL
-            self.wal.update_wal_state(target, prepare_req.transaction_id, state="COMMITTED")
+            self.wal.update_wal_state(
+                target,
+                prepare_req.transaction_id,
+                state="COMMITTED",
+            )
             self.wal.purge_wal(target, prepare_req.transaction_id)
 
-            # Cleanup staging if still present
             if staging.exists():
                 try:
                     staging.unlink()
@@ -533,10 +521,7 @@ class TwoPhaseCommitEngine:
         prepare_req: TwoPhaseCommitPrepare,
         reason: Optional[str] = None,
     ) -> TwoPhaseCommitVerdict:
-        """
-        Phase 2: Abort.
-        Cleans up staging file and updates WAL to ABORTED.
-        """
+        """Fase 2 (Abort): elimina il file di staging e pulisce il record WAL."""
         staging = Path(prepare_req.staging_path)
         if staging.exists():
             try:
@@ -544,7 +529,11 @@ class TwoPhaseCommitEngine:
             except OSError:
                 pass
 
-        self.wal.update_wal_state(prepare_req.target_path, prepare_req.transaction_id, state="ABORTED")
+        self.wal.update_wal_state(
+            prepare_req.target_path,
+            prepare_req.transaction_id,
+            state="ABORTED",
+        )
         self.wal.purge_wal(prepare_req.target_path, prepare_req.transaction_id)
 
         return TwoPhaseCommitVerdict(
@@ -556,67 +545,59 @@ class TwoPhaseCommitEngine:
         )
 
     def _execute_atomic_commit(self, src: Path, dst: Path) -> bool:
-        """
-        Executes atomic move using MoveFileExW with Full Jitter Exponential Backoff
-        and Shadow Swap fallback for Google Drive FS locking.
-        """
+        """Esegue la sostituzione atomica con MoveFileExW e Shadow Swap."""
         src_w = str(src.resolve())
         dst_w = str(dst.resolve())
-        flags = MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH
+        flags = (
+            MOVEFILE_REPLACE_EXISTING
+            | MOVEFILE_WRITE_THROUGH
+            | MOVEFILE_COPY_ALLOWED
+        )
 
-        # Step 1: Direct MoveFileExW attempts with Full Jitter Exponential Backoff
         for attempt in range(self.MAX_RETRIES):
-            res = _kernel32.MoveFileExW(src_w, dst_w, flags)
-            if res:
-                return True
-
-            err = _kernel32.GetLastError()
-            # If error is sharing violation or access denied, backoff and retry
-            if err in (ERROR_SHARING_VIOLATION, ERROR_ACCESS_DENIED, ERROR_LOCK_VIOLATION):
-                self._backoff_sleep(attempt)
-            else:
-                # Try os.replace as standard fallback
-                try:
-                    os.replace(src, dst)
+            if _kernel32 is not None:
+                res = _kernel32.MoveFileExW(src_w, dst_w, flags)
+                if res:
                     return True
-                except (PermissionError, OSError):
-                    self._backoff_sleep(attempt)
 
-        # Step 2: Shadow Swap Fallback (handles persistent Google Drive FS locks)
+                err = _kernel32.GetLastError()
+                if err in (
+                    ERROR_SHARING_VIOLATION,
+                    ERROR_ACCESS_DENIED,
+                    ERROR_LOCK_VIOLATION,
+                ):
+                    self._backoff_sleep(attempt)
+                    continue
+
+            try:
+                os.replace(src, dst)
+                return True
+            except (PermissionError, OSError):
+                self._backoff_sleep(attempt)
+
         return self._shadow_swap_fallback(src, dst)
 
     def _shadow_swap_fallback(self, src: Path, dst: Path) -> bool:
-        """
-        Shadow Swap Strategy:
-        1. Duplicate staging file to shadow file next to destination.
-        2. Rename destination to .old if destination exists.
-        3. Move shadow to destination.
-        4. Remove .old file asynchronously/safely.
-        5. Direct locked write fallback if file moves fail.
-        """
+        """Esegue la strategia Shadow Swap per aggirare i lock di Google Drive FS."""
         shadow_path = dst.parent / f".shadow_{dst.name}_{uuid.uuid4().hex[:8]}.tmp"
         old_path = dst.parent / f".old_{dst.name}_{uuid.uuid4().hex[:8]}.tmp"
 
         for attempt in range(self.MAX_RETRIES):
             try:
-                # Copy staging bytes to shadow
                 raw = src.read_bytes()
                 with open(shadow_path, "wb") as sf:
                     sf.write(raw)
                     sf.flush()
                     os.fsync(sf.fileno())
 
-                # If destination exists, attempt swap
                 if dst.exists():
                     try:
                         os.replace(dst, old_path)
                     except OSError:
                         pass
 
-                # Move shadow into dst
                 os.replace(shadow_path, dst)
 
-                # Clean up old file
                 if old_path.exists():
                     try:
                         old_path.unlink()
@@ -626,7 +607,6 @@ class TwoPhaseCommitEngine:
             except Exception:
                 self._backoff_sleep(attempt)
 
-        # Step 3: Direct stream rewrite with mutex held as ultimate fallback
         try:
             raw = src.read_bytes()
             with open(dst, "wb") as df:
@@ -643,7 +623,7 @@ class TwoPhaseCommitEngine:
         content: Union[bytes, str],
         timeout_ms: int = 5000,
     ) -> TwoPhaseCommitVerdict:
-        """Synchronous end-to-end atomic 2PC write."""
+        """Esegue una scrittura atomica 2PC sincrona completa."""
         prep = self.prepare(target_path, content, timeout_ms=timeout_ms)
         return self.commit(prep)
 
@@ -653,8 +633,13 @@ class TwoPhaseCommitEngine:
         content: Union[bytes, str],
         timeout_ms: int = 5000,
     ) -> TwoPhaseCommitVerdict:
-        """Asynchronous end-to-end atomic 2PC write executed in a worker thread."""
-        return await asyncio.to_thread(self.atomic_write, target_path, content, timeout_ms)
+        """Esegue una scrittura atomica 2PC asincrona in un worker thread."""
+        return await asyncio.to_thread(
+            self.atomic_write,
+            target_path,
+            content,
+            timeout_ms,
+        )
 
     def create_ipc_pointer(
         self,
@@ -662,12 +647,12 @@ class TwoPhaseCommitEngine:
         content: Union[bytes, str],
         mime_type: str = "application/octet-stream",
     ) -> IPCPointerReturn:
-        """
-        Writes content via 2PC and returns a compact IPCPointerReturn (<80 tokens).
-        """
+        """Scrive il payload con 2PC e restituisce un contratto IPCPointerReturn."""
         verdict = self.atomic_write(target_path, content)
         if verdict.verdict != "COMMIT" or not verdict.committed_path:
-            raise TwoPhaseCommitError(f"Failed to commit IPC pointer payload: {verdict.reason}")
+            raise TwoPhaseCommitError(
+                f"Failed to commit IPC pointer payload: {verdict.reason}"
+            )
 
         raw = content.encode("utf-8") if isinstance(content, str) else content
         return IPCPointerReturn(
@@ -680,29 +665,42 @@ class TwoPhaseCommitEngine:
         )
 
 
-# ---------------------------------------------------------------------------
-# Staging Promotion Subsystem (CRV 4.0 Macro-Fase 3)
-# ---------------------------------------------------------------------------
+def win32_atomic_replace(
+    src_path: Union[str, Path],
+    dst_path: Union[str, Path],
+    max_retries: int = 8,
+) -> None:
+    """Sostituisce un file in modo atomico usando MoveFileExW e Shadow Swap."""
+    src = Path(src_path).resolve()
+    dst = Path(dst_path).resolve()
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    engine = TwoPhaseCommitEngine()
+    engine.MAX_RETRIES = max(1, int(max_retries))
+    with Win32NamedMutex(dst, timeout_ms=5000):
+        ok = engine._execute_atomic_commit(src, dst)
+    if not ok:
+        raise TwoPhaseCommitError(
+            f"Impossibile sostituire atomicamente {src} verso {dst}"
+        )
+
+
 def record_session_anchor_commit(
     repo_root: Union[str, Path],
     milestone_id: str,
     committed_files: List[Dict[str, Any]],
 ) -> None:
-    """
-    Appends an official commit record to nk_tracking/anchor/session_anchor.jsonl.
-    """
+    """Registra una voce di commit ufficiale in session_anchor.jsonl."""
     root = Path(repo_root).resolve()
     anchor_file = root / "nk_tracking" / "anchor" / "session_anchor.jsonl"
     if anchor_file.exists():
         committed_names = [f["relative_path"] for f in committed_files]
         entry = {
             "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            "act": "OFFICIAL_RELEASE_COMMIT",
+            "act": "SYNC",
             "target": milestone_id,
             "detail": (
                 f"Atomic 2PC promotion to production. "
-                f"{len(committed_files)} files committed ({', '.join(committed_names)}) "
-                f"with SHA-256 validation, WAL isolation, and Win32 Named Mutex lock."
+                f"{len(committed_files)} files committed ({', '.join(committed_names[:10])})."
             ),
             "skill": "NK-Master-Hub",
             "status": "OK",
@@ -717,12 +715,9 @@ def promote_staging_to_production(
     staging_dirname: str = ".staging",
     subdirs: Optional[List[str]] = None,
     git_sync: bool = False,
+    verify_baseline: bool = False,
 ) -> Dict[str, Any]:
-    """
-    Executes Win32 2PC atomic promotion of files from .staging/ to production.
-    Ensures Named Mutex concurrency guard, SHA-256 verification, and WAL logging.
-    Optionally synchronizes the git index with --git-sync for promoted files.
-    """
+    """Promuove in modo atomico i file modificati da .staging/ alla produzione."""
     if repo_root:
         root = Path(repo_root).resolve()
     else:
@@ -737,11 +732,37 @@ def promote_staging_to_production(
     if not staging_dir.exists():
         raise FileNotFoundError(f"Staging directory does not exist: {staging_dir}")
 
+    if verify_baseline:
+        prod_bl = root / "nk_tracking" / "quality_baseline.json"
+        stg_bl = staging_dir / "nk_tracking" / "quality_baseline.json"
+        if prod_bl.exists() and stg_bl.exists():
+            try:
+                from quality_baseline_manager import check_baseline_compliance
+
+                stg_data = json.loads(stg_bl.read_text(encoding="utf-8"))
+                raw_metrics = stg_data.get("metrics", {})
+                candidate_metrics = {
+                    k: (v.get("value") if isinstance(v, dict) else v)
+                    for k, v in raw_metrics.items()
+                }
+                res_bl = check_baseline_compliance(str(prod_bl), candidate_metrics)
+                if res_bl.get("verdict") != "PASS":
+                    raise TwoPhaseCommitError(
+                        f"Regressione rilevata nel quality_baseline di staging: {res_bl.get('regressions')}"
+                    )
+            except TwoPhaseCommitError:
+                raise
+            except Exception as exc:
+                raise TwoPhaseCommitError(
+                    f"Errore durante la verifica del baseline: {exc}"
+                ) from exc
+
     if subdirs:
         target_subdirs = subdirs
     else:
         target_subdirs = sorted([
-            d.name for d in staging_dir.iterdir()
+            d.name
+            for d in staging_dir.iterdir()
             if d.is_dir() and not d.name.startswith(".git") and d.name != "__pycache__"
         ])
     engine = TwoPhaseCommitEngine()
@@ -750,22 +771,13 @@ def promote_staging_to_production(
     unchanged: List[str] = []
     failed: List[Dict[str, Any]] = []
 
-    print("=" * 80)
-    print("WIN32 TWO-PHASE COMMIT (2PC) ATOMIC PROMOTION ENGINE")
-    print("Protocol: CRV 4.0 | Macro-Fase 3: Atomic Commit & Memorize")
-    print("=" * 80)
-    print(f"[*] Repository Root: {root}")
-    print(f"[*] Staging Root   : {staging_dir}")
-    if milestone:
-        print(f"[*] Milestone Anchor: {milestone}")
-    if git_sync:
-        print("[*] Git Sync Mode   : ENABLED (auto-stages index for promoted files)")
-    print("-" * 80)
-
-    # Collect files to promote: both top-level in staging_dir and within target_subdirs
     staging_files: List[Path] = []
     for top_file in sorted(staging_dir.iterdir()):
-        if top_file.is_file() and top_file.name != ".gitkeep" and "__pycache__" not in top_file.parts:
+        if (
+            top_file.is_file()
+            and top_file.name != ".gitkeep"
+            and "__pycache__" not in top_file.parts
+        ):
             staging_files.append(top_file)
 
     for subdir in target_subdirs:
@@ -787,18 +799,12 @@ def promote_staging_to_production(
         stg_bytes = stg_file.read_bytes()
         stg_sha = compute_sha256(stg_bytes)
 
-        # Check if production file is identical
         if prod_file.exists():
             prod_bytes = prod_file.read_bytes()
             prod_sha = compute_sha256(prod_bytes)
             if stg_sha == prod_sha:
                 unchanged.append(str(rel_path))
                 continue
-
-        # File is modified or new in staging -> promote via 2PC
-        print(f"[>] Promoting via Win32 2PC: {rel_path}")
-        print(f"    Target : {prod_file}")
-        print(f"    Payload: {len(stg_bytes)} bytes, SHA-256: {stg_sha}")
 
         verdict = engine.atomic_write(prod_file, stg_bytes)
 
@@ -810,43 +816,35 @@ def promote_staging_to_production(
                 "tx_id": verdict.transaction_id,
                 "execution_time_ms": verdict.execution_time_ms,
             })
-            print(f"    [+] VERDICT: COMMIT OK in {verdict.execution_time_ms:.2f}ms (tx_id: {verdict.transaction_id})")
         else:
             failed.append({
                 "relative_path": str(rel_path),
                 "reason": verdict.reason,
                 "tx_id": verdict.transaction_id,
             })
-            print(f"    [-] VERDICT: ABORT - Reason: {verdict.reason}")
 
     if failed:
-        raise TwoPhaseCommitError(f"2PC Promotion aborted! {len(failed)} files failed: {failed}")
+        raise TwoPhaseCommitError(
+            f"2PC Promotion aborted: {len(failed)} files failed: {failed}"
+        )
 
-    # Record milestone anchor if specified
     if milestone:
         record_session_anchor_commit(root, milestone, committed)
-        print(f"[+] Milestone Anchor recorded in session_anchor.jsonl: {milestone}")
 
-    # Optional git sync (--git-sync)
     if git_sync:
         try:
-            import subprocess
             files_to_sync: List[str] = [c["relative_path"] for c in committed]
-
             if files_to_sync:
-                print(f"[*] Running git-sync (git add) on {len(files_to_sync)} file(s)...")
                 cmd = ["git", "add"] + files_to_sync
-                res = subprocess.run(cmd, cwd=str(root), capture_output=True, text=True, check=False)
-                if res.returncode == 0:
-                    print(f"[+] git-sync successful: {len(files_to_sync)} file(s) added to git index.")
-                else:
-                    print(f"[!] git-sync warning: git add returned {res.returncode}: {res.stderr.strip()}", file=sys.stderr)
-        except Exception as git_exc:
-            print(f"[!] git-sync warning: {git_exc}", file=sys.stderr)
-
-    print("=" * 80)
-    print(f"PROMOTION SUMMARY: {len(committed)} committed, {len(unchanged)} unchanged, {len(failed)} failed.")
-    print("=" * 80)
+                subprocess.run(
+                    cmd,
+                    cwd=str(root),
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+        except Exception:
+            pass
 
     return {
         "status": "SUCCESS",
@@ -858,56 +856,63 @@ def promote_staging_to_production(
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    """CLI entry point for Win32 Two-Phase Commit Engine."""
+    """Punto di ingresso CLI per il motore Win32 Two-Phase Commit."""
     parser = argparse.ArgumentParser(
         description="Win32 Two-Phase Commit (2PC) & Staging Promotion Engine",
     )
     parser.add_argument(
         "--promote-staging",
         action="store_true",
-        help="Promote modified files from .staging to production via Win32 2PC",
+        help="Promuove i file modificati da .staging alla produzione",
     )
     parser.add_argument(
         "--milestone",
         type=str,
         default=None,
-        help="Milestone Anchor ID (e.g. NK-MS-20260923-STRESS-E2E-LOOP-v1.4.1)",
+        help="Milestone Anchor ID",
     )
     parser.add_argument(
         "--repo-root",
         type=str,
         default=None,
-        help="Path to repository root (defaults to parent of scripts/)",
+        help="Percorso alla radice del repository",
     )
     parser.add_argument(
         "--staging-dir",
         type=str,
         default=".staging",
-        help="Path or name of staging directory relative to repo-root (defaults to .staging)",
+        help="Nome della cartella di staging",
     )
     parser.add_argument(
         "--git-sync",
         action="store_true",
-        help="Automatically run git add on promoted files",
+        help="Esegue git add sui file promossi",
+    )
+    parser.add_argument(
+        "--verify-baseline",
+        action="store_true",
+        help="Verifica l'assenza di regressioni sul baseline prima del commit",
     )
 
     args = parser.parse_args(argv)
 
     if args.promote_staging:
         try:
-            promote_staging_to_production(
+            res = promote_staging_to_production(
                 repo_root=args.repo_root,
                 milestone=args.milestone,
                 staging_dirname=args.staging_dir,
                 git_sync=args.git_sync,
+                verify_baseline=args.verify_baseline,
             )
+            print(json.dumps(res, indent=2))
             return 0
         except Exception as exc:
             print(f"[!] Error during 2PC staging promotion: {exc}", file=sys.stderr)
             return 1
-    else:
-        parser.print_help()
-        return 0
+
+    parser.print_help()
+    return 0
 
 
 if __name__ == "__main__":

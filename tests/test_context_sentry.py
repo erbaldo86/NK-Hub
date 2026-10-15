@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Tests for nk_context_sentry.py (Nexus Keystone v2.2.0-AntiSaturation)
-Implements 100% Zero-Mock testing for Context Sentry Guard and Traffic-Light Status.
+Test per nk_context_sentry.py di Nexus Keystone v3.0.0.
+Implementa test Zero-Mock per Context Sentry Guard e Traffic-Light Status.
 """
 
 import json

@@ -14,13 +14,16 @@ __pycache__/
 !.vscode/launch.json
 .idea/
 
-# Output di Lavoro e App prodotte (Non dell'Ecosistema NK)
-System_Documentation/Reports/*
-!System_Documentation/Reports/.gitkeep
-scratch/*
-!scratch/.gitkeep
+# Progetti Esterni e Cartelle Temporanee Isolate ([RULE-PROJECT-ISOLATION])
+NK_External_Projects/
 Output Business Keystone/
 Antigravity model/
+google-docs-mcp/
+System_Documentation/
+fonti/
+scratch/
+test_scratch/
+data/
 
 # Temp / Logs
 *.log
@@ -36,10 +39,3 @@ nk_tracking/cockpit/
 # Staging area
 .staging/*
 !.staging/.gitkeep
-
-# Sensitive Credentials and Auth Tokens
-google-docs-mcp/credentials.json
-google-docs-mcp/token.json
-data/
-test_scratch/
-

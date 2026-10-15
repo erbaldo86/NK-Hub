@@ -1,72 +1,68 @@
-# 📦 Nexus Keystone Hub (v1.1.0-Universal)
-## 🚀 Guida di Installazione Rapida & Avvio per Google Antigravity
+# Nexus Keystone Hub (`v3.1.0-Tensor-RSI` / `v3.0.0-STE100-Unified`)
+## Guida di Installazione Rapida e Avvio per Google Antigravity
 
-Benvenuto nel pacchetto di distribuzione di **Nexus Keystone Hub (NK-Hub)**!  
-Questa guida spiega in modo semplice e diretto come installare e attivare l\'ecosistema all\'interno del tuo ambiente **Google Antigravity** su Windows.
+> 🌍 **Lingua / Language:** **[🇮🇹 Guida Installazione (IT)](GUIDA_INSTALLAZIONE.md)** | **[🇮🇹 Manuale Completo (README.it.md)](README.it.md)** | **[🇬🇧 Full Manual (README.md)](README.md)**
 
----
-
-## 📋 1. Requisiti di Sistema
-Prima di iniziare, assicurati di avere installato:
-- **Windows 10 o Windows 11** (64-bit).
-- **Python 3.11, 3.12 o 3.14** (con Python aggiunto al PATH di sistema).
-- **Google Antigravity** (IDE o CLI).
+Questa guida illustra la procedura di installazione e avvio di **Nexus Keystone Hub (`NK-Hub`)** per **Google Antigravity**.
 
 ---
 
-## 🛠️ 2. Procedura di Installazione in 4 Passaggi
-
-### Passo 1: Estrazione del file ZIP nel Workspace
-1. Estrai il contenuto di questo archivio ZIP nella cartella principale che intendi utilizzare come **Workspace di Google Antigravity** (può essere sia una cartella locale sul tuo PC, sia una cartella sincronizzata su **Google Drive** o **OneDrive**).
-2. La cartella conterrà la seguente struttura pronta all\'uso:
-   `
-   ├── .agents/                 # Le 16 Skill e la Costituzione di sistema
-   ├── nk_genome/               # Trittico di specifiche architetturali (SSOT)
-   ├── nk_tracking/             # Activity Anchor e baseline di qualità
-   ├── scripts/                 # I 10 Motori Asincroni Core (2PC, DAST, SBFL, AST, Memoria)
-   ├── tests/                   # Suite permanente di 49 unit test Zero-Mock
-   ├── requirements.txt         # Dipendenze Python minime
-   ├── README.md                # Presentazione completa e manuale tecnico
-   ├── PATCH_NOTES.md           # Changelog ufficiale
-   └── GUIDA_INSTALLAZIONE.md   # Questa guida
-   `
+## 1. Requisiti di Sistema
+* Sistema operativo **Windows 10 o Windows 11** a 64-bit (oppure Linux/macOS per esecuzione POSIX).
+* Interprete **Python 3.11, 3.12 o 3.14** registrato nella variabile `PATH`.
+* Ambiente **Google Antigravity 2.0** (IDE o CLI).
 
 ---
+
+## 2. Procedura di Installazione in 4 Passi
+
+### Passo 1: Apertura del Workspace
+1. Posiziona la cartella del repository nel percorso desiderato del tuo computer o di Google Drive.
+2. Verifica la presenza della struttura principale del repository:
+   ```text
+   ├── .agents/                 # Regolamento AGENTS.md, hooks.json, NK-RSI-Auditor e 16 Skill
+   ├── nk_genome/               # Tetralogia Sovrana 4/4, idea_canvas.md e PATCH_NOTES.md (SSOT)
+   ├── nk_tracking/             # Activity Anchor, telemetria RSI, memoria 3-Tier e baseline
+   ├── scripts/                 # 30 Moduli Logici Core (33 file Python totali)
+   ├── tests/                   # Suite permanente di 108 Golden Tests Zero-Mock + evals/
+   ├── requirements.txt         # Dipendenze Python della piattaforma
+   ├── README.md                # Manuale tecnico e tutorial completo (EN)
+   ├── README.it.md             # Manuale tecnico e tutorial completo in ASD-STE100 (IT)
+   ├── PATCH_NOTES.md           # Mirror root del Changelog ufficiale
+   └── GUIDA_INSTALLAZIONE.md   # Questa guida di installazione
+   ```
 
 ### Passo 2: Installazione delle Dipendenze Python
-Apri il terminale **PowerShell** all\'interno della cartella estratta ed esegui:
-`powershell
+Apri il terminale **PowerShell** nella radice del repository ed esegui il comando seguente:
+```powershell
 pip install -r requirements.txt
-`
-*(Le dipendenze includono solo librerie standard e collaudate: pydantic, psutil, pytest, pytest-asyncio)*.
+```
+
+### Passo 3: Esecuzione del Bootstrap e della Diagnostica
+Esegui il controllo rapido di avvio sessione (`< 120` ms) e la verifica di salute in sola lettura:
+```powershell
+python -u scripts/nk_session_bootstrap.py
+python -u scripts/preflight_health_check.py --check-only
+python -u scripts/rsi_convergence_engine.py --verify
+```
+
+### Passo 4: Esecuzione dei 108 Golden Tests
+Esegui la suite completa di `108` test permanenti Zero-Mock tramite `pytest`:
+```powershell
+python -u -m pytest tests/ -q
+```
+> **Esito atteso:** `108 passed` (`100.0% PASS`).
 
 ---
 
-### Passo 3: Verifica e Collaudo Automatico (Preflight Check)
-Esegui lo script di autodiagnosi per verificare che l\'ambiente sia integro e pronto:
-`powershell
-python scripts/preflight_health_check.py
-`
-> **Esito atteso:** Riceverai lo stato HEALTHY_GREEN che conferma la perfetta igiene del workspace e l\'allineamento di tutte le 16 skill.
+## 3. Avvio Operativo in Google Antigravity
 
----
-
-### Passo 4: Esecuzione dei Test di Sistema
-Verifica che tutti i 49 test di sistema passino al 100%:
-`powershell
-python -m unittest discover tests -v
-`
-> **Esito atteso:** Ran 49 tests ... OK (100% PASS).
-
----
-
-## 💡 3. Come Usare Nexus Keystone Hub in Antigravity
-
-Una volta aperta la cartella in **Google Antigravity**:
-1. **Riconoscimento Automatico:** Antigravity caricherà automaticamente le regole di governance contenute in .agents/AGENTS.md e le **16 Vocational Skills** presenti in .agents/skills/.
-2. **Hard Execution Gate:** Nessun agente modificherà mai i tuoi file sorgente di produzione senza autorizzazione esplicita. Tutto viene sviluppato in .staging/ e collaudato in sandbox effimere prima del commit.
-3. **Flusso Autopilot in Sciame:** Puoi chiedere all\'agente di pianificare, sviluppare o manutenere progetti software complessi: l\'Hub coordinerà automaticamente i nodi specializzati (Ideator, UX Architect, Security Auditor, Builder asincrono, Oracle Evaluator).
-4. **Documentazione Completa:** Per tutti i dettagli su architettura, formule matematiche SBFL e memoria a 3 livelli, fai riferimento al file **README.md**.
-
----
-*Nexus Keystone Hub v1.1.0-Universal — Ingegnerizzato per l\'Affidabilità Assoluta.*
+1. Apri la cartella del repository in **Google Antigravity**.
+2. Scrivi in chat uno dei trigger verbali di avvio (esempio: `"avvia nk hub"` oppure `"start nk"`).
+3. Il sistema esegue `scripts/nk_session_bootstrap.py` ed espone la Master Dashboard a 15 nodi (`[0]`..`[14]`).
+4. Scegli la **Modalità Diretta** digitando un numero tra `[0]` e `[14]`.
+5. In alternativa, usa la **Modalità Goal-Driven** descrivendo il tuo obiettivo in linguaggio naturale.
+6. Per creare una nuova applicazione esterna, esegui lo scaffolder deterministico:
+   ```powershell
+   python -u scripts/external_project_scaffolder.py --name NomeApp --target "../NK_External_Projects/NomeApp"
+   ```

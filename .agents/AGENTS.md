@@ -1,143 +1,151 @@
-# 🏛️ Regolamento di Sistema: Ecosistema Antigravity (Nexus Keystone Official Release v2.6.0-DualEngine-Symbiosis)
+# Regolamento di Sistema: Ecosistema Antigravity (Nexus Keystone v3.0.0-STE100-Unified)
 
-> **Ambito:** Regole del workspace a livello di progetto per tutti gli agenti, sub-agenti e nodi NK.  
-> **Applicazione:** Imperativo vincolante per l'Agente Principale, i Sub-Agenti e la FSM dell'Hub.  
-> **Versione Protocollo:** v2.6.0-DualEngine-Symbiosis (Session Bootstrap Gate, Universal Safe Subprocess Runner v2, Reactive Silence Anti-Polling, Deterministic DDD Scaffolder, Tier-0 Local API Cache Zero-Mock, Hard Compliance Ratchet, Win32 2PC Mutex & 79 Golden Tests Permanent Suite Ratchet)
+> **Ambito:** Regole vincolanti del workspace per tutti gli agenti, i sub-agenti e i nodi NK.  
+> **Versione:** `v3.0.0-STE100-Unified` (`[RULE-STE100]`, `[RULE-RSI]`, Dual-Profile Argon, Topologia 2-Tier, Win32 2PC e 100 Golden Tests).
 
 ---
 
-## 🛑 0. HARD EXECUTION GATE (Divieto Assoluto di Modifica Senza Permesso)
+## 0. Hard Execution Gate e Direttiva Linguistica
 
 ### [RULE-PROJECT-ISOLATION] EXTERNAL_PROJECT_DIRECTORY_MANDATE
-* **DIVIETO ASSOLUTO DI CODICE APPLICATIVO NELL'HUB:** È fatto divieto tassativo a QUALSIASI agente o sub-agente di creare cartelle o file di codice sorgente applicativo di produzione (`src_app/`, `app/`, moduli di business) all'interno dell'albero del repository `NK-Hub`.
-* **MANDATO CARTELLA ESTERNA A SÉ STANTE:** Ogni nuovo progetto, applicazione, gestionale, script o prototipo sviluppato con l'ausilio di NK DEVE risiedere nella propria directory radice autonoma e dedicata all'esterno dell'Hub (es. `g:\Il mio Drive\<NomeProgetto>\` o workspace separato). L'inizializzazione DEVE avvenire tramite `scripts/external_project_scaffolder.py`.
-* **RUOLO ESCLUSIVO DI NK-HUB:** NK-Hub opera rigorosamente come "Meta-Platform / Agentic Hub": contiene gli agenti, le skill, i guardiani di qualità e i tool di diagnostica, e lavora sui progetti esterni guidando i builder tramite puntamento a cartelle target esterne, mantenendo la propria radice incontaminata.
+* Nessun agente crea codice applicativo (`src_app/`, `app/`, `src/`) dentro `NK-Hub`.
+* Ogni nuovo progetto risiede in una cartella esterna autonoma (`G:/Il mio Drive/NK_External_Projects/<Nome>/`).
+* L'agente inizializza ogni progetto esterno tramite `scripts/external_project_scaffolder.py`.
+* `NK-Hub` opera solo come meta-piattaforma di orchestrazione, audit e qualità.
 
 ### [RULE-00.4] SESSION_BOOTSTRAP_GATE
-* **PRIMO STEP DETERMINISTICO OBBLIGATORIO:** All'apertura di ogni nuova sessione o task operativo su NK-Hub, l'agente o il Session Controller DEVE eseguire `scripts/nk_session_bootstrap.py`.
-* **FAST-STAT VERIFICATION ($< 120$ ms):** Verifica in tempo reale dell'isolamento della radice, purge dei log WAL con TTL $> 60$s e validazione dello stato invariante da `%TEMP%\nk_bootstrap\`. Nessuna azione di build può procedere se il bootstrap restituisce `FAIL`.
+* L'agente esegue `scripts/nk_session_bootstrap.py` come primo passo di ogni sessione.
+* La verifica `Fast-Stat` completa il controllo in meno di `120` ms (`< 50` ms su cache hit).
+* Lo script pulisce i file `.wal` scaduti, verifica la root e imposta `NK_MODEL_PROFILE=argon`.
+* Nessuna build procede se il bootstrap restituisce `FAIL`.
 
 ### [RULE-00.5] UNIFIED_ONBOARDING_DASHBOARD_MANDATE
-* **TRIGGER DETERMINISTICI DI AVVIO:** Qualsiasi richiesta utente contenente trigger verbali o intent di avvio sessione (*"avvia ambiente nk"*, *"avvia nk hub"*, *"avvia nk"*, *"avvia hub"*, *"start nk"*, *"start hub"*, *"attiva nk"*, *"attiva ambiente nk"*) attiva OBBLIGATORIAMENTE il seguente flusso invariante:
-  1. **Esecuzione Fast-Stat Session Bootstrap Gate:** Esecuzione immediata di `scripts/nk_session_bootstrap.py` ($< 120$ ms). È fatto espresso divieto di eseguire la test suite completa o comandi diagnostici pesanti a ogni avvio di sessione.
-  2. **Esposizione Master Dashboard Unificata:** Rendering deterministico e fedele della Master Dashboard a 15 nodi (`[0]` - `[14]`) definita in `NK-Master-Hub/SKILL.md`, senza omettere nodi, senza alterare l'ordine e senza riassunti riduttivi.
-  3. **Guida all'Uso Flessibile (In Calce al Menù):** Inclusione obbligatoria e costante delle indicazioni operative a due vie:
-     - *Modalità Diretta (Facoltativa):* Inserimento del numero `[0]` - `[14]` per interrogare o invocare direttamente un singolo nodo specialistico.
-     - *Modalità Goal-Driven (Consigliata):* L'utente può semplicemente descrivere l'obiettivo o il problema in linguaggio naturale; `NK-Session-Controller` e `NK-Master-Hub` coordinano automaticamente lo sciame di sub-agenti e skill idonee in background, senza richiedere all'utente la gestione manuale dei nodi.
+* I trigger di avvio sono: `"avvia ambiente nk"`, `"avvia nk hub"`, `"avvia nk"`, `"avvia hub"`, `"start nk"`, `"start hub"`, `"attiva nk"`, `"attiva ambiente nk"`.
+* Quando l'utente invia un trigger di avvio, l'agente esegue tre passi:
+  1. Esegue subito il controllo `Fast-Stat` con `scripts/nk_session_bootstrap.py` in meno di `120` ms, senza lanciare test.
+  2. Mostra la Master Dashboard a 15 nodi (`[0]` fino a `[14]`) definita in `NK-Master-Hub/SKILL.md`.
+  3. Include in calce la guida con `Modalità Diretta` (`[0]`..`[14]`) e `Modalità Goal-Driven` in linguaggio naturale.
 
 ### [RULE-00] ZERO_UNAUTHORIZED_FILE_MODIFICATION_MANDATE
-* **DIVIETO ASSOLUTO DI SCRITTURA PRE-APPROVAZIONE SU PRODUZIONE:** È fatto divieto tassativo a QUALSIASI agente o sub-agente di chiamare `write_to_file`, `replace_file_content` o modificare file di produzione (`".agents/AGENTS.md"`, `"scripts/*"`) durante richieste di sola consultazione, senza autorizzazione.
-* **DEROGA SPECIFICHE & BRIEFING (nk_genome/):** In deroga parziale, i nodi di ideazione e pianificazione (`NK-Ideator`, `NK-Plan-Aligner`, `NK-Session-Controller`) sono formalmente pre-autorizzati a creare e aggiornare la Tetralogia Sovrana in `"nk_genome/"` (`concept_map.md`, `structural_tree.md`, `implementation_plan.md`, `repo_map.md`) e la telemetria in `"nk_tracking/"` per adempiere all'Auto-Brief Swarm FSM.
-* **DEROGA VIBE CODING STAGING/SANDBOX:** In modalità interattiva Vibe Coding (Mode B e Mode C), l'agente è pre-autorizzato a creare prototipi e branch isolati in `".staging/"` e `"%TEMP%\nk_sandbox_*\"` per eseguire verifiche AST e DAST senza "permission ping-pong". Il commit fisico finale su disco di produzione resta vincolato alla conferma atomica.
-* **DIVIETO DI I/O BYPASS VIA TERMINALE:** È vietato in modo esplicito aggirare il blocco di I/O usando `run_command` con operatori di reindirizzamento (`>`, `>>`), comandi come `echo`, o script Python non autorizzati per manipolare file fisici.
+* Nessun agente modifica i file di produzione (`.agents/AGENTS.md`, `scripts/*`) senza autorizzazione dell'utente.
+* I nodi di pianificazione aggiornano la Tetralogia Sovrana in `nk_genome/` (`concept_map.md`, `structural_tree.md`, `implementation_plan.md`, `repo_map.md`) e `nk_tracking/`.
+* In `Mode B` e `Mode C`, i Builder operano in `.staging/` e `%TEMP%\nk_sandbox_*\`.
+* Il commit finale richiede la promozione atomica tramite `scripts/win32_2pc_engine.py`.
+* Nessun agente usa `run_command` per aggirare il blocco di scrittura.
 
-### [RULE-00.1] STRICT_SPECIFIER_READ_ONLY_MANDATE
-* Tutti i nodi di Ideazione, UX/UI Design, Metaprompting, Diagnostica e Audit (`NK-Ideator`, `NK-App-UX-Architect`, `NK-Security-Auditor`, `NK-Bug-Diagnostic-Engine`) operano in modalità **Strict Read-Only sui file di produzione dell'Hub e dei progetti target**.
-* È fatto divieto assoluto a tali nodi di eseguire o prescrivere chiamate di scrittura per file sorgente (`.py`, `.js`, `.ts`, `.html`, `.css`). L'output consentito è unicamente la Tetralogia Sovrana in `nk_genome/`, schemi JSON in `nk_tracking/reports_and_briefs/` e report di audit. La scrittura del codice applicativo nei progetti esterni è prerogativa esclusiva dei Builder operanti in `".staging/"`.
+### [RULE-00.1] / [RULE-04.4] STRICT_SPECIFIER_READ_ONLY_MANDATE
+* I nodi di ideazione, architettura UX, diagnostica e audit operano in sola lettura sulla produzione.
+* Questi nodi producono solo file in `nk_genome/` e report in `nk_tracking/reports_and_briefs/`.
+* Solo i Builder scrivono codice sorgente dentro `.staging/`.
 
 ### [RULE-00.2] THE_SCRIBE_EXEMPTION
-* In deroga parziale a `[RULE-00]`, la skill `NK-Scribe` è formalmente autorizzata ad eseguire aggiornamenti automatici in background sui soli file di tracciamento e documentazione (`nk_tracking/*`, `nk_genome/PATCH_NOTES.md`, `nk_genome/repo_map.md`, `README.md`) al completamento con esito PASS della Macro-Fase 3 del CRV 4.0.
+* `NK-Scribe` aggiorna `nk_tracking/*`, `nk_genome/PATCH_NOTES.md`, `PATCH_NOTES.md`, `nk_genome/repo_map.md`, `README.md` e `README.it.md` dopo il commit 2PC.
 
-### [RULE-00.3] SANITIZATION_AND_SANDBOX_EXEMPTION (Teardown & Cleanup)
-* In deroga a `[RULE-00]`, gli orchestratori (`NK-Master-Hub`, `NK-Session-Controller`) e i motori core (`scripts/win32_2pc_engine.py`, `scripts/dast_sandbox_runner.py`, `scripts/async_heartbeat_signaler.py`, `scripts/ast_repo_mapper.py`) sono formalmente autorizzati a creare e distruggere directory effimere in `"%TEMP%\nk_sandbox_<uuid>\"`, `"%TEMP%\nk_diagnostics\"` e file transazionali `.wal_2pc.jsonl` / `.wal/`.
+### [RULE-00.3] SANITIZATION_AND_SANDBOX_EXEMPTION
+* Gli orchestratori e gli script core gestiscono le cartelle temporanee in `%TEMP%\nk_sandbox_*` e `%TEMP%\nk_diagnostics\`.
+
+### [RULE-STE100] ASD_STE100_TECHNICAL_ITALIAN_MANDATE
+* Tutti i file `.md`, le docstring, i commenti, i commit e le risposte usano l'italiano tecnico ASD-STE100.
+* Ogni frase operativa contiene al massimo 20 parole e una sola istruzione.
+* L'agente usa la forma attiva, vocaboli univoci, zero trattini d'inciso e zero preamboli di cortesia.
 
 ---
 
-## 🛡️ 1. Principi Fondamentali & Protocollo CRV 4.0
+## 1. Principi Operativi, Topologia 2-Tier, Protocollo CRV 4.0 e Motore RSI
 
 ### [RULE-REACTIVE-SILENCE] ANTI_POLLING_WATCHDOG_MANDATE
-* **DIVIETO ASSOLUTO DI BUSY POLLING CONVULSO:** È fatto divieto categorico di chiamare ripetutamente `manage_task(Action='status')` o `manage_subagents(Action='list')` in un ciclo a vuoto. Limite massimo: **1 sola interrogazione status** per verificare l'avvio.
-* **OBBLIGO DEL SILENZIO REATTIVO:** Quando un processo viene inviato in background come task asincrono, l'agente DEVE cedere immediatamente il turno (Zero Tool Calls) per attendere il risveglio reattivo dell'Event Bus di Antigravity, OPPURE impostare un timer sentinella condizionale con `schedule(DurationSeconds=X, TimerCondition="<task-id>")`.
-* Qualsiasi violazione che superi il 15% delle chiamate tool in busy polling comporta il fallimento automatico del compliance check (`scripts/nk_compliance_checker.py`).
+* Nessun agente esegue cicli di polling con `manage_task(Action="status")` o `manage_subagents(Action="list")`.
+* L'agente esegue al massimo una sola verifica di stato all'avvio del task.
+* Dopo l'avvio asincrono, l'agente cede il turno o imposta `schedule(DurationSeconds=X, TimerCondition="<id>")`.
 
-### [RULE-01] UNIVERSAL_DDI_MANDATE (Build & Deep Audit)
-* **Direttiva Context Hygiene & Anti-Saturation:** L'Agente Principale e tutti i nodi di supervisione hanno il DIVIETO ASSOLUTO di sporcare il contesto operando in modalità monolitica (scrittura codice o ispezioni massive nel thread principale).
-* **Universal DDI (Define, Delegate, Idle):**
-  1. **Scrittura Codice:** L'Agente Principale DEVE obbligatoriamente definire la specifica, delegare a un sub-agente builder in `.staging/` (o invocare lo scaffolder deterministico) e attendere in IDLE.
-  2. **Deep Audit & Stress-Testing (>2 file o >2 comandi):** L'Agente Principale ha il DIVIETO di eseguire loop di lettura (`view_file`) o esecuzione di test/comandi nel proprio thread. DEVE delegare l'ispezione/stress-test a un sub-agente oracolo/auditor (`NK-Oracle-Evaluator`, `CriticAuditWorker`) e attendere in IDLE la sola matrice di conformità.
-  3. **Micro-Check Fast Track:** Verifiche rapide (<= 150 LOC, <= 2 file letti, <= 2 comandi rapidi) rimangono autorizzate in-process per preservare fluidità e zero overhead.
+### [RULE-01] UNIVERSAL_DDI_MANDATE (Topologia 2-Tier Hub-and-Spoke)
+* L'Agente Principale registra i worker con `define_subagent(enable_subagent_tools=False)` per imporre un singolo livello.
+* Per scrivere codice, l'Agente Principale delega il lavoro a un Builder in `.staging/`.
+* Per gli audit profondi, l'Agente Principale delega la verifica agli Auditor in sola lettura.
+* Il Fast-Track consente fino a `12` chiamate dirette consecutive (`<= 8` letture da `800` righe e `<= 4` comandi).
 
-### [RULE-SWARM-HYGIENE] SWARM_MESSAGE_HYGIENE_MANDATE
-* **Hard Cap 2.000 Caratteri:** È fatto divieto a qualsiasi sub-agente di trasmettere tramite `send_message` messaggi superiori a 2.000 caratteri (~500 token).
-* **Obbligo Dump su File:** I report completi di threat modeling, DAST o architettura DEVONO essere salvati come artefatti su disco (`scratch/` o `%TEMP%\nk_diagnostics\`). Al genitore si invia SOLO l'Executive Summary (<2.000 caratteri) con il percorso del file.
-* **Head-Tail I/O Fallback:** In caso di errore I/O durante la scrittura del file, il sub-agente attiva la compressione in-band Head-Tail (primi 400 caratteri + ultimi 800 caratteri del traceback con `__cause__`), prevenendo perdite di contesto e ping-pong.
+### [RULE-SWARM-HYGIENE] / [RULE-08] / [RULE-08.2] SWARM_MESSAGE_HYGIENE_MANDATE
+* Nessun sub-agente invia messaggi `send_message` di ritorno superiori a `1.800` caratteri netti (`2.000` MTU).
+* Il sub-agente salva i report completi in `brain/<subagent-id>/scratch/` o in `%TEMP%\nk_diagnostics\`.
+* Il messaggio `send_message` contiene solo la sintesi esecutiva e il percorso del file.
+* Su errore I/O, `scripts/nk_swarm_messenger.py` applica il taglio Head-Tail (`400` più `800` caratteri).
 
 ### [RULE-01.1] PROTOCOLLO CRV 4.0 (4 Macro-Fasi in Swarm)
-* **MACRO-FASE 1 (Build & Stage in Swarm):**
-  - Il Builder (`NK-Python-Async-Builder`, `NK-Delta-Architect`) scrive il codice esclusivamente in `".staging/"`.
-  - Prima dell'audit, il codice viene sottoposto a verifica AST statica con `scripts/ast_guard_validator.py`.
-  - In questa fase è formalmente autorizzato l'Invisible Self-Healing Loop (`scripts/invisible_healing_loop.py`) per un massimo di 3 iterazioni di auto-riparazione (AST -> DAST -> SBFL Ochiai <80 tok payload) all'interno di staging.
-* **MACRO-FASE 2 (Unified Dynamic Audit - 100% Strict Read-Only):**
-  - I sub-agenti `NK-Oracle-Evaluator`, `NK-Security-Auditor` e `NK-Dynamic-Sandbox-StressTester` eseguono in autonomia e isolamento SAST L1/L2/L3, test con Oracolo (in `"%TEMP%\nk_sandbox_<uuid>\"`) e Real DAST Concurrency.
-  - **MODALITÀ 100% STRICT READ-ONLY:** Durante la Macro-Fase 2, gli Auditor non possono modificare il codice né attivare cicli di self-healing. Qualsiasi anomalia produce un verdetto immediato di FAIL (`exit_code: 1`) / VETO.
-* **MACRO-FASE 3 (2PC Atomic Commit & Memorize):**
-  - Solo in caso di PASS netto (`exit_code: 0`), l'Hub Sovrano L3 (`NK-Master-Hub`) esegue il commit atomico a due fasi tramite `scripts/win32_2pc_engine.py` (Named Mutex, SHA-256/CRC-32, WAL, MoveFileExW con Shadow Swap Fallback).
-  - Aggiornamento della memoria episodica a 3 livelli tramite `scripts/memory_3tier_engine.py` e baseline ratchet tramite `scripts/quality_baseline_manager.py`.
-* **MACRO-FASE 4 (Deterministic Teardown):**
-  - Bonifica delle sole directory temporanee effimere in `"%TEMP%\nk_sandbox_*"` e dei residui in `".staging/"`.
+* **Macro-Fase 1 (Build e Stage):** Il Builder scrive in `.staging/`, esegue `scripts/ast_guard_validator.py` e `scripts/auto_heal_pipeline.py`.
+* **Macro-Fase 2 (Unified Dynamic Audit):** Gli Auditor (`NK-Oracle-Evaluator`, `NK-Security-Auditor`, `NK-Dynamic-Sandbox-StressTester`) verificano in sola lettura.
+* **Macro-Fase 3 (2PC Atomic Commit):** Su esito `PASS`, `NK-Master-Hub` promuove i file con `scripts/win32_2pc_engine.py`.
+* **Macro-Fase 4 (Deterministic Teardown):** L'Hub rimuove le sandbox in `%TEMP%\nk_sandbox_*` e pulisce `.staging/`.
 
 ### [RULE-01.8] VIBE_CODING_TRIPLE_SPEED_TAXONOMY
-* **⚡ Mode C (Vibe-Sprint / Fluid-Track):** Attivato per task veloci di frontend, UI o singoli script ($\le 150$ LOC). Utilizza `scripts/vibe_sprint_router.py` per calcolare l'AST Risk Score e una micro-specifica inline ($\le 150$ token) con Time-To-First-Render $<15$s in staging. Zero-mock rigoroso.
-* **🔧 Mode B (CRV Lite / Fast-Track Staging):** Attivato per bugfix chirurgici e micro-features su backend. Esegue staging immediato, validazione AST + DAST ed esecuzione non-regressiva mirata prima del commit 2PC.
-* **🏛️ Mode A (Sovereign CRV 4.0):** Riservato a rilasci di release, modifiche architetturali profonde o rifattorizzazioni core, con la piena FSM a 5 turni e audit formale a 4 macro-fasi.
+* **Mode C (Vibe-Sprint):** Gestisce task rapidi UI o script (`<= 150` LOC) tramite `scripts/vibe_sprint_router.py`.
+* **Mode B (CRV Lite):** Gestisce bugfix backend con staging, validazione AST, DAST e test mirati.
+* **Mode A (Sovereign CRV 4.0):** Gestisce rilasci architetturali con l'Auto-Brief Swarm FSM a 5 turni.
 
 ### [RULE-01.9] ANTI_FREEZE_HEARTBEAT_MANDATE
-* **OBBLIGO DI LIVENESS PULSE SULLE ATTIVITÀ LUNGHE:** Qualsiasi operazione complessa, benchmark o task multi-agente superiore a 60 secondi DEVE emettere un segnale di battito (heartbeat) almeno ogni 45 secondi.
-* **Tooling Integrato:** Utilizzo del tool nativo `schedule(DurationSeconds=45)` o del daemon asincrono `scripts/async_heartbeat_signaler.py` (cadenza 15-20s).
-* **Isolamento Diagnostico:** In caso di watchdog alert, i dump diagnostici dei thread devono essere salvati rigorosamente in `"%TEMP%\nk_diagnostics\"` (mai sul mount Google Drive `G:\`) per prevenire lock I/O e deadlock con `GoogleDriveFS`.
+* Ogni task oltre `60` secondi emette un heartbeat ogni `45` secondi con `schedule(DurationSeconds=45)` o `scripts/async_heartbeat_signaler.py`.
+* Lo script salva i dump diagnostici in `%TEMP%\nk_diagnostics\`.
 
-### [RULE-01.10] PERMANENT_TEST_SUITE_MANDATE (79 Golden Tests Core Platform Ratchet)
-* **È FATTO DIVIETO CATEGORICO E ASSOLUTO** di eliminare o degradare la suite permanente di test unitari contenuti in `"tests/"` dedicati al core della piattaforma (AST Guard, Win32 2PC, Memory 3-Tier, SBFL Engine, DAST Sandbox, Platform Runner v2, Session Bootstrap, Scaffolder, Api Cache, Compliance Checker).
-* Il ratchet di qualità (`nk_tracking/quality_baseline.json`) impone che nessuna modifica possa ridurre la percentuale di PASS sotto il 100.0%.
+### [RULE-01.10] PERMANENT_TEST_SUITE_MANDATE (100 Golden Tests Ratchet)
+* Nessun agente elimina o degrada i `100` test permanenti Zero-Mock presenti in `tests/`.
+* `nk_tracking/quality_baseline.json` blocca ogni commit se il pass rate scende sotto il `100.0%`.
 
 ### [RULE-01.11] INTRINSIC_IMPLEMENTATION_MANDATE
-* **INTRINSIC IMPLEMENTATION & DUAL-MIRRORING ARTIFACT BRIDGE:** Qualsiasi comando slash `/plan` o richiesta contenente trigger verbali di pianificazione attiva l'Auto-Brief Swarm FSM a 5 turni.
-* **Sincronizzazione Atomica:** Al completamento del Turno 4 (`NK-Plan-Aligner`), il Session Controller DEVE emettere sia la SSOT permanente in `nk_genome/implementation_plan.md`, sia l'Artefatto Nativo Antigravity valorizzando `ArtifactMetadata.RequestFeedback: true` (abilitando il tasto cliccabile 'Proceed' nell'IDE).
-* **Transizione Determinista:** Il click dell'utente su 'Proceed' costituisce autorizzazione formale e innesca la transizione immediata a `/goal` senza permission ping-pong intermedio.
+* Il comando `/plan` avvia l'Auto-Brief Swarm FSM a 5 turni.
+* Al Turno 4, il Controller aggiorna `nk_genome/implementation_plan.md` ed emette l'artefatto con `RequestFeedback: true`.
+* Il click sul tasto `Proceed` avvia subito il flusso `/goal`.
 
 ### [RULE-01.12] INTRINSIC_GOAL_MANDATE
-* **INTRINSIC GOAL DRIVE & 4 SCUDI AVVERSARIALI:** Qualsiasi comando slash `/goal`, click su 'Proceed' o richiesta orientata all'obiettivo impegna l'agente a un'esecuzione autonoma e ininterrotta in `.staging/` fino al superamento della Macro-Fase 2 del CRV 4.0.
-* **3-Pillar Fast-Healing Reale:** L'auto-riparazione è vincolata a `scripts/auto_heal_pipeline.py`, `scripts/sbfl_pytest_bridge.py` (Ochiai <80 tok) e `scripts/healing_snapshot_rollback.py` (Strict Monotonic Gate SHA-256).
-* **I 4 Scudi di Sicurezza (C1-C4):**
-  1. *C1 Target Resolution:* Applicazione inderogabile di `[RULE-PROJECT-ISOLATION]` via `scripts/external_project_scaffolder.py`.
-  2. *C2 Context Sentry:* Hard-cap a 4 tentativi cumulativi di healing e serializzazione WAL con dump diagnostico se >80 step.
-  3. *C3 Unattended Failure:* Zero finti mock (`[RULE-01.2]`) ed emissione di `Goal_Failure_Manifest.json` su risorse esterne bloccate.
-  4. *C4 2PC Commit Safety:* Emissione dell'Execution Receipt prima della scrittura fisica atomica in produzione (`[RULE-00]`).
+* Il comando `/goal` opera in `.staging/` con `scripts/auto_heal_pipeline.py`, `scripts/sbfl_pytest_bridge.py` e `scripts/healing_snapshot_rollback.py`.
+* L'esecuzione applica i 4 scudi `C1` (isolamento), `C2` (Context Sentry), `C3` (`Goal_Failure_Manifest.json`) e `C4` (Receipt 2PC).
 
-### [RULE-01.13] INTRINSIC_REPO_MAP_MANDATE (Tetralogia Sovrana v2.0.0)
-* **AUTONOMIA TOTALE SENZA PROMPT UTENTE:** La generazione e l'aggiornamento della High-Density AST Repo-Map (`scripts/ast_repo_mapper.py`) è un processo intrinseco del genoma architetturale ("Tetralogia Sovrana": `concept_map.md`, `structural_tree.md`, `implementation_plan.md`, `repo_map.md`).
-* **AGGIORNAMENTO AUTONOMO AL COMMIT:** A ogni commit atomico (Macro-Fase 3), `NK-Scribe` aggiorna automaticamente `nk_genome/repo_map.md` e la mappa AST nella directory dell'applicazione generata.
+### [RULE-01.13] INTRINSIC_REPO_MAP_MANDATE (Tetralogia Sovrana 4/4)
+* La Tetralogia Sovrana comprende `concept_map.md`, `structural_tree.md`, `implementation_plan.md` e `repo_map.md` (più `idea_canvas.md`).
+* Ad ogni commit 2PC, `NK-Scribe` aggiorna `nk_genome/repo_map.md` tramite `scripts/ast_repo_mapper.py`.
 
 ### [RULE-01.2] ZERO_MOCK_MANDATE & TIER-0 LOCAL API CACHE
-* Divieto categorico di `MagicMock`, stub sintetici, fuzzer casuali o simulazioni in memoria. Ogni test deve validare codice reale su processi e filesystem reali.
-* **Tier-0 Deterministic Local API Cache:** Per prevenire latenze eccessive ($> 30$s) e rate-limiting (HTTP 429/504) su API esterne durante cicli di test o Self-Healing locali, è formalmente autorizzato l'impiego di `scripts/deterministic_api_cache.py` in modalità `READ_THROUGH` (payload reali verbatim salvati in SQLite WAL). Nelle pipeline di CI/CD e pre-commit release è obbligatorio il flag `--force-refresh` (`NK_FORCE_NETWORK_REFRESH=1`) per verificare i contratti di rete live al 100%.
+* Nessun agente usa `MagicMock`, `unittest.mock`, stub sintetici o fuzzer casuali.
+* Nei test locali l'agente usa `scripts/deterministic_api_cache.py` con connessione SQLite WAL persistente e `--force-refresh` in CI.
 
-### [RULE-01.3] DAEMON_RELOAD_SUPPRESSION & SHUTDOWN_BEFORE_EDIT
-* I processi demone in background non devono provocare reload continui o lock sui file. Prima di modifiche fisiche a codice sorgente, verificare ed arrestare eventuali server in background tramite `scripts/safe_cleanup_dev_servers.py`.
+### [RULE-01.3] / [RULE-08.1] DAEMON_RELOAD_SUPPRESSION & SHUTDOWN_BEFORE_EDIT
+* Prima di modificare il codice, l'agente ferma i server attivi con `scripts/safe_cleanup_dev_servers.py` o `manage_task(Action="kill", TaskId="<id>")`.
 
-### [RULE-01.7] SOVEREIGNTY_HIERARCHY_DIRECTIVE
-* **`NK-Master-Hub`** è il Sovrano Infrastrutturale L3: routing DAG, 2PC master, lock Win32 e ownership del commit.
-* **`NK-Session-Controller`** è il Sovrano Critico di Sessione: potere di VETO assoluto, orchestrazione Auto-Brief Swarm FSM a 5 turni e handoff asimmetrico.
+### [RULE-01.7] / [RULE-02.7] SOVEREIGNTY_HIERARCHY_DIRECTIVE
+* `NK-Master-Hub` governa il routing sul DAG di Kahn, il mutex Win32 e il commit 2PC.
+* `NK-Session-Controller` governa l'Auto-Brief Swarm FSM a 5 turni, la Cold Review a 6 Gate e il veto.
+
+### [RULE-RSI] CONTINUOUS_RECURSIVE_SELF_IMPROVEMENT_MANDATE
+* Ogni ciclo di pianificazione, build, healing e audit converge tramite `scripts/rsi_convergence_engine.py`.
+* Il motore calcola $\Delta_k = 15\text{SAST}_k + 10(T_{\text{fail},k} + C_k) + 5H_k + 2M_k + 1(L_k + G_k)$ e la fitness $Q(S_k)$.
+* Il ciclo termina con `CONVERGED_OPTIMAL` solo quando $\Delta_k == 0$ e $Q(S_k) == 100.0$, con rollback su regressioni.
+
+### [RULE-RSI.1] TENSOR_RSI_2D_VIBE_MANDATE
+* Il motore Tensor-RSI opera sui quattro livelli `L0` (Static Gate), `L1` (Micro-Loop), `L2` (Reflexion) e `L3` (Meta-RSI).
+* `RSIProfileRegistry` seleziona i cinque profili `VIBE_SPRINT_MICRO_RSI`, `CODE_RSI`, `SPEC_RSI`, `UI_UX_RSI` e `STE100_RSI` in base alla skill attiva.
+* In `Mode C`, l'agente esegue `scripts/rsi_convergence_engine.py --vibe-check` per completare la convergenza in meno di `500` ms.
 
 ---
 
-## 🤝 2. Governance, Memoria & Tracciamento
+## 2. Governance, Memoria a 3 Livelli e Tracciamento
 
-### [RULE-02.3.1] HUB_PREFLIGHT_HEALTH_CHECK_DIRECTIVE
-* **MANUTENZIONE DIAGNOSTICA ESPLICITA:** `scripts/preflight_health_check.py` con purge automatico dei file WAL aventi TTL > 60 secondi, verifica dell'Activity Anchor e pulizia cache è riservato a verifiche e sanitizzazioni di manutenzione straordinaria o cold start manuale. All'avvio ordinario dell'Hub si applica esclusivamente il Fast-Stat Session Bootstrap Gate (<120ms) definito in `[RULE-00.4]` e `[RULE-00.5]`.
+### [RULE-02.3.1] / [RULE-05.4] HUB_PREFLIGHT_HEALTH_CHECK_DIRECTIVE
+* L'agente esegue `scripts/preflight_health_check.py` solo per manutenzione, CI/CD (`--check-only`) o cold start manuale.
+* All'avvio ordinario, l'agente esegue solo `scripts/nk_session_bootstrap.py` (`[RULE-00.4]`).
 
-### [RULE-03] AUTO-BRIEF SWARM FSM A 5 TURNI
-* Turno 1: Draft Synthesis (Proposta iniziale).
-* Turno 2: Attack & Stress Swarm (Attacco avversariale e individuazione falle).
-* Turno 3: Refine & Solution Architecture (Convergenza e risoluzione chirurgica).
-* Turno 4: 1:1 Plan Alignment (Verifica di aderenza alla Tetralogia `nk_genome/`).
-* Turno 5: Garbage Collection & Final Handoff.
+### [RULE-02.4] / [RULE-04.3] RESEARCH_FIRST_AND_COVE_MANDATE
+* In caso di incertezza, l'agente verifica la documentazione aggiornata e applica la Chain-of-Verification (CoVe).
+
+### [RULE-02.5] / [RULE-02.6] TWO_STAGE_GROUNDING_AND_CLEAN_PROMPT
+* Prima di modificare il codice, il Builder legge `nk_genome/implementation_plan.md` (Stage A) e i file target (Stage B).
+* Tutti i prompt interni usano percorsi assoluti con slash standard e zero comandi slash non supportati.
+
+### [RULE-02.8] CONTEXT_COMPACTION_AND_HANDOFF_MANDATE
+* Alla soglia di guardia (`70` step standard o `150` step argon), l'agente raccomanda `/compact` ed esegue `scripts/nk_session_handoff.py`.
+
+### [RULE-03] AUTO_BRIEF_SWARM_FSM_A_5_TURNI
+* I 5 turni sono: Turno 1 (Draft Synthesis), Turno 2 (Attack Swarm), Turno 3 (Refine Architecture), Turno 4 (1:1 Plan Alignment) e Turno 5 (Final Handoff).
 
 ### [RULE-05.1] CHANGELOG_SSOT
-* Il file `"nk_genome/PATCH_NOTES.md"` costituisce la Single Source of Truth del changelog. `NK-Scribe` ne cura il mirroring atomico con `"PATCH_NOTES.md"` alla radice e l'aggiornamento di `"README.md"`.
+* `nk_genome/PATCH_NOTES.md` è la Single Source of Truth del changelog ed è sincronizzato con `PATCH_NOTES.md`.
 
 ### [RULE-05.2] 3_TIER_MEMORY_MANAGEMENT
-* Gestione rigorosa dei domini di memoria in `scripts/memory_3tier_engine.py`:
-  - Tier 1 Core Memory: $\le 350$ token per ciascuno dei 4 domini NK (`ARCH`, `SEC`, `OPS`, `DEVX`).
-  - Tier 2 Local Scratchpad: sliding window a 200 eventi con rotazione backup (.bak_1, .bak_2).
-  - Tier 3 Archival Cold Store: Pure Python BM25 + Dense Cosine con Reciprocal Rank Fusion ($k=60$).
+* `scripts/memory_3tier_engine.py` gestisce `ARCH`, `SEC`, `OPS`, `DEVX` con cap Tier-1 di `350` token (`1.200` argon) e RRF ($k=60$).

@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Nexus Keystone v1.1.0-Universal
-Test Module 2: DAST Sandbox Runner & Dynamic Line Tracer
-6 Tests: Sandbox Isolation, Mirroring, Line Tracer, Timeout Watchdog, Memory Cap, Taskkill Pre-Kill.
+Nexus Keystone v3.0.0-STE100-Unified
+Modulo di test 2: DAST Sandbox Runner e Dynamic Line Tracer.
 """
 
 from __future__ import annotations
@@ -26,7 +25,7 @@ from dast_sandbox_runner import DASTSandboxRunner, SandboxConfig, ShadowSandbox
 class TestDASTSandbox(unittest.IsolatedAsyncioTestCase):
     # 9. test_sandbox_lifecycle_and_mirroring
     async def test_sandbox_lifecycle_and_mirroring(self):
-        """9. Validates creation, tree mirroring, and clean teardown of isolated shadow sandbox."""
+        """9. Valida creazione, mirroring e teardown pulito della shadow sandbox."""
         sb = ShadowSandbox()
         created_path = sb.create()
         self.assertTrue(created_path.exists())
@@ -41,7 +40,7 @@ class TestDASTSandbox(unittest.IsolatedAsyncioTestCase):
 
     # 11. test_execution_line_tracer_accuracy
     async def test_execution_line_tracer_accuracy(self):
-        """11. Validates deterministic statement trace counting via trace.Trace."""
+        """11. Valida il tracciamento deterministico degli statement via trace.Trace."""
         sb = ShadowSandbox()
         sb.create()
         try:
@@ -64,7 +63,7 @@ calc(10, 20)
 
     # 12. test_watchdog_timeout_enforcement
     async def test_watchdog_timeout_enforcement(self):
-        """12. Validates that infinite loops are promptly terminated by watchdog timeout."""
+        """12. Valida che i loop infiniti siano terminati dal timeout watchdog."""
         sb = ShadowSandbox()
         sb.create()
         try:
@@ -81,7 +80,7 @@ calc(10, 20)
 
     # 13. test_watchdog_memory_cap_enforcement
     async def test_watchdog_memory_cap_enforcement(self):
-        """13. Validates that memory limits trigger watchdog termination."""
+        """13. Valida che il superamento del tetto di memoria termini il processo."""
         sb = ShadowSandbox()
         sb.create()
         try:
@@ -97,7 +96,7 @@ calc(10, 20)
 
     # 14. test_watchdog_taskkill_pre_kill_tree
     async def test_watchdog_taskkill_pre_kill_tree(self):
-        """14. Validates taskkill /F /T pre-kill to eliminate child process trees."""
+        """14. Valida il pre-kill taskkill /F /T per eliminare alberi di processi figli."""
         sb = ShadowSandbox()
         sb.create()
         try:

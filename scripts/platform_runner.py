@@ -1,32 +1,30 @@
+# -*- coding: utf-8 -*-
 """
-Nexus Keystone v2.0.0-Hardened - Universal Platform Runner & UTF-8 Stream Manager
-Module: platform_runner.py
-Author: NK-Platform-Builder & NK-Environment-Architect
-
-Features:
-- UTF-8 stream reconfiguration for Windows and cross-platform environments.
-- Enforced unbuffered stdout/stderr (PYTHONUNBUFFERED=1 and -u flag) preventing 0-byte log blocking on Windows.
-- Automatic pytest command normalization to sys.executable -m pytest.
-- Safe subprocess execution with robust timeout, exception, and encoding handling.
-- Deterministic argument handling for Windows paths with spaces (e.g. Google Drive).
-- CLI execution mode for protected command evaluation.
+Esecutore sicuro di sottoprocessi e gestore stream UTF-8 per Nexus Keystone v3.0.0-STE100-Unified.
+Inietta il flag -u anche nei comandi stringa Python ed esegue tree-kill su timeout.
 """
 
 from __future__ import annotations
 
 import argparse
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple, Union
 
+try:
+    import psutil
+
+    _HAS_PSUTIL = True
+except ImportError:
+    psutil = None
+    _HAS_PSUTIL = False
+
 
 def reconfigure_streams() -> None:
-    """
-    Force sys.stdout and sys.stderr (and sys.stdin if applicable) to UTF-8
-    with replacement error handling, eliminating UnicodeEncodeError/UnicodeDecodeError.
-    """
+    """Configura sys.stdout, sys.stderr e sys.stdin con codifica UTF-8 sicura."""
     for stream in (sys.stdout, sys.stderr, sys.stdin):
         if stream is not None and hasattr(stream, "reconfigure"):
             try:
@@ -35,28 +33,64 @@ def reconfigure_streams() -> None:
                 pass
 
 
-def _normalize_python_command(cmd: Union[str, Sequence[str]]) -> Union[str, List[str]]:
-    """
-    Ensure Python invocations include unbuffered execution flag (-u)
-    to prevent block-buffering on Windows task log files, and ensure pytest
-    is invoked via sys.executable -m pytest.
-    """
+def _normalize_python_command(
+    cmd: Union[str, Sequence[str]],
+) -> Union[str, List[str]]:
+    """Aggiunge il flag -u alle invocazioni Python sia in formato lista sia stringa."""
     if isinstance(cmd, (list, tuple)):
         cmd_list = list(cmd)
         if len(cmd_list) > 0 and (
-            "python" in str(cmd_list[0]).lower() or str(cmd_list[0]) == sys.executable
+            "python" in str(cmd_list[0]).lower()
+            or str(cmd_list[0]) == sys.executable
         ):
             if "-u" not in cmd_list[1:3]:
                 cmd_list.insert(1, "-u")
         elif len(cmd_list) > 0 and str(cmd_list[0]).lower() == "pytest":
             cmd_list = [sys.executable, "-u", "-m", "pytest"] + cmd_list[1:]
         return cmd_list
-    elif isinstance(cmd, str):
+    if isinstance(cmd, str):
         clean = cmd.strip()
         if clean == "pytest" or clean.startswith("pytest "):
             rest = clean[6:].strip()
             return f'"{sys.executable}" -u -m pytest {rest}'.strip()
+
+        exe_escaped = re.escape(sys.executable)
+        pattern = rf'^("{exe_escaped}"|{exe_escaped}|python3(?:\.exe)?|python(?:\.exe)?)\s+(?!-u\b)(.+)$'
+        match = re.match(pattern, clean, flags=re.IGNORECASE)
+        if match:
+            prefix = match.group(1)
+            rest = match.group(2)
+            return f"{prefix} -u {rest}"
     return cmd
+
+
+def _kill_process_tree_sync(pid: int) -> None:
+    """Termina ricorsivamente il processo indicato e tutti i suoi figli."""
+    if pid <= 0:
+        return
+    if sys.platform == "win32":
+        try:
+            subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(pid)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=2.0,
+            )
+        except Exception:
+            pass
+
+    if _HAS_PSUTIL and psutil is not None:
+        try:
+            parent = psutil.Process(pid)
+            children = parent.children(recursive=True)
+            for child in children:
+                try:
+                    child.kill()
+                except Exception:
+                    pass
+            parent.kill()
+        except Exception:
+            pass
 
 
 def safe_subprocess_run(
@@ -66,24 +100,9 @@ def safe_subprocess_run(
     capture: bool = True,
     env: Optional[Dict[str, str]] = None,
 ) -> Tuple[int, str, str]:
-    """
-    Execute a subprocess safely with forced UTF-8 encoding, unbuffered streaming,
-    and robust error handling.
-
-    Args:
-        cmd: Command string or sequence of arguments.
-        cwd: Working directory for execution.
-        timeout: Execution timeout in seconds.
-        capture: Whether to capture stdout and stderr (default: True).
-        env: Additional or override environment variables.
-
-    Returns:
-        Tuple of (returncode, stdout, stderr).
-    """
-    # Enforce stream UTF-8 configuration in parent process
+    """Esegue un sottoprocesso con codifica UTF-8, modalita unbuffered e tree-kill su timeout."""
     reconfigure_streams()
 
-    # Construct child environment forcing Python UTF-8 mode and unbuffered output
     run_env = dict(os.environ)
     if env is not None:
         run_env.update(env)
@@ -91,20 +110,18 @@ def safe_subprocess_run(
     run_env["PYTHONUTF8"] = "1"
     run_env["PYTHONUNBUFFERED"] = "1"
 
-    # Inject -u into Python commands if sequence and normalize pytest
     normalized_cmd = _normalize_python_command(cmd)
-
     cwd_str = str(cwd) if cwd is not None else None
     use_shell = isinstance(normalized_cmd, str)
 
     stdout_pipe = subprocess.PIPE if capture else None
     stderr_pipe = subprocess.PIPE if capture else None
 
+    proc: Optional[subprocess.Popen] = None
     try:
-        proc = subprocess.run(
+        proc = subprocess.Popen(
             normalized_cmd,
             cwd=cwd_str,
-            timeout=timeout,
             stdout=stdout_pipe,
             stderr=stderr_pipe,
             text=True,
@@ -113,14 +130,28 @@ def safe_subprocess_run(
             env=run_env,
             shell=use_shell,
         )
+        stdout_str, stderr_str = proc.communicate(timeout=timeout)
         return (
-            proc.returncode,
-            proc.stdout if proc.stdout is not None else "",
-            proc.stderr if proc.stderr is not None else "",
+            proc.returncode if proc.returncode is not None else 0,
+            stdout_str if stdout_str is not None else "",
+            stderr_str if stderr_str is not None else "",
         )
     except subprocess.TimeoutExpired as exc:
-        raw_stdout = exc.stdout
-        raw_stderr = exc.stderr
+        if proc is not None and proc.pid:
+            _kill_process_tree_sync(proc.pid)
+            try:
+                proc.kill()
+            except Exception:
+                pass
+            try:
+                rem_out, rem_err = proc.communicate(timeout=1.0)
+            except Exception:
+                rem_out, rem_err = "", ""
+        else:
+            rem_out, rem_err = "", ""
+
+        raw_stdout = exc.stdout or rem_out
+        raw_stderr = exc.stderr or rem_err
 
         out_str = (
             raw_stdout
@@ -142,37 +173,34 @@ def safe_subprocess_run(
 
 
 def main() -> int:
-    """
-    CLI interface for platform runner.
-    Usage: python scripts/platform_runner.py --cmd "command to run"
-    """
+    """Interfaccia CLI per l'esecuzione protetta di comandi."""
     reconfigure_streams()
 
     parser = argparse.ArgumentParser(
-        description="Nexus Keystone Universal Platform Runner v2",
+        description="Nexus Keystone Universal Platform Runner v3",
     )
     parser.add_argument(
         "--cmd",
         type=str,
         required=True,
-        help="Command to execute in a protected UTF-8 unbuffered environment",
+        help="Comando da eseguire in ambiente protetto UTF-8 unbuffered",
     )
     parser.add_argument(
         "--cwd",
         type=str,
         default=None,
-        help="Optional working directory",
+        help="Cartella di lavoro opzionale",
     )
     parser.add_argument(
         "--timeout",
         type=float,
         default=None,
-        help="Optional execution timeout in seconds",
+        help="Timeout di esecuzione in secondi",
     )
     parser.add_argument(
         "--no-capture",
         action="store_true",
-        help="Disable stdout/stderr capturing and stream directly",
+        help="Disabilita la cattura di stdout e stderr",
     )
 
     args = parser.parse_args()

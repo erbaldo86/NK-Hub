@@ -1,23 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Nexus Keystone v2.5.2-Hardened - Permanent Test Suite for Unified Onboarding Mandate
-Module: test_unified_onboarding_mandate.py
-Author: NK-Python-Async-Builder & NK-Oracle-Evaluator
-Implements: [RULE-00.5] UNIFIED_ONBOARDING_DASHBOARD_MANDATE & [RULE-01.10] PERMANENT_TEST_SUITE_MANDATE
-
-Permanent Zero-Mock Pytest Suite covering:
-1. test_agents_md_rule_00_5_definition:
-   - Validates existence of [RULE-00.5] UNIFIED_ONBOARDING_DASHBOARD_MANDATE in .agents/AGENTS.md.
-   - Asserts presence of all mandatory verbal triggers ("avvia ambiente nk", "avvia nk hub",
-     "avvia nk", "avvia hub", "start nk", "start hub", "attiva nk", "attiva ambiente nk").
-   - Asserts presence of Fast-Stat gate constraint (< 120 ms) and all 15 vocational nodes ([0]-[14]).
-2. test_master_hub_15_nodes_and_guidance:
-   - Asserts .agents/skills/NK-Master-Hub/SKILL.md defines all 15 nodes [0] to [14].
-   - Asserts presence of two-way operational footer guidance (Quick Selection vs Goal-Driven / Natural Language).
-3. test_session_controller_boundary_10:
-   - Asserts .agents/skills/NK-Session-Controller/SKILL.md enforces strict boundary 10 UNIFIED_ONBOARDING_COMPLIANCE.
-4. test_session_bootstrap_fast_stat_execution:
-   - Programmatically executes scripts/nk_session_bootstrap.py and verifies PASS verdict.
+Nexus Keystone v3.0.0-STE100-Unified - Suite di test per Unified Onboarding Mandate.
+Modulo: test_unified_onboarding_mandate.py
 """
 
 from __future__ import annotations
@@ -82,7 +66,7 @@ def test_master_hub_15_nodes_and_guidance() -> None:
 
     # 2. Guida all'uso a due vie nel footer
     content_lower = content.lower()
-    has_direct_selection = "selezione rapida" in content_lower or "modalità diretta" in content_lower
+    has_direct_selection = "selezione rapida" in content_lower or "modalità diretta" in content_lower or "modalita' diretta" in content_lower
     has_goal_driven = "goal-driven" in content_lower or "linguaggio naturale" in content_lower
 
     assert has_direct_selection, "Direct selection guidance missing from NK-Master-Hub footer"

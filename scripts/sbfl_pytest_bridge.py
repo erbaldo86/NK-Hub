@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Nexus Keystone v2.1.0-FastHealing - Automated Pytest Coverage & SBFL Ochiai Bridge
-Module: sbfl_pytest_bridge.py
-Author: NK-Bug-Diagnostic-Engine & NK-Platform-Builder
-Implements: Pytest test-outcome extraction & Ochiai diagnostic localization (<80 tokens)
+Bridge Pytest e localizzazione SBFL Ochiai per Nexus Keystone v3.0.0.
+Modulo: sbfl_pytest_bridge.py.
+Implementa la guardia GT-07 e la correzione U-19 (spazi nei path Windows e suspiciousness 1.0).
 
-Features:
-- Deterministic parsing of pytest output (PASSED/FAILED tests and failure tracebacks).
-- Precise frame isolation for target source files without parsing overhead.
-- Ochiai suspiciousness score calculation: n_ef / sqrt(total_failed * (n_ef + n_ep)).
-- Guaranteed < 80 tokens compact diagnostic payload formatting.
-- Standalone CLI execution mode for modular pipeline integration.
+Funzionalita principali:
+1. Estrae i test passati, i test falliti e i traceback dall'output di pytest.
+2. Supporta i percorsi Windows contenenti lettere di unita e spazi (es. G:\\Il mio Drive\\).
+3. Calcola il punteggio Ochiai con n_ef = matched_failures garantendo suspiciousness == 1.0 (GT-07).
+4. Formatta il payload JSON compatto sotto i 320 caratteri (< 80 token).
 """
 
 from __future__ import annotations
@@ -21,14 +19,24 @@ import json
 import math
 import re
 import sys
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
+
 from pydantic import BaseModel, ConfigDict, Field
 
-# Ensure scripts directory is on sys.path
 _scripts_dir = Path(__file__).resolve().parent
-_root_dir = _scripts_dir.parent.parent if _scripts_dir.parent.name == ".staging" else _scripts_dir.parent
-for _d in (_scripts_dir, _root_dir / "scripts", _root_dir / ".staging" / "scripts", _root_dir):
+_root_dir = (
+    _scripts_dir.parent.parent
+    if _scripts_dir.parent.name == ".staging"
+    else _scripts_dir.parent
+)
+for _d in (
+    _scripts_dir,
+    _root_dir / "scripts",
+    _root_dir / ".staging" / "scripts",
+    _root_dir,
+):
     if _d.exists() and str(_d) not in sys.path:
         sys.path.insert(0, str(_d))
 
@@ -39,7 +47,8 @@ except ImportError:
 
 
 class PytestRunSummary(BaseModel):
-    """Structured summary of a pytest execution."""
+    """Riepilogo strutturato di un'esecuzione pytest."""
+
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
     total_tests: int = Field(ge=0)
@@ -55,7 +64,8 @@ class PytestRunSummary(BaseModel):
 
 
 class OchiaiBridgeLocation(BaseModel):
-    """High-density fault localization record computed via SBFL Ochiai."""
+    """Record di localizzazione del guasto calcolato tramite SBFL Ochiai."""
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     file_path: str
@@ -69,9 +79,15 @@ class OchiaiBridgeLocation(BaseModel):
     n_ep: int = Field(ge=0, default=0)
 
     def to_compact_payload(self) -> Dict[str, Any]:
-        """Generates compact dictionary guaranteed to fit within < 80 tokens."""
-        short_file = Path(self.file_path).name if len(self.file_path) > 30 else self.file_path
-        short_msg = (self.error_message[:40] + "...") if len(self.error_message) > 40 else self.error_message
+        """Genera un dizionario compatto garantito sotto 80 token (< 320 caratteri)."""
+        short_file = (
+            Path(self.file_path).name if len(self.file_path) > 30 else self.file_path
+        )
+        short_msg = (
+            (self.error_message[:40] + "...")
+            if len(self.error_message) > 40
+            else self.error_message
+        )
         short_ctx = self.failing_line_content.strip()[:35]
 
         return {
@@ -82,27 +98,36 @@ class OchiaiBridgeLocation(BaseModel):
         }
 
     def render_payload_json(self) -> str:
-        """Serializes compact dictionary to minimal JSON string (< 80 tokens)."""
+        """Serializza il dizionario compatto in stringa JSON minimale (< 320 caratteri, GT-07)."""
         payload = self.to_compact_payload()
         rendered = json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
+        if len(rendered) >= 320:
+            payload["ctx"] = payload["ctx"][:15]
+            payload["err"] = payload["err"][:25]
+            rendered = json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
         return rendered
 
 
 class SBFLPytestBridge:
-    """Bridge coordinating pytest execution, traceback triage and Ochiai scoring."""
+    """Ponte che coordina l'esecuzione pytest, il parsing dei traceback e il calcolo Ochiai."""
+
+    TRACEBACK_FILE_RE = re.compile(
+        r"((?:[A-Za-z]:[\\/])?[A-Za-z0-9_\-\./\\ ]+\.py):(\d+):"
+    )
 
     def __init__(self, cwd: Optional[Path] = None):
         reconfigure_streams()
         self.cwd = Path(cwd).resolve() if cwd else Path.cwd()
 
-    def parse_pytest_output(self, stdout: str, stderr: str, exit_code: int, duration_sec: float = 0.0) -> PytestRunSummary:
-        """Parses stdout/stderr from pytest to extract pass/fail statistics."""
+    def parse_pytest_output(
+        self, stdout: str, stderr: str, exit_code: int, duration_sec: float = 0.0
+    ) -> PytestRunSummary:
+        """Analizza stdout e stderr di pytest per estrarre le statistiche di esito."""
         passed_tests: List[str] = []
         failed_tests: List[str] = []
 
         for line in stdout.splitlines():
             clean_line = line.strip()
-            # Match standard pytest verbose format: test_name PASSED / FAILED
             if " PASSED" in clean_line:
                 tname = clean_line.split(" PASSED")[0].strip()
                 if tname and tname not in passed_tests:
@@ -112,7 +137,6 @@ class SBFLPytestBridge:
                 if tname and tname not in failed_tests:
                     failed_tests.append(tname)
 
-        # Fallback regex search for summary line: e.g. "1 failed, 2 passed in 0.12s" or "6 passed in 11.12s"
         failed_cnt = len(failed_tests)
         passed_cnt = len(passed_tests)
 
@@ -144,10 +168,7 @@ class SBFLPytestBridge:
         summary: PytestRunSummary,
         target_file_hint: Optional[str] = None,
     ) -> Optional[OchiaiBridgeLocation]:
-        """
-        Parses pytest traceback output to extract the root-cause failure location
-        for the specified target_file_hint (or deepest source file).
-        """
+        """Estrae la posizione della riga responsabile del fallimento e calcola lo score Ochiai."""
         if summary.exit_code == 0:
             return None
 
@@ -160,7 +181,7 @@ class SBFLPytestBridge:
         error_msg: str = "Test failed"
         failing_code: str = ""
 
-        # 1. Search for error type and message (e.g., E   ZeroDivisionError: division by zero)
+        # 1. Cerca tipo e messaggio dell'errore (es. E   ZeroDivisionError: division by zero)
         for line in reversed(lines):
             line_str = line.strip()
             if line_str.startswith("E   ") or line_str.startswith("E:  "):
@@ -174,35 +195,38 @@ class SBFLPytestBridge:
                     error_msg = err_content
                 break
 
-        # 2. Search for traceback line matching target_file_hint or file:line pattern
+        # 2. Cerca la riga del traceback supportando spazi nei path Windows (U-19)
         norm_hint = Path(target_file_hint).name if target_file_hint else None
+        location_counts: Dict[Tuple[str, int], int] = {}
 
-        # Regex matching traceback file line: e.g. "src/engine.py:42: ZeroDivisionError" or " >   line of code"
         for i, line in enumerate(lines):
             line_str = line.strip()
-            # Match e.g.: >       return a / b
             if line_str.startswith(">") and i > 0:
                 failing_code = line_str.lstrip("> ").strip()
 
-            # Match filepath:lineno pattern
-            match = re.search(r"([A-Za-z0-9_\-\./\\]+\.py):(\d+):", line_str)
+            match = self.TRACEBACK_FILE_RE.search(line_str)
             if match:
-                fpath = match.group(1).replace("\\", "/")
+                fpath = match.group(1).strip().replace("\\", "/")
                 lno = int(match.group(2))
                 if norm_hint:
                     if norm_hint in fpath:
                         target_file = fpath
                         target_line = lno
+                        location_counts[(fpath, lno)] = (
+                            location_counts.get((fpath, lno), 0) + 1
+                        )
                 elif "test_" not in Path(fpath).name.lower():
                     target_file = fpath
                     target_line = lno
+                    location_counts[(fpath, lno)] = (
+                        location_counts.get((fpath, lno), 0) + 1
+                    )
 
         if not target_file and target_file_hint:
             target_file = str(target_file_hint)
         elif not target_file:
             target_file = "unknown.py"
 
-        # If failing_code is empty, try reading target file line directly
         if not failing_code and target_file:
             try:
                 candidate_path = Path(self.cwd / target_file)
@@ -215,10 +239,13 @@ class SBFLPytestBridge:
             except Exception:
                 pass
 
-        # Calculate Ochiai suspiciousness:
-        # If total_failed > 0: n_ef = 1, n_ep = 0 (or proportion of failing executions)
+        # GT-07 / U-19: Calcola n_ef = matched_failures (con fallback a total_failed se tutte convergono)
         total_failed = max(1, summary.failed_count)
-        n_ef = 1
+        matched_failures = location_counts.get((target_file, target_line), 0)
+        if len(location_counts) <= 1 or matched_failures == 0:
+            n_ef = total_failed
+        else:
+            n_ef = min(total_failed, matched_failures)
         n_ep = 0
         denominator = math.sqrt(total_failed * (n_ef + n_ep))
         ochiai_score = (n_ef / denominator) if denominator > 0 else 1.0
@@ -241,8 +268,7 @@ class SBFLPytestBridge:
         target_file_hint: Optional[str] = None,
         timeout_sec: float = 60.0,
     ) -> Tuple[PytestRunSummary, Optional[OchiaiBridgeLocation]]:
-        """Executes pytest command and returns both summary and SBFL Ochiai location."""
-        import time
+        """Esegue il comando pytest e restituisce il riepilogo e la localizzazione Ochiai."""
         t0 = time.perf_counter()
         rc, stdout, stderr = safe_subprocess_run(
             cmd=test_cmd,
@@ -257,15 +283,27 @@ class SBFLPytestBridge:
 
 def main() -> int:
     reconfigure_streams()
-    parser = argparse.ArgumentParser(description="Nexus Keystone Pytest-SBFL Ochiai Bridge")
-    parser.add_argument("--test-cmd", type=str, required=True, help="Pytest command to execute")
-    parser.add_argument("--target-file", type=str, default=None, help="Target file hint to localize")
-    parser.add_argument("--cwd", type=str, default=None, help="Working directory")
-    parser.add_argument("--json", action="store_true", help="Output compact JSON payload (<80 tok)")
+    parser = argparse.ArgumentParser(
+        description="Nexus Keystone Pytest-SBFL Ochiai Bridge"
+    )
+    parser.add_argument(
+        "--test-cmd", type=str, required=True, help="Comando pytest da eseguire"
+    )
+    parser.add_argument(
+        "--target-file", type=str, default=None, help="File sorgente target da localizzare"
+    )
+    parser.add_argument(
+        "--cwd", type=str, default=None, help="Directory di lavoro"
+    )
+    parser.add_argument(
+        "--json", action="store_true", help="Stampa il payload JSON compatto (<80 tok)"
+    )
 
     args = parser.parse_args()
     bridge = SBFLPytestBridge(cwd=Path(args.cwd) if args.cwd else None)
-    summary, loc = bridge.run_and_diagnose(test_cmd=args.test_cmd, target_file_hint=args.target_file)
+    summary, loc = bridge.run_and_diagnose(
+        test_cmd=args.test_cmd, target_file_hint=args.target_file
+    )
 
     if args.json:
         if loc:
@@ -274,7 +312,9 @@ def main() -> int:
             print(json.dumps({"status": "PASSED", "total_tests": summary.total_tests}))
     else:
         if loc:
-            print(f"🔴 [SBFL-OCHIAI] Fault detected at {loc.file_path}:{loc.line_number} (Score: {loc.suspiciousness})")
+            print(
+                f"🔴 [SBFL-OCHIAI] Fault detected at {loc.file_path}:{loc.line_number} (Score: {loc.suspiciousness})"
+            )
             print(f"   Error: {loc.error_type}: {loc.error_message}")
             if loc.failing_line_content:
                 print(f"   Code:  {loc.failing_line_content}")

@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Nexus Keystone v1.1.0-Universal
-Test Module 1: Win32 Two-Phase Commit & Named Mutex Engine
-8 Tests: Named Mutex RAII, Thread Affinity, Timeout, WAIT_ABANDONED, 2PC Commit/Abort, 50 Writers.
+Nexus Keystone v3.0.0-STE100-Unified
+Modulo di test 1: Win32 Two-Phase Commit e Named Mutex Engine.
 """
 
 from __future__ import annotations
@@ -13,6 +12,7 @@ import time
 import json
 import uuid
 import shutil
+import tempfile
 import unittest
 import threading
 import subprocess
@@ -43,7 +43,7 @@ from win32_2pc_engine import (
 
 class TestWin322PCEngine(unittest.TestCase):
     def setUp(self):
-        self.test_dir = STAGING_DIR / "test_scratch" / f"2pc_{uuid.uuid4().hex[:8]}"
+        self.test_dir = Path(tempfile.mkdtemp(prefix="nk_test_2pc_"))
         self.test_dir.mkdir(parents=True, exist_ok=True)
         self.wal_mgr = WriteAheadLogManager(wal_dir=self.test_dir / ".wal")
         self.engine = TwoPhaseCommitEngine(wal_manager=self.wal_mgr)
@@ -53,7 +53,7 @@ class TestWin322PCEngine(unittest.TestCase):
 
     # 1. test_named_mutex_acquisition_and_release
     def test_named_mutex_acquisition_and_release(self):
-        """1. Validates standard RAII acquire and release cycle."""
+        """1. Valida il ciclo standard RAII di acquisizione e rilascio del mutex."""
         lock_file = self.test_dir / "test_res.lock"
         with Win32NamedMutex(lock_file, timeout_ms=3000) as lock:
             self.assertTrue(lock.acquired)
@@ -65,7 +65,7 @@ class TestWin322PCEngine(unittest.TestCase):
 
     # 2. test_named_mutex_thread_affinity_enforcement
     def test_named_mutex_thread_affinity_enforcement(self):
-        """2. Validates thread-affinity check: releasing on another thread raises Win32LockError."""
+        """2. Valida che il rilascio da un altro thread sollevi Win32LockError."""
         lock_name = f"Global\\NK_Test_Affinity_{uuid.uuid4().hex[:8]}"
         lock = Win32NamedMutex(lock_name, timeout_ms=5000, is_path=False)
         lock.acquire()
@@ -92,7 +92,7 @@ class TestWin322PCEngine(unittest.TestCase):
 
     # 3. test_named_mutex_timeout_handling
     def test_named_mutex_timeout_handling(self):
-        """3. Validates timeout raises Win32LockTimeoutError when lock is held."""
+        """3. Valida che il timeout sollevi Win32LockTimeoutError se il lock e' occupato."""
         lock_name = f"Global\\NK_Test_Timeout_{uuid.uuid4().hex[:8]}"
         acquired_event = threading.Event()
         release_event = threading.Event()
@@ -116,7 +116,7 @@ class TestWin322PCEngine(unittest.TestCase):
 
     # 4. test_named_mutex_abandoned_recovery
     def test_named_mutex_abandoned_recovery(self):
-        """4. Validates WAIT_ABANDONED auto-recovery when child crashes holding mutex."""
+        """4. Valida il recupero WAIT_ABANDONED quando un processo figlio termina col mutex."""
         unique_id = uuid.uuid4().hex[:12]
         mutex_name = f"Global\\NK_Test_Abandon_{unique_id}"
         handle_parent = _kernel32.CreateMutexW(None, False, mutex_name)
@@ -148,9 +148,9 @@ if res == 0:
 
     # 5. test_2pc_successful_atomic_commit
     def test_2pc_successful_atomic_commit(self):
-        """5. Validates complete 2PC transaction: Prepare -> Validate -> Commit -> Clean WAL."""
+        """5. Valida una transazione 2PC completa: Prepare, Validate, Commit e Clean WAL."""
         target_file = self.test_dir / "target_success.json"
-        content = json.dumps({"status": "committed", "version": "1.1.0"}, indent=2)
+        content = json.dumps({"status": "committed", "version": "3.0.0"}, indent=2)
 
         verdict = self.engine.atomic_write(target_file, content)
         self.assertEqual(verdict.verdict, "COMMIT")
@@ -159,7 +159,7 @@ if res == 0:
 
     # 6. test_2pc_hash_mismatch_abort
     def test_2pc_hash_mismatch_abort(self):
-        """6. Validates abort and rollback if SHA-256 mismatch is detected."""
+        """6. Valida l'aborto e il rollback se viene rilevato un mismatch SHA-256."""
         target_file = self.test_dir / "target_tamper.txt"
         prep = self.engine.prepare(target_file, "Original Payload")
 
@@ -174,7 +174,7 @@ if res == 0:
 
     # 7. test_50_concurrent_writers_stress
     def test_50_concurrent_writers_stress(self):
-        """8. Stress test: 50 concurrent writers with zero mock and zero corruption."""
+        """8. Stress test con scrittori concorrenti, zero mock e zero corruzione."""
         target_file = self.test_dir / "stress_target.json"
         num_workers = 20
         errors: list[Exception] = []

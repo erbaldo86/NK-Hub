@@ -1,0 +1,189 @@
+{
+  "schema_version": "3.1.0-Tensor-RSI",
+  "milestone_anchor_id": "NK-MS-20261015-TENSOR-RSI-v3.1.0",
+  "description": "Set di valutazione deterministico Meta-RSI L3 per le 16 skill di Nexus Keystone.",
+  "global_invariants": {
+    "max_sentence_words": 20,
+    "forbid_spaced_dashes": true,
+    "required_version_tag": "3.0.0-STE100-Unified",
+    "required_section": "<rsi_micro_loop>"
+  },
+  "skills": [
+    {
+      "node_id": "[0]",
+      "name": "NK-Ideator",
+      "skill_path": ".agents/skills/NK-Ideator/SKILL.md",
+      "rsi_level": "L1",
+      "rsi_profile": "SPEC_RSI",
+      "retry_caps": [1, 1, 2],
+      "required_tools": ["view_file", "write_to_file", "search_web", "send_message"],
+      "forbidden_tools": ["invoke_subagent"],
+      "required_substrings": ["nk_genome/idea_canvas.md", "SPEC_RSI", "<rsi_micro_loop>"]
+    },
+    {
+      "node_id": "[1]",
+      "name": "NK-App-UX-Architect",
+      "skill_path": ".agents/skills/NK-App-UX-Architect/SKILL.md",
+      "rsi_level": "L1 + L2",
+      "rsi_profile": "UI_UX_RSI",
+      "retry_caps": [1, 2, 2],
+      "required_tools": ["view_file", "write_to_file", "search_web", "send_message"],
+      "forbidden_tools": ["invoke_subagent"],
+      "required_substrings": ["image-generator", "generative_ui", "UI_UX_RSI", "<rsi_micro_loop>"]
+    },
+    {
+      "node_id": "[2]",
+      "name": "NK-Backend-Architect",
+      "skill_path": ".agents/skills/NK-Backend-Architect/SKILL.md",
+      "rsi_level": "L1 + L2",
+      "rsi_profile": "SPEC_RSI",
+      "retry_caps": [1, 2, 3],
+      "required_tools": ["view_file", "write_to_file", "search_web", "send_message"],
+      "forbidden_tools": ["invoke_subagent"],
+      "required_substrings": ["ConfigDict(strict=True, extra=\"forbid\")", "SPEC_RSI", "<rsi_micro_loop>"]
+    },
+    {
+      "node_id": "[3]",
+      "name": "NK-Agent-Instruction-Forge",
+      "skill_path": ".agents/skills/NK-Agent-Instruction-Forge/SKILL.md",
+      "rsi_level": "L1 + L3",
+      "rsi_profile": "STE100_RSI",
+      "retry_caps": [2, 2, 3],
+      "required_tools": ["view_file", "write_to_file", "replace_file_content", "run_command", "search_web", "send_message"],
+      "forbidden_tools": ["invoke_subagent"],
+      "required_substrings": ["STE100_RSI", "skill_golden_eval_set.json", "<rsi_micro_loop>"]
+    },
+    {
+      "node_id": "[4]",
+      "name": "NK-Python-Async-Builder",
+      "skill_path": ".agents/skills/NK-Python-Async-Builder/SKILL.md",
+      "rsi_level": "L1 + L2",
+      "rsi_profile": "CODE_RSI",
+      "retry_caps": [2, 3, 4],
+      "required_tools": ["view_file", "write_to_file", "replace_file_content", "run_command", "manage_task", "send_message"],
+      "forbidden_tools": ["invoke_subagent"],
+      "required_substrings": [".staging/", "CODE_RSI", "<rsi_micro_loop>"]
+    },
+    {
+      "node_id": "[5]",
+      "name": "NK-Delta-Architect",
+      "skill_path": ".agents/skills/NK-Delta-Architect/SKILL.md",
+      "rsi_level": "L1 + L2",
+      "rsi_profile": "CODE_RSI",
+      "retry_caps": [2, 3, 4],
+      "required_tools": ["view_file", "write_to_file", "replace_file_content", "run_command", "manage_task", "send_message"],
+      "forbidden_tools": ["invoke_subagent"],
+      "required_substrings": ["Stage A", "Stage B", "CODE_RSI", "<rsi_micro_loop>"]
+    },
+    {
+      "node_id": "[6]",
+      "name": "NK-Security-Auditor",
+      "skill_path": ".agents/skills/NK-Security-Auditor/SKILL.md",
+      "rsi_level": "L0 + L2",
+      "rsi_profile": "Producer",
+      "retry_caps": [0, 0, 0],
+      "required_tools": ["view_file", "run_command", "send_message"],
+      "forbidden_tools": ["write_to_file", "replace_file_content", "invoke_subagent"],
+      "required_substrings": ["%TEMP%\\nk_diagnostics\\", "GT-14", "<rsi_micro_loop>"]
+    },
+    {
+      "node_id": "[7]",
+      "name": "NK-Oracle-Evaluator",
+      "skill_path": ".agents/skills/NK-Oracle-Evaluator/SKILL.md",
+      "rsi_level": "L0",
+      "rsi_profile": "Producer",
+      "retry_caps": [0, 0, 0],
+      "required_tools": ["view_file", "run_command", "send_message"],
+      "forbidden_tools": ["write_to_file", "replace_file_content", "invoke_subagent"],
+      "required_substrings": ["Gate 1", "Gate 6", "%TEMP%\\nk_diagnostics\\", "GT-14", "<rsi_micro_loop>"]
+    },
+    {
+      "node_id": "[8]",
+      "name": "NK-Dynamic-Sandbox-StressTester",
+      "skill_path": ".agents/skills/NK-Dynamic-Sandbox-StressTester/SKILL.md",
+      "rsi_level": "L0",
+      "rsi_profile": "Producer",
+      "retry_caps": [0, 0, 0],
+      "required_tools": ["view_file", "run_command", "send_message"],
+      "forbidden_tools": ["write_to_file", "replace_file_content", "invoke_subagent"],
+      "required_substrings": ["%TEMP%\\nk_sandbox_", "%TEMP%\\nk_diagnostics\\", "GT-14", "<rsi_micro_loop>"]
+    },
+    {
+      "node_id": "[9]",
+      "name": "NK-Bug-Diagnostic-Engine",
+      "skill_path": ".agents/skills/NK-Bug-Diagnostic-Engine/SKILL.md",
+      "rsi_level": "L1 + L2",
+      "rsi_profile": "CODE_RSI",
+      "retry_caps": [1, 2, 3],
+      "required_tools": ["view_file", "run_command", "send_message"],
+      "forbidden_tools": ["write_to_file", "replace_file_content", "invoke_subagent"],
+      "required_substrings": ["01_Bug_Diagnostics", "02_Development_Patterns", "CODE_RSI", "<rsi_micro_loop>"]
+    },
+    {
+      "node_id": "[10]",
+      "name": "NK-Plan-Aligner",
+      "skill_path": ".agents/skills/NK-Plan-Aligner/SKILL.md",
+      "rsi_level": "L0 / L1",
+      "rsi_profile": "SPEC_RSI",
+      "retry_caps": [0, 1, 2],
+      "required_tools": ["view_file", "run_command", "send_message"],
+      "forbidden_tools": ["write_to_file", "replace_file_content", "invoke_subagent"],
+      "required_substrings": ["Milestone Anchor ID", "repo_map.md", "SPEC_RSI", "<rsi_micro_loop>"]
+    },
+    {
+      "node_id": "[11]",
+      "name": "NK-State-Router",
+      "skill_path": ".agents/skills/NK-State-Router/SKILL.md",
+      "rsi_level": "L0",
+      "rsi_profile": "Producer",
+      "retry_caps": [0, 0, 0],
+      "required_tools": ["view_file", "run_command", "send_message"],
+      "forbidden_tools": ["write_to_file", "replace_file_content", "invoke_subagent"],
+      "required_substrings": ["%TEMP%\\nk_diagnostics\\repo_map_cache.json", "GT-14", "<rsi_micro_loop>"]
+    },
+    {
+      "node_id": "[12]",
+      "name": "NK-Scribe",
+      "skill_path": ".agents/skills/NK-Scribe/SKILL.md",
+      "rsi_level": "L1",
+      "rsi_profile": "STE100_RSI",
+      "retry_caps": [1, 1, 2],
+      "required_tools": ["view_file", "write_to_file", "replace_file_content", "run_command", "send_message"],
+      "forbidden_tools": ["invoke_subagent"],
+      "required_substrings": ["PATCH_NOTES.md", "STE100_RSI", "<rsi_micro_loop>"]
+    },
+    {
+      "node_id": "[13]",
+      "name": "NK-Episodic-Memory-Engine",
+      "skill_path": ".agents/skills/NK-Episodic-Memory-Engine/SKILL.md",
+      "rsi_level": "L1 + L2",
+      "rsi_profile": "SPEC_RSI",
+      "retry_caps": [1, 2, 2],
+      "required_tools": ["view_file", "run_command", "send_message"],
+      "forbidden_tools": ["write_to_file", "replace_file_content", "invoke_subagent"],
+      "required_substrings": ["01_Bug_Diagnostics", "02_Development_Patterns", "03_Ideation_and_Decisions", "04_Governance_and_Rules", "SPEC_RSI", "<rsi_micro_loop>"]
+    },
+    {
+      "node_id": "[14]",
+      "name": "NK-Session-Controller",
+      "skill_path": ".agents/skills/NK-Session-Controller/SKILL.md",
+      "rsi_level": "L2 + L3",
+      "rsi_profile": "Orchestrator",
+      "retry_caps": [2, 3, 4],
+      "required_tools": ["view_file", "run_command", "invoke_subagent", "manage_task", "schedule", "send_message"],
+      "forbidden_tools": ["write_to_file", "replace_file_content"],
+      "required_substrings": ["10. UNIFIED_ONBOARDING_COMPLIANCE", "Final Handoff", "Gate 6 (RSI Convergence)", "<rsi_micro_loop>"]
+    },
+    {
+      "node_id": "Hub",
+      "name": "NK-Master-Hub",
+      "skill_path": ".agents/skills/NK-Master-Hub/SKILL.md",
+      "rsi_level": "L2",
+      "rsi_profile": "Gatekeeper",
+      "retry_caps": [1, 1, 1],
+      "required_tools": ["view_file", "run_command", "invoke_subagent", "manage_task", "schedule", "send_message"],
+      "forbidden_tools": ["write_to_file", "replace_file_content"],
+      "required_substrings": ["[0]", "[14]", "<rsi_micro_loop>"]
+    }
+  ]
+}

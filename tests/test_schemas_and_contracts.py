@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Nexus Keystone v1.1.0-Universal
-Test Module 8: Pydantic v2 Strict Mode Contracts & Dual-Ledgers
-5 Tests: Strict Mode, JsonValue Metadata, Task DAG Hash Chaining, PID File Locking, IPCPointer Footprint.
+Nexus Keystone v3.0.0-STE100-Unified
+Modulo di test 8: Contratti Pydantic v2 Strict Mode e Dual-Ledgers.
 """
 
 from __future__ import annotations
@@ -40,7 +39,7 @@ class TestSchemasAndContracts(unittest.TestCase):
 
     # 45. test_pydantic_strict_mode_validation
     def test_pydantic_strict_mode_validation(self):
-        """45. Validates rejection of unpermitted coercions and extra fields (extra='forbid')."""
+        """45. Valida il rifiuto di coercizioni non permesse e campi extra."""
         with self.assertRaises(ValidationError):
             IPCPointerReturn.model_validate({
                 "status": "OK",
@@ -62,7 +61,7 @@ class TestSchemasAndContracts(unittest.TestCase):
 
     # 46. test_pydantic_jsonvalue_metadata_support
     def test_pydantic_jsonvalue_metadata_support(self):
-        """46. Validates support for complex nested dict metadata via JsonValue."""
+        """46. Valida il supporto per metadati annidati complessi tramite JsonValue."""
         node = TaskDAGNode.create(
             task_id="T1",
             action="BUILD",
@@ -73,7 +72,7 @@ class TestSchemasAndContracts(unittest.TestCase):
 
     # 47. test_task_dag_sha256_hash_chaining
     def test_task_dag_sha256_hash_chaining(self):
-        """47. Validates SHA-256 DAG hash chaining and tamper detection."""
+        """47. Valida la catena di hash SHA-256 del DAG e il rilevamento manomissioni."""
         ledger_path = self.tmp_dir / "task_dag.jsonl"
         tl = TaskLedger(ledger_path)
         tl.add_task("T1", "DESIGN", "NK-Architect")
@@ -93,7 +92,7 @@ class TestSchemasAndContracts(unittest.TestCase):
 
     # 48. test_progress_ledger_pid_locking_stale_detect
     def test_progress_ledger_pid_locking_stale_detect(self):
-        """48. Validates append-only progress stream with PID-aware locking and stale lock recovery."""
+        """48. Valida lo stream di progresso append-only con recupero di lock PID orfani."""
         ledger_path = self.tmp_dir / "progress.jsonl"
         lock_path = self.tmp_dir / "progress.jsonl.lock"
 
@@ -111,7 +110,7 @@ class TestSchemasAndContracts(unittest.TestCase):
 
     # 49. test_ipc_pointer_return_token_footprint
     def test_ipc_pointer_return_token_footprint(self):
-        """49. Validates IPCPointerReturn serialized token budget (<80 tokens)."""
+        """49. Valida il budget token di IPCPointerReturn serializzato (<80 token)."""
         ptr = IPCPointerReturn(
             status="OK",
             pointer_uri="file:///g:/Antigravity/.staging/data.json",

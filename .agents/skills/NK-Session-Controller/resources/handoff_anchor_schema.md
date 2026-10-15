@@ -1,97 +1,87 @@
-# Schema JSON per Handoff Manifest (v2.0)
+# 📋 Schema JSON per Handoff Manifest (`v3.0.0-STE100-Unified`)
 
-Questo schema definisce la struttura formale del file `handoff_manifest_[TIMESTAMP].json` o `dual_handoff_manifest_[TIMESTAMP].json` generato dal Clean Handoff Engine v2.0 e dal Dual Conversation Refresh Protocol.
+> **Nodo Proprietario:** `NK-Session-Controller` e `scripts/nk_session_handoff.py` (`[RULE-02.8]`).  
+> **Standard Linguistico:** ASD-STE100 Italiano Tecnico (`[RULE-STE100]`).
 
 ```json
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NKHandoffManifestV3",
   "type": "object",
+  "additionalProperties": false,
   "properties": {
+    "manifest_version": {
+      "type": "string",
+      "const": "3.0.0-STE100-Unified"
+    },
     "handoff_type": {
       "type": "string",
-      "enum": ["CONTROLLER_SELF", "WORKER_FORCED", "DUAL_REFRESH", "DECOUPLED_ACTOR_CRITIC_REFRESH"],
-      "description": "Indica il tipo di handoff: self-refresh del controller, forzato del worker o dual refresh coordinato."
+      "enum": ["COMPACT_CHECKPOINT", "SESSION_HANDOFF", "RSI_CONVERGENCE_CHECKPOINT"]
     },
     "timestamp": {
       "type": "string",
       "format": "date-time"
     },
     "source_conversation_id": {
-      "type": "string",
-      "description": "L'ID della conversazione in chiusura o del nodo supervisor."
+      "type": "string"
     },
     "topology": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "pattern": {
           "type": "string",
-          "enum": ["DECOUPLED_ACTOR_CRITIC", "SWARM", "CASCADE", "PARALLEL", "RATCHET"],
-          "description": "Topologia multi-agente attiva."
+          "enum": ["HUB_AND_SPOKE_2_TIER", "SWARM_PARALLEL", "RATCHET_RSI"]
         },
-        "critic_role": { "type": "string", "default": "NK-Session-Controller" },
-        "worker_role": { "type": "string", "default": "NK-Delta-Architect" }
+        "critic_role": {
+          "type": "string",
+          "default": "[14] NK-Session-Controller"
+        },
+        "worker_role": {
+          "type": "string",
+          "default": "[5] NK-Delta-Architect"
+        }
       },
       "required": ["pattern"]
     },
     "active_mode": {
       "type": "string",
-      "enum": ["MODE_A_TRIPTYCH_DRIVEN", "MODE_B_FAST_TRACK"],
-      "description": "Modalità di esecuzione attiva: Mode A (Trittico & Two-Stage Grounding) o Mode B (Fast-Track)."
+      "enum": ["MODE_A_SOVEREIGN", "MODE_B_FAST_TRACK", "MODE_C_VIBE_SPRINT"]
     },
     "milestone_anchor_id": {
-      "type": "string",
-      "description": "Identificativo deterministico della milestone attiva nel Brief/Piano di Implementazione."
+      "type": "string"
     },
-    "triptych_paths": {
+    "tetralogy_paths": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
-        "concept_map": { "type": "string", "default": "G:/Il mio Drive/Antigravity/nk_genome/concept_map.md" },
-        "structural_tree": { "type": "string", "default": "G:/Il mio Drive/Antigravity/nk_genome/structural_tree.md" },
-        "implementation_plan": { "type": "string", "default": "G:/Il mio Drive/Antigravity/nk_genome/implementation_plan.md" }
+        "concept_map": { "type": "string", "default": "nk_genome/concept_map.md" },
+        "structural_tree": { "type": "string", "default": "nk_genome/structural_tree.md" },
+        "implementation_plan": { "type": "string", "default": "nk_genome/implementation_plan.md" },
+        "repo_map": { "type": "string", "default": "nk_genome/repo_map.md" }
       },
-      "required": ["concept_map", "structural_tree", "implementation_plan"]
+      "required": ["concept_map", "structural_tree", "implementation_plan", "repo_map"]
     },
-    "project_context": {
+    "rsi_state": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
-        "project_name": { "type": "string" },
-        "workspace_root": { "type": "string" },
-        "critical_files": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "path": { "type": "string" },
-              "sha256": { "type": "string" },
-              "size_bytes": { "type": "integer" }
-            },
-            "required": ["path", "sha256"]
-          }
-        },
-        "architectural_decisions": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Decisioni chiave prese nella sessione precedente."
-        },
-        "active_constraints": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Vincoli NK attivi (es. 'RULE-01', 'RULE-02.6', 'RULE-02.7', 'RULE-03')."
+        "iteration": { "type": "integer", "minimum": 0 },
+        "delta_k": { "type": "number", "minimum": 0 },
+        "fitness_q": { "type": "number", "minimum": 0, "maximum": 100.0 },
+        "status": {
+          "type": "string",
+          "enum": ["CONVERGED_OPTIMAL", "REFINING", "ROLLED_BACK", "ABORTED_OSCILLATION"]
         }
       },
-      "required": ["workspace_root"]
+      "required": ["iteration", "delta_k", "fitness_q", "status"]
     },
     "critic_state": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
-        "fsm_state": { "type": "string", "description": "Stato FSM del Critico (es. ACTIVE_SUPERVISION, AWAITING_RECEIPT)." },
-        "conversation_id": { "type": "string", "description": "URI conversation:// del Critico." },
-        "correction_attempts": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 3,
-          "description": "Contatore del Circuit Breaker di correzione (hard-cap max 3)."
-        },
+        "fsm_state": { "type": "string" },
+        "correction_attempts": { "type": "integer", "minimum": 0, "maximum": 4 },
         "last_cold_review_gate": {
           "type": "string",
           "enum": [
@@ -100,87 +90,24 @@ Questo schema definisce la struttura formale del file `handoff_manifest_[TIMESTA
             "GATE_2_CODE_GROUNDING",
             "GATE_2BIS_BRIEF_GROUNDING",
             "GATE_3_PRESERVATION",
-            "GATE_4_TRUTH",
-            "GATE_5_DELEGATION",
+            "GATE_4_TRUTH_AND_RSI",
             "ALL_PASSED"
           ]
-        },
-        "pending_reviews": {
-          "type": "array",
-          "items": { "type": "string" }
         }
       },
       "required": ["fsm_state", "correction_attempts"]
-    },
-    "worker_state": {
-      "type": "object",
-      "properties": {
-        "worker_id": { "type": "string", "description": "URI conversation:// del Worker monitorato." },
-        "skill_name": { "type": "string", "description": "Nome della skill del Worker (es. NK-Delta-Architect)." },
-        "fsm_state": { "type": "string", "description": "Stato operativo del Worker." },
-        "last_execution_receipt": {
-          "type": "object",
-          "properties": {
-            "stage_a_brief_grounding_verified": { "type": "boolean" },
-            "stage_b_code_grounding_verified": { "type": "boolean" },
-            "milestone_anchor_id": { "type": "string" },
-            "diff_applied": { "type": "boolean" },
-            "test_exit_code": { "type": "integer" }
-          }
-        },
-        "pending_tasks": {
-          "type": "array",
-          "items": { "type": "string" }
-        }
-      }
-    },
-    "fsm_state": {
-      "type": "object",
-      "properties": {
-        "controller_state": { "type": "string" },
-        "worker_state": { "type": "string" },
-        "pending_actions": {
-          "type": "array",
-          "items": { "type": "string" }
-        }
-      }
-    },
-    "session_memory": {
-      "type": "object",
-      "properties": {
-        "completed_tasks": {
-          "type": "array",
-          "items": { "type": "string" }
-        },
-        "failed_tasks": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "task": { "type": "string" },
-              "reason": { "type": "string" }
-            }
-          }
-        },
-        "key_learnings": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Pattern e anti-pattern appresi."
-        }
-      }
-    },
-    "genome_update_performed": {
-      "type": "boolean",
-      "description": "Vero se è stato eseguito il sync dei file di Genome durante la Fase 1."
     }
   },
   "required": [
+    "manifest_version",
     "handoff_type",
     "timestamp",
     "source_conversation_id",
     "topology",
     "active_mode",
-    "project_context",
+    "milestone_anchor_id",
+    "tetralogy_paths",
+    "rsi_state",
     "critic_state"
   ]
 }

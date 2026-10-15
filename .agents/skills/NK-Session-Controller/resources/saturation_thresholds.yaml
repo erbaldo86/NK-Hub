@@ -1,25 +1,34 @@
-# NK-Session-Controller Saturation Thresholds
-# Configurazione delle soglie per l'avviso di Handoff
+# NK-Session-Controller Dual-Profile Saturation Thresholds (v3.0.0-STE100-Unified)
+# Allineato a scripts/nk_context_sentry.py (GT-01) e scripts/nk_active_runtime_sentinel.py (GT-02)
 
-controller:
-  # Numero massimo di step nel transcript (USER_INPUT + PLANNER_RESPONSE)
-  max_transcript_steps: 80
-  
-  # Stima del limite di token cumulativi della conversazione
-  max_cumulative_tokens_estimate: 180000
-  
-  # Soglie di allarme (percentuali)
-  warning_threshold_pct: 75
-  critical_threshold_pct: 90
-  
-  # Gestione della memoria
-  auto_trimming_enabled: false
+profiles:
+  standard:
+    description: "Profilo baseline compatibile con i Golden Tests GT-01 e GT-02"
+    context_sentry:
+      green_step_threshold: 70
+      red_step_threshold: 100
+      green_token_threshold: 80000
+      red_token_threshold: 120000
+      include_thinking_tokens: true
+      swarm_msg_hard_cap_mtu: 2000
+      swarm_msg_safe_mss: 1800
+    runtime_sentinel:
+      green_max_steps: 60
+      caution_max_steps: 85
+      critical_max_steps: 100
 
-worker:
-  # Il worker solitamente gestisce più chiamate tool/codice, quindi satura prima in token ma fa più step
-  max_transcript_steps: 100
-  max_cumulative_tokens_estimate: 200000
-  
-  # Soglie di allarme (percentuali) - Il worker ha soglie più conservative
-  warning_threshold_pct: 70
-  critical_threshold_pct: 85
+  argon:
+    description: "Profilo predefinito in produzione per Gemini 4 Argon Thinking High (NK_MODEL_PROFILE=argon)"
+    context_sentry:
+      green_step_threshold: 150
+      red_step_threshold: 250
+      green_token_threshold: 250000
+      red_token_threshold: 500000
+      include_thinking_tokens: false
+      swarm_msg_hard_cap_mtu: 2000
+      swarm_msg_safe_mss: 1800
+    runtime_sentinel:
+      green_max_steps: 120
+      caution_max_steps: 180
+      critical_max_steps: 250
+    recommended_action_on_caution: "Consiglia il comando /compact o esegui scripts/nk_session_handoff.py"

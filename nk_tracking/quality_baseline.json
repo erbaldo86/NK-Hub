@@ -1,23 +1,35 @@
 {
-  "_version": "2.6.0-DualEngine-Symbiosis",
+  "_version": "3.1.0-Tensor-RSI",
   "project": "NK_Project",
   "baseline_date": "2026-08-20T22:45:00.000000",
-  "last_updated": "2026-09-24T16:01:00.000000",
+  "last_updated": "2026-10-15T14:50:00.000000",
   "metrics": {
     "skills_audited": {
       "value": 16,
       "direction": "higher_is_better"
     },
+    "total_golden_tests": {
+      "value": 108,
+      "direction": "higher_is_better"
+    },
     "unit_tests_total": {
-      "value": 79,
+      "value": 108,
       "direction": "higher_is_better"
     },
     "unit_tests_passed": {
-      "value": 79,
+      "value": 108,
       "direction": "higher_is_better"
     },
     "unit_tests_pass_pct": {
       "value": 100.0,
+      "direction": "higher_is_better"
+    },
+    "pass_rate_percent": {
+      "value": 100.0,
+      "direction": "higher_is_better"
+    },
+    "stress_test_concurrency_pass": {
+      "value": 4,
       "direction": "higher_is_better"
     },
     "stress_test_80_passed": {
@@ -57,7 +69,7 @@
       "direction": "higher_is_better"
     },
     "cold_review_gates": {
-      "value": 5,
+      "value": 6,
       "direction": "higher_is_better"
     },
     "heartbeat_jitter_ms": {
@@ -85,8 +97,20 @@
       "direction": "higher_is_better"
     },
     "protocol_compliance_score": {
-      "value": 85.0,
+      "value": 100.0,
       "direction": "higher_is_better"
+    },
+    "rsi_convergence_score": {
+      "value": 100.0,
+      "direction": "higher_is_better"
+    },
+    "rsi_residual_delta": {
+      "value": 0,
+      "direction": "lower_is_better"
+    },
+    "sast_critical_violations": {
+      "value": 0,
+      "direction": "lower_is_better"
     }
   },
   "ratchet_rule": "no_metric_may_worsen",
@@ -105,6 +129,29 @@
         "unit_tests_total": 79,
         "unit_tests_passed": 79,
         "unit_tests_pass_pct": 100.0
+      }
+    },
+    {
+      "timestamp": "2026-10-14T20:50:00.000000",
+      "metrics": {
+        "unit_tests_total": 100,
+        "unit_tests_passed": 100,
+        "unit_tests_pass_pct": 100.0,
+        "rsi_convergence_score": 100.0,
+        "rsi_residual_delta": 0
+      }
+    },
+    {
+      "timestamp": "2026-10-15T14:50:00.000000",
+      "metrics": {
+        "total_golden_tests": 108,
+        "unit_tests_total": 108,
+        "unit_tests_passed": 108,
+        "unit_tests_pass_pct": 100.0,
+        "pass_rate_percent": 100.0,
+        "stress_test_concurrency_pass": 4,
+        "rsi_convergence_score": 100.0,
+        "rsi_residual_delta": 0
       }
     }
   ]

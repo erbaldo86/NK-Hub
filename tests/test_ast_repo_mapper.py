@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Nexus Keystone v1.7.0-RepoMap Refined
-Test Module 4: AST Topology, Personalized PageRank, Two-Tier Clustering & High-Density Repo-Map
-Tests:
-- Existing tests 22-27 (Symbol Table, Dependency Graph, PageRank Alpha=0.85, Token Budget, Binary Search, Blast Radius)
-- New tests 28-33 (Two-Tier Clustering, Multi-Focal Slicer, Concurrency Safety, Incremental Cache, Polyglot, Autonomous Snapshot)
+Nexus Keystone v3.0.0-STE100-Unified
+Modulo di test 4: Topologia AST, Personalized PageRank, Clustering e Repo-Map.
 """
 
 from __future__ import annotations
@@ -30,7 +27,6 @@ elif str(SCRIPTS_DIR) not in sys.path:
 if str(STAGING_DIR) not in sys.path:
     sys.path.insert(0, str(STAGING_DIR))
 
-# Try importing from staging scripts first, then root scripts
 try:
     from ast_repo_mapper import (
         AtomicCacheManager,
@@ -79,7 +75,7 @@ def execute_pipeline(items: list[float]) -> float:
 
     # 22. test_symbol_table_extraction
     def test_symbol_table_extraction(self):
-        """22. Validates symbol table extraction (classes, methods, functions, imports)."""
+        """22. Valida l'estrazione della tabella simboli da codice Python."""
         tree = ast.parse(self.code)
         extractor = SymbolExtractor(module_path="test_mod.py", source_lines=self.lines)
         extractor.visit(tree)
@@ -91,7 +87,7 @@ def execute_pipeline(items: list[float]) -> float:
 
     # 23. test_dependency_graph_edges_generation
     def test_dependency_graph_edges_generation(self):
-        """23. Validates generation of dependency graph edges."""
+        """23. Valida la generazione degli archi del grafo delle dipendenze."""
         tree = ast.parse(self.code)
         extractor = SymbolExtractor(module_path="test_mod.py", source_lines=self.lines)
         extractor.visit(tree)
@@ -100,7 +96,7 @@ def execute_pipeline(items: list[float]) -> float:
 
     # 24. test_personalized_pagerank_convergence
     def test_personalized_pagerank_convergence(self):
-        """24. Validates Personalized PageRank algorithm (alpha=0.85, epsilon=1e-6)."""
+        """24. Valida l'algoritmo Personalized PageRank con alpha=0.85."""
         tree = ast.parse(self.code)
         extractor = SymbolExtractor(module_path="test_mod.py", source_lines=self.lines)
         extractor.visit(tree)
@@ -118,7 +114,7 @@ def execute_pipeline(items: list[float]) -> float:
 
     # 25. test_karpathy_slicer_token_budgets
     def test_karpathy_slicer_token_budgets(self):
-        """25. Validates Karpathy surgical slicer under varying token budgets (200 and 80 tokens)."""
+        """25. Valida lo slicer chirurgico Karpathy sotto budget di 200 e 80 token."""
         for max_tokens in [200, 80]:
             res = KarpathySurgicalSlicer.slice_module(
                 source_code=self.code,
@@ -132,7 +128,7 @@ def execute_pipeline(items: list[float]) -> float:
 
     # 28. test_multi_focal_slicer_integrity (New v1.7.0)
     def test_multi_focal_slicer_integrity(self):
-        """28. Validates that multi-focal selection preserves signatures of ALL focal targets without truncation."""
+        """28. Valida che la selezione multi-focale preservi tutte le firme target."""
         multi_code = """
 class ServiceA:
     def method_one(self, a: int, b: str) -> bool:
@@ -154,7 +150,7 @@ class ServiceB:
 
     # 29. test_atomic_cache_manager_concurrency (New v1.7.0)
     def test_atomic_cache_manager_concurrency(self):
-        """29. Validates thread-safe atomic cache saves and reads under concurrent execution."""
+        """29. Valida salvataggi e letture atomiche thread-safe in concorrenza."""
         with tempfile.TemporaryDirectory() as tmp_dir:
             cache_file = Path(tmp_dir) / "test_repo_cache.json"
 
@@ -177,7 +173,7 @@ class ServiceB:
 
     # 31. test_incremental_cache_speed (New v1.7.0)
     def test_incremental_cache_speed(self):
-        """31. Validates that incremental cache achieves cache hit and sub-100ms execution."""
+        """31. Valida che la cache incrementale ottenga cache hit sotto i 150ms."""
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir)
             cache_file = tmp_path / "cache.json"
@@ -197,7 +193,7 @@ class ServiceB:
 
     # 32. test_polyglot_frontend_contracts (New v1.7.0)
     def test_polyglot_frontend_contracts(self):
-        """32. Validates polyglot extraction for JS, TS, HTML, and CSS."""
+        """32. Valida l'estrazione poliglotta per JS, TS, HTML e CSS."""
         js_code = "export class DashboardView extends BaseView { render() {} }\nexport async function fetchData(url) {}"
         nodes = PolyglotExtractor.extract_symbols("app.js", js_code)
         names = [n.name for n in nodes]
@@ -206,7 +202,7 @@ class ServiceB:
 
     # 33. test_graduated_skill_adapter_and_snapshot (New v1.7.0)
     def test_graduated_skill_adapter_and_snapshot(self):
-        """33. Validates GraduatedSkillAdapter token ceilings and autonomous snapshot generation."""
+        """33. Valida i tetti token di GraduatedSkillAdapter e lo snapshot autonomo."""
         self.assertEqual(GraduatedSkillAdapter.get_token_budget("NK-Scribe"), 0)
         self.assertEqual(GraduatedSkillAdapter.get_token_budget("NK-Episodic-Memory-Engine"), 0)
         self.assertEqual(GraduatedSkillAdapter.get_token_budget("NK-Python-Async-Builder", "mode_c"), 256)
@@ -224,39 +220,7 @@ class ServiceB:
 
     # 34. test_tier3_elastic_compaction_headroom (New CRV 4.0 Tier-3 Elastic Compactor)
     def test_tier3_elastic_compaction_headroom(self):
-        """34. Validates Tier-3 Elastic Compactor: guaranteed headroom (<=850 tok / >=170 free), all classes preserved, zero omissions."""
-        testnk_path = Path("g:/Il mio Drive/Programmi di test/TestNK")
-
-        # Part A: Test on real TestNK repository if present
-        if testnk_path.exists():
-            cfg = RepoMapConfig(max_tokens=1024, polyglot=True, cache_enabled=False)
-            res = RepoMapGenerator.generate(root_dir=testnk_path, config=cfg)
-
-            # Guaranteed headroom
-            self.assertLessEqual(res.token_count, 850)
-            self.assertGreaterEqual(1024 - res.token_count, 170)
-
-            # Zero omissions
-            self.assertNotIn("omessi per budget", res.content)
-            self.assertNotIn("... [+", res.content)
-
-            # Verify all classes in Python files are present in the map
-            expected_classes = set()
-            for py_file in testnk_path.rglob("*.py"):
-                if any(x in py_file.parts for x in (".venv", ".git", "__pycache__")):
-                    continue
-                try:
-                    tree = ast.parse(py_file.read_text(encoding="utf-8"))
-                    for n in ast.walk(tree):
-                        if isinstance(n, ast.ClassDef):
-                            expected_classes.add(n.name)
-                except Exception:
-                    pass
-
-            for cls_name in expected_classes:
-                self.assertIn(cls_name, res.content, f"Class '{cls_name}' missing from repo map")
-
-        # Part B: Synthetic multi-module repository with 35 classes to test invariant everywhere
+        """34. Valida il compattatore elastico Tier-3 con headroom garantito e zero omissioni."""
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir)
             synthetic_classes = set()

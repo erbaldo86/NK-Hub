@@ -1,14 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Nexus Keystone v2.3.0-Hardened - Real Shadow Sandbox Multi-Vector Stress Test Suite
-Module: test_real_sandbox_stress.py
-Implements: 100% Zero-Mock real subprocess & filesystem stress testing.
-Covers:
-  - Vector 1: Swarm Flooder (Swarm Hygiene breach detection)
-  - Vector 2: Monolithic Spammer (Universal DDI streak breach detection)
-  - Vector 3: Rapid Step Escalator (GREEN -> YELLOW -> RED latency < 50 ms)
-  - Vector 4: Traceback Bomb (Nested exception Head-Tail compression < 1200 chars)
+Nexus Keystone v3.0.0-STE100-Unified - Suite di Stress Test Multi-Vettore in Shadow Sandbox.
+Modulo: test_real_sandbox_stress.py
 """
 
 from __future__ import annotations
@@ -52,7 +46,7 @@ except ImportError:
 
 @pytest.fixture
 def shadow_sandbox() -> Generator[Path, None, None]:
-    """Isolated real shadow sandbox in temp directory with deterministic cleanup."""
+    """Fornisce una shadow sandbox reale isolata in directory temporanea."""
     sandbox_path = Path(tempfile.gettempdir()) / f"nk_stress_{uuid.uuid4().hex[:8]}"
     sandbox_path.mkdir(parents=True, exist_ok=True)
     try:
@@ -63,7 +57,7 @@ def shadow_sandbox() -> Generator[Path, None, None]:
 
 
 def test_vector_1_swarm_flooder(shadow_sandbox: Path):
-    """V1: Swarm Flooder - Real stream with messages >2000 chars, sentry detects violations."""
+    """V1: Swarm Flooder, rileva messaggi oltre 2000 caratteri nello stream."""
     transcript_file = shadow_sandbox / "swarm_flooder_transcript.jsonl"
 
     records = [
@@ -98,7 +92,7 @@ def test_vector_1_swarm_flooder(shadow_sandbox: Path):
 
 
 def test_vector_2_monolithic_spammer(shadow_sandbox: Path):
-    """V2: Monolithic Spammer - 15 consecutive direct tools without delegation, triggers DDI alert."""
+    """V2: Monolithic Spammer, 15 tool diretti consecutivi senza delega attivano l'allerta DDI."""
     transcript_file = shadow_sandbox / "monolithic_spammer_transcript.jsonl"
 
     records = [{"step_index": 1, "source": "USER_EXPLICIT", "content": "Run deep audit directly", "tool_calls": []}]
@@ -131,7 +125,7 @@ def test_vector_2_monolithic_spammer(shadow_sandbox: Path):
 
 
 def test_vector_3_rapid_step_escalator(shadow_sandbox: Path):
-    """V3: Rapid Step Escalator - 120 steps real stream, verified transitions GREEN -> YELLOW -> RED in < 50 ms."""
+    """V3: Rapid Step Escalator, verifica le transizioni GREEN, YELLOW e RED sotto 50 ms."""
     transcript_file = shadow_sandbox / "step_escalator_transcript.jsonl"
     sentry = NKContextSentry(workspace_root=shadow_sandbox)
 
@@ -203,7 +197,7 @@ def test_vector_3_rapid_step_escalator(shadow_sandbox: Path):
 
 
 def test_vector_4_traceback_bomb():
-    """V4: Traceback Bomb - Real nested exception chain > 65 KB compressed < 1200 chars preserving cause."""
+    """V4: Traceback Bomb, comprime catene di eccezioni oltre 65 KB preservando la causa."""
     root_cause_msg = "RootCauseError: Critical hardware failure in TPU node accelerator"
     root_exc = RuntimeError(root_cause_msg)
     curr_exc: Exception = root_exc

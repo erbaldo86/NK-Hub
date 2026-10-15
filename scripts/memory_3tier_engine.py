@@ -1,17 +1,12 @@
+# -*- coding: utf-8 -*-
 """
-Nexus Keystone v1.1.0-Universal: 3-Tier Episodic Memory Engine.
-Compliant with:
-- Tier 1 Core: <= 350 token cap in-context per domain
-- Tier 2 Recall JSONL: Sliding window 200 events across 4 domains
-- Tier 3 Archival Cold Store: Compacted long-term storage
-- Hybrid Search Engine: Reciprocal Rank Fusion (RRF) = sum(1 / (60 + rank_m(d))) (BM25 + Dense Cosine)
-- Shadow Read Cache in %TEMP% with SHA-256 + mtime invalidation (<1ms check)
-- Rolling Snapshot Compaction with circular backup rotation (.bak_1, .bak_2)
-- Win32 atomic file moves (MoveFileExW) with CTypes Win64 argtypes, 8 retry backoff, Shadow Swap
+Motore di memoria episodica a 3 livelli per Nexus Keystone v3.0.0-STE100-Unified.
+Supporta cap 350 token standard (GT-05), 1200 token Argon e alias di dominio.
 """
 
 from __future__ import annotations
 
+import argparse
 import ctypes
 import gzip
 import hashlib
@@ -21,17 +16,33 @@ import os
 import random
 import re
 import shutil
+import sys
 import tempfile
 import time
 import uuid
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Tuple
-from pydantic import BaseModel, Field, ConfigDict, JsonValue
+from typing import Any, Dict, List, Optional, Sequence, Tuple
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator
+
+_scripts_dir = Path(__file__).resolve().parent
+_workspace_root = (
+    _scripts_dir.parent.parent
+    if _scripts_dir.parent.name == ".staging"
+    else _scripts_dir.parent
+)
+for _p in (_scripts_dir, _workspace_root / "scripts", _workspace_root):
+    if _p.exists() and str(_p) not in sys.path:
+        sys.path.insert(0, str(_p))
+
+try:
+    from win32_2pc_engine import win32_atomic_replace as _win32_2pc_atomic_replace
+except ImportError:
+    try:
+        from scripts.win32_2pc_engine import win32_atomic_replace as _win32_2pc_atomic_replace
+    except ImportError:
+        _win32_2pc_atomic_replace = None  # type: ignore[assignment]
 
 
-# ----------------------------------------------------------------------
-# DOMAINS CONFIGURATION
-# ----------------------------------------------------------------------
 NK_DOMAINS: Tuple[str, ...] = (
     "01_Bug_Diagnostics",
     "02_Development_Patterns",
@@ -39,12 +50,23 @@ NK_DOMAINS: Tuple[str, ...] = (
     "04_Governance_and_Rules",
 )
 
+DOMAIN_ALIAS_MAP: Dict[str, str] = {
+    "OPS": "01_Bug_Diagnostics",
+    "ARCH": "02_Development_Patterns",
+    "DEVX": "03_Ideation_and_Decisions",
+    "SEC": "04_Governance_and_Rules",
+    "01_Bug_Diagnostics": "01_Bug_Diagnostics",
+    "02_Development_Patterns": "02_Development_Patterns",
+    "03_Ideation_and_Decisions": "03_Ideation_and_Decisions",
+    "04_Governance_and_Rules": "04_Governance_and_Rules",
+}
+
 TIER1_TOKEN_CAP: int = 350
+TIER1_TOKEN_CAP_ARGON: int = 1200
 TIER2_SLIDING_WINDOW_MAX: int = 200
 RRF_K_CONSTANT: float = 60.0
 BACKUP_DEPTH: int = 2
 
-# Windows MoveFileExW Flags & CTypes Definition
 MOVEFILE_REPLACE_EXISTING = 0x00000001
 MOVEFILE_WRITE_THROUGH = 0x00000008
 MOVEFILE_COPY_ALLOWED = 0x00000002
@@ -55,26 +77,47 @@ ERROR_LOCK_VIOLATION = 33
 
 if os.name == "nt":
     _kernel32 = ctypes.windll.kernel32
-    _kernel32.MoveFileExW.argtypes = [ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_uint32]
+    _kernel32.MoveFileExW.argtypes = [
+        ctypes.c_wchar_p,
+        ctypes.c_wchar_p,
+        ctypes.c_uint32,
+    ]
     _kernel32.MoveFileExW.restype = ctypes.c_bool
     _kernel32.GetLastError.argtypes = []
     _kernel32.GetLastError.restype = ctypes.c_uint32
+else:
+    _kernel32 = None
 
 
-# ----------------------------------------------------------------------
-# WIN32 ATOMIC FILE OPS (with 8-retry backoff and Shadow Swap)
-# ----------------------------------------------------------------------
-def win32_atomic_replace(src_path: Path, dst_path: Path, max_retries: int = 8) -> None:
-    """
-    Atomic replacement using Win32 MoveFileExW with Win64 CTypes types,
-    8-retry exponential backoff with full jitter for Google Drive locking,
-    and Shadow Swap Fallback.
-    """
+def resolve_domain(domain: str) -> str:
+    """Risolve un alias breve o un nome completo nel dominio canonico NK."""
+    cleaned = domain.strip()
+    if cleaned in DOMAIN_ALIAS_MAP:
+        return DOMAIN_ALIAS_MAP[cleaned]
+    upper_key = cleaned.upper()
+    if upper_key in DOMAIN_ALIAS_MAP:
+        return DOMAIN_ALIAS_MAP[upper_key]
+    raise ValueError(f"Invalid or unknown domain: {domain}")
+
+
+def win32_atomic_replace(
+    src_path: Path,
+    dst_path: Path,
+    max_retries: int = 8,
+) -> None:
+    """Sostituisce un file in modo atomico usando win32_2pc_engine o fallback locale."""
+    if _win32_2pc_atomic_replace is not None:
+        _win32_2pc_atomic_replace(src_path, dst_path, max_retries=max_retries)
+        return
     src_str = str(src_path.resolve())
     dst_str = str(dst_path.resolve())
 
-    if os.name == "nt":
-        flags = MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH | MOVEFILE_COPY_ALLOWED
+    if os.name == "nt" and _kernel32 is not None:
+        flags = (
+            MOVEFILE_REPLACE_EXISTING
+            | MOVEFILE_WRITE_THROUGH
+            | MOVEFILE_COPY_ALLOWED
+        )
 
         for attempt in range(max_retries):
             success = _kernel32.MoveFileExW(src_str, dst_str, flags)
@@ -82,23 +125,37 @@ def win32_atomic_replace(src_path: Path, dst_path: Path, max_retries: int = 8) -
                 return
 
             err = _kernel32.GetLastError()
-            if err in (ERROR_SHARING_VIOLATION, ERROR_ACCESS_DENIED, ERROR_LOCK_VIOLATION):
-                # Google Drive lock contention: backoff with jitter
-                delay = random.uniform(0.010, min(0.080 * (1.6 ** attempt), 1.500))
+            if err in (
+                ERROR_SHARING_VIOLATION,
+                ERROR_ACCESS_DENIED,
+                ERROR_LOCK_VIOLATION,
+            ):
+                delay = random.uniform(
+                    0.010,
+                    min(0.080 * (1.6 ** attempt), 1.500),
+                )
                 time.sleep(delay)
             else:
                 try:
                     os.replace(src_str, dst_str)
                     return
                 except (PermissionError, OSError):
-                    delay = random.uniform(0.010, min(0.080 * (1.6 ** attempt), 1.500))
+                    delay = random.uniform(
+                        0.010,
+                        min(0.080 * (1.6 ** attempt), 1.500),
+                    )
                     time.sleep(delay)
 
-        # Shadow Swap Fallback
-        shadow_tmp = dst_path.parent / f".shadow_{dst_path.name}_{os.getpid()}_{int(time.time()*1000)}.tmp"
-        old_tmp = dst_path.parent / f".old_{dst_path.name}_{os.getpid()}_{int(time.time()*1000)}.tmp"
+        shadow_tmp = (
+            dst_path.parent
+            / f".shadow_{dst_path.name}_{os.getpid()}_{int(time.time()*1000)}.tmp"
+        )
+        old_tmp = (
+            dst_path.parent
+            / f".old_{dst_path.name}_{os.getpid()}_{int(time.time()*1000)}.tmp"
+        )
 
-        for attempt in range(max_retries):
+        for _ in range(max_retries):
             try:
                 shutil.copy2(src_path, shadow_tmp)
                 if dst_path.exists():
@@ -121,12 +178,11 @@ def win32_atomic_replace(src_path: Path, dst_path: Path, max_retries: int = 8) -
                 delay = random.uniform(0.010, 0.080)
                 time.sleep(delay)
 
-    # POSIX / Ultimate fallback
     os.replace(src_str, dst_str)
 
 
 def rotate_circular_backups(target_file: Path, depth: int = BACKUP_DEPTH) -> None:
-    """Rotate circular backup files using streaming shutil.copy2."""
+    """Ruota i file di backup circolari (.bak_1, .bak_2) con copia streaming."""
     if not target_file.exists():
         return
 
@@ -141,27 +197,33 @@ def rotate_circular_backups(target_file: Path, depth: int = BACKUP_DEPTH) -> Non
     first_bak = target_file.with_name(f"{target_file.name}.bak_1")
     if first_bak.exists():
         first_bak.unlink()
-    
+
     shutil.copy2(target_file, first_bak)
 
 
-# ----------------------------------------------------------------------
-# PYDANTIC V2 MODELS
-# ----------------------------------------------------------------------
 class MemoryEpisode(BaseModel):
+    """Singolo episodio archiviato nel motore di memoria a 3 livelli."""
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    episode_id: str = Field(description="Unique deterministic episode identifier")
-    domain: str = Field(description="One of the 4 NK domains")
-    timestamp: float = Field(default_factory=time.time, description="Unix timestamp")
-    title: str = Field(description="Concise summary title")
-    content: str = Field(description="Episode content body")
-    tags: List[str] = Field(default_factory=list, description="Categorization tags")
-    vector: Optional[List[float]] = Field(default=None, description="Precomputed embedding vector")
-    metadata: Dict[str, JsonValue] = Field(default_factory=dict, description="Arbitrary structured metadata")
+    episode_id: str = Field(description="Identificatore univoco dell'episodio")
+    domain: str = Field(description="Uno dei 4 domini NK o alias breve")
+    timestamp: float = Field(default_factory=time.time)
+    title: str = Field(description="Titolo sintetico dell'episodio")
+    content: str = Field(description="Contenuto completo dell'episodio")
+    tags: List[str] = Field(default_factory=list)
+    vector: Optional[List[float]] = Field(default=None)
+    metadata: Dict[str, JsonValue] = Field(default_factory=dict)
+
+    @field_validator("domain")
+    @classmethod
+    def _validate_and_normalize_domain(cls, v: str) -> str:
+        return resolve_domain(v)
 
 
 class Tier1Item(BaseModel):
+    """Voce singola nella memoria in-context di Livello 1."""
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     key: str
@@ -171,6 +233,8 @@ class Tier1Item(BaseModel):
 
 
 class Tier1DomainState(BaseModel):
+    """Stato della memoria di Livello 1 per un singolo dominio."""
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     domain: str
@@ -178,24 +242,23 @@ class Tier1DomainState(BaseModel):
     total_tokens: int = Field(default=0)
 
 
-# ----------------------------------------------------------------------
-# TOKEN ESTIMATION (Karpathy Fast-Approximation)
-# ----------------------------------------------------------------------
 def estimate_tokens(text: str) -> int:
-    """Fast lexical token estimation: ~4 chars per token or words+symbols."""
+    """Stima rapida dei token lessicali per una stringa di testo."""
     if not text:
         return 0
     words = re.findall(r"\w+|[^\w\s]", text, re.UNICODE)
     return max(1, math.ceil(len(words) * 1.15))
 
 
-# ----------------------------------------------------------------------
-# HYBRID SEARCH ENGINE (Pure Python BM25 + Dense Cosine + RRF)
-# ----------------------------------------------------------------------
 class PureBM25:
-    """Pure Python BM25 implementation for lexical relevance."""
+    """Motore di rilevanza lessicale BM25 scritto in puro Python."""
 
-    def __init__(self, corpus: Sequence[str], k1: float = 1.5, b: float = 0.75) -> None:
+    def __init__(
+        self,
+        corpus: Sequence[str],
+        k1: float = 1.5,
+        b: float = 0.75,
+    ) -> None:
         self.k1 = k1
         self.b = b
         self.corpus_size = len(corpus)
@@ -218,12 +281,15 @@ class PureBM25:
             for t in counts:
                 self.df[t] = self.df.get(t, 0) + 1
 
-        self.avg_doc_len = (total_length / self.corpus_size) if self.corpus_size > 0 else 1.0
+        self.avg_doc_len = (
+            (total_length / self.corpus_size) if self.corpus_size > 0 else 1.0
+        )
 
     def _tokenize(self, text: str) -> List[str]:
         return re.findall(r"\b[a-zA-Z0-9_]{2,}\b", text.lower())
 
     def score(self, query: str) -> List[float]:
+        """Calcola i punteggi BM25 per la query specificata."""
         q_tokens = self._tokenize(query)
         scores = [0.0] * self.corpus_size
 
@@ -231,7 +297,6 @@ class PureBM25:
             if term not in self.df:
                 continue
             df_t = self.df[term]
-            # Standard Lucene/BM25 IDF
             idf = math.log(1.0 + (self.corpus_size - df_t + 0.5) / (df_t + 0.5))
 
             for i, counts in enumerate(self.doc_token_counts):
@@ -239,17 +304,20 @@ class PureBM25:
                 if tf > 0:
                     doc_len = self.doc_lengths[i]
                     num = tf * (self.k1 + 1.0)
-                    denom = tf + self.k1 * (1.0 - self.b + self.b * (doc_len / self.avg_doc_len))
+                    denom = tf + self.k1 * (
+                        1.0 - self.b + self.b * (doc_len / self.avg_doc_len)
+                    )
                     scores[i] += idf * (num / denom)
 
         return scores
 
 
 class DenseEmbedder:
-    """Deterministic hashing-based dense pseudo-embedding for testing."""
+    """Generatore deterministico di vettori densi basato su hash."""
 
     @staticmethod
     def vector_from_text(text: str, dim: int = 64) -> List[float]:
+        """Converte il testo in un vettore normalizzato a dimensione fissa."""
         vec = [0.0] * dim
         tokens = re.findall(r"\b[a-zA-Z0-9_]+\b", text.lower())
         if not tokens:
@@ -266,6 +334,7 @@ class DenseEmbedder:
 
     @staticmethod
     def cosine_similarity(v1: Sequence[float], v2: Sequence[float]) -> float:
+        """Calcola la similarita del coseno tra due vettori numerici."""
         if not v1 or not v2 or len(v1) != len(v2):
             return 0.0
         dot = sum(a * b for a, b in zip(v1, v2))
@@ -277,7 +346,7 @@ class DenseEmbedder:
 
 
 class HybridRRFSearchEngine:
-    """Reciprocal Rank Fusion (RRF) search engine."""
+    """Motore di ricerca ibrido con Reciprocal Rank Fusion (k=60)."""
 
     def __init__(self, k_rrf: float = RRF_K_CONSTANT) -> None:
         self.k_rrf = k_rrf
@@ -290,74 +359,114 @@ class HybridRRFSearchEngine:
         vector_weight: float = 0.5,
         bm25_weight: float = 0.5,
     ) -> List[Tuple[MemoryEpisode, float]]:
+        """Combina il ranking BM25 e vettoriale tramite la formula RRF."""
         if not episodes:
             return []
 
-        # 1. Lexical BM25
         corpus = [f"{e.title} {e.content} {' '.join(e.tags)}" for e in episodes]
         bm25 = PureBM25(corpus)
         bm25_scores = bm25.score(query)
-        bm25_ranked = sorted(range(len(episodes)), key=lambda i: bm25_scores[i], reverse=True)
+        bm25_ranked = sorted(
+            range(len(episodes)),
+            key=lambda i: bm25_scores[i],
+            reverse=True,
+        )
         bm25_rank_map = {idx: rank + 1 for rank, idx in enumerate(bm25_ranked)}
 
-        # 2. Dense Vector
         query_vec = DenseEmbedder.vector_from_text(query)
         dense_scores = []
         for e in episodes:
             vec = e.vector or DenseEmbedder.vector_from_text(f"{e.title} {e.content}")
             dense_scores.append(DenseEmbedder.cosine_similarity(query_vec, vec))
-        dense_ranked = sorted(range(len(episodes)), key=lambda i: dense_scores[i], reverse=True)
+        dense_ranked = sorted(
+            range(len(episodes)),
+            key=lambda i: dense_scores[i],
+            reverse=True,
+        )
         dense_rank_map = {idx: rank + 1 for rank, idx in enumerate(dense_ranked)}
 
-        # 3. RRF Fusion
         rrf_scores: List[Tuple[MemoryEpisode, float]] = []
         for idx, ep in enumerate(episodes):
             r_bm25 = bm25_rank_map[idx]
             r_vec = dense_rank_map[idx]
-            score_rrf = (bm25_weight / (self.k_rrf + r_bm25)) + (vector_weight / (self.k_rrf + r_vec))
+            score_rrf = (bm25_weight / (self.k_rrf + r_bm25)) + (
+                vector_weight / (self.k_rrf + r_vec)
+            )
             rrf_scores.append((ep, score_rrf))
 
         rrf_scores.sort(key=lambda item: item[1], reverse=True)
         return rrf_scores[:top_k]
 
 
-# ----------------------------------------------------------------------
-# TIER 1: CORE IN-CONTEXT MEMORY (Strict <= 350 tokens)
-# ----------------------------------------------------------------------
 class Tier1CoreMemory:
-    def __init__(self, token_cap: int = TIER1_TOKEN_CAP) -> None:
-        self.token_cap = token_cap
+    """Gestisce la memoria core di Livello 1 con budget massimo di token."""
+
+    def __init__(
+        self,
+        token_cap: int = TIER1_TOKEN_CAP,
+        profile: Optional[str] = None,
+    ) -> None:
+        if profile == "argon" and token_cap == TIER1_TOKEN_CAP:
+            self.token_cap = TIER1_TOKEN_CAP_ARGON
+        else:
+            self.token_cap = token_cap
         self._domains: Dict[str, Tier1DomainState] = {
             d: Tier1DomainState(domain=d) for d in NK_DOMAINS
         }
 
-    def set_item(self, domain: str, key: str, value: str, priority: int = 1) -> None:
-        if domain not in self._domains:
-            raise ValueError(f"Invalid domain: {domain}")
-
-        d_state = self._domains[domain]
+    def set_item(
+        self,
+        domain: str,
+        key: str,
+        value: str,
+        priority: int = 1,
+    ) -> None:
+        """Inserisce o aggiorna una voce nel dominio e applica il budget token."""
+        canon = resolve_domain(domain)
+        d_state = self._domains[canon]
         tok = estimate_tokens(f"{key}: {value}")
-        d_state.items[key] = Tier1Item(key=key, value=value, priority=priority, estimated_tokens=tok)
-        self._enforce_budget(domain)
+        d_state.items[key] = Tier1Item(
+            key=key,
+            value=value,
+            priority=priority,
+            estimated_tokens=tok,
+        )
+        self._enforce_budget(canon)
 
     def get_item(self, domain: str, key: str) -> Optional[str]:
-        if domain in self._domains and key in self._domains[domain].items:
-            return self._domains[domain].items[key].value
+        """Recupera il valore di una chiave nel dominio specificato."""
+        try:
+            canon = resolve_domain(domain)
+        except ValueError:
+            return None
+        if canon in self._domains and key in self._domains[canon].items:
+            return self._domains[canon].items[key].value
         return None
 
     def get_token_usage(self, domain: str) -> int:
-        return self._domains[domain].total_tokens if domain in self._domains else 0
+        """Restituisce il totale dei token usati nel dominio."""
+        try:
+            canon = resolve_domain(domain)
+        except ValueError:
+            return 0
+        return self._domains[canon].total_tokens if canon in self._domains else 0
 
     def get_context_string(self, domain: str) -> str:
-        if domain not in self._domains:
+        """Formatta le voci del dominio ordinate per priorita decrescente."""
+        try:
+            canon = resolve_domain(domain)
+        except ValueError:
             return ""
-        items = sorted(self._domains[domain].items.values(), key=lambda x: x.priority, reverse=True)
+        items = sorted(
+            self._domains[canon].items.values(),
+            key=lambda x: x.priority,
+            reverse=True,
+        )
         return "\n".join(f"[{i.key}] {i.value}" for i in items)
 
     def _enforce_budget(self, domain: str) -> None:
         d_state = self._domains[domain]
         items = list(d_state.items.values())
-        # Sort by priority ascending (lowest priority evicted first)
         items.sort(key=lambda x: (x.priority, -x.estimated_tokens))
 
         current_tokens = sum(x.estimated_tokens for x in items)
@@ -366,26 +475,32 @@ class Tier1CoreMemory:
             del d_state.items[evicted.key]
             current_tokens -= evicted.estimated_tokens
 
-        d_state.total_tokens = sum(x.estimated_tokens for x in d_state.items.values())
+        d_state.total_tokens = sum(
+            x.estimated_tokens for x in d_state.items.values()
+        )
 
 
-# ----------------------------------------------------------------------
-# THREE-TIER EPISODIC MEMORY ENGINE
-# ----------------------------------------------------------------------
 class ThreeTierMemoryEngine:
+    """Orchestra i 3 livelli di memoria episodica con cache locale veloce."""
+
     def __init__(
         self,
         base_dir: Path | str,
         token_cap: int = TIER1_TOKEN_CAP,
         sliding_window_max: int = TIER2_SLIDING_WINDOW_MAX,
         cache_dir: Optional[Path | str] = None,
+        profile: Optional[str] = None,
     ) -> None:
         self.base_dir = Path(base_dir)
-        self.cache_dir = Path(cache_dir) if cache_dir else (Path(tempfile.gettempdir()) / "nk_mem_cache")
+        self.cache_dir = (
+            Path(cache_dir)
+            if cache_dir
+            else (Path(tempfile.gettempdir()) / "nk_mem_cache")
+        )
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.sliding_window_max = sliding_window_max
 
-        self.tier1 = Tier1CoreMemory(token_cap=token_cap)
+        self.tier1 = Tier1CoreMemory(token_cap=token_cap, profile=profile)
         self.search_engine = HybridRRFSearchEngine()
         self._init_storage()
 
@@ -398,23 +513,20 @@ class ThreeTierMemoryEngine:
                 t2_file.touch()
 
     def append_episode(self, episode: MemoryEpisode) -> None:
-        if episode.domain not in NK_DOMAINS:
-            raise ValueError(f"Unknown domain: {episode.domain}")
-
-        d_dir = self.base_dir / episode.domain
+        """Aggiunge un episodio al Livello 2 e compatta le eccedenze nel Livello 3."""
+        canon = resolve_domain(episode.domain)
+        d_dir = self.base_dir / canon
         t2_file = d_dir / "episodes.jsonl"
 
         episodes = self._load_tier2_raw(t2_file)
         episodes.append(episode)
 
-        # Sliding Window & Cold Compaction
         if len(episodes) > self.sliding_window_max:
             surplus_count = len(episodes) - self.sliding_window_max
             to_archive = episodes[:surplus_count]
             episodes = episodes[surplus_count:]
-            self._archive_to_tier3(episode.domain, to_archive)
+            self._archive_to_tier3(canon, to_archive)
 
-        # Write Tier 2 with circular backup & atomic replace
         rotate_circular_backups(t2_file)
         tmp_file = d_dir / f"episodes_{uuid.uuid4().hex[:8]}.tmp"
         with open(tmp_file, "w", encoding="utf-8") as f:
@@ -422,21 +534,30 @@ class ThreeTierMemoryEngine:
                 f.write(ep.model_dump_json() + "\n")
 
         win32_atomic_replace(tmp_file, t2_file)
-        self._update_shadow_cache(episode.domain, episodes)
+        self._update_shadow_cache(canon, episodes)
+        self.tier1.set_item(
+            domain=canon,
+            key=episode.episode_id,
+            value=f"{episode.title}: {episode.content}",
+            priority=5,
+        )
 
     def get_tier2_episodes(self, domain: str) -> List[MemoryEpisode]:
-        # Fast path: Shadow Read Cache
-        cached = self._read_shadow_cache(domain)
+        """Legge gli episodi attivi del Livello 2 sfruttando la cache locale."""
+        canon = resolve_domain(domain)
+        cached = self._read_shadow_cache(canon)
         if cached is not None:
             return cached
 
-        t2_file = self.base_dir / domain / "episodes.jsonl"
+        t2_file = self.base_dir / canon / "episodes.jsonl"
         episodes = self._load_tier2_raw(t2_file)
-        self._update_shadow_cache(domain, episodes)
+        self._update_shadow_cache(canon, episodes)
         return episodes
 
     def get_tier3_episodes(self, domain: str) -> List[MemoryEpisode]:
-        cold_file = self.base_dir / domain / "archive.cold.jsonl.gz"
+        """Legge gli episodi storici compressi nel Livello 3."""
+        canon = resolve_domain(domain)
+        cold_file = self.base_dir / canon / "archive.cold.jsonl.gz"
         if not cold_file.exists():
             return []
 
@@ -455,13 +576,118 @@ class ThreeTierMemoryEngine:
         domain: str,
         query: str,
         top_k: int = 5,
+        adaptive: bool = True,
     ) -> List[Tuple[MemoryEpisode, float]]:
-        t2_eps = self.get_tier2_episodes(domain)
-        t3_eps = self.get_tier3_episodes(domain)
+        """Esegue una ricerca ibrida RRF adattiva combinando Livello 2 e Livello 3."""
+        canon = resolve_domain(domain)
+        t2_eps = self.get_tier2_episodes(canon)
+        t3_eps = self.get_tier3_episodes(canon)
         all_eps = t2_eps + t3_eps
-        return self.search_engine.search(query, all_eps, top_k=top_k)
+        results = self.search_engine.search(query, all_eps, top_k=top_k)
 
-    def _archive_to_tier3(self, domain: str, surplus: Sequence[MemoryEpisode]) -> None:
+        if not adaptive or not all_eps or not query.strip():
+            return results
+
+        q_tokens = set(re.findall(r"\b[a-zA-Z0-9_]{2,}\b", query.lower()))
+        if not q_tokens:
+            return results
+
+        top_text = (
+            f"{results[0][0].title} {results[0][0].content} {' '.join(results[0][0].tags)}".lower()
+            if results
+            else ""
+        )
+        matched = sum(1 for t in q_tokens if t in top_text)
+        coverage = float(matched) / float(len(q_tokens))
+
+        if coverage < 0.5:
+            tag_pool: List[str] = []
+            for ep in all_eps[-20:]:
+                tag_pool.extend(ep.tags)
+            expanded_query = f"{query} {' '.join(dict.fromkeys(tag_pool))}".strip()
+            results = self.search_engine.search(
+                expanded_query,
+                all_eps,
+                top_k=top_k,
+                vector_weight=0.65,
+                bm25_weight=0.35,
+            )
+
+        return results
+
+    def sync_tier1_capsule(
+        self,
+        output_path: Optional[Path | str] = None,
+        profile: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Sincronizza e persiste su disco il file tier1_active_capsule.json."""
+        if profile == "argon" and self.tier1.token_cap == TIER1_TOKEN_CAP:
+            self.tier1.token_cap = TIER1_TOKEN_CAP_ARGON
+
+        for dom in NK_DOMAINS:
+            if not self.tier1._domains[dom].items:
+                recent_eps = self.get_tier2_episodes(dom)[-5:]
+                for idx, ep in enumerate(recent_eps, start=1):
+                    self.tier1.set_item(
+                        domain=dom,
+                        key=ep.episode_id,
+                        value=f"{ep.title}: {ep.content}",
+                        priority=min(10, idx + 2),
+                    )
+
+        active_profile = profile or (
+            "argon" if self.tier1.token_cap == TIER1_TOKEN_CAP_ARGON else "standard"
+        )
+        domains_payload: Dict[str, Any] = {}
+        lessons_list: List[Dict[str, Any]] = []
+
+        for dom in NK_DOMAINS:
+            d_state = self.tier1._domains[dom]
+            items_dumped = [it.model_dump() for it in d_state.items.values()]
+            domains_payload[dom] = {
+                "total_tokens": d_state.total_tokens,
+                "context": self.tier1.get_context_string(dom),
+                "items": items_dumped,
+            }
+            for it in d_state.items.values():
+                lessons_list.append(
+                    {
+                        "domain": dom,
+                        "key": it.key,
+                        "lesson": f"[{it.key}] {it.value}",
+                        "priority": it.priority,
+                        "estimated_tokens": it.estimated_tokens,
+                    }
+                )
+
+        capsule_data: Dict[str, Any] = {
+            "schema_version": "3.1.0-Tensor-RSI",
+            "updated_at": time.time(),
+            "profile": active_profile,
+            "token_cap": self.tier1.token_cap,
+            "domains": domains_payload,
+            "lessons": lessons_list,
+        }
+
+        target_file = (
+            Path(output_path).resolve()
+            if output_path
+            else (self.base_dir / "tier1_active_capsule.json").resolve()
+        )
+        target_file.parent.mkdir(parents=True, exist_ok=True)
+        tmp_capsule = target_file.parent / f"tier1_capsule_{uuid.uuid4().hex[:8]}.tmp"
+        tmp_capsule.write_text(
+            json.dumps(capsule_data, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        win32_atomic_replace(tmp_capsule, target_file)
+        return capsule_data
+
+    def _archive_to_tier3(
+        self,
+        domain: str,
+        surplus: Sequence[MemoryEpisode],
+    ) -> None:
         cold_file = self.base_dir / domain / "archive.cold.jsonl.gz"
         existing = self.get_tier3_episodes(domain)
         combined = existing + list(surplus)
@@ -488,14 +714,18 @@ class ThreeTierMemoryEngine:
         data_file = self.cache_dir / f"{domain}_data.json"
         src_file = self.base_dir / domain / "episodes.jsonl"
 
-        if not meta_file.exists() or not data_file.exists() or not src_file.exists():
+        if (
+            not meta_file.exists()
+            or not data_file.exists()
+            or not src_file.exists()
+        ):
             return None
 
         try:
             meta = json.loads(meta_file.read_text(encoding="utf-8"))
             mtime = src_file.stat().st_mtime
             if meta.get("mtime") != mtime:
-                return None  # Stale
+                return None
 
             raw_data = data_file.read_text(encoding="utf-8")
             items = json.loads(raw_data)
@@ -503,7 +733,11 @@ class ThreeTierMemoryEngine:
         except Exception:
             return None
 
-    def _update_shadow_cache(self, domain: str, episodes: Sequence[MemoryEpisode]) -> None:
+    def _update_shadow_cache(
+        self,
+        domain: str,
+        episodes: Sequence[MemoryEpisode],
+    ) -> None:
         try:
             src_file = self.base_dir / domain / "episodes.jsonl"
             mtime = src_file.stat().st_mtime if src_file.exists() else time.time()
@@ -511,7 +745,179 @@ class ThreeTierMemoryEngine:
             meta_file = self.cache_dir / f"{domain}_meta.json"
             data_file = self.cache_dir / f"{domain}_data.json"
 
-            meta_file.write_text(json.dumps({"mtime": mtime, "domain": domain}), encoding="utf-8")
-            data_file.write_text(json.dumps([e.model_dump() for e in episodes]), encoding="utf-8")
+            meta_file.write_text(
+                json.dumps({"mtime": mtime, "domain": domain}),
+                encoding="utf-8",
+            )
+            data_file.write_text(
+                json.dumps([e.model_dump() for e in episodes]),
+                encoding="utf-8",
+            )
         except Exception:
             pass
+
+
+def sync_tier1_capsule(
+    base_dir: Optional[Path | str] = None,
+    output_path: Optional[Path | str] = None,
+    profile: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Funzione helper di modulo per sincronizzare tier1_active_capsule.json."""
+    resolved_base = (
+        Path(base_dir).resolve()
+        if base_dir
+        else (_workspace_root / "nk_tracking" / "memory_3tier")
+    )
+    engine = ThreeTierMemoryEngine(base_dir=resolved_base, profile=profile)
+    return engine.sync_tier1_capsule(output_path=output_path, profile=profile)
+
+
+def main() -> int:
+    """Interfaccia CLI per il motore di memoria a 3 livelli."""
+    parser = argparse.ArgumentParser(
+        description="Motore di Memoria Episodica a 3 Livelli Nexus Keystone"
+    )
+    parser.add_argument(
+        "--base-dir",
+        type=str,
+        default=None,
+        help="Directory base della memoria episodica",
+    )
+    parser.add_argument(
+        "--recall",
+        action="store_true",
+        help="Esegue una ricerca ibrida RRF nel dominio",
+    )
+    parser.add_argument(
+        "--append",
+        action="store_true",
+        help="Aggiunge un nuovo episodio e sincronizza la capsula Tier-1",
+    )
+    parser.add_argument(
+        "--tier1-sync",
+        action="store_true",
+        help="Sincronizza e persiste tier1_active_capsule.json",
+    )
+    parser.add_argument(
+        "--domain",
+        type=str,
+        default="02_Development_Patterns",
+        help="Dominio NK o alias breve (OPS, ARCH, DEVX, SEC)",
+    )
+    parser.add_argument(
+        "--query",
+        type=str,
+        default="",
+        help="Query di ricerca per --recall",
+    )
+    parser.add_argument(
+        "--title",
+        type=str,
+        default="Lesson Learned",
+        help="Titolo dell'episodio per --append",
+    )
+    parser.add_argument(
+        "--content",
+        type=str,
+        default="",
+        help="Contenuto dell'episodio per --append",
+    )
+    parser.add_argument(
+        "--tags",
+        type=str,
+        default="",
+        help="Tag separati da virgola per --append",
+    )
+    parser.add_argument(
+        "--profile",
+        type=str,
+        default=None,
+        help="Profilo di budget token (standard o argon)",
+    )
+    parser.add_argument(
+        "--output",
+        type=str,
+        default=None,
+        help="Percorso di output personalizzato per tier1_active_capsule.json",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Stampa il risultato in formato JSON",
+    )
+
+    args = parser.parse_args()
+    base_path = (
+        Path(args.base_dir).resolve()
+        if args.base_dir
+        else (_workspace_root / "nk_tracking" / "memory_3tier")
+    )
+    engine = ThreeTierMemoryEngine(base_dir=base_path, profile=args.profile)
+
+    if args.append:
+        tag_list = [t.strip() for t in args.tags.split(",") if t.strip()]
+        ep = MemoryEpisode(
+            episode_id=f"ep_{int(time.time())}_{uuid.uuid4().hex[:6]}",
+            domain=args.domain,
+            title=args.title,
+            content=args.content or args.title,
+            tags=tag_list,
+        )
+        engine.append_episode(ep)
+        capsule = engine.sync_tier1_capsule(output_path=args.output, profile=args.profile)
+        out = {
+            "status": "APPENDED",
+            "episode_id": ep.episode_id,
+            "domain": ep.domain,
+            "tier1_synced": True,
+            "token_cap": capsule["token_cap"],
+        }
+        if args.json:
+            print(json.dumps(out, indent=2))
+        else:
+            print(f"[MEMORY-3TIER] Episodio salvato: {ep.episode_id} ({ep.domain})")
+        return 0
+
+    if args.tier1_sync:
+        capsule = engine.sync_tier1_capsule(output_path=args.output, profile=args.profile)
+        if args.json:
+            print(json.dumps(capsule, indent=2))
+        else:
+            print(
+                f"[MEMORY-3TIER] tier1_active_capsule.json sincronizzato (cap={capsule['token_cap']})."
+            )
+        return 0
+
+    if args.recall:
+        hits = engine.recall_hybrid(domain=args.domain, query=args.query)
+        payload = {
+            "status": "OK",
+            "domain": resolve_domain(args.domain),
+            "query": args.query,
+            "results": [
+                {
+                    "episode_id": ep.episode_id,
+                    "title": ep.title,
+                    "content": ep.content,
+                    "score": round(score, 6),
+                }
+                for ep, score in hits
+            ],
+        }
+        if args.json:
+            print(json.dumps(payload, indent=2))
+        else:
+            for ep, score in hits:
+                print(f"[{round(score, 4)}] {ep.episode_id}: {ep.title} -> {ep.content}")
+        return 0
+
+    capsule = engine.sync_tier1_capsule(output_path=args.output, profile=args.profile)
+    if args.json:
+        print(json.dumps(capsule, indent=2))
+    else:
+        print(f"[MEMORY-3TIER] Ready. Base dir: {base_path}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

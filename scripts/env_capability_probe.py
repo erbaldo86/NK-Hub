@@ -1,13 +1,7 @@
+# -*- coding: utf-8 -*-
 """
-Nexus Keystone v1.1.0-Universal - Platform Capability & Environment Probe
-Module: env_capability_probe.py
-Author: NK-Platform-Builder
-
-Features:
-- Deterministic runtime discovery (Python version, OS architecture, codepage/encoding, CPU topology).
-- Verification and introspection of standard library and third-party modules.
-- Structured capability reports for platform diagnostics, CI/CD, and preflight validation.
-- CLI interface with --json, --check-module, and --export options.
+Sonda deterministica delle capacita dell'ambiente per Nexus Keystone v3.0.0-STE100-Unified.
+Separa i moduli core dell'Hub dai moduli opzionali mantenendo invariato total_probed (GT-09).
 """
 
 from __future__ import annotations
@@ -24,6 +18,26 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+_scripts_dir = Path(__file__).resolve().parent
+_workspace_root = (
+    _scripts_dir.parent.parent
+    if _scripts_dir.parent.name == ".staging"
+    else _scripts_dir.parent
+)
+if str(_workspace_root) not in sys.path:
+    sys.path.insert(0, str(_workspace_root))
+if str(_scripts_dir) not in sys.path:
+    sys.path.insert(0, str(_scripts_dir))
+
+try:
+    from platform_runner import reconfigure_streams
+except ImportError:
+    try:
+        from scripts.platform_runner import reconfigure_streams
+    except ImportError:
+        def reconfigure_streams() -> None:
+            pass
 
 STANDARD_MODULES_TO_PROBE: List[str] = [
     "sqlite3",
@@ -46,18 +60,23 @@ THIRD_PARTY_MODULES_TO_PROBE: List[str] = [
     "sqlalchemy",
 ]
 
+CORE_HUB_MODULES: List[str] = [
+    "pydantic",
+    "psutil",
+    "pytest",
+]
+
+OPTIONAL_APP_MODULES: List[str] = [
+    "fastapi",
+    "uvicorn",
+    "httpx",
+    "pywin32",
+    "sqlalchemy",
+]
+
 
 def check_module_availability(module_name: str) -> Dict[str, Any]:
-    """
-    Check if a specific Python module or package is available in the current environment.
-    Safely discovers availability, version, and file/origin location without side-effects.
-
-    Args:
-        module_name: Canonical or package name of the module.
-
-    Returns:
-        Dict with keys: module, available, version, location, error.
-    """
+    """Verifica la disponibilita, la versione e il percorso di un modulo Python."""
     cleaned_name = module_name.strip()
     result: Dict[str, Any] = {
         "module": cleaned_name,
@@ -67,7 +86,6 @@ def check_module_availability(module_name: str) -> Dict[str, Any]:
         "error": None,
     }
 
-    # Special handling for pywin32 which maps to win32api internally
     target_import = cleaned_name
     if cleaned_name.lower() == "pywin32":
         target_import = "win32api"
@@ -79,7 +97,6 @@ def check_module_availability(module_name: str) -> Dict[str, Any]:
         return result
 
     if spec is None:
-        # If spec not found, check if it's installed package metadata (e.g. pywin32)
         try:
             ver = importlib.metadata.version(cleaned_name)
             result["available"] = True
@@ -92,15 +109,12 @@ def check_module_availability(module_name: str) -> Dict[str, Any]:
     result["available"] = True
     result["location"] = getattr(spec, "origin", None) or "built-in / namespace"
 
-    # Attempt to resolve version cleanly
     version: Optional[str] = None
-    # 1. Try importlib.metadata
     try:
         version = importlib.metadata.version(cleaned_name)
     except Exception:
         pass
 
-    # 2. Try importing module to read __version__ if metadata didn't provide it
     if version is None:
         try:
             mod = sys.modules.get(target_import)
@@ -112,24 +126,20 @@ def check_module_availability(module_name: str) -> Dict[str, Any]:
         except Exception:
             pass
 
-    # 3. If it is standard library, mark version with Python runtime version
     stdlib_names = getattr(sys, "stdlib_module_names", set())
     if version is None and cleaned_name in stdlib_names:
-        version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+        version = (
+            f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+        )
 
     result["version"] = version
     return result
 
 
 def probe_environment() -> Dict[str, Any]:
-    """
-    Perform deep deterministic environment discovery and capability audit.
+    """Esegue la scansione completa dell'ambiente runtime e dei moduli installati."""
+    reconfigure_streams()
 
-    Returns:
-        Structured dictionary containing Python, OS, codepage/encoding, CPU,
-        standard modules, and third-party modules status.
-    """
-    # 1. Python runtime
     python_info: Dict[str, Any] = {
         "version": sys.version,
         "version_major": sys.version_info.major,
@@ -144,7 +154,6 @@ def probe_environment() -> Dict[str, Any]:
         "is_64bit": sys.maxsize > (2**32),
     }
 
-    # 2. Operating System
     os_info: Dict[str, Any] = {
         "system": platform.system(),
         "release": platform.release(),
@@ -156,7 +165,6 @@ def probe_environment() -> Dict[str, Any]:
         "is_darwin": platform.system().lower() == "darwin",
     }
 
-    # 3. Codepage / Encodings
     encoding_info: Dict[str, Any] = {
         "default_encoding": sys.getdefaultencoding(),
         "filesystem_encoding": sys.getfilesystemencoding(),
@@ -166,7 +174,6 @@ def probe_environment() -> Dict[str, Any]:
         "stdin_encoding": getattr(sys.stdin, "encoding", None),
     }
 
-    # 4. CPU & Hardware Topology
     cpu_info: Dict[str, Any] = {
         "count": os.cpu_count(),
         "machine": platform.machine(),
@@ -174,20 +181,31 @@ def probe_environment() -> Dict[str, Any]:
         "architecture": platform.architecture()[0],
     }
 
-    # 5. Standard Modules Scan
     std_modules_map: Dict[str, Dict[str, Any]] = {}
     for mod_name in STANDARD_MODULES_TO_PROBE:
         std_modules_map[mod_name] = check_module_availability(mod_name)
 
-    # 6. Third Party Modules Scan
     third_party_map: Dict[str, Dict[str, Any]] = {}
     for mod_name in THIRD_PARTY_MODULES_TO_PROBE:
         third_party_map[mod_name] = check_module_availability(mod_name)
 
-    # 7. Summary metrics
+    core_hub_map: Dict[str, Dict[str, Any]] = {
+        m: third_party_map.get(m, check_module_availability(m))
+        for m in CORE_HUB_MODULES
+    }
+    optional_app_map: Dict[str, Dict[str, Any]] = {
+        m: third_party_map.get(m, check_module_availability(m))
+        for m in OPTIONAL_APP_MODULES
+    }
+
     all_std_ok = all(info["available"] for info in std_modules_map.values())
+    all_core_ok = all(info["available"] for info in core_hub_map.values())
     total_probed = len(std_modules_map) + len(third_party_map)
-    total_available = sum(1 for m in list(std_modules_map.values()) + list(third_party_map.values()) if m["available"])
+    total_available = sum(
+        1
+        for m in list(std_modules_map.values()) + list(third_party_map.values())
+        if m["available"]
+    )
     total_missing = total_probed - total_available
 
     report: Dict[str, Any] = {
@@ -198,12 +216,15 @@ def probe_environment() -> Dict[str, Any]:
         "cpu": cpu_info,
         "standard_modules": std_modules_map,
         "third_party_modules": third_party_map,
+        "core_hub_modules": core_hub_map,
+        "optional_app_modules": optional_app_map,
         "summary": {
             "total_probed": total_probed,
             "available_count": total_available,
             "missing_count": total_missing,
             "all_standard_available": all_std_ok,
-            "status": "PASS" if all_std_ok else "DEGRADED",
+            "all_core_hub_available": all_core_ok,
+            "status": "PASS" if (all_std_ok and all_core_ok) else "DEGRADED",
         },
     }
 
@@ -211,17 +232,15 @@ def probe_environment() -> Dict[str, Any]:
 
 
 def format_human_readable(data: Dict[str, Any]) -> str:
-    """Format probe results into a clean human-readable diagnostic text."""
+    """Formatta i risultati della sonda in un rapporto testuale leggibile."""
     lines: List[str] = [
         "=" * 80,
         "NEXUS KEYSTONE - ENVIRONMENT CAPABILITY PROBE",
         "=" * 80,
         f"Timestamp:   {data.get('timestamp')}",
-        f"Python:      {data['python']['version'].split()[0]} ({data['python']['implementation']} {data['python']['version_major']}.{data['python']['version_minor']}.{data['python']['version_micro']})",
+        f"Python:      {data['python']['version'].split()[0]} ({data['python']['implementation']})",
         f"Executable:  {data['python']['executable']}",
-        f"OS:          {data['os']['system']} {data['os']['release']} ({data['os']['platform']})",
-        f"CPU:         {data['cpu']['processor'] or data['cpu']['machine']} ({data['cpu']['count']} cores, {data['cpu']['architecture']})",
-        f"Encodings:   default={data['encoding']['default_encoding']}, fs={data['encoding']['filesystem_encoding']}, stdout={data['encoding']['stdout_encoding']}",
+        f"OS:          {data['os']['system']} {data['os']['release']}",
         "-" * 80,
         "[STANDARD LIBRARY MODULES]",
     ]
@@ -232,8 +251,15 @@ def format_human_readable(data: Dict[str, Any]) -> str:
         lines.append(f"  {status:12} {name:15} {ver}")
 
     lines.append("-" * 80)
-    lines.append("[THIRD PARTY MODULES]")
-    for name, info in data["third_party_modules"].items():
+    lines.append("[CORE HUB MODULES]")
+    for name, info in data.get("core_hub_modules", {}).items():
+        status = "[AVAILABLE]" if info["available"] else "[MISSING]"
+        ver = f"v{info['version']}" if info["version"] else ""
+        lines.append(f"  {status:12} {name:15} {ver}")
+
+    lines.append("-" * 80)
+    lines.append("[OPTIONAL APP MODULES]")
+    for name, info in data.get("optional_app_modules", {}).items():
         status = "[AVAILABLE]" if info["available"] else "[MISSING]"
         ver = f"v{info['version']}" if info["version"] else ""
         lines.append(f"  {status:12} {name:15} {ver}")
@@ -241,35 +267,36 @@ def format_human_readable(data: Dict[str, Any]) -> str:
     lines.append("=" * 80)
     summary = data["summary"]
     lines.append(
-        f"STATUS: {summary['status']} | Available: {summary['available_count']}/{summary['total_probed']} | Missing: {summary['missing_count']}"
+        f"STATUS: {summary['status']} | Available: {summary['available_count']}/{summary['total_probed']}"
     )
     lines.append("=" * 80)
     return "\n".join(lines)
 
 
 def main() -> int:
-    """CLI entry point for environment capability probe."""
+    """Punto di ingresso CLI per la sonda delle capacita di ambiente."""
+    reconfigure_streams()
     parser = argparse.ArgumentParser(
         description="Nexus Keystone Environment Capability Probe",
     )
     parser.add_argument(
         "--json",
         action="store_true",
-        help="Output diagnostics in formatted JSON format",
+        help="Stampa il rapporto in formato JSON",
     )
     parser.add_argument(
         "--check-module",
         type=str,
         default=None,
         metavar="NAME",
-        help="Check capability and availability of a specific module",
+        help="Verifica la disponibilita di un singolo modulo",
     )
     parser.add_argument(
         "--export",
         type=str,
         default=None,
         metavar="PATH",
-        help="Export full probe results to specified JSON file path",
+        help="Esporta il rapporto completo nel percorso file JSON specificato",
     )
 
     args = parser.parse_args()

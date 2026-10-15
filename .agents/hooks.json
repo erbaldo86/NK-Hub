@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "3.0.0-STE100-Unified",
+  "description": "Hook non bloccanti del ciclo di vita per Nexus Keystone Hub v3.0.0-STE100-Unified",
+  "hooks": {
+    "SessionStart": [
+      {
+        "name": "nk_fast_stat_bootstrap",
+        "command": "python -u scripts/nk_session_bootstrap.py",
+        "blocking": false,
+        "timeout_ms": 2000
+      }
+    ],
+    "PostToolUse": [
+      {
+        "name": "nk_runtime_sentinel_argon",
+        "command": "python -u scripts/nk_active_runtime_sentinel.py --profile argon",
+        "blocking": false,
+        "timeout_ms": 1500
+      }
+    ],
+    "Stop": [
+      {
+        "name": "nk_rsi_convergence_check",
+        "command": "python -u scripts/rsi_convergence_engine.py --verify",
+        "blocking": false,
+        "timeout_ms": 5000
+      }
+    ]
+  }
+}

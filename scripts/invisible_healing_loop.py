@@ -1,25 +1,50 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-Nexus Keystone v1.1.0-Universal: Invisible Autonomous Fast-Loop Healing Engine.
-Compliant with:
-- Fast-Loop Autonomous Healing: <= 3 self-repair cycles upon DAST/runtime failure.
-- Spectrum-Based Fault Localization (SBFL): Ultra-compact diagnostic payload strictly < 80 tokens.
-- Karpathy Slicer: Context-hygienic minimal code slicing around localized fault.
-- DSPy Optimizer Telemetry Hook: JSONL telemetry streaming for offline prompt/patch optimization.
-- Zero-Mock Determinism and Pydantic v2 strict typing.
+Wrapper compatibile per l'Invisible Healing Loop di Nexus Keystone v3.0.0.
+Modulo: invisible_healing_loop.py.
+Delega il calcolo Ochiai a sbfl_engine.py e l'esecuzione CLI a auto_heal_pipeline.py.
 """
 
 from __future__ import annotations
 
+import argparse
 import ast
 import json
 import math
 import re
+import sys
 import time
 import traceback
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
-from pydantic import BaseModel, Field, ConfigDict
 
+from pydantic import BaseModel, ConfigDict, Field
+
+_scripts_dir = Path(__file__).resolve().parent
+_root_dir = (
+    _scripts_dir.parent.parent
+    if _scripts_dir.parent.name == ".staging"
+    else _scripts_dir.parent
+)
+for _d in (
+    _scripts_dir,
+    _root_dir / "scripts",
+    _root_dir / ".staging" / "scripts",
+    _root_dir,
+):
+    if _d.exists() and str(_d) not in sys.path:
+        sys.path.insert(0, str(_d))
+
+try:
+    from sbfl_engine import SpectrumCounts, calculate_ochiai
+except ImportError:
+    from scripts.sbfl_engine import SpectrumCounts, calculate_ochiai
+
+try:
+    from auto_heal_pipeline import AutoHealPipeline, AutoHealSessionReport
+except ImportError:
+    from scripts.auto_heal_pipeline import AutoHealPipeline, AutoHealSessionReport
 
 MAX_HEALING_CYCLES: int = 3
 SBFL_MAX_TOKEN_BUDGET: int = 80
@@ -27,35 +52,38 @@ SBFL_MAX_TOKEN_BUDGET: int = 80
 T = TypeVar("T")
 
 
-# ----------------------------------------------------------------------
-# TOKEN ESTIMATION HELPER
-# ----------------------------------------------------------------------
 def estimate_token_count(text: str) -> int:
-    """Deterministic token estimation (words + punctuation symbols)."""
+    """Stima deterministica del numero di token di una stringa."""
     if not text:
         return 0
     words = re.findall(r"\w+|[^\w\s]", text, re.UNICODE)
     return max(1, math.ceil(len(words) * 1.15))
 
 
-# ----------------------------------------------------------------------
-# PYDANTIC V2 MODELS
-# ----------------------------------------------------------------------
 class SBFLLocation(BaseModel):
+    """Posizione del guasto localizzata tramite SBFL Ochiai."""
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    file_path: str = Field(description="Relative or file path of fault")
-    line_number: int = Field(ge=1, description="1-indexed line number")
-    suspiciousness: float = Field(ge=0.0, le=1.0, description="Ochiai suspiciousness score")
-    error_type: str = Field(description="Exception or failure type")
-    error_message: str = Field(description="Short sanitized error message")
-    failing_line_content: str = Field(description="Exact code line")
+    file_path: str = Field(description="Percorso del file in cui si trova il guasto")
+    line_number: int = Field(ge=1, description="Numero di riga (1-indexed)")
+    suspiciousness: float = Field(
+        ge=0.0, le=1.0, description="Punteggio di sospettosita Ochiai"
+    )
+    error_type: str = Field(description="Tipo di eccezione o fallimento")
+    error_message: str = Field(description="Messaggio di errore sintetico")
+    failing_line_content: str = Field(description="Contenuto della riga fallita")
 
     def to_compact_payload(self) -> Dict[str, Any]:
-        """Generates compact dictionary guaranteed to fit within < 80 tokens."""
-        # Sanitize path to basename if long
-        short_path = Path(self.file_path).name if len(self.file_path) > 30 else self.file_path
-        short_msg = (self.error_message[:45] + "...") if len(self.error_message) > 45 else self.error_message
+        """Genera un dizionario compatto garantito sotto 80 token."""
+        short_path = (
+            Path(self.file_path).name if len(self.file_path) > 30 else self.file_path
+        )
+        short_msg = (
+            (self.error_message[:45] + "...")
+            if len(self.error_message) > 45
+            else self.error_message
+        )
         short_ctx = self.failing_line_content.strip()[:40]
 
         return {
@@ -66,12 +94,11 @@ class SBFLLocation(BaseModel):
         }
 
     def render_payload_json(self) -> str:
+        """Restituisce la stringa JSON compatta sotto gli 80 token."""
         payload = self.to_compact_payload()
         rendered = json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
-        # Verify strict token budget
         tok_count = estimate_token_count(rendered)
         if tok_count > SBFL_MAX_TOKEN_BUDGET:
-            # Further truncate if needed
             payload["ctx"] = payload["ctx"][:20]
             payload["err"] = payload["err"][:30]
             rendered = json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
@@ -79,6 +106,8 @@ class SBFLLocation(BaseModel):
 
 
 class CodeSlice(BaseModel):
+    """Frammento minimale di codice isolato intorno alla riga del guasto."""
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     start_line: int
@@ -89,6 +118,8 @@ class CodeSlice(BaseModel):
 
 
 class HealingCycleLog(BaseModel):
+    """Log di un singolo ciclo di auto-riparazione."""
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     cycle_index: int
@@ -101,6 +132,8 @@ class HealingCycleLog(BaseModel):
 
 
 class HealingResult(BaseModel):
+    """Risultato finale dell'esecuzione con auto-riparazione."""
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     success: bool
@@ -112,21 +145,20 @@ class HealingResult(BaseModel):
 
 
 class DSPyTelemetryRecord(BaseModel):
+    """Record telemetrico per la distillazione degli episodi di riparazione."""
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     run_id: str
     timestamp: float = Field(default_factory=time.time)
     task_name: str
     cycles_total: int
-    final_status: str  # "HEALED" | "ESCALATED"
+    final_status: str
     cycles_telemetry: List[Dict[str, Any]]
 
 
-# ----------------------------------------------------------------------
-# KARPATHY SURGICAL SLICER
-# ----------------------------------------------------------------------
 class KarpathySlicer:
-    """Context-hygienic code slicer that isolates minimal relevant lines around the fault."""
+    """Isola le righe di codice rilevanti intorno al guasto."""
 
     @staticmethod
     def slice_source(
@@ -139,10 +171,7 @@ class KarpathySlicer:
         if total_lines == 0:
             return CodeSlice(start_line=1, end_line=1, target_line=1, content="")
 
-        # Clamp target line to 1..total_lines
         clamped_target = max(1, min(target_line, total_lines))
-
-        # Try to locate enclosing function via AST if parseable
         fn_name: Optional[str] = None
         start_line = max(1, clamped_target - window)
         end_line = min(total_lines, clamped_target + window)
@@ -152,19 +181,20 @@ class KarpathySlicer:
             for node in ast.walk(tree):
                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                     if hasattr(node, "lineno") and hasattr(node, "end_lineno"):
-                        if node.lineno <= clamped_target <= (node.end_lineno or clamped_target):
+                        if (
+                            node.lineno
+                            <= clamped_target
+                            <= (node.end_lineno or clamped_target)
+                        ):
                             fn_name = node.name
-                            # Bound slice to function bounds if within reasonable window
                             if (node.end_lineno - node.lineno) <= 30:
                                 start_line = max(node.lineno, clamped_target - window)
                                 end_line = min(node.end_lineno, clamped_target + window)
                             break
         except Exception:
-            # Slicing fallback without AST
             pass
 
         sliced_lines = lines[start_line - 1 : end_line]
-        # Format with line numbers
         formatted = "\n".join(
             f"{i + start_line:4d} | {line}" for i, line in enumerate(sliced_lines)
         )
@@ -178,7 +208,9 @@ class KarpathySlicer:
         )
 
     @staticmethod
-    def slice_file(file_path: Union[str, Path], target_line: int, window: int = 4) -> CodeSlice:
+    def slice_file(
+        file_path: Union[str, Path], target_line: int, window: int = 4
+    ) -> CodeSlice:
         p = Path(file_path)
         if not p.exists():
             return CodeSlice(
@@ -191,27 +223,28 @@ class KarpathySlicer:
         return KarpathySlicer.slice_source(code, target_line=target_line, window=window)
 
 
-# ----------------------------------------------------------------------
-# SPECTRUM-BASED FAULT LOCALIZATION (SBFL)
-# ----------------------------------------------------------------------
 class SBFLEngine:
-    """Spectrum-Based Fault Localization with Ochiai metric & < 80 tok compact payload."""
+    """Adattatore che delega il calcolo Ochiai a scripts/sbfl_engine.py."""
 
     @staticmethod
-    def extract_from_exception(exc: BaseException, relevant_file_hint: Optional[str] = None) -> SBFLLocation:
+    def extract_from_exception(
+        exc: BaseException, relevant_file_hint: Optional[str] = None
+    ) -> SBFLLocation:
         tb = exc.__traceback__
         frames = traceback.extract_tb(tb)
+        spectrum = SpectrumCounts(n_ef=1, n_ep=0, n_nf=0, n_np=0)
+        ochiai_score = calculate_ochiai(spectrum)
+
         if not frames:
             return SBFLLocation(
                 file_path="unknown",
                 line_number=1,
-                suspiciousness=1.0,
+                suspiciousness=ochiai_score,
                 error_type=type(exc).__name__,
                 error_message=str(exc),
                 failing_line_content="",
             )
 
-        # Select target frame: look for relevant_file_hint or deepest user frame
         target_frame = frames[-1]
         if relevant_file_hint:
             for f in reversed(frames):
@@ -221,9 +254,6 @@ class SBFLEngine:
 
         line_no = target_frame.lineno or 1
         line_code = target_frame.line or ""
-
-        # Ochiai Suspiciousness: 1 failing test / sqrt(1 * (1 + 0 passed on this point)) = 1.0
-        ochiai_score = 1.0
 
         return SBFLLocation(
             file_path=target_frame.filename,
@@ -235,11 +265,8 @@ class SBFLEngine:
         )
 
 
-# ----------------------------------------------------------------------
-# OFFLINE DSPY OPTIMIZER TELEMETRY HOOK
-# ----------------------------------------------------------------------
 class DSPyTelemetryHook:
-    """Appends healing episodes into offline_dspy_telemetry.jsonl for offline DSPy training."""
+    """Registra gli episodi di riparazione su file JSONL."""
 
     def __init__(self, log_path: Path) -> None:
         self.log_path = Path(log_path).resolve()
@@ -250,17 +277,8 @@ class DSPyTelemetryHook:
             f.write(record.model_dump_json() + "\n")
 
 
-# ----------------------------------------------------------------------
-# INVISIBLE HEALING FAST-LOOP
-# ----------------------------------------------------------------------
 class InvisibleHealingLoop:
-    """
-    Fast-Loop Autonomous Healing Orchestrator:
-    - Up to 3 self-repair attempts.
-    - Diagnostic SBFL payload strictly < 80 tokens.
-    - Karpathy minimal code slice isolation.
-    - Offline DSPy telemetry logging.
-    """
+    """Orchestratore compatibile che integra SBFLEngine e AutoHealPipeline."""
 
     def __init__(
         self,
@@ -269,10 +287,18 @@ class InvisibleHealingLoop:
     ) -> None:
         self.max_cycles = max_cycles
         self.telemetry_hook = (
-            DSPyTelemetryHook(telemetry_log_path)
-            if telemetry_log_path
-            else None
+            DSPyTelemetryHook(telemetry_log_path) if telemetry_log_path else None
         )
+
+    def run_cli_pipeline(
+        self,
+        test_cmd: Union[str, List[str]],
+        target_file: Union[str, Path],
+        cwd: Optional[Path] = None,
+    ) -> AutoHealSessionReport:
+        """Delega l'esecuzione del ciclo di riparazione su file a AutoHealPipeline."""
+        pipeline = AutoHealPipeline(cwd=cwd, max_cycles=self.max_cycles)
+        return pipeline.run_pipeline(test_cmd=test_cmd, target_file=target_file)
 
     def execute_with_healing(
         self,
@@ -281,11 +307,7 @@ class InvisibleHealingLoop:
         repair_fn: Callable[[SBFLLocation, CodeSlice, int], Any],
         source_file_hint: Optional[str] = None,
     ) -> HealingResult:
-        """
-        Executes target_fn(). If an exception occurs, localizes the fault via SBFL,
-        isolates the minimal Karpathy code slice, calls repair_fn(sbfl, slice, cycle),
-        and retries up to max_cycles.
-        """
+        """Esegue target_fn con localizzazione SBFL e fino a max_cycles tentativi."""
         history: List[HealingCycleLog] = []
         run_id = f"heal_{int(time.time() * 1000)}"
 
@@ -293,7 +315,6 @@ class InvisibleHealingLoop:
             t0 = time.time()
             try:
                 result = target_fn()
-                # If target_fn succeeds on cycle 1 without failure:
                 if cycle == 1 and not history:
                     return HealingResult(
                         success=True,
@@ -301,7 +322,6 @@ class InvisibleHealingLoop:
                         history=[],
                         output=result,
                     )
-                # If target_fn succeeds after repair:
                 self._record_telemetry(
                     run_id=run_id,
                     task_name=task_name,
@@ -318,13 +338,14 @@ class InvisibleHealingLoop:
 
             except Exception as exc:
                 elapsed_ms = (time.time() - t0) * 1000.0
-                sbfl_loc = SBFLEngine.extract_from_exception(exc, relevant_file_hint=source_file_hint)
+                sbfl_loc = SBFLEngine.extract_from_exception(
+                    exc, relevant_file_hint=source_file_hint
+                )
                 compact_json = sbfl_loc.render_payload_json()
+                code_slice = KarpathySlicer.slice_file(
+                    sbfl_loc.file_path, sbfl_loc.line_number
+                )
 
-                # Karpathy slicing
-                code_slice = KarpathySlicer.slice_file(sbfl_loc.file_path, sbfl_loc.line_number)
-
-                # Attempt repair if cycles remain
                 repair_action_summary = "NO_ACTION"
                 repair_success = False
 
@@ -348,7 +369,6 @@ class InvisibleHealingLoop:
                 history.append(cycle_log)
 
                 if cycle == self.max_cycles:
-                    # Escalation
                     self._record_telemetry(
                         run_id=run_id,
                         task_name=task_name,
@@ -389,3 +409,32 @@ class InvisibleHealingLoop:
             cycles_telemetry=[h.model_dump() for h in history],
         )
         self.telemetry_hook.record_run(rec)
+
+
+def main() -> int:
+    """Delega l'invocazione CLI a AutoHealPipeline."""
+    parser = argparse.ArgumentParser(
+        description="Wrapper CLI Invisible Healing Loop delegato a AutoHealPipeline"
+    )
+    parser.add_argument("--test-cmd", type=str, required=True)
+    parser.add_argument("--target-file", type=str, required=True)
+    parser.add_argument("--cwd", type=str, default=None)
+    parser.add_argument("--max-cycles", type=int, default=MAX_HEALING_CYCLES)
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args()
+
+    loop = InvisibleHealingLoop(max_cycles=args.max_cycles)
+    rep = loop.run_cli_pipeline(
+        test_cmd=args.test_cmd,
+        target_file=args.target_file,
+        cwd=Path(args.cwd) if args.cwd else None,
+    )
+    if args.json:
+        print(rep.model_dump_json(indent=2))
+    else:
+        print(rep.message)
+    return 0 if rep.success else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

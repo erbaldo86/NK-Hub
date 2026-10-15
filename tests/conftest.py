@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Pytest configuration and global fixtures for Nexus Keystone v1.1.0-Universal test suite.
+Configurazione Pytest e fixture globali per la suite di test Nexus Keystone v3.0.0.
 """
 
 import sys
@@ -22,7 +22,7 @@ if str(STAGING_DIR) not in sys.path:
 
 @pytest.fixture
 def temp_test_dir():
-    """Provides an isolated temporary directory for test operations."""
+    """Fornisce una directory temporanea isolata per le operazioni di test."""
     tmp = tempfile.mkdtemp(prefix="nk_test_dir_")
     path = Path(tmp)
     yield path
@@ -31,7 +31,7 @@ def temp_test_dir():
 
 @pytest.fixture
 def clean_sandbox_dir():
-    """Provides an isolated sandbox test directory."""
+    """Fornisce una directory sandbox isolata per i test."""
     tmp = tempfile.mkdtemp(prefix="nk_sandbox_test_")
     path = Path(tmp)
     yield path

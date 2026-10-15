@@ -1,16 +1,25 @@
-# 🛡️ Regole Anti-Pattern Guards (CRV 2.0)
+# 🛡️ Regole Anti-Pattern Guards (CRV 4.0 : `v3.0.0-STE100-Unified`)
 
-## 1. Anti-Mocking Guard
-- **Definizione:** L'agente Writer ha il divieto di inserire nello script di test o nel codice di produzione linee che sovrascrivono forzatamente lo stato runtime (es. `state.fullData.ce = [...]`).
-- **Verifica AST:** La scansione AST rigetta qualsiasi patch contenente riassegnazioni dirette a oggetti di stato globale prima delle funzioni di parsing.
+> **Nodo Proprietario:** `NK-Oracle-Evaluator` (`[RULE-01.1]`, `[RULE-01.2]`).  
+> **Standard Linguistico:** ASD-STE100 Italiano Tecnico (`[RULE-STE100]`).
 
-## 2. Anti-Hardcoding Guard
-- **Definizione:** L'agente Writer ha il divieto di inserire valori numerici fissi o costanti empiriche nel parser per far quadrare i test di uno specifico documento (es. `if val == 16920282.47`).
-- **Verifica AST:** Ispezione dei nodi `ast.If` e `ast.Compare` per intercettare confronti con literal numerici a molti decimali.
+---
 
-## 3. Anti-Oscillation Guard (SHA-256 Patch Hashing)
-- **Definizione:** Per ogni tentativo di correzione, viene calcolato l'hash SHA-256 del diff.
-- **Blocco Ciclico:** Se l'hash corrisponde a quello di una patch precedentemente bocciata nel medesimo task, il ciclo viene immediatamente interrotto con eccezione `PATCH_OSCILLATION_DETECTED`.
+## 1. Guardia Anti-Mocking (`[RULE-01.2]`)
+1. **Regola:** Il Builder non può mai inserire `unittest.mock.MagicMock`, `@patch`, `jest.fn()` o sovrascritture artificiali dello stato nei test o nel codice.
+2. **Verifica:** La scansione AST e l'ispezione del codice rigettano qualsiasi file che importi o istanzi oggetti mock sintetici.
 
-## 4. Zero-Hallucination Audit Claim
-- **Definizione:** Nessuna metric di successo (es. "eseguite 2000 simulazioni Monte Carlo") può essere riportata nel verdetto se non esiste la traccia deterministica esplicita dei log e degli exit code.
+## 2. Guardia Anti-Hardcoding
+1. **Regola:** Il Builder non può inserire costanti ad-hoc o condizioni fittizie per superare un singolo test.
+2. **Verifica:** L'Oracolo ispeziona i nodi `ast.If` e `ast.Compare` per rilevare confronti sospetti con valori letterali di test.
+
+## 3. Guardia Anti-Oscillazione SHA-256 (`Guardia G3 RSI`)
+1. **Regola:** Ogni iterazione calcola l'hash SHA-256 combinato dei file in `.staging/`.
+2. **Verifica:** Se l'hash coincide con uno stato già visitato in `visited_hashes`, `scripts/rsi_convergence_engine.py` arresta il ciclo con stato `ABORTED_OSCILLATION`.
+
+## 4. Guardia Anti-Mojibake e Integrità UTF-8 (`[RULE-08.1]`)
+1. **Regola:** Tutti i file sorgente e gli output devono usare la codifica `UTF-8` senza BOM.
+2. **Verifica:** La presenza del carattere di sostituzione `U+FFFD` o di sequenze byte corrotte provoca il verdetto immediato di `FAIL` (`exit_code: 1`).
+
+## 5. Guardia Zero-Hallucination Audit Claim
+1. **Regola:** Nessun verdetto può dichiarare test superati senza l'esecuzione reale del sottoprocesso e la registrazione dell'`exit_code: 0`.

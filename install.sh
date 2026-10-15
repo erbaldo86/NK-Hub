@@ -1,14 +1,17 @@
 #!/bin/bash
+set -e
 echo "================================================="
-echo "🏛️ Inizializzazione Ecosistema Multi-Agente NK-Hub v1.6.0-VibeEnhanced"
+echo "Inizializzazione Ecosistema Multi-Agente NK-Hub v3.0.0-STE100-Unified"
 echo "================================================="
 if [ -d ".agents" ]; then
-    echo "[✅] Cartella .agents/ rilevata."
+    echo "[OK] Cartella .agents/ rilevata."
 fi
 if [ -f "requirements.txt" ]; then
-    echo "[📦] Installazione dipendenze da requirements.txt..."
+    echo "[INFO] Installazione dipendenze da requirements.txt..."
     pip install -r requirements.txt
-    echo "[✅] Dipendenze installate."
+    echo "[OK] Dipendenze installate con successo."
 fi
-echo "[🎉] NK-Hub pronto! Apri Antigravity 2.0 e scrivi in chat: 'Avvia l'NK-Master-Hub'"
-
+if [ -f "scripts/nk_session_bootstrap.py" ]; then
+    python3 -u scripts/nk_session_bootstrap.py
+fi
+echo "[OK] NK-Hub v3.0.0-STE100-Unified pronto. Scrivi in chat: 'avvia nk hub'"

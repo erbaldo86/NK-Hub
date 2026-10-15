@@ -1,17 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Nexus Keystone v2.1.0-FastHealing - Permanent Unit Test Suite for Auto-Heal Pipeline
-Module: test_auto_heal_pipeline.py
-Author: NK-QA-Engineer & NK-Oracle-Evaluator
-
-Zero-Mock permanent test suite covering:
-1. Pytest output parsing and SBFL Ochiai suspiciousness computation (<80 tok payload).
-2. Snapshot creation, SHA-256 hashing, and atomic rollback.
-3. Strict Monotonic Fitness Gate (IMPROVED vs REGRESSION vs PASSED).
-4. AutoHealPipeline clean build execution (cycle 0 exit).
-5. AutoHealPipeline healing flow with repair callback and PATCH_NOTES.md emission.
-6. AutoHealPipeline regression rejection and circuit breaker rollback.
+Nexus Keystone v3.0.0-STE100-Unified
+Modulo: test_auto_heal_pipeline.py
+Suite di test unitari permanenti Zero-Mock per Auto-Heal Pipeline.
 """
 
 from __future__ import annotations
@@ -23,6 +15,8 @@ from pathlib import Path
 import pytest
 
 _workspace_root = Path(__file__).resolve().parent.parent
+if _workspace_root.name == ".staging":
+    _workspace_root = _workspace_root.parent
 if str(_workspace_root) not in sys.path:
     sys.path.insert(0, str(_workspace_root))
 
@@ -52,7 +46,7 @@ AutoHealSessionReport = auto_heal_pipeline.AutoHealSessionReport
 
 
 def test_sbfl_pytest_bridge_parsing_and_ochiai(tmp_path: Path):
-    """Verify Pytest parsing, Ochiai score calculation and <80 tok payload."""
+    """Verifica il parsing Pytest, il punteggio Ochiai e il payload sotto 80 token."""
     bridge = SBFLPytestBridge(cwd=tmp_path)
 
     sample_stdout = """
@@ -93,7 +87,7 @@ E   ZeroDivisionError: division by zero
 
 
 def test_healing_snapshot_and_rollback(tmp_path: Path):
-    """Verify snapshot creation, file modifications and atomic rollback."""
+    """Verifica creazione snapshot, modifica file e rollback atomico."""
     mgr = HealingSnapshotManager(base_temp_dir=tmp_path / "snapshots")
     target_file = tmp_path / "module.py"
     target_file.write_text("def run():\n    return 42\n", encoding="utf-8")
@@ -118,7 +112,7 @@ def test_healing_snapshot_and_rollback(tmp_path: Path):
 
 
 def test_fitness_gate_monotonic_rules(tmp_path: Path):
-    """Verify Strict Monotonic Fitness Gate branches."""
+    """Verifica i rami decisionali dello Strict Monotonic Fitness Gate."""
     mgr = HealingSnapshotManager(base_temp_dir=tmp_path / "snapshots")
 
     # 1. All passed
@@ -139,7 +133,7 @@ def test_fitness_gate_monotonic_rules(tmp_path: Path):
 
 
 def test_auto_heal_pipeline_clean_flow(tmp_path: Path):
-    """Verify clean build exits immediately with cycle 0."""
+    """Verifica che una build pulita termini immediatamente al ciclo 0."""
     test_script = tmp_path / "test_ok.py"
     test_script.write_text("def test_always_pass():\n    assert True\n", encoding="utf-8")
 
@@ -158,7 +152,7 @@ def test_auto_heal_pipeline_clean_flow(tmp_path: Path):
 
 
 def test_auto_heal_pipeline_repair_and_patch_note(tmp_path: Path):
-    """Verify healing flow: detects failure, applies repair callback, passes, emits patch note."""
+    """Verifica il flusso di riparazione con callback e nota di patch."""
     target_code = tmp_path / "calc.py"
     target_code.write_text("def calc_div(a, b):\n    return a / b\n", encoding="utf-8")
 
@@ -195,7 +189,7 @@ def test_auto_heal_pipeline_repair_and_patch_note(tmp_path: Path):
 
 
 def test_auto_heal_pipeline_regression_rollback(tmp_path: Path):
-    """Verify regression triggers rollback and circuit breaker exhausts cleanly."""
+    """Verifica che una regressione attivi il rollback allo stato valido."""
     target_code = tmp_path / "fragile.py"
     target_code.write_text("X = 1\n", encoding="utf-8")
 

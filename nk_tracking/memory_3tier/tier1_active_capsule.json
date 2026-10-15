@@ -1,0 +1,29 @@
+{
+  "schema_version": "3.1.0-Tensor-RSI",
+  "updated_at": 1792080186.0118244,
+  "profile": "standard",
+  "token_cap": 350,
+  "domains": {
+    "01_Bug_Diagnostics": {
+      "total_tokens": 0,
+      "context": "",
+      "items": []
+    },
+    "02_Development_Patterns": {
+      "total_tokens": 0,
+      "context": "",
+      "items": []
+    },
+    "03_Ideation_and_Decisions": {
+      "total_tokens": 0,
+      "context": "",
+      "items": []
+    },
+    "04_Governance_and_Rules": {
+      "total_tokens": 0,
+      "context": "",
+      "items": []
+    }
+  },
+  "lessons": []
+}

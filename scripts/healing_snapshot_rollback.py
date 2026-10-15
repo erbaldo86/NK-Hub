@@ -1,23 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Nexus Keystone v2.1.0-FastHealing - Staging Snapshot & Transactional Rollback Engine
-Module: healing_snapshot_rollback.py
-Author: NK-State-Router & NK-Environment-Architect
-Implements: Atomic snapshotting & Strict Monotonic Fitness Gate rollback
+Gestore snapshot di staging e rollback transazionale per Nexus Keystone v3.0.0.
+Modulo: healing_snapshot_rollback.py.
+Implementa la correzione U-23 (persistenza di snapshot_manifest.json tra processi CLI).
 
-Features:
-- Ephemeral in-memory & %TEMP% snapshotting before healing patch execution.
-- SHA-256 integrity hashing of all tracked staged files.
-- Strict Monotonic Fitness Gate: detects regressions (failed_count increases or passed_count decreases).
-- Deterministic atomic rollback protecting working directory from broken patch attempts.
-- Teardown & resource cleanup upon session completion.
+Funzionalita principali:
+1. Crea snapshot SHA-256 in memoria e in %TEMP%/nk_heal_snapshots/.
+2. Salva snapshot_manifest.json su disco per supportare --rollback tra processi separati (U-23).
+3. Applica lo Strict Monotonic Fitness Gate per rilevare regressioni sui test.
+4. Esegue il rollback atomico e la pulizia delle risorse temporanee.
 """
 
 from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import shutil
 import sys
 import tempfile
@@ -26,13 +25,23 @@ import uuid
 from enum import Enum
 from pathlib import Path
 from typing import Dict, Optional, Sequence
+
 from pydantic import BaseModel, ConfigDict, Field
 
 _scripts_dir = Path(__file__).resolve().parent
-_root_dir = _scripts_dir.parent.parent if _scripts_dir.parent.name == ".staging" else _scripts_dir.parent
+_root_dir = (
+    _scripts_dir.parent.parent
+    if _scripts_dir.parent.name == ".staging"
+    else _scripts_dir.parent
+)
 if _scripts_dir.name == ".staging":
     _root_dir = _scripts_dir.parent
-for _d in (_scripts_dir, _root_dir / "scripts", _root_dir / ".staging" / "scripts", _root_dir):
+for _d in (
+    _scripts_dir,
+    _root_dir / "scripts",
+    _root_dir / ".staging" / "scripts",
+    _root_dir,
+):
     if _d.exists() and str(_d) not in sys.path:
         sys.path.insert(0, str(_d))
 
@@ -50,7 +59,8 @@ class FitnessVerdict(str, Enum):
 
 
 class FitnessReport(BaseModel):
-    """Evaluation of test outcome compared to previous baseline."""
+    """Valutazione dell'esito dei test rispetto al baseline precedente."""
+
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
     verdict: FitnessVerdict
@@ -63,7 +73,8 @@ class FitnessReport(BaseModel):
 
 
 class FileSnapshot(BaseModel):
-    """File content and integrity state."""
+    """Contenuto e stato di integrita SHA-256 di un singolo file tracciato."""
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     relative_path: str
@@ -74,7 +85,8 @@ class FileSnapshot(BaseModel):
 
 
 class SnapshotBundle(BaseModel):
-    """Bundle containing snapshots for all tracked target files."""
+    """Pacchetto contenente gli snapshot di tutti i file target tracciati."""
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     snapshot_id: str
@@ -84,16 +96,52 @@ class SnapshotBundle(BaseModel):
 
 
 class HealingSnapshotManager:
-    """Manages transactional snapshots and rollback for healing cycles."""
+    """Gestisce gli snapshot transazionali e il rollback con persistenza su disco (U-23)."""
 
     def __init__(self, base_temp_dir: Optional[Path] = None):
         reconfigure_streams()
-        self.base_temp_dir = Path(base_temp_dir) if base_temp_dir else Path(tempfile.gettempdir()) / "nk_heal_snapshots"
+        self.base_temp_dir = (
+            Path(base_temp_dir)
+            if base_temp_dir
+            else Path(tempfile.gettempdir()) / "nk_heal_snapshots"
+        )
         self.base_temp_dir.mkdir(parents=True, exist_ok=True)
+        self.manifest_path = self.base_temp_dir / "snapshot_manifest.json"
         self.active_snapshots: Dict[str, SnapshotBundle] = {}
+        self._load_manifest()
+
+    def _load_manifest(self) -> None:
+        """Carica gli snapshot attivi da snapshot_manifest.json su disco (U-23)."""
+        if not self.manifest_path.exists():
+            return
+        try:
+            raw = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+            if isinstance(raw, dict):
+                for sid, b_data in raw.items():
+                    try:
+                        bundle = SnapshotBundle.model_validate(b_data)
+                        self.active_snapshots[sid] = bundle
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
+    def _save_manifest(self) -> None:
+        """Persiste il dizionario degli snapshot attivi in snapshot_manifest.json (U-23)."""
+        try:
+            self.base_temp_dir.mkdir(parents=True, exist_ok=True)
+            serialized = {
+                sid: bundle.model_dump()
+                for sid, bundle in self.active_snapshots.items()
+            }
+            self.manifest_path.write_text(
+                json.dumps(serialized, indent=2), encoding="utf-8"
+            )
+        except Exception:
+            pass
 
     def create_snapshot(self, target_files: Sequence[Path | str]) -> str:
-        """Captures SHA-256 and content of target files into memory and %TEMP%."""
+        """Cattura SHA-256 e contenuto dei file target in memoria e in %TEMP%."""
         snapshot_id = f"snap_{int(time.time()*1000)}_{uuid.uuid4().hex[:6]}"
         snap_temp_dir = self.base_temp_dir / snapshot_id
         snap_temp_dir.mkdir(parents=True, exist_ok=True)
@@ -106,7 +154,6 @@ class HealingSnapshotManager:
 
         for item in target_files:
             p = Path(item).resolve()
-            rel_name = str(p)
             if p.exists() and p.is_file():
                 content = p.read_text(encoding="utf-8", errors="replace")
                 sha256 = hashlib.sha256(content.encode("utf-8")).hexdigest()
@@ -117,7 +164,6 @@ class HealingSnapshotManager:
                     content=content,
                     exists_before=True,
                 )
-                # Backup copy with unique hash prefix to prevent collision across same-named files
                 prefix = hashlib.sha256(str(p).encode("utf-8")).hexdigest()[:8]
                 backup_dest = snap_temp_dir / f"{prefix}_{p.name}"
                 backup_dest.write_text(content, encoding="utf-8")
@@ -131,7 +177,16 @@ class HealingSnapshotManager:
                 )
             bundle.files[str(p)] = file_snap
 
+        # Salva anche una copia locale del manifesto nella cartella dello snapshot
+        try:
+            (snap_temp_dir / "snapshot_manifest.json").write_text(
+                bundle.model_dump_json(indent=2), encoding="utf-8"
+            )
+        except Exception:
+            pass
+
         self.active_snapshots[snapshot_id] = bundle
+        self._save_manifest()
         return snapshot_id
 
     def evaluate_fitness(
@@ -142,13 +197,7 @@ class HealingSnapshotManager:
         prev_failed: int,
         exit_code: int,
     ) -> FitnessReport:
-        """
-        Applies the Strict Monotonic Fitness Gate:
-        - If exit_code == 0: PASSED.
-        - If failed < prev_failed and passed >= prev_passed: IMPROVED.
-        - If failed > prev_failed or passed < prev_passed: REGRESSION.
-        - Otherwise: NEUTRAL.
-        """
+        """Applica lo Strict Monotonic Fitness Gate confrontando gli esiti dei test."""
         if exit_code == 0 and current_failed == 0:
             return FitnessReport(
                 verdict=FitnessVerdict.PASSED,
@@ -160,7 +209,6 @@ class HealingSnapshotManager:
                 reason="All tests passed successfully (0 failures).",
             )
 
-        # Regression detection
         if current_passed < prev_passed:
             return FitnessReport(
                 verdict=FitnessVerdict.REGRESSION,
@@ -205,9 +253,18 @@ class HealingSnapshotManager:
         )
 
     def rollback(self, snapshot_id: str) -> Dict[str, bool]:
-        """Restores tracked files to their original snapshot state atomically."""
+        """Ripristina i file tracciati allo stato originale dello snapshot."""
         if snapshot_id not in self.active_snapshots:
-            raise KeyError(f"Unknown snapshot ID: {snapshot_id}")
+            self._load_manifest()
+        if snapshot_id not in self.active_snapshots:
+            local_manifest = self.base_temp_dir / snapshot_id / "snapshot_manifest.json"
+            if local_manifest.exists():
+                bundle = SnapshotBundle.model_validate_json(
+                    local_manifest.read_text(encoding="utf-8")
+                )
+                self.active_snapshots[snapshot_id] = bundle
+            else:
+                raise KeyError(f"Unknown snapshot ID: {snapshot_id}")
 
         bundle = self.active_snapshots[snapshot_id]
         restoration_status: Dict[str, bool] = {}
@@ -220,7 +277,6 @@ class HealingSnapshotManager:
                     target_path.write_text(file_snap.content, encoding="utf-8")
                     restoration_status[file_path_str] = True
                 else:
-                    # If it was created during healing and did not exist before, remove it
                     if target_path.exists():
                         target_path.unlink(missing_ok=True)
                     restoration_status[file_path_str] = True
@@ -230,24 +286,38 @@ class HealingSnapshotManager:
         return restoration_status
 
     def cleanup(self, snapshot_id: Optional[str] = None) -> None:
-        """Removes temporary snapshot directories."""
+        """Rimuove le directory temporanee degli snapshot e aggiorna il manifesto."""
         if snapshot_id:
             bundle = self.active_snapshots.pop(snapshot_id, None)
             if bundle and Path(bundle.temp_backup_dir).exists():
                 shutil.rmtree(bundle.temp_backup_dir, ignore_errors=True)
+            self._save_manifest()
         else:
-            for snap_id, bundle in list(self.active_snapshots.items()):
+            for _, bundle in list(self.active_snapshots.items()):
                 if Path(bundle.temp_backup_dir).exists():
                     shutil.rmtree(bundle.temp_backup_dir, ignore_errors=True)
             self.active_snapshots.clear()
+            if self.manifest_path.exists():
+                try:
+                    self.manifest_path.unlink()
+                except Exception:
+                    pass
 
 
 def main() -> int:
     reconfigure_streams()
-    parser = argparse.ArgumentParser(description="Nexus Keystone Staging Snapshot & Rollback Engine")
-    parser.add_argument("--create", nargs="+", help="Create snapshot of specified file(s)")
-    parser.add_argument("--rollback", type=str, help="Rollback specified snapshot ID")
-    parser.add_argument("--cleanup", action="store_true", help="Cleanup all temporary snapshots")
+    parser = argparse.ArgumentParser(
+        description="Nexus Keystone Staging Snapshot & Rollback Engine"
+    )
+    parser.add_argument(
+        "--create", nargs="+", help="Crea lo snapshot dei file specificati"
+    )
+    parser.add_argument(
+        "--rollback", type=str, help="Ripristina lo snapshot con l'ID specificato"
+    )
+    parser.add_argument(
+        "--cleanup", action="store_true", help="Rimuove tutti gli snapshot temporanei"
+    )
 
     args = parser.parse_args()
     mgr = HealingSnapshotManager()

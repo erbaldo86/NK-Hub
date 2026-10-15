@@ -1,15 +1,6 @@
 """
-Nexus Keystone v2.6.0-DualEngine-Symbiosis - Unit Test Suite for Super Brief Upgrades
-Module: test_super_brief_upgrades.py
-Author: NK-QA-Engineer & NK-Oracle-Evaluator
-
-Zero-Mock permanent test suite covering:
-1. Universal Safe Subprocess Runner v2 (unbuffered & UTF-8 mode).
-2. Fast-Stat Session Bootstrap Gate.
-3. External Project Scaffolder DDD generation.
-4. Tier-0 Deterministic Local API Cache (WAL mode, hash keys, refresh).
-5. Hard Compliance Checker & Dual-Scorecard scoring logic.
-6. GoalExecutionFailureManifest & IPC Contracts (C3 Unattended Protocol).
+Nexus Keystone v3.0.0-STE100-Unified - Suite di test per Super Brief Upgrades.
+Modulo: test_super_brief_upgrades.py
 """
 
 from __future__ import annotations
@@ -64,7 +55,7 @@ NKComplianceChecker = nk_compliance_checker.NKComplianceChecker
 
 
 def test_platform_runner_v2_unbuffered_normalization():
-    """Verify that Python command sequences automatically receive the -u flag."""
+    """Verifica che i comandi Python ricevano automaticamente il flag -u."""
     cmd = [sys.executable, "-c", "print(1)"]
     normalized = _normalize_python_command(cmd)
     assert "-u" in normalized, f"Expected -u in normalized command, got: {normalized}"
@@ -72,7 +63,7 @@ def test_platform_runner_v2_unbuffered_normalization():
 
 
 def test_session_bootstrap_fast_stat():
-    """Verify that NKSessionBootstrap runs cleanly and produces a PASS report."""
+    """Verifica che NKSessionBootstrap venga eseguito con esito PASS."""
     bootstrap = NKSessionBootstrap()
     report = bootstrap.run_bootstrap(fast_stat=False)
     assert report["status"] == "PASS"
@@ -83,7 +74,7 @@ def test_session_bootstrap_fast_stat():
 
 
 def test_external_project_scaffolder(tmp_path: Path):
-    """Verify that ExternalProjectScaffolder creates full DDD tree and passes built-in AST test."""
+    """Verifica che ExternalProjectScaffolder crei l'albero DDD e superi il test AST."""
     target_dir = tmp_path / "ScaffoldedApp"
     scaffolder = ExternalProjectScaffolder(project_name="ScaffoldedApp", target_dir=target_dir)
     res = scaffolder.scaffold()
@@ -100,7 +91,7 @@ def test_external_project_scaffolder(tmp_path: Path):
 
 
 def test_deterministic_api_cache(tmp_path: Path):
-    """Verify DeterministicApiCache WAL mode, get/set operations and bypass flag."""
+    """Verifica modalita' WAL, get/set e bypass di DeterministicApiCache."""
     db_file = tmp_path / "test_cache.db"
     cache = DeterministicApiCache(db_path=db_file, ttl_seconds=3600.0)
     assert cache.health_check() is True
@@ -127,10 +118,11 @@ def test_deterministic_api_cache(tmp_path: Path):
     # Cache bypass via force_refresh
     bypass = cache.get(endpoint, method="POST", params=params, body=body_data, force_refresh=True)
     assert bypass is None
+    cache.close()
 
 
 def test_nk_compliance_checker(tmp_path: Path):
-    """Verify NKComplianceChecker audits transcript records and computes scores accurately."""
+    """Verifica che NKComplianceChecker analizzi i record e calcoli i punteggi."""
     checker = NKComplianceChecker()
     fake_transcript = tmp_path / "transcript.jsonl"
 
@@ -157,11 +149,9 @@ def test_nk_compliance_checker(tmp_path: Path):
 
 
 def test_goal_failure_manifest_and_ipc_contracts():
-    """Verify GoalFailureManifest strict schema compliance under C3 Unattended Failure Protocol."""
+    """Verifica la conformita' dello schema GoalFailureManifest sotto protocollo C3."""
     ipc_mod = _import_ipc_contracts()
     GoalFailureManifest = ipc_mod.GoalFailureManifest
-    RootCauseAnalysis = ipc_mod.RootCauseAnalysis
-    StagingSnapshot = ipc_mod.StagingSnapshot
 
     valid_payload = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
