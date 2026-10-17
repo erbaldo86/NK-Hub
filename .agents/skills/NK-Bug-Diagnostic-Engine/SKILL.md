@@ -6,6 +6,8 @@ thinking_level: "HIGH"
 nk_tas_audit: "CRV-4.0-Universal"
 patch_version: 4
 nk_tas_date: "2026-10-14"
+domain_id: "DOM-04"
+sector: "AUDIT_DAST_AND_RCA"
 ---
 
 <strict_boundaries>

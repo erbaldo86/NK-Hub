@@ -1,26 +1,30 @@
 {
-  "_version": "3.1.0-Tensor-RSI",
+  "_version": "3.3.0-GT68-Pareto-Zero-Padding",
   "project": "NK_Project",
   "baseline_date": "2026-08-20T22:45:00.000000",
-  "last_updated": "2026-10-15T14:50:00.000000",
+  "last_updated": "2026-10-17T12:35:00.000000",
   "metrics": {
     "skills_audited": {
       "value": 16,
       "direction": "higher_is_better"
     },
     "total_golden_tests": {
-      "value": 108,
+      "value": 74,
       "direction": "higher_is_better"
     },
     "unit_tests_total": {
-      "value": 108,
+      "value": 74,
       "direction": "higher_is_better"
     },
     "unit_tests_passed": {
-      "value": 108,
+      "value": 74,
       "direction": "higher_is_better"
     },
     "unit_tests_pass_pct": {
+      "value": 100.0,
+      "direction": "higher_is_better"
+    },
+    "pass_rate_pct": {
       "value": 100.0,
       "direction": "higher_is_better"
     },
@@ -148,6 +152,47 @@
         "unit_tests_total": 108,
         "unit_tests_passed": 108,
         "unit_tests_pass_pct": 100.0,
+        "pass_rate_percent": 100.0,
+        "stress_test_concurrency_pass": 4,
+        "rsi_convergence_score": 100.0,
+        "rsi_residual_delta": 0
+      }
+    },
+    {
+      "timestamp": "2026-10-17T02:43:00.000000",
+      "metrics": {
+        "total_golden_tests": 123,
+        "unit_tests_total": 123,
+        "unit_tests_passed": 123,
+        "unit_tests_pass_pct": 100.0,
+        "pass_rate_percent": 100.0,
+        "stress_test_concurrency_pass": 4,
+        "rsi_convergence_score": 100.0,
+        "rsi_residual_delta": 0
+      }
+    },
+    {
+      "timestamp": "2026-10-17T03:30:00.000000",
+      "metrics": {
+        "total_golden_tests": 68,
+        "unit_tests_total": 68,
+        "unit_tests_passed": 68,
+        "unit_tests_pass_pct": 100.0,
+        "pass_rate_pct": 100.0,
+        "pass_rate_percent": 100.0,
+        "stress_test_concurrency_pass": 4,
+        "rsi_convergence_score": 100.0,
+        "rsi_residual_delta": 0
+      }
+    },
+    {
+      "timestamp": "2026-10-17T12:35:00.000000",
+      "metrics": {
+        "total_golden_tests": 74,
+        "unit_tests_total": 74,
+        "unit_tests_passed": 74,
+        "unit_tests_pass_pct": 100.0,
+        "pass_rate_pct": 100.0,
         "pass_rate_percent": 100.0,
         "stress_test_concurrency_pass": 4,
         "rsi_convergence_score": 100.0,

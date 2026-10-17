@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Nexus Keystone v3.0.0-STE100-Unified - Suite di test per Unified Onboarding Mandate.
-Modulo: test_unified_onboarding_mandate.py
+Suite di test Zero-Mock per Unified Onboarding Mandate di Nexus Keystone v3.3.0.
+Modulo: tests/test_unified_onboarding_mandate.py.
+Valida la guardia GT-08 su AGENTS.md, NK-Master-Hub, NK-Session-Controller e il bootstrap.
 """
 
 from __future__ import annotations
@@ -10,7 +11,6 @@ import importlib.util
 import sys
 from pathlib import Path
 
-# Determine repository root reliably whether executed from .staging/tests or tests
 _test_file = Path(__file__).resolve()
 if _test_file.parent.name == "tests" and _test_file.parent.parent.name == ".staging":
     _repo_root = _test_file.parent.parent.parent
@@ -21,17 +21,23 @@ if str(_repo_root) not in sys.path:
     sys.path.insert(0, str(_repo_root))
 
 
+def _resolve_doc(rel_path: str) -> Path:
+    """Risolve un file di documentazione dando priorita a .staging/."""
+    stg = _repo_root / ".staging" / rel_path
+    if stg.exists():
+        return stg
+    return _repo_root / rel_path
+
+
 def test_agents_md_rule_00_5_definition() -> None:
-    """Verifica la corretta codifica di [RULE-00.5] in .agents/AGENTS.md."""
-    agents_file = _repo_root / ".agents" / "AGENTS.md"
-    assert agents_file.exists(), f"AGENTS.md not found at {agents_file}"
+    """1. Verifica la codifica GT-08 in AGENTS.md, NK-Master-Hub e NK-Session-Controller."""
+    agents_file = _resolve_doc(".agents/AGENTS.md")
+    assert agents_file.exists()
     content = agents_file.read_text(encoding="utf-8")
 
-    # 1. Regola presente
-    assert "[RULE-00.5]" in content, "[RULE-00.5] missing from AGENTS.md"
-    assert "UNIFIED_ONBOARDING_DASHBOARD_MANDATE" in content, "Rule name missing"
+    assert "[RULE-00.5]" in content
+    assert "UNIFIED_ONBOARDING_DASHBOARD_MANDATE" in content
 
-    # 2. Trigger verbali obbligatori
     required_triggers = [
         "avvia ambiente nk",
         "avvia nk hub",
@@ -44,64 +50,48 @@ def test_agents_md_rule_00_5_definition() -> None:
     ]
     content_lower = content.lower()
     for trigger in required_triggers:
-        assert trigger in content_lower, f"Mandatory verbal trigger '{trigger}' not found in [RULE-00.5]"
+        assert trigger in content_lower
 
-    # 3. Vincolo Fast-Stat (<120 ms)
-    assert "fast-stat" in content_lower, "Fast-Stat requirement missing from [RULE-00.5]"
-    assert "120" in content, "120 ms constraint missing from [RULE-00.5]"
+    assert "fast-stat" in content_lower
+    assert "120" in content
+    assert "[0]" in content and "[14]" in content
 
-    # 4. Range nodi [0] - [14]
-    assert "[0]" in content and "[14]" in content, "15 nodes range [0]-[14] missing in [RULE-00.5]"
-
-
-def test_master_hub_15_nodes_and_guidance() -> None:
-    """Verifica che NK-Master-Hub contenga i 15 nodi e la guida d'uso a due vie."""
-    skill_file = _repo_root / ".agents" / "skills" / "NK-Master-Hub" / "SKILL.md"
-    assert skill_file.exists(), f"NK-Master-Hub/SKILL.md not found at {skill_file}"
-    content = skill_file.read_text(encoding="utf-8")
-
-    # 1. Tutti i 15 nodi canonici [0] a [14]
+    hub_file = _resolve_doc(".agents/skills/NK-Master-Hub/SKILL.md")
+    hub_content = hub_file.read_text(encoding="utf-8")
     for i in range(15):
-        assert f"[{i}]" in content, f"Vocational node [{i}] missing in NK-Master-Hub dashboard"
-
-    # 2. Guida all'uso a due vie nel footer
-    content_lower = content.lower()
-    has_direct_selection = "selezione rapida" in content_lower or "modalità diretta" in content_lower or "modalita' diretta" in content_lower
-    has_goal_driven = "goal-driven" in content_lower or "linguaggio naturale" in content_lower
-
-    assert has_direct_selection, "Direct selection guidance missing from NK-Master-Hub footer"
-    assert has_goal_driven, "Goal-driven / natural language guidance missing from NK-Master-Hub footer"
-
-
-def test_session_controller_boundary_10() -> None:
-    """Verifica che NK-Session-Controller contenga il vincolo 10 UNIFIED_ONBOARDING_COMPLIANCE."""
-    skill_file = _repo_root / ".agents" / "skills" / "NK-Session-Controller" / "SKILL.md"
-    assert skill_file.exists(), f"NK-Session-Controller/SKILL.md not found at {skill_file}"
-    content = skill_file.read_text(encoding="utf-8")
-
-    assert "10. UNIFIED_ONBOARDING_COMPLIANCE" in content, (
-        "Boundary 10 UNIFIED_ONBOARDING_COMPLIANCE missing in NK-Session-Controller/SKILL.md"
+        assert f"[{i}]" in hub_content
+    hub_lower = hub_content.lower()
+    assert (
+        "selezione rapida" in hub_lower
+        or "modalità diretta" in hub_lower
+        or "modalita' diretta" in hub_lower
     )
-    assert "[RULE-00.5]" in content or "fast-stat" in content.lower(), (
-        "Reference to [RULE-00.5] or Fast-Stat missing in Boundary 10"
-    )
+    assert "goal-driven" in hub_lower or "linguaggio naturale" in hub_lower
+
+    ctrl_file = _resolve_doc(".agents/skills/NK-Session-Controller/SKILL.md")
+    ctrl_content = ctrl_file.read_text(encoding="utf-8")
+    assert "10. UNIFIED_ONBOARDING_COMPLIANCE" in ctrl_content
+    assert "[RULE-00.5]" in ctrl_content or "fast-stat" in ctrl_content.lower()
 
 
 def test_session_bootstrap_fast_stat_execution() -> None:
-    """Esegue programmaticamente scripts/nk_session_bootstrap.py e verifica esito PASS."""
+    """2. Esegue programmaticamente scripts/nk_session_bootstrap.py e verifica esito PASS."""
     staging_bootstrap = _repo_root / ".staging" / "scripts" / "nk_session_bootstrap.py"
     prod_bootstrap = _repo_root / "scripts" / "nk_session_bootstrap.py"
-    bootstrap_target = staging_bootstrap if staging_bootstrap.exists() else prod_bootstrap
-    assert bootstrap_target.exists(), f"Bootstrap script not found at {bootstrap_target}"
+    bootstrap_target = (
+        staging_bootstrap if staging_bootstrap.exists() else prod_bootstrap
+    )
+    assert bootstrap_target.exists()
 
-    spec = importlib.util.spec_from_file_location("nk_session_bootstrap", str(bootstrap_target))
+    spec = importlib.util.spec_from_file_location(
+        "nk_session_bootstrap", str(bootstrap_target)
+    )
     assert spec is not None and spec.loader is not None
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
 
     bootstrap_inst = mod.NKSessionBootstrap(workspace_root=_repo_root)
     result = bootstrap_inst.run_bootstrap(fast_stat=True)
-
-    assert isinstance(result, dict), "Bootstrap result must be a dict"
-    assert result.get("status") == "PASS", f"Bootstrap failed with status {result.get('status')}: {result.get('issues')}"
-    assert "checks" in result, "Bootstrap report must contain 'checks' key"
+    assert isinstance(result, dict)
+    assert result.get("status") == "PASS"
+    assert "checks" in result

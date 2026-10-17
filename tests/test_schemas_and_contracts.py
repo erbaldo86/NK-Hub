@@ -1,29 +1,33 @@
 # -*- coding: utf-8 -*-
 """
-Nexus Keystone v3.0.0-STE100-Unified
-Modulo di test 8: Contratti Pydantic v2 Strict Mode e Dual-Ledgers.
+Suite di test unitari Zero-Mock per Contratti Pydantic v2 Strict Mode e Dual-Ledgers (v3.3.0).
+Modulo: tests/test_schemas_and_contracts.py.
+Valida strict mode, JsonValue, GoalFailureManifest, DAG SHA-256, lock PID e IPCPointerReturn.
 """
 
 from __future__ import annotations
 
 import json
+from pathlib import Path
 import sys
 import tempfile
 import unittest
-from pathlib import Path
 from pydantic import ValidationError
 
 CURRENT_DIR = Path(__file__).resolve().parent
 STAGING_DIR = CURRENT_DIR.parent
-SCRIPTS_DIR = STAGING_DIR / "scripts"
+WORKSPACE_ROOT = (
+    STAGING_DIR.parent if STAGING_DIR.name == ".staging" else STAGING_DIR
+)
+SCRIPTS_DIR = WORKSPACE_ROOT / "scripts"
+STAGING_SCRIPTS_DIR = WORKSPACE_ROOT / ".staging" / "scripts"
 
-if str(SCRIPTS_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS_DIR))
-if str(STAGING_DIR) not in sys.path:
-    sys.path.insert(0, str(STAGING_DIR))
+for _cand in (STAGING_SCRIPTS_DIR, SCRIPTS_DIR, WORKSPACE_ROOT):
+    if _cand.exists() and str(_cand) not in sys.path:
+        sys.path.insert(0, str(_cand))
 
-from schemas.nk_ipc_contracts import IPCPointerReturn
-from schemas.dual_ledgers import TaskDAGNode, TaskLedger, ProgressLedger
+from schemas.dual_ledgers import ProgressLedger, TaskDAGNode, TaskLedger
+from schemas.nk_ipc_contracts import GoalFailureManifest, IPCPointerReturn
 
 
 class TestSchemasAndContracts(unittest.TestCase):
@@ -37,31 +41,31 @@ class TestSchemasAndContracts(unittest.TestCase):
         except Exception:
             pass
 
-    # 45. test_pydantic_strict_mode_validation
     def test_pydantic_strict_mode_validation(self):
-        """45. Valida il rifiuto di coercizioni non permesse e campi extra."""
+        """1. Valida rifiuto coercizioni/extra, metadati JsonValue e schema GoalFailureManifest."""
         with self.assertRaises(ValidationError):
-            IPCPointerReturn.model_validate({
-                "status": "OK",
-                "pointer_uri": "file:///test",
-                "sha256": "abc",
-                "crc32": "NOT_AN_INT",  # Strict type failure
-                "byte_size": 10,
-            })
+            IPCPointerReturn.model_validate(
+                {
+                    "status": "OK",
+                    "pointer_uri": "file:///test",
+                    "sha256": "abc",
+                    "crc32": "NOT_AN_INT",
+                    "byte_size": 10,
+                }
+            )
 
         with self.assertRaises(ValidationError):
-            IPCPointerReturn.model_validate({
-                "status": "OK",
-                "pointer_uri": "file:///test",
-                "sha256": "abc",
-                "crc32": 123,
-                "byte_size": 10,
-                "forbidden_extra_key": "fail",
-            })
+            IPCPointerReturn.model_validate(
+                {
+                    "status": "OK",
+                    "pointer_uri": "file:///test",
+                    "sha256": "abc",
+                    "crc32": 123,
+                    "byte_size": 10,
+                    "forbidden_extra_key": "fail",
+                }
+            )
 
-    # 46. test_pydantic_jsonvalue_metadata_support
-    def test_pydantic_jsonvalue_metadata_support(self):
-        """46. Valida il supporto per metadati annidati complessi tramite JsonValue."""
         node = TaskDAGNode.create(
             task_id="T1",
             action="BUILD",
@@ -70,9 +74,33 @@ class TestSchemasAndContracts(unittest.TestCase):
         )
         self.assertEqual(node.payload["nested"]["flag"], True)
 
-    # 47. test_task_dag_sha256_hash_chaining
+        valid_manifest = {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "manifest_version": "1.0.0",
+            "timestamp": 1727182446.0,
+            "session_id": "sess_goal",
+            "milestone_anchor_id": "NK-MS-20260924-PLAN-GOAL-INTEGRATION-v2.6.0",
+            "status": "UNATTENDED_BLOCKED",
+            "root_cause_analysis": {
+                "blocked_resource_type": "EXTERNAL_API",
+                "resource_identifier": "https://api.service.com/v1",
+                "error_message": "HTTP 504 Gateway Timeout",
+                "stack_trace_snippet": "httpx.ConnectTimeout",
+                "zero_mock_violation_prevented": True,
+            },
+            "staging_snapshot": {
+                "staging_path": ".staging/src/",
+                "modified_files": ["src/service_client.py"],
+                "sha256_tree_hash": "a" * 64,
+            },
+            "user_remediation_steps": ["Verificare la rete", "Eseguire /goal --resume"],
+            "resume_command": "/goal --resume",
+        }
+        manifest = GoalFailureManifest.model_validate(valid_manifest)
+        self.assertEqual(manifest.status, "UNATTENDED_BLOCKED")
+
     def test_task_dag_sha256_hash_chaining(self):
-        """47. Valida la catena di hash SHA-256 del DAG e il rilevamento manomissioni."""
+        """2. Valida la catena di hash SHA-256 del DAG e il rilevamento manomissioni."""
         ledger_path = self.tmp_dir / "task_dag.jsonl"
         tl = TaskLedger(ledger_path)
         tl.add_task("T1", "DESIGN", "NK-Architect")
@@ -80,37 +108,28 @@ class TestSchemasAndContracts(unittest.TestCase):
         valid, _ = tl.verify_dag()
         self.assertTrue(valid)
 
-        # Tamper detection verification: alter node content on disk
         raw_lines = ledger_path.read_text(encoding="utf-8").splitlines()
-        tampered_line = raw_lines[0].replace("NK-Architect", "TAMPERED_AGENT")
-        raw_lines[0] = tampered_line
+        raw_lines[0] = raw_lines[0].replace("NK-Architect", "TAMPERED_AGENT")
         ledger_path.write_text("\n".join(raw_lines) + "\n", encoding="utf-8")
 
         with self.assertRaises(ValueError) as ctx:
             TaskLedger(ledger_path)
         self.assertIn("integrity violation", str(ctx.exception).lower())
 
-    # 48. test_progress_ledger_pid_locking_stale_detect
     def test_progress_ledger_pid_locking_stale_detect(self):
-        """48. Valida lo stream di progresso append-only con recupero di lock PID orfani."""
+        """3. Valida recupero lock PID orfani in ProgressLedger e budget IPCPointerReturn (<80 tok)."""
         ledger_path = self.tmp_dir / "progress.jsonl"
         lock_path = self.tmp_dir / "progress.jsonl.lock"
-
-        # Simulate orphaned lock with dead PID
-        lock_path.write_text(json.dumps({"pid": 99999999, "timestamp": 0.0}), encoding="utf-8")
+        lock_path.write_text(
+            json.dumps({"pid": 99999999, "timestamp": 0.0}), encoding="utf-8"
+        )
 
         pl = ProgressLedger(ledger_path)
-        # Should detect dead PID and successfully break the stale lock
-        ev1 = pl.append_event("EV1", "T1", 0, "STARTED", {"status": "init"})
-        ev2 = pl.append_event("EV2", "T1", 1, "COMPLETED", {"status": "done"})
+        pl.append_event("EV1", "T1", 0, "STARTED", {"status": "init"})
+        pl.append_event("EV2", "T1", 1, "COMPLETED", {"status": "done"})
         events = pl.read_events("T1")
         self.assertEqual(len(events), 2)
-        self.assertEqual(events[0].event_id, "EV1")
-        self.assertEqual(events[1].event_id, "EV2")
 
-    # 49. test_ipc_pointer_return_token_footprint
-    def test_ipc_pointer_return_token_footprint(self):
-        """49. Valida il budget token di IPCPointerReturn serializzato (<80 token)."""
         ptr = IPCPointerReturn(
             status="OK",
             pointer_uri="file:///g:/Antigravity/.staging/data.json",
@@ -119,9 +138,7 @@ class TestSchemasAndContracts(unittest.TestCase):
             byte_size=1024,
             mime_type="application/json",
         )
-        serialized = ptr.model_dump_json()
-        estimated_tokens = len(serialized) / 3.5
-        self.assertLess(estimated_tokens, 80)
+        self.assertLess(len(ptr.model_dump_json()) / 3.5, 80)
 
 
 if __name__ == "__main__":

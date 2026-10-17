@@ -1,0 +1,2579 @@
+{
+  "version": "3.5.1-MODULAR-INDEX-RSI2",
+  "milestone_anchor_id": "NK-MS-20261017-MODULAR-INDEX-v3.5.1-RSI2",
+  "generated_at": "2026-10-17T12:33:09Z",
+  "summary": {
+    "total_domains": 5,
+    "total_skills": 16,
+    "total_scripts": 32,
+    "crv_macro_phases": 4
+  },
+  "domains": {
+    "DOM-01": {
+      "domain_id": "DOM-01",
+      "name": "GOV_AND_ROUTING",
+      "title": "Governance, Routing & Transactional Commit",
+      "description": "Governa il bootstrap, il routing Mode A/B/C/D, il commit atomico 2PC e i contratti IPC.",
+      "primary_skill": "NK-Master-Hub",
+      "skills": [
+        "NK-Master-Hub",
+        "NK-Session-Controller",
+        "NK-State-Router",
+        "NK-Plan-Aligner"
+      ],
+      "scripts": [
+        "nk_session_bootstrap.py",
+        "vibe_sprint_router.py",
+        "win32_2pc_engine.py",
+        "nk_session_handoff.py",
+        "nk_swarm_messenger.py",
+        "nk_registry_indexer.py",
+        "schemas/dual_ledgers.py",
+        "schemas/nk_ipc_contracts.py"
+      ],
+      "keywords": [
+        "governance",
+        "routing",
+        "router",
+        "bootstrap",
+        "2pc",
+        "commit",
+        "handoff",
+        "session",
+        "swarm",
+        "plan",
+        "aligner",
+        "dag",
+        "kahn",
+        "index",
+        "registry",
+        "manifest",
+        "orchestra",
+        "schemas",
+        "ledgers"
+      ]
+    },
+    "DOM-02": {
+      "domain_id": "DOM-02",
+      "name": "IDEATION_AND_ARCH",
+      "title": "Ideation, Discovery & System Architecture",
+      "description": "Gestisce discovery analitica Mode D, ideazione L0, architettura UI/UX, backend e skill.",
+      "primary_skill": "NK-Ideator",
+      "skills": [
+        "NK-Ideator",
+        "NK-App-UX-Architect",
+        "NK-Backend-Architect",
+        "NK-Agent-Instruction-Forge"
+      ],
+      "scripts": [
+        "ast_repo_mapper.py",
+        "external_project_scaffolder.py",
+        "env_capability_probe.py"
+      ],
+      "keywords": [
+        "discovery",
+        "benchmark",
+        "ricerca",
+        "esplora",
+        "censimento",
+        "mappatura",
+        "ideazione",
+        "scamper",
+        "ux",
+        "ui",
+        "design",
+        "frontend",
+        "backend",
+        "openapi",
+        "architettura",
+        "scaffold",
+        "repo_map",
+        "probe",
+        "forge"
+      ]
+    },
+    "DOM-03": {
+      "domain_id": "DOM-03",
+      "name": "BUILD_AND_HEAL",
+      "title": "Async Building, Surgical Refactor & Fast-Healing",
+      "description": "Costruisce codice Python asincrono in staging ed esegue il loop di auto-riparazione.",
+      "primary_skill": "NK-Python-Async-Builder",
+      "skills": [
+        "NK-Python-Async-Builder",
+        "NK-Delta-Architect"
+      ],
+      "scripts": [
+        "auto_heal_pipeline.py",
+        "healing_snapshot_rollback.py",
+        "invisible_healing_loop.py",
+        "platform_runner.py",
+        "deterministic_api_cache.py",
+        "safe_cleanup_dev_servers.py",
+        "async_heartbeat_signaler.py"
+      ],
+      "keywords": [
+        "build",
+        "builder",
+        "implementa",
+        "sviluppa",
+        "codice",
+        "async",
+        "pydantic",
+        "delta",
+        "refactor",
+        "modifica",
+        "heal",
+        "healing",
+        "rollback",
+        "snapshot",
+        "cache",
+        "sqlite",
+        "runner",
+        "cleanup",
+        "heartbeat"
+      ]
+    },
+    "DOM-04": {
+      "domain_id": "DOM-04",
+      "name": "AUDIT_DAST_AND_RCA",
+      "title": "Security Audit, DAST Sandbox, SBFL RCA & RSI Convergence",
+      "description": "Esegue audit SAST/DAST in sola lettura, diagnosi SBFL Ochiai e convergenza Tensor-RSI.",
+      "primary_skill": "NK-Security-Auditor",
+      "skills": [
+        "NK-Security-Auditor",
+        "NK-Oracle-Evaluator",
+        "NK-Dynamic-Sandbox-StressTester",
+        "NK-Bug-Diagnostic-Engine"
+      ],
+      "scripts": [
+        "ast_guard_validator.py",
+        "dast_sandbox_runner.py",
+        "oracle_evaluator_l3.py",
+        "sbfl_engine.py",
+        "sbfl_pytest_bridge.py",
+        "rsi_convergence_engine.py"
+      ],
+      "keywords": [
+        "audit",
+        "security",
+        "sicurezza",
+        "sast",
+        "dast",
+        "sandbox",
+        "stress",
+        "oracle",
+        "valuta",
+        "bug",
+        "diagnosi",
+        "rca",
+        "sbfl",
+        "ochiai",
+        "rsi",
+        "convergenza",
+        "ast_guard",
+        "exploit",
+        "vulnerabilita"
+      ]
+    },
+    "DOM-05": {
+      "domain_id": "DOM-05",
+      "name": "MEMORY_TELEMETRY_AND_DOCS",
+      "title": "3-Tier Memory, Runtime Telemetry, Hygiene & Documentation",
+      "description": "Gestisce memoria episodica 3-Tier, sentinelle di contesto, igiene preflight e documentazione SSOT.",
+      "primary_skill": "NK-Scribe",
+      "skills": [
+        "NK-Scribe",
+        "NK-Episodic-Memory-Engine"
+      ],
+      "scripts": [
+        "memory_3tier_engine.py",
+        "micro_hud_renderer.py",
+        "nk_active_runtime_sentinel.py",
+        "nk_auto_inning.py",
+        "nk_compliance_checker.py",
+        "nk_context_sentry.py",
+        "preflight_health_check.py",
+        "quality_baseline_manager.py"
+      ],
+      "keywords": [
+        "memory",
+        "memoria",
+        "episodic",
+        "recall",
+        "telemetry",
+        "telemetria",
+        "hud",
+        "sentinel",
+        "sentinella",
+        "inning",
+        "compliance",
+        "sentry",
+        "context",
+        "preflight",
+        "health",
+        "baseline",
+        "ratchet",
+        "scribe",
+        "documentazione",
+        "changelog"
+      ]
+    }
+  },
+  "skills_index": {
+    "NK-Agent-Instruction-Forge": {
+      "name": "NK-Agent-Instruction-Forge",
+      "domain_id": "DOM-02",
+      "domain_name": "IDEATION_AND_ARCH",
+      "sector": "IDEATION_AND_ARCH",
+      "version": "3.0.0-STE100-Unified",
+      "description": "Costruttore L1 di System Instructions, regole e skill in standard ASD-STE100 Italiano (v3.0.0-STE100-Unified).",
+      "thinking_level": "HIGH",
+      "role_identity": "Unified Meta-Prompter & ASD-STE100 Instruction Builder (L1)",
+      "tools": [
+        "view_file",
+        "write_to_file",
+        "replace_file_content",
+        "run_command",
+        "search_web",
+        "send_message"
+      ],
+      "auxiliary_links": [],
+      "loc": 52,
+      "bytes": 3228,
+      "sha256": "fec665367cd9102f50fd543b398eea4188da22869837291ee4e1e120c4756dfa",
+      "path": ".agents/skills/NK-Agent-Instruction-Forge/SKILL.md",
+      "source_layer": "staging"
+    },
+    "NK-App-UX-Architect": {
+      "name": "NK-App-UX-Architect",
+      "domain_id": "DOM-02",
+      "domain_name": "IDEATION_AND_ARCH",
+      "sector": "IDEATION_AND_ARCH",
+      "version": "3.0.0-STE100-Unified",
+      "description": "Architetto L3 per progettazione concettuale, Tetralogia Sovrana 4/4, Design System 8px/HSL e Generative UI (v3.0.0-STE100-Unified).",
+      "thinking_level": "HIGH",
+      "role_identity": "Master Concept & UX/UI Specifier Architect (L3)",
+      "tools": [
+        "view_file",
+        "write_to_file",
+        "search_web",
+        "send_message"
+      ],
+      "auxiliary_links": [],
+      "loc": 67,
+      "bytes": 4058,
+      "sha256": "78937c449547034cc866b4ddef33c242f5bde6fc5a82d1afc074bb739e6bef71",
+      "path": ".agents/skills/NK-App-UX-Architect/SKILL.md",
+      "source_layer": "staging"
+    },
+    "NK-Backend-Architect": {
+      "name": "NK-Backend-Architect",
+      "domain_id": "DOM-02",
+      "domain_name": "IDEATION_AND_ARCH",
+      "sector": "IDEATION_AND_ARCH",
+      "version": "3.0.0-STE100-Unified",
+      "description": "Architetto L2 per topologie multi-agente DAG di Kahn, specifiche OpenAPI 3.0 e contratti Pydantic v2 (v3.0.0-STE100-Unified).",
+      "thinking_level": "HIGH",
+      "role_identity": "Backend Topology & API Specifier Master Architect (L2)",
+      "tools": [
+        "view_file",
+        "write_to_file",
+        "search_web",
+        "send_message"
+      ],
+      "auxiliary_links": [],
+      "loc": 61,
+      "bytes": 3785,
+      "sha256": "a02c837d8a9cdd27af00cac38b08847d8c35c091d9f02779d20ca8e0007ddc1b",
+      "path": ".agents/skills/NK-Backend-Architect/SKILL.md",
+      "source_layer": "staging"
+    },
+    "NK-Bug-Diagnostic-Engine": {
+      "name": "NK-Bug-Diagnostic-Engine",
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "sector": "AUDIT_DAST_AND_RCA",
+      "version": "3.0.0-STE100-Unified",
+      "description": "Motore diagnostico RCA in sola lettura basato su SBFL Ochiai e False Bug Rejection Gate (v3.0.0-STE100-Unified).",
+      "thinking_level": "HIGH",
+      "role_identity": "Bug Investigator, SBFL Ochiai Localizer & RCA Engine (100% Read-Only)",
+      "tools": [
+        "view_file",
+        "run_command",
+        "send_message"
+      ],
+      "auxiliary_links": [
+        "resources/false_bug_rejection_rules.yaml",
+        "resources/rca_dual_language_template.md"
+      ],
+      "loc": 50,
+      "bytes": 3345,
+      "sha256": "abe067335e991a7599b54c311bdde58f82974968d82239d3096849d41a3b9b83",
+      "path": ".agents/skills/NK-Bug-Diagnostic-Engine/SKILL.md",
+      "source_layer": "staging"
+    },
+    "NK-Delta-Architect": {
+      "name": "NK-Delta-Architect",
+      "domain_id": "DOM-03",
+      "domain_name": "BUILD_AND_HEAL",
+      "sector": "BUILD_AND_HEAL",
+      "version": "3.0.0-STE100-Unified",
+      "description": "Surgical Refiner e Worker post-rilascio in .staging/ con Two-Stage Grounding sulla Tetralogia Sovrana 4/4 (v3.0.0-STE100-Unified).",
+      "thinking_level": "HIGH",
+      "role_identity": "Post-Release Surgical Refiner & Grounded Worker in .staging/ (L2)",
+      "tools": [
+        "view_file",
+        "write_to_file",
+        "replace_file_content",
+        "run_command",
+        "manage_task",
+        "send_message"
+      ],
+      "auxiliary_links": [
+        "resources/delta_brief_template.md"
+      ],
+      "loc": 77,
+      "bytes": 4512,
+      "sha256": "d660d7c050988a889bb2e50b03b07353e726e9cf43b19c68b637a83178d67f02",
+      "path": ".agents/skills/NK-Delta-Architect/SKILL.md",
+      "source_layer": "staging"
+    },
+    "NK-Dynamic-Sandbox-StressTester": {
+      "name": "NK-Dynamic-Sandbox-StressTester",
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "sector": "AUDIT_DAST_AND_RCA",
+      "version": "3.0.0-STE100-Unified",
+      "description": "Motore DAST dinamico per stress test di concorrenza reale e verifica limiti in Shadow Sandbox (v3.0.0-STE100-Unified).",
+      "thinking_level": "HIGH",
+      "role_identity": "Dynamic Sandbox & Real DAST Concurrency Auditor (100% Read-Only)",
+      "tools": [
+        "view_file",
+        "run_command",
+        "send_message"
+      ],
+      "auxiliary_links": [],
+      "loc": 54,
+      "bytes": 3261,
+      "sha256": "78d323491fe2b51e590470d39ec705eecac03451018c1b01758eb456ad2b144b",
+      "path": ".agents/skills/NK-Dynamic-Sandbox-StressTester/SKILL.md",
+      "source_layer": "staging"
+    },
+    "NK-Episodic-Memory-Engine": {
+      "name": "NK-Episodic-Memory-Engine",
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "sector": "MEMORY_TELEMETRY_AND_DOCS",
+      "version": "3.0.0-STE100-Unified",
+      "description": "Motore di memoria episodica a 3 livelli con BM25, Dense Cosine RRF e supporto Dual-Profile (v3.0.0-STE100-Unified).",
+      "thinking_level": "HIGH",
+      "role_identity": "3-Tier Episodic Memory & Hybrid BM25 + Cosine RRF Engine",
+      "tools": [
+        "view_file",
+        "run_command",
+        "send_message"
+      ],
+      "auxiliary_links": [],
+      "loc": 60,
+      "bytes": 3600,
+      "sha256": "b09af87930a2d1793609e11715bb83bec723f6b7e7bc3bdb6fd993e5bb35ea03",
+      "path": ".agents/skills/NK-Episodic-Memory-Engine/SKILL.md",
+      "source_layer": "staging"
+    },
+    "NK-Ideator": {
+      "name": "NK-Ideator",
+      "domain_id": "DOM-02",
+      "domain_name": "IDEATION_AND_ARCH",
+      "sector": "IDEATION_AND_ARCH",
+      "version": "3.0.0-STE100-Unified",
+      "description": "Nodo L0 per ideazione creativa, analisi SCAMPER e Turno 1 dell'Auto-Brief Swarm FSM (v3.0.0-STE100-Unified).",
+      "thinking_level": "HIGH",
+      "role_identity": "Nexus Keystone 0 : Creative Ideation & Concept Node (L0)",
+      "tools": [
+        "view_file",
+        "write_to_file",
+        "search_web",
+        "call_mcp_tool",
+        "send_message"
+      ],
+      "auxiliary_links": [
+        "resources/idea_canvas_template.md"
+      ],
+      "loc": 59,
+      "bytes": 3635,
+      "sha256": "467e4c81200b7447289a5c41c6de4f23cf3c74f96a329b89d7f1456db495a206",
+      "path": ".agents/skills/NK-Ideator/SKILL.md",
+      "source_layer": "staging"
+    },
+    "NK-Master-Hub": {
+      "name": "NK-Master-Hub",
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "sector": "GOV_AND_ROUTING",
+      "version": "3.0.0-STE100-Unified",
+      "description": "Orchestratore sovrano L3 per routing 2-Tier, gestione DAG di Kahn e commit atomico Win32 2PC (v3.0.0-STE100-Unified).",
+      "thinking_level": "HIGH",
+      "role_identity": "Sovereign Infrastructure Orchestrator L3",
+      "tools": [
+        "view_file",
+        "run_command",
+        "invoke_subagent",
+        "manage_task",
+        "schedule",
+        "send_message"
+      ],
+      "auxiliary_links": [],
+      "loc": 172,
+      "bytes": 8593,
+      "sha256": "ffa5072811eb3a840999599bb3a803f1f9b9ab4144c539c883d95aa70fdc001b",
+      "path": ".agents/skills/NK-Master-Hub/SKILL.md",
+      "source_layer": "staging"
+    },
+    "NK-Oracle-Evaluator": {
+      "name": "NK-Oracle-Evaluator",
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "sector": "AUDIT_DAST_AND_RCA",
+      "version": "3.0.0-STE100-Unified",
+      "description": "Oracolo deterministico e Cold Auditor in sola lettura per la Macro-Fase 2 del CRV 4.0 e la verifica RSI (v3.0.0-STE100-Unified).",
+      "thinking_level": "HIGH",
+      "role_identity": "Deterministic Cold Auditor & Truth Oracle (100% Read-Only)",
+      "tools": [
+        "view_file",
+        "run_command",
+        "send_message"
+      ],
+      "auxiliary_links": [
+        "references/anti_pattern_guards.md",
+        "references/verification_oracles.md"
+      ],
+      "loc": 58,
+      "bytes": 3824,
+      "sha256": "cc54481e9152476aa0c0c5d52468768a4e63c76cded07da6da2c71b84c002ef6",
+      "path": ".agents/skills/NK-Oracle-Evaluator/SKILL.md",
+      "source_layer": "staging"
+    },
+    "NK-Plan-Aligner": {
+      "name": "NK-Plan-Aligner",
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "sector": "GOV_AND_ROUTING",
+      "version": "3.0.0-STE100-Unified",
+      "description": "Certificatore Turno 4 per l'allineamento 1:1 della Tetralogia Sovrana 4/4 e verifica RSI (v3.0.0-STE100-Unified).",
+      "thinking_level": "HIGH",
+      "role_identity": "Sovereign Tetralogy 4/4 & RSI Convergence Certifier (Turn 4)",
+      "tools": [
+        "view_file",
+        "run_command",
+        "send_message"
+      ],
+      "auxiliary_links": [],
+      "loc": 58,
+      "bytes": 3827,
+      "sha256": "688cbac791d6aa8a0025d66d628cb1505fb639490d0a5fd70816899123468c4c",
+      "path": ".agents/skills/NK-Plan-Aligner/SKILL.md",
+      "source_layer": "staging"
+    },
+    "NK-Python-Async-Builder": {
+      "name": "NK-Python-Async-Builder",
+      "domain_id": "DOM-03",
+      "domain_name": "BUILD_AND_HEAL",
+      "sector": "BUILD_AND_HEAL",
+      "version": "3.0.0-STE100-Unified",
+      "description": "Builder primario Python asincrono in .staging/ con Pydantic v2, validazione AST e Fast-Healing Loop (v3.0.0-STE100-Unified).",
+      "thinking_level": "HIGH",
+      "role_identity": "Primary Python Async, Pydantic v2 & Win32 Builder (L2)",
+      "tools": [
+        "view_file",
+        "write_to_file",
+        "replace_file_content",
+        "run_command",
+        "manage_task",
+        "send_message"
+      ],
+      "auxiliary_links": [],
+      "loc": 56,
+      "bytes": 4032,
+      "sha256": "6a7a532ab8834a7ea0f21a34f01d180e4328b36520bee6d9b48ea4f4d831c97f",
+      "path": ".agents/skills/NK-Python-Async-Builder/SKILL.md",
+      "source_layer": "staging"
+    },
+    "NK-Scribe": {
+      "name": "NK-Scribe",
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "sector": "MEMORY_TELEMETRY_AND_DOCS",
+      "version": "3.0.0-STE100-Unified",
+      "description": "Cronista post-commit per changelog SSOT, repo_map.md, quality_baseline.json e sincronizzazione Git (v3.0.0-STE100-Unified).",
+      "thinking_level": "HIGH",
+      "role_identity": "Sovereign Documentation, Changelog SSOT & Git Publisher Node",
+      "tools": [
+        "view_file",
+        "write_to_file",
+        "replace_file_content",
+        "run_command",
+        "send_message"
+      ],
+      "auxiliary_links": [
+        "resources/activity_anchor_schema.md",
+        "resources/scribe_knowledge.md"
+      ],
+      "loc": 67,
+      "bytes": 4430,
+      "sha256": "1316eaadbd233d1efedd1f08eb1a0214e1673734be7303a53f501523fdd3adfd",
+      "path": ".agents/skills/NK-Scribe/SKILL.md",
+      "source_layer": "staging"
+    },
+    "NK-Security-Auditor": {
+      "name": "NK-Security-Auditor",
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "sector": "AUDIT_DAST_AND_RCA",
+      "version": "3.0.0-STE100-Unified",
+      "description": "Sistema unificato di audit TAS v4.0 Neuro-Simbolico SAST L1/L2/L3 e Chain-of-Verification in sola lettura (v3.0.0-STE100-Unified).",
+      "thinking_level": "HIGH",
+      "role_identity": "Unified Threat & SAST Auditor L1/L2/L3 (100% Strict Read-Only)",
+      "tools": [
+        "view_file",
+        "run_command",
+        "send_message"
+      ],
+      "auxiliary_links": [
+        "resources/audit_checklists_l1_l2_l3.md",
+        "resources/tas_l1_module_audit.md",
+        "resources/tas_l2_ipc_contract_audit.md",
+        "resources/tas_l3_fullstack_system_audit.md"
+      ],
+      "loc": 68,
+      "bytes": 4936,
+      "sha256": "ff29556f6cc0c992e94fc5760622e7cc7ca4442fa8e744b2e83b7a380fd832b1",
+      "path": ".agents/skills/NK-Security-Auditor/SKILL.md",
+      "source_layer": "staging"
+    },
+    "NK-Session-Controller": {
+      "name": "NK-Session-Controller",
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "sector": "GOV_AND_ROUTING",
+      "version": "3.0.0-STE100-Unified",
+      "description": "Supervisore di sessione, Sovereign Critic, orchestratore Auto-Brief Swarm FSM a 5 turni e motore RSI (v3.0.0-STE100-Unified).",
+      "thinking_level": "HIGH",
+      "role_identity": "Sovereign Session Critic, 2-Tier Topology Selector & RSI Orchestrator",
+      "tools": [
+        "view_file",
+        "run_command",
+        "invoke_subagent",
+        "manage_task",
+        "schedule",
+        "send_message"
+      ],
+      "auxiliary_links": [
+        "resources/clean_handoff_protocol.md",
+        "resources/handoff_anchor_schema.md",
+        "resources/prompt_templates.md",
+        "resources/saturation_thresholds.yaml"
+      ],
+      "loc": 95,
+      "bytes": 7356,
+      "sha256": "210b3317eda6aa8c4ac7bf679e5f142748843dc796e482cacf2a5aa168c6c0a4",
+      "path": ".agents/skills/NK-Session-Controller/SKILL.md",
+      "source_layer": "staging"
+    },
+    "NK-State-Router": {
+      "name": "NK-State-Router",
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "sector": "GOV_AND_ROUTING",
+      "version": "3.0.0-STE100-Unified",
+      "description": "Verificatore topologico DAG di Kahn e rilevatore di drift SHA-256 in modalità 100% sola lettura (v3.0.0-STE100-Unified).",
+      "thinking_level": "HIGH",
+      "role_identity": "Read-Only Topological DAG Verifier & SHA-256 Drift Detector (L1)",
+      "tools": [
+        "view_file",
+        "run_command",
+        "send_message"
+      ],
+      "auxiliary_links": [],
+      "loc": 54,
+      "bytes": 3139,
+      "sha256": "ffe20ab81b867bc0c32adae38655f372ad6c6c5473cdefbbe1ef036c859c12eb",
+      "path": ".agents/skills/NK-State-Router/SKILL.md",
+      "source_layer": "staging"
+    }
+  },
+  "scripts_index": {
+    "ast_guard_validator.py": {
+      "name": "ast_guard_validator.py",
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "description": "Validatore statico AST deterministico per Nexus Keystone v3.0.0.",
+      "cli_flags": [
+        "--allowed-mutations",
+        "--stage-dir",
+        "--target"
+      ],
+      "loc": 1165,
+      "bytes": 46933,
+      "sha256": "9c99de2d5c9393bb407f18c887bfc0557e6c4782e235d7e5fb1a9d434c9d08e8",
+      "path": "scripts/ast_guard_validator.py",
+      "source_layer": "staging"
+    },
+    "ast_repo_mapper.py": {
+      "name": "ast_repo_mapper.py",
+      "domain_id": "DOM-02",
+      "domain_name": "IDEATION_AND_ARCH",
+      "description": "Nexus Keystone v3.0.0 - High-Density AST Repo-Map Engine",
+      "cli_flags": [
+        "--export",
+        "--focus-files",
+        "--json",
+        "--max-tokens",
+        "--mode",
+        "--repo-map",
+        "--root",
+        "--snapshot-out"
+      ],
+      "loc": 1596,
+      "bytes": 64159,
+      "sha256": "35b0d3415f718113a5c8d9ff03be46ba44e317bbcf489df6d83eefbd306d7207",
+      "path": "scripts/ast_repo_mapper.py",
+      "source_layer": "staging"
+    },
+    "async_heartbeat_signaler.py": {
+      "name": "async_heartbeat_signaler.py",
+      "domain_id": "DOM-03",
+      "domain_name": "BUILD_AND_HEAL",
+      "description": "Demone di battito asincrono e watchdog anti-blocco per Nexus Keystone v3.0.0-STE100-Unified.",
+      "cli_flags": [
+        "--interval",
+        "--json",
+        "--max-beats",
+        "--once",
+        "--step-name",
+        "--task-id",
+        "--test"
+      ],
+      "loc": 244,
+      "bytes": 7727,
+      "sha256": "eb12de020c2f55c5eb563ae4cecbe96af389ef8e079b0be069e1033f9aad7ed8",
+      "path": "scripts/async_heartbeat_signaler.py",
+      "source_layer": "staging"
+    },
+    "auto_heal_pipeline.py": {
+      "name": "auto_heal_pipeline.py",
+      "domain_id": "DOM-03",
+      "domain_name": "BUILD_AND_HEAL",
+      "description": "Pipeline universale di auto-riparazione per Nexus Keystone v3.0.0.",
+      "cli_flags": [
+        "--cwd",
+        "--json",
+        "--max-cycles",
+        "--target-file",
+        "--test-cmd"
+      ],
+      "loc": 467,
+      "bytes": 17003,
+      "sha256": "8026ea63092ddb50878655f069f77baef50cab943ca5f11be1f87122ee614e1f",
+      "path": "scripts/auto_heal_pipeline.py",
+      "source_layer": "staging"
+    },
+    "dast_sandbox_runner.py": {
+      "name": "dast_sandbox_runner.py",
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "description": "Esecutore DAST in Shadow Sandbox per Nexus Keystone v3.0.0-STE100-Unified.",
+      "cli_flags": [
+        "--json",
+        "--script",
+        "--timeout"
+      ],
+      "loc": 754,
+      "bytes": 25776,
+      "sha256": "515d365208e39af528fede8cc8c597462c39414056edfa26695dd21419774e00",
+      "path": "scripts/dast_sandbox_runner.py",
+      "source_layer": "staging"
+    },
+    "deterministic_api_cache.py": {
+      "name": "deterministic_api_cache.py",
+      "domain_id": "DOM-03",
+      "domain_name": "BUILD_AND_HEAL",
+      "description": "Cache locale deterministica Tier-0 in SQLite WAL per Nexus Keystone v3.0.0-STE100-Unified.",
+      "cli_flags": [
+        "--clear",
+        "--force-refresh",
+        "--health",
+        "--stats"
+      ],
+      "loc": 303,
+      "bytes": 10373,
+      "sha256": "504dd3f749eb1ca85969970751556cd1328c880712f686ad7ff725da96f23f42",
+      "path": "scripts/deterministic_api_cache.py",
+      "source_layer": "staging"
+    },
+    "env_capability_probe.py": {
+      "name": "env_capability_probe.py",
+      "domain_id": "DOM-02",
+      "domain_name": "IDEATION_AND_ARCH",
+      "description": "Sonda deterministica delle capacita dell'ambiente per Nexus Keystone v3.0.0-STE100-Unified.",
+      "cli_flags": [
+        "--check-module",
+        "--export",
+        "--json"
+      ],
+      "loc": 333,
+      "bytes": 10560,
+      "sha256": "cee0957e4c689c78fdf58aa3718fac2d0c13627e406138099a0c85a2b2939e31",
+      "path": "scripts/env_capability_probe.py",
+      "source_layer": "staging"
+    },
+    "external_project_scaffolder.py": {
+      "name": "external_project_scaffolder.py",
+      "domain_id": "DOM-02",
+      "domain_name": "IDEATION_AND_ARCH",
+      "description": "Scaffolder deterministico per progetti esterni di Nexus Keystone v3.0.0-STE100-Unified.",
+      "cli_flags": [
+        "--name",
+        "--target"
+      ],
+      "loc": 217,
+      "bytes": 8145,
+      "sha256": "81ac179d6b8b67c83ea1defc328d9109f0c0749bbd1a1d733a226f9d1a947883",
+      "path": "scripts/external_project_scaffolder.py",
+      "source_layer": "staging"
+    },
+    "healing_snapshot_rollback.py": {
+      "name": "healing_snapshot_rollback.py",
+      "domain_id": "DOM-03",
+      "domain_name": "BUILD_AND_HEAL",
+      "description": "Gestore snapshot di staging e rollback transazionale per Nexus Keystone v3.2.0.",
+      "cli_flags": [
+        "--cleanup",
+        "--create",
+        "--rollback"
+      ],
+      "loc": 382,
+      "bytes": 13484,
+      "sha256": "61d5efcb7818d8be27de3a72a9f9bae8b3cc803a50df2b9096025613b03c32eb",
+      "path": "scripts/healing_snapshot_rollback.py",
+      "source_layer": "staging"
+    },
+    "invisible_healing_loop.py": {
+      "name": "invisible_healing_loop.py",
+      "domain_id": "DOM-03",
+      "domain_name": "BUILD_AND_HEAL",
+      "description": "Wrapper compatibile per l'Invisible Healing Loop di Nexus Keystone v3.0.0.",
+      "cli_flags": [
+        "--cwd",
+        "--json",
+        "--max-cycles",
+        "--target-file",
+        "--test-cmd"
+      ],
+      "loc": 440,
+      "bytes": 14772,
+      "sha256": "f78599ed86acca5fccdb86428b6297afd5d3d9e592a59cbbe865cfd86e93a6ae",
+      "path": "scripts/invisible_healing_loop.py",
+      "source_layer": "staging"
+    },
+    "memory_3tier_engine.py": {
+      "name": "memory_3tier_engine.py",
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "description": "Motore di memoria episodica a 3 livelli per Nexus Keystone v3.0.0-STE100-Unified.",
+      "cli_flags": [
+        "--append",
+        "--base-dir",
+        "--content",
+        "--domain",
+        "--json",
+        "--output",
+        "--profile",
+        "--query",
+        "--recall",
+        "--tags",
+        "--tier1-sync",
+        "--title"
+      ],
+      "loc": 923,
+      "bytes": 30888,
+      "sha256": "f32b65c8db2a005a38b2c052ea442d68e70877d367ddcac1580c08c3b1774a84",
+      "path": "scripts/memory_3tier_engine.py",
+      "source_layer": "staging"
+    },
+    "micro_hud_renderer.py": {
+      "name": "micro_hud_renderer.py",
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "description": "Renderer telemetrico Micro-HUD per Nexus Keystone v3.0.0-STE100-Unified.",
+      "cli_flags": [
+        "--agent",
+        "--ascii",
+        "--domain",
+        "--json",
+        "--mutex",
+        "--percent"
+      ],
+      "loc": 366,
+      "bytes": 13017,
+      "sha256": "2e4ca26b51903ef7f00bd564d55856b5c79ce49aace4098410768c6201959fac",
+      "path": "scripts/micro_hud_renderer.py",
+      "source_layer": "staging"
+    },
+    "nk_active_runtime_sentinel.py": {
+      "name": "nk_active_runtime_sentinel.py",
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "description": "Sentinella runtime degli step per Nexus Keystone v3.0.0.",
+      "cli_flags": [
+        "--check",
+        "--json",
+        "--profile",
+        "--transcript"
+      ],
+      "loc": 141,
+      "bytes": 4175,
+      "sha256": "9b4532271bd82dccd91ee145127832d8820ea63bbb3e1acf27f1c0ae7dc655b0",
+      "path": "scripts/nk_active_runtime_sentinel.py",
+      "source_layer": "staging"
+    },
+    "nk_auto_inning.py": {
+      "name": "nk_auto_inning.py",
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "description": "Gestore chiusura Inning e telemetria di conformita per Nexus Keystone v3.0.0.",
+      "cli_flags": [
+        "--audit",
+        "--close-inning",
+        "--json",
+        "--transcript",
+        "--tuning-file"
+      ],
+      "loc": 99,
+      "bytes": 3230,
+      "sha256": "04228bcf05a2346ed4f8fce19ccb4f2c887ea8b4930d5fb9038185d8aa5c7851",
+      "path": "scripts/nk_auto_inning.py",
+      "source_layer": "staging"
+    },
+    "nk_compliance_checker.py": {
+      "name": "nk_compliance_checker.py",
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "description": "Verificatore di conformita e scorecard duale per Nexus Keystone v3.2.0.",
+      "cli_flags": [
+        "--json",
+        "--min-score",
+        "--transcript"
+      ],
+      "loc": 551,
+      "bytes": 20951,
+      "sha256": "d0aca0502bd8a77256c5f9b0ae22134c5fe1aac8f00d46486ffc32af579ce76e",
+      "path": "scripts/nk_compliance_checker.py",
+      "source_layer": "staging"
+    },
+    "nk_context_sentry.py": {
+      "name": "nk_context_sentry.py",
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "description": "Sentinella del contesto e motore anti-saturazione per Nexus Keystone v3.2.0.",
+      "cli_flags": [
+        "--json",
+        "--profile",
+        "--transcript",
+        "--verbose"
+      ],
+      "loc": 356,
+      "bytes": 14352,
+      "sha256": "2079bc63f5d7ba2d2157584f05cbdc7057dd88f85fdf399f40c20418073c3625",
+      "path": "scripts/nk_context_sentry.py",
+      "source_layer": "staging"
+    },
+    "nk_registry_indexer.py": {
+      "name": "nk_registry_indexer.py",
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "description": "Indicizzatore modulare O(1) e generatore del manifesto SSOT per Nexus Keystone v3.5.1.",
+      "cli_flags": [
+        "--apply-global-filter",
+        "--json",
+        "--lookup",
+        "--root",
+        "--stage-dir",
+        "--sync",
+        "--verify"
+      ],
+      "loc": 1396,
+      "bytes": 54364,
+      "sha256": "5c3833f8b41b827bfc0212bfc38624a79d28fb15111f457e2fe175719ed229d7",
+      "path": "scripts/nk_registry_indexer.py",
+      "source_layer": "staging"
+    },
+    "nk_session_bootstrap.py": {
+      "name": "nk_session_bootstrap.py",
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "description": "Session Bootstrap Gate Fast-Stat per Nexus Keystone v3.2.0.",
+      "cli_flags": [
+        "--force-full",
+        "--json"
+      ],
+      "loc": 602,
+      "bytes": 24552,
+      "sha256": "671fb5c960b555e8e9909ed58ff7a1d5993e07bdff01562951d2f956cf21f9a1",
+      "path": "scripts/nk_session_bootstrap.py",
+      "source_layer": "staging"
+    },
+    "nk_session_handoff.py": {
+      "name": "nk_session_handoff.py",
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "description": "Generatore della capsula di handoff per Nexus Keystone v3.0.0-STE100-Unified.",
+      "cli_flags": [
+        "--generate-prompt",
+        "--output-dir",
+        "--porcelain",
+        "--transcript"
+      ],
+      "loc": 160,
+      "bytes": 5120,
+      "sha256": "1055fede72d78623d53b76377af5f6de53a76f4228c09db3d5df949bed87bc71",
+      "path": "scripts/nk_session_handoff.py",
+      "source_layer": "staging"
+    },
+    "nk_swarm_messenger.py": {
+      "name": "nk_swarm_messenger.py",
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "description": "Formattatore messaggi Swarm per Nexus Keystone v3.0.0.",
+      "cli_flags": [
+        "--payload",
+        "--payload-file",
+        "--recipient",
+        "--sender"
+      ],
+      "loc": 97,
+      "bytes": 2740,
+      "sha256": "bcde0726690bb0a4364f503893b3ce560dbdc5596155b26135805b5c5e1420e7",
+      "path": "scripts/nk_swarm_messenger.py",
+      "source_layer": "staging"
+    },
+    "oracle_evaluator_l3.py": {
+      "name": "oracle_evaluator_l3.py",
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "description": "Valutatore DOM L3 e Oracolo E2E per Nexus Keystone v3.0.0-STE100-Unified.",
+      "cli_flags": [
+        "--actual",
+        "--expected",
+        "--json"
+      ],
+      "loc": 400,
+      "bytes": 13848,
+      "sha256": "2234bd46e8e56278ab7641df4811b8dd8ccb0d1c033faa6f85138a96411e9d45",
+      "path": "scripts/oracle_evaluator_l3.py",
+      "source_layer": "staging"
+    },
+    "platform_runner.py": {
+      "name": "platform_runner.py",
+      "domain_id": "DOM-03",
+      "domain_name": "BUILD_AND_HEAL",
+      "description": "Esecutore sicuro di sottoprocessi e gestore stream UTF-8 per Nexus Keystone v3.0.0-STE100-Unified.",
+      "cli_flags": [
+        "--cmd",
+        "--cwd",
+        "--no-capture",
+        "--timeout"
+      ],
+      "loc": 231,
+      "bytes": 7072,
+      "sha256": "80313464c8a0a98f6099f5ba63052fa61837071e5c35f3fec23574e8f0cfe3c9",
+      "path": "scripts/platform_runner.py",
+      "source_layer": "staging"
+    },
+    "preflight_health_check.py": {
+      "name": "preflight_health_check.py",
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "description": "Diagnostica di manutenzione e auto-sanitizzazione per Nexus Keystone v3.5.0.",
+      "cli_flags": [
+        "--check-only",
+        "--root"
+      ],
+      "loc": 491,
+      "bytes": 18905,
+      "sha256": "d0861442e840491ed4cc09c39564abe32a8eacaae42dbdd525914fcac59f8c67",
+      "path": "scripts/preflight_health_check.py",
+      "source_layer": "staging"
+    },
+    "quality_baseline_manager.py": {
+      "name": "quality_baseline_manager.py",
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "description": "Gestore del Ratchet di qualita per Nexus Keystone v3.3.0.",
+      "cli_flags": [
+        "--check",
+        "--check-only",
+        "--file",
+        "--json",
+        "--metrics",
+        "--recalibrate",
+        "--update"
+      ],
+      "loc": 423,
+      "bytes": 14121,
+      "sha256": "8923d50a39b30964ead10cb2fe394c03fbc258fd57dac77625e9f78f0d1fcad5",
+      "path": "scripts/quality_baseline_manager.py",
+      "source_layer": "staging"
+    },
+    "rsi_convergence_engine.py": {
+      "name": "rsi_convergence_engine.py",
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "description": "Motore di convergenza RSI per Nexus Keystone v3.2.0.",
+      "cli_flags": [
+        "--benchmark-suite",
+        "--help",
+        "--json",
+        "--profile",
+        "--root",
+        "--verify",
+        "--vibe-check"
+      ],
+      "loc": 1343,
+      "bytes": 52178,
+      "sha256": "99cd4b1d4d8cb19eb4adb79f240061f3b2925aab59dc9d72a169a9db44a5e488",
+      "path": "scripts/rsi_convergence_engine.py",
+      "source_layer": "staging"
+    },
+    "safe_cleanup_dev_servers.py": {
+      "name": "safe_cleanup_dev_servers.py",
+      "domain_id": "DOM-03",
+      "domain_name": "BUILD_AND_HEAL",
+      "description": "Utilità di bonifica dei server di sviluppo per Nexus Keystone v3.0.0-STE100-Unified.",
+      "cli_flags": [
+        "--dry-run",
+        "--json",
+        "--workspace-root"
+      ],
+      "loc": 247,
+      "bytes": 7524,
+      "sha256": "aed1388e3fda68586f3dd7022356ea511a46324858602346a207454cca64b9b0",
+      "path": "scripts/safe_cleanup_dev_servers.py",
+      "source_layer": "staging"
+    },
+    "sbfl_engine.py": {
+      "name": "sbfl_engine.py",
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "description": "Motore matematico SBFL (Spectrum-Based Fault Localization) per Nexus Keystone v3.0.0.",
+      "cli_flags": [
+        "--json",
+        "--records-file"
+      ],
+      "loc": 545,
+      "bytes": 17538,
+      "sha256": "56f8c7e2249baa0bd918eec34f3904411e095bbb562e6d66d6bf0c8993ae58e0",
+      "path": "scripts/sbfl_engine.py",
+      "source_layer": "staging"
+    },
+    "sbfl_pytest_bridge.py": {
+      "name": "sbfl_pytest_bridge.py",
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "description": "Bridge Pytest e localizzazione SBFL Ochiai per Nexus Keystone v3.0.0.",
+      "cli_flags": [
+        "--cwd",
+        "--json",
+        "--target-file",
+        "--test-cmd"
+      ],
+      "loc": 426,
+      "bytes": 15819,
+      "sha256": "0ff0a6c3b252ced1f02c46b7b0deca50f98a34fb1738ecf0d90781fe60680379",
+      "path": "scripts/sbfl_pytest_bridge.py",
+      "source_layer": "staging"
+    },
+    "schemas/dual_ledgers.py": {
+      "name": "schemas/dual_ledgers.py",
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "description": "Architettura Dual Ledgers per Nexus Keystone v3.0.0-STE100-Unified.",
+      "cli_flags": [],
+      "loc": 445,
+      "bytes": 15253,
+      "sha256": "9154623e74df03a3fd9374ded545fdbbfc4b333ae89b2cec9a44b54f120784d9",
+      "path": "scripts/schemas/dual_ledgers.py",
+      "source_layer": "staging"
+    },
+    "schemas/nk_ipc_contracts.py": {
+      "name": "schemas/nk_ipc_contracts.py",
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "description": "Contratti IPC e schemi Pydantic v2 per Nexus Keystone v3.2.0-STE100-Unified.",
+      "cli_flags": [],
+      "loc": 259,
+      "bytes": 8445,
+      "sha256": "7f5fdbf583cfc3c42d6d3bcce50589485ac135cafbafa96f41cd23fadfe88eb3",
+      "path": "scripts/schemas/nk_ipc_contracts.py",
+      "source_layer": "staging"
+    },
+    "vibe_sprint_router.py": {
+      "name": "vibe_sprint_router.py",
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "description": "Motore di routing Mode A/B/C/D per Nexus Keystone v3.5.0.",
+      "cli_flags": [
+        "--capsule",
+        "--discovery-check",
+        "--files",
+        "--json",
+        "--prompt",
+        "--test"
+      ],
+      "loc": 544,
+      "bytes": 19690,
+      "sha256": "10405a03651853f9cd9e8e02608f31a9e74e479fee19c74c990098adcbc7b294",
+      "path": "scripts/vibe_sprint_router.py",
+      "source_layer": "staging"
+    },
+    "win32_2pc_engine.py": {
+      "name": "win32_2pc_engine.py",
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "description": "Motore transazionale Win32 Two-Phase Commit per Nexus Keystone v3.0.0-STE100-Unified.",
+      "cli_flags": [
+        "--git-sync",
+        "--milestone",
+        "--promote-staging",
+        "--repo-root",
+        "--staging-dir",
+        "--verify-baseline"
+      ],
+      "loc": 919,
+      "bytes": 31462,
+      "sha256": "a0a30838d4b2d9c3cef0cedb20e0f351b96c58fae01dcb4fad4b804a07ae9566",
+      "path": "scripts/win32_2pc_engine.py",
+      "source_layer": "staging"
+    }
+  },
+  "intent_dispatch_table": {
+    "governance": {
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "primary_agent": "NK-Master-Hub",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "nk_session_bootstrap.py",
+        "vibe_sprint_router.py",
+        "win32_2pc_engine.py",
+        "nk_session_handoff.py",
+        "nk_swarm_messenger.py",
+        "nk_registry_indexer.py",
+        "schemas/dual_ledgers.py",
+        "schemas/nk_ipc_contracts.py"
+      ]
+    },
+    "routing": {
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "primary_agent": "NK-Master-Hub",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "nk_session_bootstrap.py",
+        "vibe_sprint_router.py",
+        "win32_2pc_engine.py",
+        "nk_session_handoff.py",
+        "nk_swarm_messenger.py",
+        "nk_registry_indexer.py",
+        "schemas/dual_ledgers.py",
+        "schemas/nk_ipc_contracts.py"
+      ]
+    },
+    "router": {
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "primary_agent": "NK-Master-Hub",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "nk_session_bootstrap.py",
+        "vibe_sprint_router.py",
+        "win32_2pc_engine.py",
+        "nk_session_handoff.py",
+        "nk_swarm_messenger.py",
+        "nk_registry_indexer.py",
+        "schemas/dual_ledgers.py",
+        "schemas/nk_ipc_contracts.py"
+      ]
+    },
+    "bootstrap": {
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "primary_agent": "NK-Master-Hub",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "nk_session_bootstrap.py",
+        "vibe_sprint_router.py",
+        "win32_2pc_engine.py",
+        "nk_session_handoff.py",
+        "nk_swarm_messenger.py",
+        "nk_registry_indexer.py",
+        "schemas/dual_ledgers.py",
+        "schemas/nk_ipc_contracts.py"
+      ]
+    },
+    "2pc": {
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "primary_agent": "NK-Master-Hub",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "nk_session_bootstrap.py",
+        "vibe_sprint_router.py",
+        "win32_2pc_engine.py",
+        "nk_session_handoff.py",
+        "nk_swarm_messenger.py",
+        "nk_registry_indexer.py",
+        "schemas/dual_ledgers.py",
+        "schemas/nk_ipc_contracts.py"
+      ]
+    },
+    "commit": {
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "primary_agent": "NK-Master-Hub",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "nk_session_bootstrap.py",
+        "vibe_sprint_router.py",
+        "win32_2pc_engine.py",
+        "nk_session_handoff.py",
+        "nk_swarm_messenger.py",
+        "nk_registry_indexer.py",
+        "schemas/dual_ledgers.py",
+        "schemas/nk_ipc_contracts.py"
+      ]
+    },
+    "handoff": {
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "primary_agent": "NK-Master-Hub",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "nk_session_bootstrap.py",
+        "vibe_sprint_router.py",
+        "win32_2pc_engine.py",
+        "nk_session_handoff.py",
+        "nk_swarm_messenger.py",
+        "nk_registry_indexer.py",
+        "schemas/dual_ledgers.py",
+        "schemas/nk_ipc_contracts.py"
+      ]
+    },
+    "session": {
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "primary_agent": "NK-Master-Hub",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "nk_session_bootstrap.py",
+        "vibe_sprint_router.py",
+        "win32_2pc_engine.py",
+        "nk_session_handoff.py",
+        "nk_swarm_messenger.py",
+        "nk_registry_indexer.py",
+        "schemas/dual_ledgers.py",
+        "schemas/nk_ipc_contracts.py"
+      ]
+    },
+    "swarm": {
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "primary_agent": "NK-Master-Hub",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "nk_session_bootstrap.py",
+        "vibe_sprint_router.py",
+        "win32_2pc_engine.py",
+        "nk_session_handoff.py",
+        "nk_swarm_messenger.py",
+        "nk_registry_indexer.py",
+        "schemas/dual_ledgers.py",
+        "schemas/nk_ipc_contracts.py"
+      ]
+    },
+    "plan": {
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "primary_agent": "NK-Master-Hub",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "nk_session_bootstrap.py",
+        "vibe_sprint_router.py",
+        "win32_2pc_engine.py",
+        "nk_session_handoff.py",
+        "nk_swarm_messenger.py",
+        "nk_registry_indexer.py",
+        "schemas/dual_ledgers.py",
+        "schemas/nk_ipc_contracts.py"
+      ]
+    },
+    "aligner": {
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "primary_agent": "NK-Master-Hub",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "nk_session_bootstrap.py",
+        "vibe_sprint_router.py",
+        "win32_2pc_engine.py",
+        "nk_session_handoff.py",
+        "nk_swarm_messenger.py",
+        "nk_registry_indexer.py",
+        "schemas/dual_ledgers.py",
+        "schemas/nk_ipc_contracts.py"
+      ]
+    },
+    "dag": {
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "primary_agent": "NK-Master-Hub",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "nk_session_bootstrap.py",
+        "vibe_sprint_router.py",
+        "win32_2pc_engine.py",
+        "nk_session_handoff.py",
+        "nk_swarm_messenger.py",
+        "nk_registry_indexer.py",
+        "schemas/dual_ledgers.py",
+        "schemas/nk_ipc_contracts.py"
+      ]
+    },
+    "kahn": {
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "primary_agent": "NK-Master-Hub",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "nk_session_bootstrap.py",
+        "vibe_sprint_router.py",
+        "win32_2pc_engine.py",
+        "nk_session_handoff.py",
+        "nk_swarm_messenger.py",
+        "nk_registry_indexer.py",
+        "schemas/dual_ledgers.py",
+        "schemas/nk_ipc_contracts.py"
+      ]
+    },
+    "index": {
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "primary_agent": "NK-Master-Hub",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "nk_session_bootstrap.py",
+        "vibe_sprint_router.py",
+        "win32_2pc_engine.py",
+        "nk_session_handoff.py",
+        "nk_swarm_messenger.py",
+        "nk_registry_indexer.py",
+        "schemas/dual_ledgers.py",
+        "schemas/nk_ipc_contracts.py"
+      ]
+    },
+    "registry": {
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "primary_agent": "NK-Master-Hub",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "nk_session_bootstrap.py",
+        "vibe_sprint_router.py",
+        "win32_2pc_engine.py",
+        "nk_session_handoff.py",
+        "nk_swarm_messenger.py",
+        "nk_registry_indexer.py",
+        "schemas/dual_ledgers.py",
+        "schemas/nk_ipc_contracts.py"
+      ]
+    },
+    "manifest": {
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "primary_agent": "NK-Master-Hub",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "nk_session_bootstrap.py",
+        "vibe_sprint_router.py",
+        "win32_2pc_engine.py",
+        "nk_session_handoff.py",
+        "nk_swarm_messenger.py",
+        "nk_registry_indexer.py",
+        "schemas/dual_ledgers.py",
+        "schemas/nk_ipc_contracts.py"
+      ]
+    },
+    "orchestra": {
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "primary_agent": "NK-Master-Hub",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "nk_session_bootstrap.py",
+        "vibe_sprint_router.py",
+        "win32_2pc_engine.py",
+        "nk_session_handoff.py",
+        "nk_swarm_messenger.py",
+        "nk_registry_indexer.py",
+        "schemas/dual_ledgers.py",
+        "schemas/nk_ipc_contracts.py"
+      ]
+    },
+    "schemas": {
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "primary_agent": "NK-Master-Hub",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "nk_session_bootstrap.py",
+        "vibe_sprint_router.py",
+        "win32_2pc_engine.py",
+        "nk_session_handoff.py",
+        "nk_swarm_messenger.py",
+        "nk_registry_indexer.py",
+        "schemas/dual_ledgers.py",
+        "schemas/nk_ipc_contracts.py"
+      ]
+    },
+    "ledgers": {
+      "domain_id": "DOM-01",
+      "domain_name": "GOV_AND_ROUTING",
+      "primary_agent": "NK-Master-Hub",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "nk_session_bootstrap.py",
+        "vibe_sprint_router.py",
+        "win32_2pc_engine.py",
+        "nk_session_handoff.py",
+        "nk_swarm_messenger.py",
+        "nk_registry_indexer.py",
+        "schemas/dual_ledgers.py",
+        "schemas/nk_ipc_contracts.py"
+      ]
+    },
+    "discovery": {
+      "domain_id": "DOM-02",
+      "domain_name": "IDEATION_AND_ARCH",
+      "primary_agent": "NK-Ideator",
+      "recommended_mode": "mode_d",
+      "scripts": [
+        "ast_repo_mapper.py",
+        "external_project_scaffolder.py",
+        "env_capability_probe.py"
+      ]
+    },
+    "benchmark": {
+      "domain_id": "DOM-02",
+      "domain_name": "IDEATION_AND_ARCH",
+      "primary_agent": "NK-Ideator",
+      "recommended_mode": "mode_d",
+      "scripts": [
+        "ast_repo_mapper.py",
+        "external_project_scaffolder.py",
+        "env_capability_probe.py"
+      ]
+    },
+    "ricerca": {
+      "domain_id": "DOM-02",
+      "domain_name": "IDEATION_AND_ARCH",
+      "primary_agent": "NK-Ideator",
+      "recommended_mode": "mode_d",
+      "scripts": [
+        "ast_repo_mapper.py",
+        "external_project_scaffolder.py",
+        "env_capability_probe.py"
+      ]
+    },
+    "esplora": {
+      "domain_id": "DOM-02",
+      "domain_name": "IDEATION_AND_ARCH",
+      "primary_agent": "NK-Ideator",
+      "recommended_mode": "mode_d",
+      "scripts": [
+        "ast_repo_mapper.py",
+        "external_project_scaffolder.py",
+        "env_capability_probe.py"
+      ]
+    },
+    "censimento": {
+      "domain_id": "DOM-02",
+      "domain_name": "IDEATION_AND_ARCH",
+      "primary_agent": "NK-Ideator",
+      "recommended_mode": "mode_d",
+      "scripts": [
+        "ast_repo_mapper.py",
+        "external_project_scaffolder.py",
+        "env_capability_probe.py"
+      ]
+    },
+    "mappatura": {
+      "domain_id": "DOM-02",
+      "domain_name": "IDEATION_AND_ARCH",
+      "primary_agent": "NK-Ideator",
+      "recommended_mode": "mode_d",
+      "scripts": [
+        "ast_repo_mapper.py",
+        "external_project_scaffolder.py",
+        "env_capability_probe.py"
+      ]
+    },
+    "ideazione": {
+      "domain_id": "DOM-02",
+      "domain_name": "IDEATION_AND_ARCH",
+      "primary_agent": "NK-Ideator",
+      "recommended_mode": "mode_d",
+      "scripts": [
+        "ast_repo_mapper.py",
+        "external_project_scaffolder.py",
+        "env_capability_probe.py"
+      ]
+    },
+    "scamper": {
+      "domain_id": "DOM-02",
+      "domain_name": "IDEATION_AND_ARCH",
+      "primary_agent": "NK-Ideator",
+      "recommended_mode": "mode_d",
+      "scripts": [
+        "ast_repo_mapper.py",
+        "external_project_scaffolder.py",
+        "env_capability_probe.py"
+      ]
+    },
+    "ux": {
+      "domain_id": "DOM-02",
+      "domain_name": "IDEATION_AND_ARCH",
+      "primary_agent": "NK-Ideator",
+      "recommended_mode": "mode_d",
+      "scripts": [
+        "ast_repo_mapper.py",
+        "external_project_scaffolder.py",
+        "env_capability_probe.py"
+      ]
+    },
+    "ui": {
+      "domain_id": "DOM-02",
+      "domain_name": "IDEATION_AND_ARCH",
+      "primary_agent": "NK-Ideator",
+      "recommended_mode": "mode_d",
+      "scripts": [
+        "ast_repo_mapper.py",
+        "external_project_scaffolder.py",
+        "env_capability_probe.py"
+      ]
+    },
+    "design": {
+      "domain_id": "DOM-02",
+      "domain_name": "IDEATION_AND_ARCH",
+      "primary_agent": "NK-Ideator",
+      "recommended_mode": "mode_d",
+      "scripts": [
+        "ast_repo_mapper.py",
+        "external_project_scaffolder.py",
+        "env_capability_probe.py"
+      ]
+    },
+    "frontend": {
+      "domain_id": "DOM-02",
+      "domain_name": "IDEATION_AND_ARCH",
+      "primary_agent": "NK-Ideator",
+      "recommended_mode": "mode_d",
+      "scripts": [
+        "ast_repo_mapper.py",
+        "external_project_scaffolder.py",
+        "env_capability_probe.py"
+      ]
+    },
+    "backend": {
+      "domain_id": "DOM-02",
+      "domain_name": "IDEATION_AND_ARCH",
+      "primary_agent": "NK-Ideator",
+      "recommended_mode": "mode_d",
+      "scripts": [
+        "ast_repo_mapper.py",
+        "external_project_scaffolder.py",
+        "env_capability_probe.py"
+      ]
+    },
+    "openapi": {
+      "domain_id": "DOM-02",
+      "domain_name": "IDEATION_AND_ARCH",
+      "primary_agent": "NK-Ideator",
+      "recommended_mode": "mode_d",
+      "scripts": [
+        "ast_repo_mapper.py",
+        "external_project_scaffolder.py",
+        "env_capability_probe.py"
+      ]
+    },
+    "architettura": {
+      "domain_id": "DOM-02",
+      "domain_name": "IDEATION_AND_ARCH",
+      "primary_agent": "NK-Ideator",
+      "recommended_mode": "mode_d",
+      "scripts": [
+        "ast_repo_mapper.py",
+        "external_project_scaffolder.py",
+        "env_capability_probe.py"
+      ]
+    },
+    "scaffold": {
+      "domain_id": "DOM-02",
+      "domain_name": "IDEATION_AND_ARCH",
+      "primary_agent": "NK-Ideator",
+      "recommended_mode": "mode_d",
+      "scripts": [
+        "ast_repo_mapper.py",
+        "external_project_scaffolder.py",
+        "env_capability_probe.py"
+      ]
+    },
+    "repo_map": {
+      "domain_id": "DOM-02",
+      "domain_name": "IDEATION_AND_ARCH",
+      "primary_agent": "NK-Ideator",
+      "recommended_mode": "mode_d",
+      "scripts": [
+        "ast_repo_mapper.py",
+        "external_project_scaffolder.py",
+        "env_capability_probe.py"
+      ]
+    },
+    "probe": {
+      "domain_id": "DOM-02",
+      "domain_name": "IDEATION_AND_ARCH",
+      "primary_agent": "NK-Ideator",
+      "recommended_mode": "mode_d",
+      "scripts": [
+        "ast_repo_mapper.py",
+        "external_project_scaffolder.py",
+        "env_capability_probe.py"
+      ]
+    },
+    "forge": {
+      "domain_id": "DOM-02",
+      "domain_name": "IDEATION_AND_ARCH",
+      "primary_agent": "NK-Ideator",
+      "recommended_mode": "mode_d",
+      "scripts": [
+        "ast_repo_mapper.py",
+        "external_project_scaffolder.py",
+        "env_capability_probe.py"
+      ]
+    },
+    "build": {
+      "domain_id": "DOM-03",
+      "domain_name": "BUILD_AND_HEAL",
+      "primary_agent": "NK-Python-Async-Builder",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "auto_heal_pipeline.py",
+        "healing_snapshot_rollback.py",
+        "invisible_healing_loop.py",
+        "platform_runner.py",
+        "deterministic_api_cache.py",
+        "safe_cleanup_dev_servers.py",
+        "async_heartbeat_signaler.py"
+      ]
+    },
+    "builder": {
+      "domain_id": "DOM-03",
+      "domain_name": "BUILD_AND_HEAL",
+      "primary_agent": "NK-Python-Async-Builder",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "auto_heal_pipeline.py",
+        "healing_snapshot_rollback.py",
+        "invisible_healing_loop.py",
+        "platform_runner.py",
+        "deterministic_api_cache.py",
+        "safe_cleanup_dev_servers.py",
+        "async_heartbeat_signaler.py"
+      ]
+    },
+    "implementa": {
+      "domain_id": "DOM-03",
+      "domain_name": "BUILD_AND_HEAL",
+      "primary_agent": "NK-Python-Async-Builder",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "auto_heal_pipeline.py",
+        "healing_snapshot_rollback.py",
+        "invisible_healing_loop.py",
+        "platform_runner.py",
+        "deterministic_api_cache.py",
+        "safe_cleanup_dev_servers.py",
+        "async_heartbeat_signaler.py"
+      ]
+    },
+    "sviluppa": {
+      "domain_id": "DOM-03",
+      "domain_name": "BUILD_AND_HEAL",
+      "primary_agent": "NK-Python-Async-Builder",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "auto_heal_pipeline.py",
+        "healing_snapshot_rollback.py",
+        "invisible_healing_loop.py",
+        "platform_runner.py",
+        "deterministic_api_cache.py",
+        "safe_cleanup_dev_servers.py",
+        "async_heartbeat_signaler.py"
+      ]
+    },
+    "codice": {
+      "domain_id": "DOM-03",
+      "domain_name": "BUILD_AND_HEAL",
+      "primary_agent": "NK-Python-Async-Builder",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "auto_heal_pipeline.py",
+        "healing_snapshot_rollback.py",
+        "invisible_healing_loop.py",
+        "platform_runner.py",
+        "deterministic_api_cache.py",
+        "safe_cleanup_dev_servers.py",
+        "async_heartbeat_signaler.py"
+      ]
+    },
+    "async": {
+      "domain_id": "DOM-03",
+      "domain_name": "BUILD_AND_HEAL",
+      "primary_agent": "NK-Python-Async-Builder",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "auto_heal_pipeline.py",
+        "healing_snapshot_rollback.py",
+        "invisible_healing_loop.py",
+        "platform_runner.py",
+        "deterministic_api_cache.py",
+        "safe_cleanup_dev_servers.py",
+        "async_heartbeat_signaler.py"
+      ]
+    },
+    "pydantic": {
+      "domain_id": "DOM-03",
+      "domain_name": "BUILD_AND_HEAL",
+      "primary_agent": "NK-Python-Async-Builder",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "auto_heal_pipeline.py",
+        "healing_snapshot_rollback.py",
+        "invisible_healing_loop.py",
+        "platform_runner.py",
+        "deterministic_api_cache.py",
+        "safe_cleanup_dev_servers.py",
+        "async_heartbeat_signaler.py"
+      ]
+    },
+    "delta": {
+      "domain_id": "DOM-03",
+      "domain_name": "BUILD_AND_HEAL",
+      "primary_agent": "NK-Python-Async-Builder",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "auto_heal_pipeline.py",
+        "healing_snapshot_rollback.py",
+        "invisible_healing_loop.py",
+        "platform_runner.py",
+        "deterministic_api_cache.py",
+        "safe_cleanup_dev_servers.py",
+        "async_heartbeat_signaler.py"
+      ]
+    },
+    "refactor": {
+      "domain_id": "DOM-03",
+      "domain_name": "BUILD_AND_HEAL",
+      "primary_agent": "NK-Python-Async-Builder",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "auto_heal_pipeline.py",
+        "healing_snapshot_rollback.py",
+        "invisible_healing_loop.py",
+        "platform_runner.py",
+        "deterministic_api_cache.py",
+        "safe_cleanup_dev_servers.py",
+        "async_heartbeat_signaler.py"
+      ]
+    },
+    "modifica": {
+      "domain_id": "DOM-03",
+      "domain_name": "BUILD_AND_HEAL",
+      "primary_agent": "NK-Python-Async-Builder",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "auto_heal_pipeline.py",
+        "healing_snapshot_rollback.py",
+        "invisible_healing_loop.py",
+        "platform_runner.py",
+        "deterministic_api_cache.py",
+        "safe_cleanup_dev_servers.py",
+        "async_heartbeat_signaler.py"
+      ]
+    },
+    "heal": {
+      "domain_id": "DOM-03",
+      "domain_name": "BUILD_AND_HEAL",
+      "primary_agent": "NK-Python-Async-Builder",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "auto_heal_pipeline.py",
+        "healing_snapshot_rollback.py",
+        "invisible_healing_loop.py",
+        "platform_runner.py",
+        "deterministic_api_cache.py",
+        "safe_cleanup_dev_servers.py",
+        "async_heartbeat_signaler.py"
+      ]
+    },
+    "healing": {
+      "domain_id": "DOM-03",
+      "domain_name": "BUILD_AND_HEAL",
+      "primary_agent": "NK-Python-Async-Builder",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "auto_heal_pipeline.py",
+        "healing_snapshot_rollback.py",
+        "invisible_healing_loop.py",
+        "platform_runner.py",
+        "deterministic_api_cache.py",
+        "safe_cleanup_dev_servers.py",
+        "async_heartbeat_signaler.py"
+      ]
+    },
+    "rollback": {
+      "domain_id": "DOM-03",
+      "domain_name": "BUILD_AND_HEAL",
+      "primary_agent": "NK-Python-Async-Builder",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "auto_heal_pipeline.py",
+        "healing_snapshot_rollback.py",
+        "invisible_healing_loop.py",
+        "platform_runner.py",
+        "deterministic_api_cache.py",
+        "safe_cleanup_dev_servers.py",
+        "async_heartbeat_signaler.py"
+      ]
+    },
+    "snapshot": {
+      "domain_id": "DOM-03",
+      "domain_name": "BUILD_AND_HEAL",
+      "primary_agent": "NK-Python-Async-Builder",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "auto_heal_pipeline.py",
+        "healing_snapshot_rollback.py",
+        "invisible_healing_loop.py",
+        "platform_runner.py",
+        "deterministic_api_cache.py",
+        "safe_cleanup_dev_servers.py",
+        "async_heartbeat_signaler.py"
+      ]
+    },
+    "cache": {
+      "domain_id": "DOM-03",
+      "domain_name": "BUILD_AND_HEAL",
+      "primary_agent": "NK-Python-Async-Builder",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "auto_heal_pipeline.py",
+        "healing_snapshot_rollback.py",
+        "invisible_healing_loop.py",
+        "platform_runner.py",
+        "deterministic_api_cache.py",
+        "safe_cleanup_dev_servers.py",
+        "async_heartbeat_signaler.py"
+      ]
+    },
+    "sqlite": {
+      "domain_id": "DOM-03",
+      "domain_name": "BUILD_AND_HEAL",
+      "primary_agent": "NK-Python-Async-Builder",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "auto_heal_pipeline.py",
+        "healing_snapshot_rollback.py",
+        "invisible_healing_loop.py",
+        "platform_runner.py",
+        "deterministic_api_cache.py",
+        "safe_cleanup_dev_servers.py",
+        "async_heartbeat_signaler.py"
+      ]
+    },
+    "runner": {
+      "domain_id": "DOM-03",
+      "domain_name": "BUILD_AND_HEAL",
+      "primary_agent": "NK-Python-Async-Builder",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "auto_heal_pipeline.py",
+        "healing_snapshot_rollback.py",
+        "invisible_healing_loop.py",
+        "platform_runner.py",
+        "deterministic_api_cache.py",
+        "safe_cleanup_dev_servers.py",
+        "async_heartbeat_signaler.py"
+      ]
+    },
+    "cleanup": {
+      "domain_id": "DOM-03",
+      "domain_name": "BUILD_AND_HEAL",
+      "primary_agent": "NK-Python-Async-Builder",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "auto_heal_pipeline.py",
+        "healing_snapshot_rollback.py",
+        "invisible_healing_loop.py",
+        "platform_runner.py",
+        "deterministic_api_cache.py",
+        "safe_cleanup_dev_servers.py",
+        "async_heartbeat_signaler.py"
+      ]
+    },
+    "heartbeat": {
+      "domain_id": "DOM-03",
+      "domain_name": "BUILD_AND_HEAL",
+      "primary_agent": "NK-Python-Async-Builder",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "auto_heal_pipeline.py",
+        "healing_snapshot_rollback.py",
+        "invisible_healing_loop.py",
+        "platform_runner.py",
+        "deterministic_api_cache.py",
+        "safe_cleanup_dev_servers.py",
+        "async_heartbeat_signaler.py"
+      ]
+    },
+    "audit": {
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "primary_agent": "NK-Security-Auditor",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "ast_guard_validator.py",
+        "dast_sandbox_runner.py",
+        "oracle_evaluator_l3.py",
+        "sbfl_engine.py",
+        "sbfl_pytest_bridge.py",
+        "rsi_convergence_engine.py"
+      ]
+    },
+    "security": {
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "primary_agent": "NK-Security-Auditor",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "ast_guard_validator.py",
+        "dast_sandbox_runner.py",
+        "oracle_evaluator_l3.py",
+        "sbfl_engine.py",
+        "sbfl_pytest_bridge.py",
+        "rsi_convergence_engine.py"
+      ]
+    },
+    "sicurezza": {
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "primary_agent": "NK-Security-Auditor",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "ast_guard_validator.py",
+        "dast_sandbox_runner.py",
+        "oracle_evaluator_l3.py",
+        "sbfl_engine.py",
+        "sbfl_pytest_bridge.py",
+        "rsi_convergence_engine.py"
+      ]
+    },
+    "sast": {
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "primary_agent": "NK-Security-Auditor",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "ast_guard_validator.py",
+        "dast_sandbox_runner.py",
+        "oracle_evaluator_l3.py",
+        "sbfl_engine.py",
+        "sbfl_pytest_bridge.py",
+        "rsi_convergence_engine.py"
+      ]
+    },
+    "dast": {
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "primary_agent": "NK-Security-Auditor",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "ast_guard_validator.py",
+        "dast_sandbox_runner.py",
+        "oracle_evaluator_l3.py",
+        "sbfl_engine.py",
+        "sbfl_pytest_bridge.py",
+        "rsi_convergence_engine.py"
+      ]
+    },
+    "sandbox": {
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "primary_agent": "NK-Security-Auditor",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "ast_guard_validator.py",
+        "dast_sandbox_runner.py",
+        "oracle_evaluator_l3.py",
+        "sbfl_engine.py",
+        "sbfl_pytest_bridge.py",
+        "rsi_convergence_engine.py"
+      ]
+    },
+    "stress": {
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "primary_agent": "NK-Security-Auditor",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "ast_guard_validator.py",
+        "dast_sandbox_runner.py",
+        "oracle_evaluator_l3.py",
+        "sbfl_engine.py",
+        "sbfl_pytest_bridge.py",
+        "rsi_convergence_engine.py"
+      ]
+    },
+    "oracle": {
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "primary_agent": "NK-Security-Auditor",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "ast_guard_validator.py",
+        "dast_sandbox_runner.py",
+        "oracle_evaluator_l3.py",
+        "sbfl_engine.py",
+        "sbfl_pytest_bridge.py",
+        "rsi_convergence_engine.py"
+      ]
+    },
+    "valuta": {
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "primary_agent": "NK-Security-Auditor",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "ast_guard_validator.py",
+        "dast_sandbox_runner.py",
+        "oracle_evaluator_l3.py",
+        "sbfl_engine.py",
+        "sbfl_pytest_bridge.py",
+        "rsi_convergence_engine.py"
+      ]
+    },
+    "bug": {
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "primary_agent": "NK-Security-Auditor",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "ast_guard_validator.py",
+        "dast_sandbox_runner.py",
+        "oracle_evaluator_l3.py",
+        "sbfl_engine.py",
+        "sbfl_pytest_bridge.py",
+        "rsi_convergence_engine.py"
+      ]
+    },
+    "diagnosi": {
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "primary_agent": "NK-Security-Auditor",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "ast_guard_validator.py",
+        "dast_sandbox_runner.py",
+        "oracle_evaluator_l3.py",
+        "sbfl_engine.py",
+        "sbfl_pytest_bridge.py",
+        "rsi_convergence_engine.py"
+      ]
+    },
+    "rca": {
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "primary_agent": "NK-Security-Auditor",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "ast_guard_validator.py",
+        "dast_sandbox_runner.py",
+        "oracle_evaluator_l3.py",
+        "sbfl_engine.py",
+        "sbfl_pytest_bridge.py",
+        "rsi_convergence_engine.py"
+      ]
+    },
+    "sbfl": {
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "primary_agent": "NK-Security-Auditor",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "ast_guard_validator.py",
+        "dast_sandbox_runner.py",
+        "oracle_evaluator_l3.py",
+        "sbfl_engine.py",
+        "sbfl_pytest_bridge.py",
+        "rsi_convergence_engine.py"
+      ]
+    },
+    "ochiai": {
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "primary_agent": "NK-Security-Auditor",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "ast_guard_validator.py",
+        "dast_sandbox_runner.py",
+        "oracle_evaluator_l3.py",
+        "sbfl_engine.py",
+        "sbfl_pytest_bridge.py",
+        "rsi_convergence_engine.py"
+      ]
+    },
+    "rsi": {
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "primary_agent": "NK-Security-Auditor",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "ast_guard_validator.py",
+        "dast_sandbox_runner.py",
+        "oracle_evaluator_l3.py",
+        "sbfl_engine.py",
+        "sbfl_pytest_bridge.py",
+        "rsi_convergence_engine.py"
+      ]
+    },
+    "convergenza": {
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "primary_agent": "NK-Security-Auditor",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "ast_guard_validator.py",
+        "dast_sandbox_runner.py",
+        "oracle_evaluator_l3.py",
+        "sbfl_engine.py",
+        "sbfl_pytest_bridge.py",
+        "rsi_convergence_engine.py"
+      ]
+    },
+    "ast_guard": {
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "primary_agent": "NK-Security-Auditor",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "ast_guard_validator.py",
+        "dast_sandbox_runner.py",
+        "oracle_evaluator_l3.py",
+        "sbfl_engine.py",
+        "sbfl_pytest_bridge.py",
+        "rsi_convergence_engine.py"
+      ]
+    },
+    "exploit": {
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "primary_agent": "NK-Security-Auditor",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "ast_guard_validator.py",
+        "dast_sandbox_runner.py",
+        "oracle_evaluator_l3.py",
+        "sbfl_engine.py",
+        "sbfl_pytest_bridge.py",
+        "rsi_convergence_engine.py"
+      ]
+    },
+    "vulnerabilita": {
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "primary_agent": "NK-Security-Auditor",
+      "recommended_mode": "mode_a",
+      "scripts": [
+        "ast_guard_validator.py",
+        "dast_sandbox_runner.py",
+        "oracle_evaluator_l3.py",
+        "sbfl_engine.py",
+        "sbfl_pytest_bridge.py",
+        "rsi_convergence_engine.py"
+      ]
+    },
+    "memory": {
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "primary_agent": "NK-Scribe",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "memory_3tier_engine.py",
+        "micro_hud_renderer.py",
+        "nk_active_runtime_sentinel.py",
+        "nk_auto_inning.py",
+        "nk_compliance_checker.py",
+        "nk_context_sentry.py",
+        "preflight_health_check.py",
+        "quality_baseline_manager.py"
+      ]
+    },
+    "memoria": {
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "primary_agent": "NK-Scribe",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "memory_3tier_engine.py",
+        "micro_hud_renderer.py",
+        "nk_active_runtime_sentinel.py",
+        "nk_auto_inning.py",
+        "nk_compliance_checker.py",
+        "nk_context_sentry.py",
+        "preflight_health_check.py",
+        "quality_baseline_manager.py"
+      ]
+    },
+    "episodic": {
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "primary_agent": "NK-Scribe",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "memory_3tier_engine.py",
+        "micro_hud_renderer.py",
+        "nk_active_runtime_sentinel.py",
+        "nk_auto_inning.py",
+        "nk_compliance_checker.py",
+        "nk_context_sentry.py",
+        "preflight_health_check.py",
+        "quality_baseline_manager.py"
+      ]
+    },
+    "recall": {
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "primary_agent": "NK-Scribe",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "memory_3tier_engine.py",
+        "micro_hud_renderer.py",
+        "nk_active_runtime_sentinel.py",
+        "nk_auto_inning.py",
+        "nk_compliance_checker.py",
+        "nk_context_sentry.py",
+        "preflight_health_check.py",
+        "quality_baseline_manager.py"
+      ]
+    },
+    "telemetry": {
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "primary_agent": "NK-Scribe",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "memory_3tier_engine.py",
+        "micro_hud_renderer.py",
+        "nk_active_runtime_sentinel.py",
+        "nk_auto_inning.py",
+        "nk_compliance_checker.py",
+        "nk_context_sentry.py",
+        "preflight_health_check.py",
+        "quality_baseline_manager.py"
+      ]
+    },
+    "telemetria": {
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "primary_agent": "NK-Scribe",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "memory_3tier_engine.py",
+        "micro_hud_renderer.py",
+        "nk_active_runtime_sentinel.py",
+        "nk_auto_inning.py",
+        "nk_compliance_checker.py",
+        "nk_context_sentry.py",
+        "preflight_health_check.py",
+        "quality_baseline_manager.py"
+      ]
+    },
+    "hud": {
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "primary_agent": "NK-Scribe",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "memory_3tier_engine.py",
+        "micro_hud_renderer.py",
+        "nk_active_runtime_sentinel.py",
+        "nk_auto_inning.py",
+        "nk_compliance_checker.py",
+        "nk_context_sentry.py",
+        "preflight_health_check.py",
+        "quality_baseline_manager.py"
+      ]
+    },
+    "sentinel": {
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "primary_agent": "NK-Scribe",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "memory_3tier_engine.py",
+        "micro_hud_renderer.py",
+        "nk_active_runtime_sentinel.py",
+        "nk_auto_inning.py",
+        "nk_compliance_checker.py",
+        "nk_context_sentry.py",
+        "preflight_health_check.py",
+        "quality_baseline_manager.py"
+      ]
+    },
+    "sentinella": {
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "primary_agent": "NK-Scribe",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "memory_3tier_engine.py",
+        "micro_hud_renderer.py",
+        "nk_active_runtime_sentinel.py",
+        "nk_auto_inning.py",
+        "nk_compliance_checker.py",
+        "nk_context_sentry.py",
+        "preflight_health_check.py",
+        "quality_baseline_manager.py"
+      ]
+    },
+    "inning": {
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "primary_agent": "NK-Scribe",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "memory_3tier_engine.py",
+        "micro_hud_renderer.py",
+        "nk_active_runtime_sentinel.py",
+        "nk_auto_inning.py",
+        "nk_compliance_checker.py",
+        "nk_context_sentry.py",
+        "preflight_health_check.py",
+        "quality_baseline_manager.py"
+      ]
+    },
+    "compliance": {
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "primary_agent": "NK-Scribe",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "memory_3tier_engine.py",
+        "micro_hud_renderer.py",
+        "nk_active_runtime_sentinel.py",
+        "nk_auto_inning.py",
+        "nk_compliance_checker.py",
+        "nk_context_sentry.py",
+        "preflight_health_check.py",
+        "quality_baseline_manager.py"
+      ]
+    },
+    "sentry": {
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "primary_agent": "NK-Scribe",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "memory_3tier_engine.py",
+        "micro_hud_renderer.py",
+        "nk_active_runtime_sentinel.py",
+        "nk_auto_inning.py",
+        "nk_compliance_checker.py",
+        "nk_context_sentry.py",
+        "preflight_health_check.py",
+        "quality_baseline_manager.py"
+      ]
+    },
+    "context": {
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "primary_agent": "NK-Scribe",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "memory_3tier_engine.py",
+        "micro_hud_renderer.py",
+        "nk_active_runtime_sentinel.py",
+        "nk_auto_inning.py",
+        "nk_compliance_checker.py",
+        "nk_context_sentry.py",
+        "preflight_health_check.py",
+        "quality_baseline_manager.py"
+      ]
+    },
+    "preflight": {
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "primary_agent": "NK-Scribe",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "memory_3tier_engine.py",
+        "micro_hud_renderer.py",
+        "nk_active_runtime_sentinel.py",
+        "nk_auto_inning.py",
+        "nk_compliance_checker.py",
+        "nk_context_sentry.py",
+        "preflight_health_check.py",
+        "quality_baseline_manager.py"
+      ]
+    },
+    "health": {
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "primary_agent": "NK-Scribe",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "memory_3tier_engine.py",
+        "micro_hud_renderer.py",
+        "nk_active_runtime_sentinel.py",
+        "nk_auto_inning.py",
+        "nk_compliance_checker.py",
+        "nk_context_sentry.py",
+        "preflight_health_check.py",
+        "quality_baseline_manager.py"
+      ]
+    },
+    "baseline": {
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "primary_agent": "NK-Scribe",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "memory_3tier_engine.py",
+        "micro_hud_renderer.py",
+        "nk_active_runtime_sentinel.py",
+        "nk_auto_inning.py",
+        "nk_compliance_checker.py",
+        "nk_context_sentry.py",
+        "preflight_health_check.py",
+        "quality_baseline_manager.py"
+      ]
+    },
+    "ratchet": {
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "primary_agent": "NK-Scribe",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "memory_3tier_engine.py",
+        "micro_hud_renderer.py",
+        "nk_active_runtime_sentinel.py",
+        "nk_auto_inning.py",
+        "nk_compliance_checker.py",
+        "nk_context_sentry.py",
+        "preflight_health_check.py",
+        "quality_baseline_manager.py"
+      ]
+    },
+    "scribe": {
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "primary_agent": "NK-Scribe",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "memory_3tier_engine.py",
+        "micro_hud_renderer.py",
+        "nk_active_runtime_sentinel.py",
+        "nk_auto_inning.py",
+        "nk_compliance_checker.py",
+        "nk_context_sentry.py",
+        "preflight_health_check.py",
+        "quality_baseline_manager.py"
+      ]
+    },
+    "documentazione": {
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "primary_agent": "NK-Scribe",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "memory_3tier_engine.py",
+        "micro_hud_renderer.py",
+        "nk_active_runtime_sentinel.py",
+        "nk_auto_inning.py",
+        "nk_compliance_checker.py",
+        "nk_context_sentry.py",
+        "preflight_health_check.py",
+        "quality_baseline_manager.py"
+      ]
+    },
+    "changelog": {
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "primary_agent": "NK-Scribe",
+      "recommended_mode": "mode_c",
+      "scripts": [
+        "memory_3tier_engine.py",
+        "micro_hud_renderer.py",
+        "nk_active_runtime_sentinel.py",
+        "nk_auto_inning.py",
+        "nk_compliance_checker.py",
+        "nk_context_sentry.py",
+        "preflight_health_check.py",
+        "quality_baseline_manager.py"
+      ]
+    }
+  },
+  "global_hygiene_profile": {
+    "config_path": "C:/Users/erbal/.gemini/config",
+    "config_exists": true,
+    "workspace_skills_count": 16,
+    "external_skills_count": 0,
+    "installed_external_skills_count": 61,
+    "active_external_skills_count": 0,
+    "disabled_external_skills_count": 61,
+    "total_flat_skills": 16,
+    "context_pollution_detected": false,
+    "external_sources": [
+      "plugins/android-cli-plugin",
+      "plugins/dev-utilities-plugin",
+      "plugins/gcp-data-cloud-plugin",
+      "plugins/science"
+    ],
+    "disabled_plugins": [
+      "android-cli-plugin",
+      "dev-utilities-plugin",
+      "gcp-data-cloud-plugin",
+      "science"
+    ],
+    "recommended_isolation_config": {
+      "isolation_mode": "WORKSPACE_O1_MANIFEST_ONLY",
+      "disable_global_plugins": true,
+      "disable_external_gcp_skills": true,
+      "disabled_sources": [
+        "plugins/android-cli-plugin",
+        "plugins/dev-utilities-plugin",
+        "plugins/gcp-data-cloud-plugin",
+        "plugins/science"
+      ],
+      "estimated_token_savings": 7042
+    }
+  }
+}

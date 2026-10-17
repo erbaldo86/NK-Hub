@@ -1,17 +1,19 @@
-# Lab NK Hub: Sistema Operativo Agentico Sovrano (`v3.1.0-Tensor-RSI` / `v3.0.0-STE100-Unified`)
+# Lab NK Hub: Sistema Operativo Agentico Sovrano (`v3.5.2-Global-Filter-61-Skills` / `v3.0.0-STE100-Unified`)
 
 > 🌍 **Scegli la Lingua / Choose Your Language:** **[🇮🇹 Italiano (Attuale)](README.it.md)** | **[🇬🇧 Read in English (README.md)](README.md)** | **[📦 Guida Installazione Rapida](GUIDA_INSTALLAZIONE.md)**
 
-> **Sistema Operativo Cognitivo Sovrano, Orchestratore Swarm 2-Tier e Motore Tensor-RSI 2D per Google Antigravity**
+> **Sistema Operativo Cognitivo Sovrano, Indice Modulare O(1), Orchestratore Swarm 2-Tier e Motore Tensor-RSI 2D per Google Antigravity**
 
-[![Release](https://img.shields.io/badge/Release-v3.1.0--Tensor--RSI-blue)](#parte-7-storico-changelog-e-matrice-dei-108-golden-tests-108108-pass)
-[![Tests](https://img.shields.io/badge/108_Golden_Tests-100.0%25_PASS-success)](#parte-7-storico-changelog-e-matrice-dei-108-golden-tests-108108-pass)
+[![Release](https://img.shields.io/badge/Release-v3.5.2--Global--Filter--61--Skills-blue)](#parte-7-evoluzione-patch-notes-e-matrice-dei-74-golden-tests-7474-pass)
+[![Tests](https://img.shields.io/badge/74_Golden_Tests-100.0%25_PASS-success)](#parte-7-evoluzione-patch-notes-e-matrice-dei-74-golden-tests-7474-pass)
+[![Registry](https://img.shields.io/badge/O(1)_Registry-%3C1ms_Lookup-brightgreen)](#parte-5-protocolli-architetturali-e-regole-di-sistema-crv-40-e-tensor-rsi)
+[![GlobalFilter](https://img.shields.io/badge/Global_Filter-0_Token_Overhead-brightgreen)](#1-evoluzione-del-sistema-come-era-prima-vs-migliorie-apportate-vs-come-si-comporta-adesso)
 [![RSI](https://img.shields.io/badge/Tensor--RSI_2D-%CE%94%3D0_%7C_Q%3D100.0-brightgreen)](#parte-6-fondamenti-matematici-e-motore-tensor-rsi-2d-sezione-senior-e-auditor)
 [![VibeCheck](https://img.shields.io/badge/Vibe--Check-%3C500ms-brightgreen)](#tutorial-3-modifiche-rapide-ui-e-script-in--500-ms-mode-c-vibe-sprint)
 [![Fast-Stat](https://img.shields.io/badge/Fast--Stat-%3C50ms_Cached-brightgreen)](#tutorial-1-avviare-lambiente-in--120-ms-rule-005)
 [![STE100](https://img.shields.io/badge/ASD--STE100-Max_20_Parole-informational)](#parte-5-protocolli-architetturali-e-regole-di-sistema-crv-40-e-tensor-rsi)
-[![Win32 2PC Mutex Active](https://img.shields.io/badge/Win32_2PC_Mutex-64bit_Active-orange)](#parte-4-architettura-del-motore-core-e-30-moduli-script-33-file-python)
-[![Zero-Mock 100% Real OS](https://img.shields.io/badge/Zero--Mock-100%25_Real_OS-red)](#parte-7-storico-changelog-e-matrice-dei-108-golden-tests-108108-pass)
+[![Win32 2PC Mutex Active](https://img.shields.io/badge/Win32_2PC_Mutex-64bit_Active-orange)](#parte-4-architettura-del-motore-core-e-31-moduli-logici-34-file-python)
+[![Zero-Mock 100% Real OS](https://img.shields.io/badge/Zero--Mock-100%25_Real_OS-red)](#parte-7-evoluzione-patch-notes-e-matrice-dei-74-golden-tests-7474-pass)
 
 ---
 
@@ -23,10 +25,12 @@ Saturano la finestra di contesto, inventano comandi inesistenti, rompono il codi
 **Nexus Keystone (`NK-Hub`)** trasforma **Google Antigravity** in una fabbrica software autonoma capace di auto-ripararsi.
 Al posto di un singolo prompt fragile, ottieni uno **Sciame di 16 Skill** governato da motori Python deterministici.
 
-| Limite degli Assistenti AI Tradizionali | Come `NK-Hub v3.1.0-Tensor-RSI` Risolve il Problema |
+| Limite degli Assistenti AI Tradizionali | Come `NK-Hub v3.5.2-Global-Filter-61-Skills` Risolve il Problema |
 | :--- | :--- |
 | **File di Produzione Danneggiati** | Nessun agente tocca la produzione direttamente (`[RULE-00]`). Il codice nasce in `.staging/` e passa in produzione tramite Mutex Win32 a 64-bit (`win32_2pc_engine.py`). |
 | **Test Finti che Nascondono Bug Reali** | `[RULE-01.2]` vieta `MagicMock` e stub sintetici. Ogni test gira su processi reali del sistema operativo con cache SQLite WAL persistente. |
+| **Disordine e Ricerche Lente (`O(N)`)** | Risolto con l'**Indice Tassonomico Modulare O(1)** (`[RULE-01.14]`, `nk_registry_manifest.json` e `SKILL_INDEX.md`) diviso in `5` domini (`DOM-01..DOM-05`) con registrazione **Hot-Swap Zero-Rewrite**. |
+| **Inquinamento da Skill Globali Esterne** | Risolto con il **Filtro Deterministico sulle 61 Skill Globali** (`--apply-global-filter`), che isola `61` skill esterne in `4` plugin disattivati risparmiando `7.042` token ad ogni turno. |
 | **Tentativi Infiniti alla Cieca** | Quando un test fallisce, `sbfl_pytest_bridge.py` calcola lo spettro **Ochiai** e individua la riga esatta del bug in `< 80` token. |
 | **Saturazione del Contesto** | La topologia **2-Tier Hub-and-Spoke** delega ricerche e build ai sub-agenti, limitando i messaggi di ritorno a `1.800` caratteri (`[RULE-SWARM-HYGIENE]`). |
 | **Lentezza sulle Piccole Modifiche** | Il motore **Tensor-RSI 2D** esegue `--vibe-check` in un singolo processo sul raggio d'impatto del DAG in `< 500 ms`. |
@@ -38,8 +42,8 @@ Al posto di un singolo prompt fragile, ottieni uno **Sciame di 16 Skill** govern
 | Profilo Lettore | Sezioni Consigliate | Cosa Imparerai in Questa Guida |
 | :--- | :--- | :--- |
 | **🟢 Utente Nuovo / Valutatore** | **[Parte 1](#parte-1-per-principianti-concetti-glossario-e-avvio-in-3-comandi)** e **[Parte 2](#parte-2-tutorial-interattivo-passo-passo-4-esempi-pratici-reali)** | Spiegazione semplice, glossario senza gergo, avvio rapido e 4 tutorial pratici pronti all'uso. |
-| **🔵 Architetto di Prodotto / Flussi** | **[Parte 3](#parte-3-catalogo-panoramico-delle-16-skill-vocazionali)** e **[Parte 5](#parte-5-protocolli-architetturali-e-regole-di-sistema-crv-40-e-tensor-rsi)** | Le 16 skill vocazionali (`[0]`..`[14]`), la macchina a stati Auto-Brief a 5 turni e il Vibe Coding. |
-| **🟣 Ingegnere AI Senior / Auditor** | **[Parte 4](#parte-4-architettura-del-motore-core-e-30-moduli-script-33-file-python)**, **[Parte 6](#parte-6-fondamenti-matematici-e-motore-tensor-rsi-2d-sezione-senior-e-auditor)** e **[Parte 7](#parte-7-storico-changelog-e-matrice-dei-108-golden-tests-108108-pass)** | I 33 file Python core, le equazioni Tensor-RSI 2D, la matematica SBFL, gli SLA e i 108 Golden Tests. |
+| **🔵 Architetto di Prodotto / Flussi** | **[Parte 3](#parte-3-catalogo-panoramico-delle-16-skill-vocazionali)** e **[Parte 5](#parte-5-protocolli-architetturali-e-regole-di-sistema-crv-40-e-tensor-rsi)** | Le 16 skill vocazionali (`[0]`..`[14]`), i 5 domini `DOM-01..DOM-05` e la macchina Auto-Brief. |
+| **🟣 Ingegnere AI Senior / Auditor** | **[Parte 4](#parte-4-architettura-del-motore-core-e-31-moduli-logici-34-file-python)**, **[Parte 6](#parte-6-fondamenti-matematici-e-motore-tensor-rsi-2d-sezione-senior-e-auditor)** e **[Parte 7](#parte-7-evoluzione-patch-notes-e-matrice-dei-74-golden-tests-7474-pass)** | I 34 file Python core, le equazioni Tensor-RSI 2D, gli SLA e i 74 Golden Tests. |
 
 ---
 
@@ -57,6 +61,8 @@ Solo quando ogni verifica raggiunge il `100.0%`, la torre sposta il codice finit
 | Termine in `NK-Hub` | Significato Semplice Quotidiano | Ruolo Tecnico nel Sistema |
 | :--- | :--- | :--- |
 | **`NK-Hub` (Torre di Controllo)** | Il cervello centrale che coordina tutti gli specialisti. | Meta-piattaforma di orchestrazione che impone regole, routing e cancelli di qualità. |
+| **Indice Tassonomico O(1)** | Il catalogo istantaneo che trova subito la skill e lo script giusti. | Manifesto `nk_registry_manifest.json` e `SKILL_INDEX.md` con lookup `< 1 ms` e registrazione Hot-Swap. |
+| **5 Domini Funzionali (`DOM-01..DOM-05`)** | I 5 reparti specializzati della fabbrica software. | Partizione tassonomica di `16` skill e `32` moduli Python verificati con hash SHA-256. |
 | **Cartella Progetto Esterna** | La cartella separata dove nasce la tua vera applicazione. | Directory isolata (`../NK_External_Projects/<NomeApp>`) imposta da `[RULE-PROJECT-ISOLATION]`. |
 | **Area di Staging (`.staging/`)** | Il banco di lavoro sicuro dove il codice viene collaudato. | Buffer pre-produzione validato da AST Guard e pytest prima del commit atomico. |
 | **Nodi Vocazionali (`[0]`..`[14]`)** | 15 esperti AI specializzati (Designer, Builder, Auditor, ecc.). | Skill modulari in `.agents/skills/NK-*/SKILL.md` con permessi rigorosi di lettura e scrittura. |
@@ -67,8 +73,9 @@ Solo quando ogni verifica raggiunge il `100.0%`, la torre sposta il codice finit
 ### Flusso Visivo ad Alto Livello
 ```mermaid
 flowchart TD
-    U["Richiesta Utente o Trigger Verbale ('avvia nk')"] --> B["Bootstrap Fast-Stat (<120ms / <50ms su cache)"]
-    B --> M["Master Dashboard ([0]..[14]) o Router Goal-Driven"]
+    U["Richiesta Utente o Trigger Verbale ('avvia nk')"] --> B["Bootstrap Fast-Stat (<120ms) + Filtro 61 Skill Globali"]
+    B --> I["Indice Tassonomico O(1) (DOM-01..DOM-05, Lookup <1ms)"]
+    I --> M["Master Dashboard ([0]..[14]) o Router Goal-Driven"]
     M --> P["Auto-Brief Swarm FSM (5 Turni -> Tetralogia 4/4)"]
     P --> S["Builder in .staging/ + Validatore AST Guard"]
     S --> R["Ciclo Tensor-RSI 2D (SBFL Ochiai + Auto-Heal)"]
@@ -83,9 +90,11 @@ flowchart TD
    ```powershell
    python -u scripts/nk_session_bootstrap.py
    ```
-2. **Esegui il Controllo di Salute e la Verifica Convergenza RSI in Sola Lettura:**
+2. **Esegui il Controllo di Salute, la Verifica Indice O(1) e la Convergenza RSI:**
    ```powershell
    python -u scripts/preflight_health_check.py --check-only
+   python -u scripts/nk_registry_indexer.py --verify
+   python -u scripts/nk_registry_indexer.py --lookup DOM-03
    python -u scripts/rsi_convergence_engine.py --verify
    ```
 3. **Crea lo Scaffolding di un Nuovo Progetto Esterno:**
@@ -107,21 +116,21 @@ Quando apri il repository in Google Antigravity, scrivi in chat uno qualsiasi de
 **Cosa esegue il sistema automaticamente in 3 passi:**
 1. **Passo 1 (Cancello Fast-Stat):** L'agente esegue `scripts/nk_session_bootstrap.py` in `< 120` ms (`< 50` ms su cache hit). Verifica l'isolamento della root, pulisce i `.wal` scaduti e imposta `NK_MODEL_PROFILE=argon`.
 2. **Passo 2 (Master Dashboard a 15 Nodi):** L'agente mostra il menù interattivo dei 15 specialisti (`[0]` fino a `[14]`):
-   - **`[0] NK-Ideator`**: Ideazione Concettuale, Analisi SCAMPER, STORM e `/grill-me` (L0).
-   - **`[1] NK-App-UX-Architect`**: Macro-Architettura UX/UI, Design System 8px/HSL e Generative UI (L3).
-   - **`[2] NK-Backend-Architect`**: Topologie Backend 2-Tier DAG di Kahn, Pydantic v2 e OpenAPI 3.0 (L2).
-   - **`[3] NK-Agent-Instruction-Forge`**: Metaprompting L1 e Forgia Skill in ASD-STE100 (`/learn`, `/boost`).
-   - **`[4] NK-Python-Async-Builder`**: Builder Python Asincrono Primario e Fast-Healing in `.staging/` (L2).
-   - **`[5] NK-Delta-Architect`**: Refiner Chirurgico Post-Rilascio in `.staging/` (Worker Foglia a 1 Livello).
-   - **`[6] NK-Security-Auditor`**: Critic Swarm SAST L1/L2/L3 in Sola Lettura e Verifica CoVe.
-   - **`[7] NK-Oracle-Evaluator`**: Oracolo Deterministico Cold Audit (Gate 1-6) e Ispettore DOM L3 (`/browser`).
-   - **`[8] NK-Dynamic-Sandbox-StressTester`**: Esecutore Real DAST in Sandbox `%TEMP%\nk_sandbox_*`.
-   - **`[9] NK-Bug-Diagnostic-Engine`**: Localizzatore Guasti SBFL Ochiai (`< 80` token) e Analisi RCA.
-   - **`[10] NK-Plan-Aligner`**: Certificatore Turno 4 della Tetralogia Sovrana 4/4 e Gate `--verify`.
-   - **`[11] NK-State-Router`**: Verificatore Topologico DAG di Kahn e Rilevatore Drift SHA-256.
-   - **`[12] NK-Scribe`**: Cronista Post-Commit, Sincronizzatore Changelog SSOT e AST Repo-Map.
-   - **`[13] NK-Episodic-Memory-Engine`**: Motore Memoria 3-Tier (`ARCH`, `SEC`, `OPS`, `DEVX`) e Recupero RRF.
-   - **`[14] NK-Session-Controller`**: Supervisore di Sessione, Sovereign Critic, Loop RSI e Cold Reviewer a 6 Gate.
+   - **`[0] NK-Ideator` (`DOM-02`)**: Ideazione Concettuale, Analisi SCAMPER, STORM e `/grill-me` (L0).
+   - **`[1] NK-App-UX-Architect` (`DOM-02`)**: Macro-Architettura UX/UI, Design System 8px/HSL e Generative UI (L3).
+   - **`[2] NK-Backend-Architect` (`DOM-02`)**: Topologie Backend 2-Tier DAG di Kahn, Pydantic v2 e OpenAPI 3.0 (L2).
+   - **`[3] NK-Agent-Instruction-Forge` (`DOM-02`)**: Metaprompting L1 e Forgia Skill in ASD-STE100 (`/learn`, `/boost`).
+   - **`[4] NK-Python-Async-Builder` (`DOM-03`)**: Builder Python Asincrono Primario e Fast-Healing in `.staging/` (L2).
+   - **`[5] NK-Delta-Architect` (`DOM-03`)**: Refiner Chirurgico Post-Rilascio in `.staging/` (Worker Foglia a 1 Livello).
+   - **`[6] NK-Security-Auditor` (`DOM-04`)**: Critic Swarm SAST L1/L2/L3 in Sola Lettura e Verifica CoVe.
+   - **`[7] NK-Oracle-Evaluator` (`DOM-04`)**: Oracolo Deterministico Cold Audit (Gate 1-6) e Ispettore DOM L3 (`/browser`).
+   - **`[8] NK-Dynamic-Sandbox-StressTester` (`DOM-04`)**: Esecutore Real DAST in Sandbox `%TEMP%\nk_sandbox_*`.
+   - **`[9] NK-Bug-Diagnostic-Engine` (`DOM-04`)**: Localizzatore Guasti SBFL Ochiai (`< 80` token) e Analisi RCA.
+   - **`[10] NK-Plan-Aligner` (`DOM-01`)**: Certificatore Turno 4 della Tetralogia Sovrana 4/4 e Gate `--verify`.
+   - **`[11] NK-State-Router` (`DOM-01`)**: Verificatore Topologico DAG di Kahn e Rilevatore Drift SHA-256.
+   - **`[12] NK-Scribe` (`DOM-05`)**: Cronista Post-Commit, Sincronizzatore Changelog SSOT e AST Repo-Map.
+   - **`[13] NK-Episodic-Memory-Engine` (`DOM-05`)**: Motore Memoria 3-Tier (`ARCH`, `SEC`, `OPS`, `DEVX`) e Recupero RRF.
+   - **`[14] NK-Session-Controller` (`DOM-01`)**: Supervisore di Sessione, Sovereign Critic, Loop RSI e Cold Reviewer a 6 Gate.
 3. **Passo 3 (Scelta Operativa a Due Vie):**
    - **Modalità Diretta:** Digita un numero da **`[0]` a `[14]`** per interpellare direttamente un singolo nodo.
    - **Modalità Goal-Driven:** Descrivi il tuo obiettivo in linguaggio naturale e lascia che lo sciame lavori per te.
@@ -205,6 +214,7 @@ sequenceDiagram
 
 | Modalità | Condizione di Attivazione | Velocità e Ambito | Cancelli di Verifica Attivi |
 | :--- | :--- | :--- | :--- |
+| **`Mode D` (Analytical Discovery)** | Prompt analitici, benchmark, audit o ricerca MCP/Web | Sola lettura (`read_only: true`), zero mutazioni | Routing O(1) via `vibe_sprint_router.py` + Connettori MCP |
 | **`Mode C` (Vibe-Sprint)** | `<= 150` LOC, `AST max_depth <= 1`, `0` import critici | Verifica `< 500 ms`, max `2` retry RSI | `ASTGuardValidator` + `--vibe-check` (`VIBE_SPRINT_MICRO_RSI`) |
 | **`Mode B` (CRV Lite)** | Bugfix backend o refactoring mirato multi-file | Loop `< 15 s`, max `3` retry RSI | Staging + `SBFLPytestBridge` + `AutoHealPipeline` (`CODE_RSI`) |
 | **`Mode A` (Sovereign CRV 4.0)** | `/plan`, `/goal`, nuova app o rilascio architetturale | FSM a 5 Turni + 4 Macro-Fasi, max `5` retry RSI | Cold Audit a 6 Gate + SAST L1-L3 + Real DAST + Win32 2PC |
@@ -213,40 +223,41 @@ sequenceDiagram
 
 ## Parte 3: Catalogo Panoramico delle 16 Skill Vocazionali
 
-Ogni skill in `.agents/skills/NK-*/SKILL.md` applica `[RULE-STE100]`, `[RULE-RSI.1]` e i confini degli strumenti `GT-14`.
+Ogni skill in `.agents/skills/NK-*/SKILL.md` applica `[RULE-STE100]`, `[RULE-RSI.1]`, `[RULE-01.14]` e i confini `GT-14`.
 
-| Nome Skill | Nodo | Ruolo e Ambito Architetturale | Fase CRV / FSM | Confine Strumenti (`GT-14`) | Profilo Tensor-RSI (`<rsi_micro_loop>`) | File Ausiliari Linkati |
-| :--- | :---: | :--- | :---: | :--- | :--- | :--- |
-| [NK-Master-Hub](.agents/skills/NK-Master-Hub/SKILL.md) | L3 | Router DAG 2-Tier e Committer Win32 2PC | Macro 3 e 4 | Sovereign Committer | `L1` / `CODE_RSI` (`2/3/5`) | Nessuno |
-| [NK-Ideator](.agents/skills/NK-Ideator/SKILL.md) | `[0]` | Ideazione, SCAMPER, STORM e `/grill-me` | FSM Turno 1 | Confinato a `nk_genome/` | `L1` / `SPEC_RSI` (`1/2/3`) | `resources/idea_canvas_template.md` |
-| [NK-App-UX-Architect](.agents/skills/NK-App-UX-Architect/SKILL.md) | `[1]` | Design System 8px/HSL e Generative UI | FSM Turno 1 | Confinato a `nk_genome/` | `L1` / `UI_UX_RSI` (`2/2/3`) | Nessuno |
-| [NK-Backend-Architect](.agents/skills/NK-Backend-Architect/SKILL.md) | `[2]` | DAG Backend 2-Tier, OpenAPI 3.0 e Pydantic v2 | FSM Turno 1 e 3 | Confinato a `nk_genome/` | `L1` / `SPEC_RSI` (`1/2/3`) | Nessuno |
-| [NK-Agent-Instruction-Forge](.agents/skills/NK-Agent-Instruction-Forge/SKILL.md) | `[3]` | Forgia Skill ASD-STE100 e Meta-RSI (`/learn`) | FSM Turno 1 e 3 | Staging + Golden Eval | `L3` / `STE100_RSI` (`1/1/2`) | Nessuno |
-| [NK-Python-Async-Builder](.agents/skills/NK-Python-Async-Builder/SKILL.md) | `[4]` | Builder Primario Python Asincrono in `.staging/` | Macro 1 | Scrittura in `.staging/` | `L1` / `CODE_RSI` (`2/3/5`) | Nessuno |
-| [NK-Delta-Architect](.agents/skills/NK-Delta-Architect/SKILL.md) | `[5]` | Refiner Chirurgico a 4 Blocchi in `.staging/` | Macro 1 | Scrittura in `.staging/` | `L1` / `VIBE_SPRINT` (`2/3/5`) | `resources/delta_brief_template.md` |
-| [NK-Security-Auditor](.agents/skills/NK-Security-Auditor/SKILL.md) | `[6]` | Critic Swarm SAST L1/L2/L3 e Verifica CoVe | Macro 2 | 100% Sola Lettura | `L0` / `CODE_RSI` (`1/2/3`) | `resources/audit_checklists_l1_l2_l3.md` |
-| [NK-Oracle-Evaluator](.agents/skills/NK-Oracle-Evaluator/SKILL.md) | `[7]` | Cold Evaluator (Gate 1-6) e Ispettore DOM L3 | Macro 2 | 100% Sola Lettura | `L1` / `UI_UX_RSI` (`1/2/3`) | `references/anti_pattern_guards.md`, `references/verification_oracles.md` |
-| [NK-Dynamic-Sandbox-StressTester](.agents/skills/NK-Dynamic-Sandbox-StressTester/SKILL.md) | `[8]` | Concorrenza Real DAST in `%TEMP%\nk_sandbox_*` | Macro 2 | 100% Sola Lettura | `L1` / `CODE_RSI` (`1/2/3`) | Nessuno |
-| [NK-Bug-Diagnostic-Engine](.agents/skills/NK-Bug-Diagnostic-Engine/SKILL.md) | `[9]` | Localizzatore RCA SBFL Ochiai e Gate Falsi Bug | Macro 1 e 2 | 100% Sola Lettura | `L1` / `CODE_RSI` (`1/2/3`) | `resources/false_bug_rejection_rules.yaml`, `resources/rca_dual_language_template.md` |
-| [NK-Plan-Aligner](.agents/skills/NK-Plan-Aligner/SKILL.md) | `[10]` | Allineatore Tetralogia 4/4 e Gate `--verify` | FSM Turno 4 | 100% Sola Lettura | `L1` / `SPEC_RSI` (`1/1/2`) | Nessuno |
-| [NK-State-Router](.agents/skills/NK-State-Router/SKILL.md) | `[11]` | Verificatore DAG di Kahn e Drift SHA-256 | Macro 3 | 100% Sola Lettura | `L0` / `CODE_RSI` (`1/1/2`) | Nessuno |
-| [NK-Scribe](.agents/skills/NK-Scribe/SKILL.md) | `[12]` | Sincronizzatore SSOT, Repo-Map e Publisher Git | Post-Macro 3 | Doc e Tracking (`[RULE-00.2]`) | `L1` / `STE100_RSI` (`1/1/2`) | `resources/activity_anchor_schema.md`, `resources/scribe_knowledge.md` |
-| [NK-Episodic-Memory-Engine](.agents/skills/NK-Episodic-Memory-Engine/SKILL.md) | `[13]` | Memoria 3-Tier (`ARCH, SEC, OPS, DEVX`) e Capsule | Post-Macro 3 | Solo Registro Memoria | `L2` / `SPEC_RSI` (`1/1/2`) | Nessuno |
-| [NK-Session-Controller](.agents/skills/NK-Session-Controller/SKILL.md) | `[14]` | Supervisore Sessione, FSM a 5 Turni e Cold Review | FSM Turni 1-5 | Sovereign Critic | `L2` / `SPEC_RSI` (`2/3/5`) | `clean_handoff_protocol.md`, `handoff_anchor_schema.md`, `prompt_templates.md`, `saturation_thresholds.yaml` |
+| Nome Skill | Nodo | Dominio | Ruolo e Ambito Architetturale | Fase CRV / FSM | Confine Strumenti (`GT-14`) | Profilo Tensor-RSI | File Ausiliari Linkati |
+| :--- | :---: | :---: | :--- | :---: | :--- | :--- | :--- |
+| [NK-Master-Hub](.agents/skills/NK-Master-Hub/SKILL.md) | L3 | `DOM-01` | Router DAG 2-Tier e Committer Win32 2PC | Macro 3 e 4 | Sovereign Committer | `L1` / `CODE_RSI` (`2/3/5`) | Nessuno |
+| [NK-Ideator](.agents/skills/NK-Ideator/SKILL.md) | `[0]` | `DOM-02` | Ideazione, SCAMPER, STORM e `/grill-me` | FSM Turno 1 | Confinato a `nk_genome/` | `L1` / `SPEC_RSI` (`1/2/3`) | `resources/idea_canvas_template.md` |
+| [NK-App-UX-Architect](.agents/skills/NK-App-UX-Architect/SKILL.md) | `[1]` | `DOM-02` | Design System 8px/HSL e Generative UI | FSM Turno 1 | Confinato a `nk_genome/` | `L1` / `UI_UX_RSI` (`2/2/3`) | Nessuno |
+| [NK-Backend-Architect](.agents/skills/NK-Backend-Architect/SKILL.md) | `[2]` | `DOM-02` | DAG Backend 2-Tier, OpenAPI 3.0 e Pydantic v2 | FSM Turno 1 e 3 | Confinato a `nk_genome/` | `L1` / `SPEC_RSI` (`1/2/3`) | Nessuno |
+| [NK-Agent-Instruction-Forge](.agents/skills/NK-Agent-Instruction-Forge/SKILL.md) | `[3]` | `DOM-02` | Forgia Skill ASD-STE100 e Meta-RSI (`/learn`) | FSM Turno 1 e 3 | Staging + Golden Eval | `L3` / `STE100_RSI` (`1/1/2`) | Nessuno |
+| [NK-Python-Async-Builder](.agents/skills/NK-Python-Async-Builder/SKILL.md) | `[4]` | `DOM-03` | Builder Primario Python Asincrono in `.staging/` | Macro 1 | Scrittura in `.staging/` | `L1` / `CODE_RSI` (`2/3/5`) | Nessuno |
+| [NK-Delta-Architect](.agents/skills/NK-Delta-Architect/SKILL.md) | `[5]` | `DOM-03` | Refiner Chirurgico a 4 Blocchi in `.staging/` | Macro 1 | Scrittura in `.staging/` | `L1` / `VIBE_SPRINT` (`2/3/5`) | `resources/delta_brief_template.md` |
+| [NK-Security-Auditor](.agents/skills/NK-Security-Auditor/SKILL.md) | `[6]` | `DOM-04` | Critic Swarm SAST L1/L2/L3 e Verifica CoVe | Macro 2 | 100% Sola Lettura | `L0` / `CODE_RSI` (`1/2/3`) | `resources/audit_checklists_l1_l2_l3.md`, `resources/tas_l1_module_audit.md`, `resources/tas_l2_ipc_contract_audit.md`, `resources/tas_l3_fullstack_system_audit.md` |
+| [NK-Oracle-Evaluator](.agents/skills/NK-Oracle-Evaluator/SKILL.md) | `[7]` | `DOM-04` | Cold Evaluator (Gate 1-6) e Ispettore DOM L3 | Macro 2 | 100% Sola Lettura | `L1` / `UI_UX_RSI` (`1/2/3`) | `references/anti_pattern_guards.md`, `references/verification_oracles.md` |
+| [NK-Dynamic-Sandbox-StressTester](.agents/skills/NK-Dynamic-Sandbox-StressTester/SKILL.md) | `[8]` | `DOM-04` | Concorrenza Real DAST in `%TEMP%\nk_sandbox_*` | Macro 2 | 100% Sola Lettura | `L1` / `CODE_RSI` (`1/2/3`) | Nessuno |
+| [NK-Bug-Diagnostic-Engine](.agents/skills/NK-Bug-Diagnostic-Engine/SKILL.md) | `[9]` | `DOM-04` | Localizzatore RCA SBFL Ochiai e Gate Falsi Bug | Macro 1 e 2 | 100% Sola Lettura | `L1` / `CODE_RSI` (`1/2/3`) | `resources/false_bug_rejection_rules.yaml`, `resources/rca_dual_language_template.md` |
+| [NK-Plan-Aligner](.agents/skills/NK-Plan-Aligner/SKILL.md) | `[10]` | `DOM-01` | Allineatore Tetralogia 4/4 e Gate `--verify` | FSM Turno 4 | 100% Sola Lettura | `L1` / `SPEC_RSI` (`1/1/2`) | Nessuno |
+| [NK-State-Router](.agents/skills/NK-State-Router/SKILL.md) | `[11]` | `DOM-01` | Verificatore DAG di Kahn e Drift SHA-256 | Macro 3 | 100% Sola Lettura | `L0` / `CODE_RSI` (`1/1/2`) | Nessuno |
+| [NK-Scribe](.agents/skills/NK-Scribe/SKILL.md) | `[12]` | `DOM-05` | Sincronizzatore SSOT, Repo-Map e Publisher Git | Post-Macro 3 | Doc e Tracking (`[RULE-00.2]`) | `L1` / `STE100_RSI` (`1/1/2`) | `resources/activity_anchor_schema.md`, `resources/scribe_knowledge.md` |
+| [NK-Episodic-Memory-Engine](.agents/skills/NK-Episodic-Memory-Engine/SKILL.md) | `[13]` | `DOM-05` | Memoria 3-Tier (`ARCH, SEC, OPS, DEVX`) e Capsule | Post-Macro 3 | Solo Registro Memoria | `L2` / `SPEC_RSI` (`1/1/2`) | Nessuno |
+| [NK-Session-Controller](.agents/skills/NK-Session-Controller/SKILL.md) | `[14]` | `DOM-01` | Supervisore Sessione, FSM a 5 Turni e Cold Review | FSM Turni 1-5 | Sovereign Critic | `L2` / `SPEC_RSI` (`2/3/5`) | `clean_handoff_protocol.md`, `handoff_anchor_schema.md`, `prompt_templates.md`, `saturation_thresholds.yaml` |
 
 ---
 
-## Parte 4: Architettura del Motore Core e 30 Moduli Script (`33 File Python`)
+## Parte 4: Architettura del Motore Core e 31 Moduli Logici (`34 File Python`)
 
-Tutti i `33` file Python in `scripts/` usano contratti Pydantic v2 strict e superano `108/108` Golden Tests Zero-Mock.
+Tutti i `34` file Python in `scripts/` (`32` moduli indicizzati nel manifesto) superano `74/74` Golden Tests Zero-Mock.
 
-### 1. Difesa Runtime, Governance di Sessione e Convergenza Tensor-RSI
+### 1. Difesa Runtime, Governance di Sessione, Indice O(1) e Convergenza Tensor-RSI
+- [`scripts/nk_registry_indexer.py`](scripts/nk_registry_indexer.py): Indicizzatore O(1) dei `5` domini `DOM-01..DOM-05` con registrazione Hot-Swap automatica, verifica SHA-256 in `123 ms` e `--apply-global-filter`.
 - [`scripts/nk_session_bootstrap.py`](scripts/nk_session_bootstrap.py): Cancello Fast-Stat (`< 50` ms su cache hit tramite `transcript_mtime` e `transcript_size`), pulizia `.wal`, verifica isolamento root e attivazione `NK_MODEL_PROFILE=argon`.
-- [`scripts/rsi_convergence_engine.py`](scripts/rsi_convergence_engine.py): Motore Tensor-RSI 2D con `RSIProfileRegistry`, calcolo di $\Delta_k$ e $Q(S_k)$ e guardie `G1..G6`. Include `--vibe-check <target>`, CoVe CLI AST Gate (`verify_cli_flags_cove`) e validatore STE100 (`--verify`).
+- [`scripts/rsi_convergence_engine.py`](scripts/rsi_convergence_engine.py): Motore Tensor-RSI 2D con `RSIProfileRegistry`, canali `poc_confirmed_exploits` e `semantic_drift_findings`, `--vibe-check <target>`, CoVe CLI AST Gate e validatore STE100.
 - [`scripts/nk_active_runtime_sentinel.py`](scripts/nk_active_runtime_sentinel.py): Sentinella step Dual-Profile (`60/85/100` standard, `120/180/250` argon) con filtro dei transcript dei sub-agenti (`EXT-02`).
 - [`scripts/nk_context_sentry.py`](scripts/nk_context_sentry.py): Sentinella token/step Dual-Profile (`70/100` standard, `150/250` argon senza `thinking`) e filtro ritorni sub-agenti (`2000` char MTU).
 - [`scripts/nk_compliance_checker.py`](scripts/nk_compliance_checker.py): Revisore transcript con `DDI_DIRECT_STREAK_LIMIT = 12`, esenzione AST su `write_calls == 0`, lettura di `rsi_telemetry.jsonl` e guardie `GT-08`/`GT-10`.
-- [`scripts/preflight_health_check.py`](scripts/preflight_health_check.py): Sonda diagnostica di manutenzione con modalità `--check-only` per CI e verifica fail-closed (`BS-01`).
+- [`scripts/preflight_health_check.py`](scripts/preflight_health_check.py): Sonda diagnostica disaccoppiata tramite manifesto SSOT `nk_registry_manifest.json` con modalità `--check-only` per CI (`BS-01`).
 - [`scripts/platform_runner.py`](scripts/platform_runner.py): Esecutore sicuro di sottoprocessi con iniezione `-u` su liste e stringhe (`BS-04`) e flussi UTF-8.
 - [`scripts/env_capability_probe.py`](scripts/env_capability_probe.py): Sonda di ambiente che separa `core_hub_modules` da `optional_app_modules` (`GT-09`).
 
@@ -266,18 +277,18 @@ Tutti i `33` file Python in `scripts/` usano contratti Pydantic v2 strict e supe
 - [`scripts/sbfl_pytest_bridge.py`](scripts/sbfl_pytest_bridge.py): Parser traceback compatibile con spazi nei path Windows e `suspiciousness == 1.0` (`GT-07`).
 - [`scripts/auto_heal_pipeline.py`](scripts/auto_heal_pipeline.py): Pipeline di riparazione autonoma collegata a `ASTGuardValidator` e `RSIConvergenceEngine` con telemetria in `rsi_telemetry.jsonl`.
 - [`scripts/invisible_healing_loop.py`](scripts/invisible_healing_loop.py): Wrapper di auto-riparazione in `.staging/` che delega a `auto_heal_pipeline.py`.
-- [`scripts/oracle_evaluator_l3.py`](scripts/oracle_evaluator_l3.py): Valutatore DOM L3 compatibile con i void tag HTML5 e i percorsi Windows (`U-27`).
+- [`scripts/oracle_evaluator_l3.py`](scripts/oracle_evaluator_l3.py): Valutatore DOM L3 compatibile con i void tag HTML5, attributi ARIA e percorsi Windows (`U-27`).
 - [`scripts/micro_hud_renderer.py`](scripts/micro_hud_renderer.py): Renderizzatore telemetrico a riga singola CP1252/UTF-8 allineato a `MicroUIHUDState`.
-- [`scripts/dast_sandbox_runner.py`](scripts/dast_sandbox_runner.py): Runner isolato con Job Objects Win32 a 64-bit in `%TEMP%\nk_sandbox_*`.
+- [`scripts/dast_sandbox_runner.py`](scripts/dast_sandbox_runner.py): Runner isolato con Job Objects Win32 a 64-bit e limiti di memoria in `%TEMP%\nk_sandbox_*`.
 
 ### 5. Memoria, Cache, AST e Schemi
 - [`scripts/memory_3tier_engine.py`](scripts/memory_3tier_engine.py): Memoria a 3 livelli con `DOMAIN_ALIAS_MAP` (`ARCH, SEC, OPS, DEVX`), cap `350`/`1200` token (`GT-05`), sincronizzazione `tier1_active_capsule.json` e CLI completa (`--recall`, `--append`, `--tier1-sync`).
 - [`scripts/deterministic_api_cache.py`](scripts/deterministic_api_cache.py): Cache SQLite WAL con connessione persistente e interfaccia CLI (`--force-refresh`, `--stats`, `--clear`).
-- [`scripts/quality_baseline_manager.py`](scripts/quality_baseline_manager.py): Gestore Ratchet fail-closed (`108` Golden Tests) che controlla `sast_critical_violations` e `rsi_residual_delta` (`--file`, `--update`, `--check-only`).
-- [`scripts/ast_guard_validator.py`](scripts/ast_guard_validator.py): Validatore statico AST con tracciamento `function_depth`, alias `--stage-dir` e controllo `SASTConstructChecker` (`eval`, `exec`, `pickle.loads`, `yaml.load`, `MagicMock`).
+- [`scripts/quality_baseline_manager.py`](scripts/quality_baseline_manager.py): Gestore Ratchet fail-closed (`74` Golden Tests, pavimento `>= 60`) che controlla `sast_critical_violations` e `rsi_residual_delta`.
+- [`scripts/ast_guard_validator.py`](scripts/ast_guard_validator.py): Validatore statico AST con tracciamento `function_depth`, whitelist `--allowed-mutations`, alias `--stage-dir` e controllo SAST (`eval`, `exec`, SQL, XXE, SSRF, `MagicMock`).
 - [`scripts/ast_repo_mapper.py`](scripts/ast_repo_mapper.py): Mappatore AST PageRank con salvataggio `edges` e snapshot `argon_mode_a` a `4.000` token (`GT-06`).
 - [`scripts/external_project_scaffolder.py`](scripts/external_project_scaffolder.py): Generatore di progetti esterni che blocca qualsiasi percorso interno a `NK-Hub` (`BS-03`).
-- [`scripts/vibe_sprint_router.py`](scripts/vibe_sprint_router.py): Router Mode A/B/C che calcola la profondità AST `max_depth` (`<= 150` LOC) ed esegue `load_prewarmed_capsule()` in `< 2 ms`.
+- [`scripts/vibe_sprint_router.py`](scripts/vibe_sprint_router.py): Router Mode A/B/C/D disaccoppiato tramite manifesto SSOT. Risolve dominio e skill in `O(1)` e pre-carica la capsula in `< 2 ms`.
 - [`scripts/schemas/dual_ledgers.py`](scripts/schemas/dual_ledgers.py) e [`scripts/schemas/nk_ipc_contracts.py`](scripts/schemas/nk_ipc_contracts.py): Verifica PID a 64-bit (`ERROR_ACCESS_DENIED` safe) e contratti IPC Pydantic v2 unificati (`RSIDefectVector`, `OchiaiDiagnosticPayload`).
 
 ---
@@ -291,8 +302,19 @@ Tutti i `33` file Python in `scripts/` usano contratti Pydantic v2 strict e supe
 4. **`[RULE-STE100]`**: Italiano Tecnico ASD-STE100 obbligatorio (`<= 20` parole per frase operativa, forma attiva, zero trattini spaziati).
 5. **`[RULE-REACTIVE-SILENCE]`**: Vietati i cicli di polling (`manage_task(Action="status")`). Gli agenti cedono il turno o usano timer reattivi.
 6. **`[RULE-01]` e `[RULE-SWARM-HYGIENE]`**: Delega 2-Tier a singolo livello (`enable_subagent_tools=False`), Fast-Track a `12` chiamate e limite `1.800` caratteri MSS.
-7. **`[RULE-01.2]` e `[RULE-01.10]`**: Esecuzione reale Zero-Mock e ratchet permanente che protegge i `108` Golden Tests al `100.0%` di successo.
+7. **`[RULE-01.2]` e `[RULE-01.10]`**: Esecuzione reale Zero-Mock e ratchet permanente che protegge i `74` Golden Tests ortogonali al `100.0%` di successo.
 8. **`[RULE-RSI]` e `[RULE-RSI.1]`**: Convergenza continua Tensor-RSI 2D ($\Delta_k = 0, Q(S_k) = 100.0$) su `4` livelli e `5` profili di dominio.
+9. **`[RULE-01.14]` (`MODULAR_O1_REGISTRY_AND_ZERO_REWRITE_MANDATE`)**: Risoluzione `O(1)` di skill e script tramite `nk_registry_manifest.json` e `SKILL_INDEX.md` con auto-registrazione Hot-Swap Zero-Rewrite.
+
+### Mappa Tassonomica dei 5 Domini Funzionali (`DOM-01..DOM-05`)
+
+| ID Dominio | Settore Tassonomico | Skill Primaria | Skill Indicizzate | Moduli Script Indicizzati |
+| :--- | :--- | :--- | :---: | :---: |
+| **`DOM-01`** | `GOV_AND_ROUTING` | `NK-Master-Hub` | `4` (`Hub`, `[10]`, `[11]`, `[14]`) | `8` (`nk_registry_indexer.py`, `vibe_sprint_router.py`, `win32_2pc_engine.py`, ecc.) |
+| **`DOM-02`** | `IDEATION_AND_ARCH` | `NK-Ideator` | `4` (`[0]`, `[1]`, `[2]`, `[3]`) | `3` (`ast_repo_mapper.py`, `env_capability_probe.py`, `external_project_scaffolder.py`) |
+| **`DOM-03`** | `BUILD_AND_HEAL` | `NK-Python-Async-Builder` | `2` (`[4]`, `[5]`) | `7` (`auto_heal_pipeline.py`, `healing_snapshot_rollback.py`, `platform_runner.py`, ecc.) |
+| **`DOM-04`** | `AUDIT_DAST_AND_RCA` | `NK-Security-Auditor` | `4` (`[6]`, `[7]`, `[8]`, `[9]`) | `6` (`ast_guard_validator.py`, `dast_sandbox_runner.py`, `rsi_convergence_engine.py`, ecc.) |
+| **`DOM-05`** | `MEMORY_TELEMETRY_AND_DOCS` | `NK-Scribe` | `2` (`[12]`, `[13]`) | `8` (`memory_3tier_engine.py`, `preflight_health_check.py`, `quality_baseline_manager.py`, ecc.) |
 
 ### Protocollo CRV 4.0 (4 Macro-Fasi) e 6 Cancelli di Cold Review
 
@@ -355,55 +377,93 @@ Qualsiasi regressione sui cancelli rigidi ($\text{SAST}_k > \text{SAST}_{k-1}$ o
 
 ### 4. Matrice Rigida delle Latenze SLA (Misurate su Windows 11 64-bit)
 
-| Operazione / Motore | SLA Target | Prestazione Misurata in `v3.1.0-Tensor-RSI` |
+| Operazione / Motore | SLA Target | Prestazione Misurata in `v3.5.2-Global-Filter-61-Skills` |
 | :--- | :---: | :---: |
-| **Bootstrap di Sessione Fast-Stat (`nk_session_bootstrap.py`)** | `< 120 ms` (`< 50 ms` su cache) | **`18 ms - 42 ms`** |
-| **Vibe-Check Singolo Processo in Mode C (`--vibe-check`)** | `< 500 ms` | **`65 ms`** |
+| **Bootstrap di Sessione Fast-Stat (`nk_session_bootstrap.py`)** | `< 120 ms` (`< 50 ms` su cache) | **`11..35 ms`** |
+| **Lookup Tassonomico O(1) (`nk_registry_indexer.py --lookup`)** | `< 5 ms` | **`< 1.0 ms`** |
+| **Verifica Integrità SHA-256 (`nk_registry_indexer.py --verify`)** | `< 350 ms` | **`123 ms`** |
+| **Filtro Isolamento 61 Skill Globali (`--apply-global-filter`)** | `0` skill esterne | **`0 attive (-7.042 token/turno)`** |
+| **Vibe-Check Singolo Processo in Mode C (`--vibe-check`)** | `< 500 ms` | **`15..65 ms`** |
 | **Pre-Caricamento Capsula (`load_prewarmed_capsule`)** | `< 5 ms` | **`< 1.5 ms`** |
 | **Verifica Completa Ecosistema RSI e CoVe (`--verify`)** | `< 2.000 ms` | **`410 ms`** |
 | **Promozione Atomica Win32 2PC (`win32_2pc_engine.py`)** | `< 350 ms` | **`85 ms`** |
-| **Suite Permanente di 108 Golden Tests (`pytest tests/ -q`)** | `< 25 s` | **`19.53 s` (`108/108 PASS`)** |
+| **Suite Ortogonale di 74 Golden Tests (`pytest tests/ -q`)** | `< 7 s` | **`5.49 s (74/74 PASS)`** |
 
 ---
 
-## Parte 7: Storico Changelog e Matrice dei 108 Golden Tests (`108/108 PASS`)
+## Parte 7: Evoluzione, Patch Notes e Matrice dei 74 Golden Tests (`74/74 PASS`)
 
-### Sintesi dello Storico delle Release
-- **v3.1.0-Tensor-RSI (Attuale)**: Introduce il motore Tensor-RSI 2D (`[RULE-RSI.1]`), `RSIProfileRegistry`, `--vibe-check` (`< 500 ms`), CoVe CLI AST e `tier1_active_capsule.json`. Aggiunge `idea_canvas.md`, rigenera `repo_map.md` a `4.000` token ed espande la suite a **108 Golden Tests** (`108/108 PASS`).
-- **v3.0.0-STE100-Unified**: Introduce `[RULE-STE100]`, `[RULE-RSI]`, profilo `argon`, topologia 2-Tier e pulizia di `39` file ausiliari. Ripara i `29` script core sotto `GT-01..GT-10` ed espande la suite a **100 Golden Tests** (`100/100 PASS`).
-- **v2.6.1-Controller-Hotfix**: Chiusura risorse SQLite, snapshot anti-collisione, filtro task in background e 79 Golden Tests.
-- **v2.6.0-DualEngine-Symbiosis**: Integrazione `/plan` e `/goal`, 4 scudi avversariali, 3 pilastri fast-healing e 79 Golden Tests.
-- **v2.5.2-Hardened**: Mandato `[RULE-00.5]`, `oracle_evaluator_l3.py`, `micro_hud_renderer.py` e 78 Golden Tests.
+### 1. Evoluzione del Sistema: Come Era Prima vs Migliorie Apportate vs Come Si Comporta Adesso
 
-### Matrice Certificata dei 108 Golden Tests (`108/108 PASS`)
+| Area del Sistema | Come Era Prima (`v3.1.0..v3.4.0`) | Migliorie Apportate (`v3.5.0..v3.5.2`) | Come Si Comporta Adesso in Pratica |
+| :--- | :--- | :--- | :--- |
+| **Organizzazione Skill** | `16` skill piatte senza metadati di dominio nel frontmatter YAML (`0/16`). | Introdotti i `5` domini `DOM-01..DOM-05` e `[RULE-01.14]` nel `100%` delle skill. | Ogni nodo conosce il proprio dominio funzionale e la propria skill primaria. |
+| **Ricerca Moduli e Script** | Scansione lineare `O(N)` su più file e tuple hardcoded nei controlli. | Creato `nk_registry_manifest.json` e `SKILL_INDEX.md` per risoluzione `O(1)`. | `vibe_sprint_router.py` e `--lookup` risolvono dominio, skill e flag in `< 1 ms`. |
+| **Aggiunta di Nuovi Moduli (Hot-Swap)** | Richiedeva modifiche manuali in `12+` file e dizionari statici interni. | `nk_registry_indexer.py --sync` legge direttamente YAML e docstring AST. | Basta creare la cartella della skill o lo script: zero file esterni da riscrivere. |
+| **Igiene Contesto Globale (61 Skill)** | `61` skill globali in `~/.gemini/config` iniettavano `28.170` byte ad ogni turno. | Aggiunto `--apply-global-filter` che isola le `61` skill in `4` plugin disabilitati. | `0` skill globali esterne attive e risparmio netto di `7.042` token per turno. |
+| **Audit di Sicurezza TAS v4.0** | Checklist monolitica e controllo mutazioni AST privo di whitelist. | `4` matrici modulari TAS v4.0, `--allowed-mutations` e canali PoC/Drift in RSI. | L'auditor carica solo la matrice dello stack attivo e blocca mutazioni fuori scopo. |
+| **Hook di Ciclo di Vita (`.agents/hooks.json`)** | Schema `LEGACY_WRAPPER_ONLY` non allineato al formato nativo 2.0. | Adottato lo schema `DUAL_COMPATIBLE_NATIVE_AND_NK` con `timeout` e `timeout_ms`. | Gli hook `SessionStart`, `PostToolUse` e `Stop` girano sia su runtime nativo sia su Hub. |
+| **Suite Golden Tests e Modularity Score** | `68` test in `4.75 s` e Modularity Score fermo a `50.0 / 100.0`. | Aggiunti `6` test in `test_nk_registry_indexer.py` su indice, Hot-Swap e filtro. | `74 / 74 PASS` in `5.49 s` con Modularity Score certificato a `100.0 / 100.0`. |
+
+### 2. Finestra Comportamentale: Come Si Comporta Adesso l'Ambiente in Tempo Reale
+
+Il riquadro seguente mostra cosa accade quando avvii `NK-Hub`, interroghi un dominio in `< 1 ms` e verifichi l'assenza di inquinamento esterno:
+
+```text
+PS G:\Il mio Drive\Antigravity> python -u scripts/nk_session_bootstrap.py --json
+{"status": "READY", "profile": "argon", "fast_stat_ms": 14.2, "global_skills_active": 0, "tokens_saved_per_turn": 7042}
+
+PS G:\Il mio Drive\Antigravity> python -u scripts/nk_registry_indexer.py --lookup DOM-03
+{"domain_id": "DOM-03", "name": "BUILD_AND_HEAL", "primary_skill": "NK-Python-Async-Builder", "skills_count": 2, "scripts_count": 7, "lookup_ms": 0.42}
+
+PS G:\Il mio Drive\Antigravity> python -u scripts/nk_registry_indexer.py --verify
+{"status": "VERIFIED_OK", "skills": 16, "scripts": 32, "modularity_score": 100.0, "external_active_skills": 0, "verify_ms": 123.4}
+
+PS G:\Il mio Drive\Antigravity> python -u -m pytest tests/ -q
+74 passed in 5.49s
+```
+
+### 3. Storico Cronologico delle Patch Notes
+- **v3.5.2-Global-Filter-61-Skills (Attuale)**: Introduce `--apply-global-filter` e `apply_global_filter()` in `nk_registry_indexer.py`. Isola `61` skill globali (`-7.042` token/turno) ed eleva la suite a **74 Golden Tests** (`5.49 s`).
+- **v3.5.1-RSI2 / v3.5.0-Modular-Index**: Introduce `[RULE-01.14]`, `nk_registry_indexer.py`, `nk_registry_manifest.json` e `SKILL_INDEX.md` sui `5` domini `DOM-01..DOM-05`. Abilita l'auto-registrazione Hot-Swap Zero-Rewrite, la verifica SHA-256 in `123 ms` e `.agents/hooks.json` dual-compatible.
+- **v3.4.0-TAS-v4-NeuroSym**: Rifonda `NK-Security-Auditor` con `4` matrici modulari TAS v4.0. Aggiunge `--allowed-mutations` in `ast_guard_validator.py` e i canali `poc_confirmed_exploits` e `semantic_drift_findings` in Tensor-RSI.
+- **v3.3.0-GT68-Pareto**: Ricalibra `[RULE-01.10]` a **68 Golden Tests ortogonali** (`>= 60` Core Tests). Elimina `55` test ridondanti e riduce il tempo di esecuzione da `42 s` a **`4.75 s`**.
+- **v3.2.0-OPT11-Stress-Hardened**: Implementa le ottimizzazioni `OPT-1..OPT-12`, il bootstrap `< 50 ms` e il routing `Mode D`. Isola i progetti esterni da STE100 e sincronizza la telemetria concorrente.
+- **v3.1.0-Tensor-RSI**: Introduce il motore Tensor-RSI 2D (`[RULE-RSI.1]`), `RSIProfileRegistry`, `--vibe-check` (`< 500 ms`), CoVe CLI AST e `tier1_active_capsule.json`. Aggiunge `idea_canvas.md` e rigenera `repo_map.md` a `4.000` token.
+- **v3.0.0-STE100-Unified**: Introduce `[RULE-STE100]`, `[RULE-RSI]`, profilo `argon`, topologia 2-Tier e pulizia di `39` file ausiliari. Ripara i `29` script core sotto `GT-01..GT-10`.
+- **v2.6.1-Controller-Hotfix**: Chiusura risorse SQLite, snapshot anti-collisione e filtro task in background.
+- **v2.6.0-DualEngine-Symbiosis**: Integrazione `/plan` e `/goal`, 4 scudi avversariali e 3 pilastri fast-healing.
+- **v2.5.2-Hardened**: Mandato `[RULE-00.5]`, `oracle_evaluator_l3.py` e `micro_hud_renderer.py`.
+
+### 4. Matrice Certificata dei 74 Golden Tests (`74/74 PASS`)
 
 | # | File di Test (`tests/`) | Test | Invarianti e Guardie Protette | Stato |
 | :---: | :--- | :---: | :--- | :---: |
-| 1 | `tests/test_ast_guard_validator.py` | 6 | Integrità Scope AST, `function_depth` (`U-20`), PEP 634/695 | 100.0% PASS |
-| 2 | `tests/test_ast_repo_mapper.py` | 10 | PageRank, cache `edges` (`U-21`), Budget Graduati (`GT-06`) | 100.0% PASS |
-| 3 | `tests/test_auto_heal_pipeline.py` | 6 | Bridge SBFL (`GT-07`), Manifesto Snapshot Persistente (`U-23`) | 100.0% PASS |
-| 4 | `tests/test_active_sentinel_suite.py` | 4 | Stati Sentinella (`GT-02`), Taglio MSS `1800` (`GT-04`), Auto-Inning | 100.0% PASS |
-| 5 | `tests/test_context_sentry.py` | 5 | Semaforo `70/100` (`GT-01`), Filtro Ritorni Sub-Agenti (`U-02`) | 100.0% PASS |
-| 6 | `tests/test_dast_sandbox.py` | 5 | Job Objects Win32 a 64-bit (`U-24`), Tree Kill e Watchdog | 100.0% PASS |
-| 7 | `tests/test_memory_3tier.py` | 7 | `DOMAIN_ALIAS_MAP` (`U-46`), `tier1_active_capsule.json`, Cap `350` (`GT-05`) | 100.0% PASS |
-| 8 | `tests/test_platform_upgrades.py` | 4 | Probe `total_probed` (`GT-09`), Safe Runner, `pytest.ini` | 100.0% PASS |
-| 9 | `tests/test_sbfl_engine.py` | 7 | Precisione Ochiai/Tarantula/DStar, Payload `< 80` Token, CLI | 100.0% PASS |
-| 10 | `tests/test_schemas_and_contracts.py` | 5 | Pydantic v2 Strict, Controllo PID 64-bit (`U-25`), Contratti IPC | 100.0% PASS |
-| 11 | `tests/test_super_brief_upgrades.py` | 6 | Bootstrap, Scaffolder, Cache, Default Compliance `100` (`GT-10`) | 100.0% PASS |
-| 12 | `tests/test_unified_onboarding_mandate.py` | 4 | `[RULE-00.5]` 8 Trigger, 15 Nodi Hub, Confine 10 (`GT-08`) | 100.0% PASS |
-| 13 | `tests/test_win32_2pc.py` | 7 | Mutex Win32 64-bit, `MOVEFILE_COPY_ALLOWED`, Isolamento `mkdtemp` | 100.0% PASS |
-| 14 | `tests/stress/test_real_sandbox_stress.py` | 4 | Swarm Flooder, Spammer Monolitico `> 12` (`GT-03`), Escalator (`GT-01`) | 100.0% PASS |
-| 15 | `tests/test_rsi_convergence_engine.py` | 11 | `RSIProfileRegistry`, `--vibe-check`, CoVe AST, Heartbeat CLI, `GT-11..12` | 100.0% PASS |
-| 16 | `tests/test_preflight_health_check.py` | 2 | Esito `FAIL` su Baseline Corrotto (`BS-01`) e Flag `--check-only` | 100.0% PASS |
-| 17 | `tests/test_quality_baseline_manager.py` | 3 | JSON Corrotto (`BS-02`), `LOWER_IS_BETTER_KEYS`, Flag CLI (`GT-13`) | 100.0% PASS |
-| 18 | `tests/test_external_scaffolder.py` | 2 | Rifiuto Path Interni a `NK-Hub` (`BS-03`) e Creazione `nk_genome/` | 100.0% PASS |
-| 19 | `tests/test_platform_runner.py` | 2 | Iniezione `-u` su Comando Stringa (`BS-04`) e Tree-Kill su Timeout | 100.0% PASS |
-| 20 | `tests/test_deterministic_api_cache.py` | 2 | Connessione SQLite WAL Persistente (`BS-05`) e Scadenza TTL | 100.0% PASS |
-| 21 | `tests/test_safe_cleanup_dev_servers.py` | 2 | Filtro CWD/Cmdline (`U-13`) e Protezione PID Corrente | 100.0% PASS |
-| 22 | `tests/test_env_capability_probe.py` | 1 | Separazione `core_hub_modules` vs `optional_app_modules` e `GT-09` | 100.0% PASS |
-| 23 | `tests/test_vibe_sprint_router.py` | 2 | AST `max_depth` (`U-10`), Routing Mode A/B/C e Capsule Pre-Warming | 100.0% PASS |
-| 24 | `tests/test_oracle_l3_and_hud.py` | 1 | Void Tag HTML5 e Split Path Windows (`U-27`) + Rendering Micro-HUD | 100.0% PASS |
-| **Totale** | **24 File di Test Permanenti** | **108** | **Copertura 100% dei 30 Moduli Core (Zero-Mock)** | **108/108 PASS** |
+| 1 | `tests/test_ast_guard_validator.py` | 4 | Integrità Scope AST, `function_depth` (`U-20`), PEP 634/695 | 100.0% PASS |
+| 2 | `tests/test_ast_repo_mapper.py` | 4 | PageRank, cache `edges` (`U-21`), Budget Graduati (`GT-06`) | 100.0% PASS |
+| 3 | `tests/test_auto_heal_pipeline.py` | 3 | Bridge SBFL (`GT-07`), Manifesto Snapshot Persistente (`U-23`) | 100.0% PASS |
+| 4 | `tests/test_active_sentinel_suite.py` | 3 | Stati Sentinella (`GT-02`), Taglio MSS `1800` (`GT-04`), Handoff | 100.0% PASS |
+| 5 | `tests/test_context_sentry.py` | 2 | Semaforo `70/100` (`GT-01`), Filtro Ritorni Sub-Agenti (`U-02`) | 100.0% PASS |
+| 6 | `tests/test_dast_sandbox.py` | 3 | Job Objects Win32 a 64-bit (`U-24`), Tree Kill e Watchdog | 100.0% PASS |
+| 7 | `tests/test_memory_3tier.py` | 4 | `DOMAIN_ALIAS_MAP` (`U-46`), `tier1_active_capsule.json`, Cap `350` (`GT-05`) | 100.0% PASS |
+| 8 | `tests/test_sbfl_engine.py` | 4 | Precisione Ochiai/Tarantula/DStar, Payload `< 80` Token, Tri-Pass | 100.0% PASS |
+| 9 | `tests/test_schemas_and_contracts.py` | 3 | Pydantic v2 Strict, Controllo PID 64-bit (`U-25`), DAG Hash | 100.0% PASS |
+| 10 | `tests/test_unified_onboarding_mandate.py` | 2 | `[RULE-00.5]` 8 Trigger, 15 Nodi Hub, Fast-Stat (`GT-08`) | 100.0% PASS |
+| 11 | `tests/test_win32_2pc.py` | 4 | Mutex Win32 64-bit, `MOVEFILE_COPY_ALLOWED`, 50 Scrittori Concorrenti | 100.0% PASS |
+| 12 | `tests/stress/test_real_sandbox_stress.py` | 4 | Swarm Flooder, Spammer Monolitico `> 12` (`GT-03`), Escalator (`GT-01`) | 100.0% PASS |
+| 13 | `tests/test_rsi_convergence_engine.py` | 6 | `RSIProfileRegistry`, `--vibe-check`, Catena Hash G4, `GT-11..12` | 100.0% PASS |
+| 14 | `tests/test_preflight_health_check.py` | 1 | Esito `FAIL` su Baseline Corrotto (`BS-01`) e Guardia Auto-Fix | 100.0% PASS |
+| 15 | `tests/test_quality_baseline_manager.py` | 2 | JSON Corrotto (`BS-02`), `LOWER_IS_BETTER_KEYS`, Flag CLI (`GT-13`) | 100.0% PASS |
+| 16 | `tests/test_external_scaffolder.py` | 2 | Rifiuto Path Interni a `NK-Hub` (`BS-03`) e Creazione `nk_genome/` | 100.0% PASS |
+| 17 | `tests/test_platform_runner.py` | 2 | Iniezione `-u` su Comando Stringa (`BS-04`) e Tree-Kill su Timeout | 100.0% PASS |
+| 18 | `tests/test_deterministic_api_cache.py` | 1 | Connessione SQLite WAL Persistente (`BS-05`) e Chiusura Sicura | 100.0% PASS |
+| 19 | `tests/test_safe_cleanup_dev_servers.py` | 2 | Filtro CWD/Cmdline (`U-13`) e CLI Heartbeat | 100.0% PASS |
+| 20 | `tests/test_env_capability_probe.py` | 1 | Separazione `core_hub_modules` vs `optional_app_modules` e `GT-09` | 100.0% PASS |
+| 21 | `tests/test_vibe_sprint_router.py` | 2 | AST `max_depth` (`U-10`), Routing Mode A/B/C/D e Capsule Pre-Warming | 100.0% PASS |
+| 22 | `tests/test_oracle_l3_and_hud.py` | 1 | Void Tag HTML5 e Split Path Windows (`U-27`) + Rendering Micro-HUD | 100.0% PASS |
+| 23 | `tests/test_nk_ecosystem_stress_opt5.py` | 8 | `OPT-1..OPT-12`, Bootstrap `< 50 ms`, `Mode D` e Stress a 16 Thread | 100.0% PASS |
+| 24 | `tests/test_nk_registry_indexer.py` | 6 | Indice O(1), Verify SHA-256, Lookup, Hot-Swap Zero-Touch e Filtro 61 Skill | 100.0% PASS |
+| **Totale** | **24 File di Test Permanenti** | **74** | **Copertura Ortogonale 100% dei 31 Moduli Core (Zero-Mock)** | **74/74 PASS** |
 
 ---
-*Generato da NK-Scribe | Nexus Keystone Hub (`v3.1.0-Tensor-RSI` / `v3.0.0-STE100-Unified`)*
+*Generato da NK-Scribe | Nexus Keystone Hub (`v3.5.2-Global-Filter-61-Skills` / `v3.0.0-STE100-Unified`)*

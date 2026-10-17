@@ -543,14 +543,17 @@ class ScopeIntegrityChecker(ast.NodeVisitor):
 
 
 class SASTConstructChecker(ast.NodeVisitor):
-    """Rileva costrutti non sicuri eval, exec, pickle.loads, yaml.load e MagicMock."""
+    """Rileva costrutti non sicuri eval, exec, compile, deserializzazioni, shell=True e MagicMock."""
 
     def __init__(self) -> None:
         self.violations: List[GuardViolation] = []
+        self._imported_aliases: Dict[str, str] = {}
 
     def visit_Import(self, node: ast.Import) -> None:
         for alias in node.names:
-            if alias.name == "unittest.mock" or "MagicMock" in (alias.asname or alias.name):
+            bound = alias.asname or alias.name
+            self._imported_aliases[bound] = alias.name
+            if alias.name == "unittest.mock" or "MagicMock" in bound:
                 self.violations.append(
                     GuardViolation(
                         violation_type=ViolationType.SAST_VIOLATION,
@@ -564,6 +567,9 @@ class SASTConstructChecker(ast.NodeVisitor):
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         for alias in node.names:
+            bound = alias.asname or alias.name
+            if node.module:
+                self._imported_aliases[bound] = f"{node.module}.{alias.name}"
             if alias.name == "MagicMock" or (node.module and "unittest.mock" in node.module):
                 self.violations.append(
                     GuardViolation(
@@ -579,7 +585,8 @@ class SASTConstructChecker(ast.NodeVisitor):
     def visit_Call(self, node: ast.Call) -> None:
         func = node.func
         if isinstance(func, ast.Name):
-            if func.id in ("eval", "exec"):
+            resolved = self._imported_aliases.get(func.id, func.id)
+            if func.id in ("eval", "exec", "compile"):
                 self.violations.append(
                     GuardViolation(
                         violation_type=ViolationType.SAST_VIOLATION,
@@ -589,7 +596,7 @@ class SASTConstructChecker(ast.NodeVisitor):
                         message=f"Unsafe SAST construct '{func.id}()' detected.",
                     )
                 )
-            elif func.id == "MagicMock":
+            elif func.id == "MagicMock" or resolved.endswith(".MagicMock"):
                 self.violations.append(
                     GuardViolation(
                         violation_type=ViolationType.SAST_VIOLATION,
@@ -599,11 +606,97 @@ class SASTConstructChecker(ast.NodeVisitor):
                         message="Zero-Mock violation: MagicMock instantiation detected.",
                     )
                 )
+            elif func.id == "open" and node.args:
+                first_arg = node.args[0]
+                raw_path = ""
+                if isinstance(first_arg, ast.Constant) and isinstance(
+                    first_arg.value, str
+                ):
+                    raw_path = first_arg.value
+                elif isinstance(first_arg, ast.JoinedStr):
+                    raw_path = "".join(
+                        p.value
+                        for p in first_arg.values
+                        if isinstance(p, ast.Constant) and isinstance(p.value, str)
+                    )
+                if "../" in raw_path or "..\\" in raw_path:
+                    self.violations.append(
+                        GuardViolation(
+                            violation_type=ViolationType.SAST_VIOLATION,
+                            symbol_name="open",
+                            line_number=node.lineno,
+                            column=node.col_offset,
+                            message="Unsafe path traversal in 'open()' detected.",
+                        )
+                    )
+            elif resolved in ("os.system", "os.popen"):
+                self.violations.append(
+                    GuardViolation(
+                        violation_type=ViolationType.SAST_VIOLATION,
+                        symbol_name=resolved,
+                        line_number=node.lineno,
+                        column=node.col_offset,
+                        message=f"Unsafe OS command execution '{resolved}()' detected.",
+                    )
+                )
+            elif resolved in (
+                "pickle.loads",
+                "pickle.load",
+                "marshal.loads",
+                "marshal.load",
+            ):
+                self.violations.append(
+                    GuardViolation(
+                        violation_type=ViolationType.SAST_VIOLATION,
+                        symbol_name=resolved,
+                        line_number=node.lineno,
+                        column=node.col_offset,
+                        message=f"Unsafe deserialization '{resolved}()' detected.",
+                    )
+                )
+            elif resolved in (
+                "subprocess.run",
+                "subprocess.Popen",
+                "subprocess.call",
+                "subprocess.check_output",
+            ):
+                for kw in node.keywords:
+                    if (
+                        kw.arg == "shell"
+                        and isinstance(kw.value, ast.Constant)
+                        and kw.value.value is True
+                    ):
+                        self.violations.append(
+                            GuardViolation(
+                                violation_type=ViolationType.SAST_VIOLATION,
+                                symbol_name=resolved,
+                                line_number=node.lineno,
+                                column=node.col_offset,
+                                message=f"Unsafe '{resolved}(..., shell=True)' detected.",
+                            )
+                        )
+                        break
+            elif resolved == "yaml.load":
+                has_safe_loader = False
+                for kw in node.keywords:
+                    if kw.arg == "Loader" and "SafeLoader" in ast.unparse(kw.value):
+                        has_safe_loader = True
+                if not has_safe_loader:
+                    self.violations.append(
+                        GuardViolation(
+                            violation_type=ViolationType.SAST_VIOLATION,
+                            symbol_name="yaml.load",
+                            line_number=node.lineno,
+                            column=node.col_offset,
+                            message="Unsafe 'yaml.load()' without SafeLoader detected.",
+                        )
+                    )
         elif isinstance(func, ast.Attribute):
             val = func.value
             attr = func.attr
             if isinstance(val, ast.Name):
-                if val.id == "pickle" and attr in ("loads", "load"):
+                base_mod = self._imported_aliases.get(val.id, val.id)
+                if base_mod == "pickle" and attr in ("loads", "load"):
                     self.violations.append(
                         GuardViolation(
                             violation_type=ViolationType.SAST_VIOLATION,
@@ -613,7 +706,7 @@ class SASTConstructChecker(ast.NodeVisitor):
                             message=f"Unsafe deserialization 'pickle.{attr}()' detected.",
                         )
                     )
-                elif val.id == "yaml" and attr == "load":
+                elif base_mod == "yaml" and attr == "load":
                     has_safe_loader = False
                     for kw in node.keywords:
                         if kw.arg == "Loader" and "SafeLoader" in ast.unparse(kw.value):
@@ -626,6 +719,74 @@ class SASTConstructChecker(ast.NodeVisitor):
                                 line_number=node.lineno,
                                 column=node.col_offset,
                                 message="Unsafe 'yaml.load()' without SafeLoader detected.",
+                            )
+                        )
+                elif base_mod == "os" and attr in ("system", "popen"):
+                    self.violations.append(
+                        GuardViolation(
+                            violation_type=ViolationType.SAST_VIOLATION,
+                            symbol_name=f"os.{attr}",
+                            line_number=node.lineno,
+                            column=node.col_offset,
+                            message=f"Unsafe OS command execution 'os.{attr}()' detected.",
+                        )
+                    )
+                elif base_mod == "marshal" and attr in ("loads", "load"):
+                    self.violations.append(
+                        GuardViolation(
+                            violation_type=ViolationType.SAST_VIOLATION,
+                            symbol_name=f"marshal.{attr}",
+                            line_number=node.lineno,
+                            column=node.col_offset,
+                            message=f"Unsafe deserialization 'marshal.{attr}()' detected.",
+                        )
+                    )
+                elif base_mod == "subprocess" and attr in (
+                    "run",
+                    "Popen",
+                    "call",
+                    "check_output",
+                ):
+                    for kw in node.keywords:
+                        if (
+                            kw.arg == "shell"
+                            and isinstance(kw.value, ast.Constant)
+                            and kw.value.value is True
+                        ):
+                            self.violations.append(
+                                GuardViolation(
+                                    violation_type=ViolationType.SAST_VIOLATION,
+                                    symbol_name=f"subprocess.{attr}",
+                                    line_number=node.lineno,
+                                    column=node.col_offset,
+                                    message=f"Unsafe 'subprocess.{attr}(..., shell=True)' detected.",
+                                )
+                            )
+                            break
+            if attr in ("execute", "executemany") and node.args:
+                first_arg = node.args[0]
+                if isinstance(first_arg, ast.JoinedStr):
+                    raw_sql = "".join(
+                        part.value
+                        for part in first_arg.values
+                        if isinstance(part, ast.Constant)
+                        and isinstance(part.value, str)
+                    ).upper()
+                    sql_keywords = (
+                        "SELECT ",
+                        "INSERT ",
+                        "UPDATE ",
+                        "DELETE ",
+                        "DROP ",
+                    )
+                    if any(kw in raw_sql for kw in sql_keywords):
+                        self.violations.append(
+                            GuardViolation(
+                                violation_type=ViolationType.SAST_VIOLATION,
+                                symbol_name=attr,
+                                line_number=node.lineno,
+                                column=node.col_offset,
+                                message=f"Unsafe SQL f-string injection in '.{attr}()' detected.",
                             )
                         )
             if attr == "MagicMock":
@@ -643,6 +804,18 @@ class SASTConstructChecker(ast.NodeVisitor):
 
 class ASTGuardValidator:
     """Validatore principale che coordina purezza sintattica, firme e integrita scope."""
+
+    def __init__(self, allowed_mutations: Optional[Set[str]] = None) -> None:
+        if isinstance(allowed_mutations, str):
+            self.allowed_mutations: Set[str] = {
+                s.strip() for s in allowed_mutations.split(",") if s.strip()
+            }
+        elif allowed_mutations is not None:
+            self.allowed_mutations = {
+                str(s).strip() for s in allowed_mutations if str(s).strip()
+            }
+        else:
+            self.allowed_mutations = set()
 
     @classmethod
     def check_sast_constructs(cls, code: str) -> List[GuardViolation]:
@@ -700,6 +873,7 @@ class ASTGuardValidator:
         sast_checker = SASTConstructChecker()
         sast_checker.visit(post_tree)
         sast_violations = sast_checker.violations
+        violations.extend(sast_violations)
 
         diff = difflib.unified_diff(
             pre_code.splitlines(),
@@ -882,9 +1056,19 @@ def main() -> int:
         default=None,
         help="File o directory target da scansionare, oppure 'all'",
     )
+    parser.add_argument(
+        "--allowed-mutations",
+        type=str,
+        default="",
+        help="Simboli separati da virgola autorizzati a mutare firma",
+    )
 
     args = parser.parse_args()
     raw_target = args.target or args.target_path
+    allowed_set = {
+        s.strip() for s in args.allowed_mutations.split(",") if s.strip()
+    }
+    validator = ASTGuardValidator(allowed_mutations=allowed_set)
 
     if not raw_target:
         raw_target = "all"
@@ -942,8 +1126,11 @@ def main() -> int:
             except Exception:
                 pre_code = code
 
-        report = ASTGuardValidator.validate_code_edit(
-            pre_code, code, target_file=py_file.name
+        report = validator.validate_code_edit(
+            pre_code,
+            code,
+            allowed_mutations=validator.allowed_mutations,
+            target_file=py_file.name,
         )
         rel_path = py_file.as_posix()
         if not report.is_valid:

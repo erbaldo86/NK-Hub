@@ -68,3 +68,32 @@ Ogni Builder deve rispettare le `14` guardie seguenti per mantenere il `100%` di
 1. Correggi il test CLI in `test_quality_baseline_manager.py` e il path in `test_ast_repo_mapper.py`.
 2. Aggiungi `8` nuovi test reali Zero-Mock per `async_heartbeat_signaler`, `RSIProfileRegistry`, `--vibe-check`, CoVe CLI AST Gate, `LOWER_IS_BETTER_KEYS` e `tier1_active_capsule.json`.
 3. Esegui l'audit TAS completo in `.staging/` (`108/108 PASS`, `ast_guard`, `rsi --verify` con $\Delta=0, Q=100.0$) e promuovi atomicamente via `win32_2pc_engine.py`.
+
+### WP5: Ottimizzazioni Post-Audit Forense (`OPT-1..OPT-11`) e Stress Evaluation Suite (`NK-MS-20261017-OPT5-STRESS-v3.2.0`)
+1. **`OPT-1` (`scripts/nk_session_bootstrap.py`):** Ottimizza `_check_root_hygiene` e `_verify_context_sentry` con cache `root_mtime` e lettura tail per scendere sotto `50 ms`.
+2. **`OPT-2` (`scripts/rsi_convergence_engine.py`):** Propaga `--profile` in `main()`, isola i `.md` dei progetti esterni in `--root` e supporta `--benchmark-suite`.
+3. **`OPT-3` (`scripts/vibe_sprint_router.py` e `NK-Ideator`):** Aggiungi `Mode D (Analytical Discovery & Benchmark)` su `--prompt` e abilita `call_mcp_tool` in `NK-Ideator/SKILL.md`.
+4. **`OPT-4` (`NK-Session-Controller/SKILL.md`):** Imponi l'uso dei nomi canonici delle skill in `define_subagent` con obbligo di `.staging/` e commit 2PC.
+5. **`OPT-5` (`.agents/AGENTS.md`):** Vieta i one-liner `python -c` multi-riga su PowerShell a favore di script in `scratch/` e integra `Mode D`.
+6. **`OPT-6`, `OPT-7` e `OPT-12` (`nk_compliance_checker.py`, `nk_context_sentry.py`):** Rileva exit code `!= 0` reali, esenta `REFINING` e valida `ast_guard` delegato.
+7. **`OPT-8` e `OPT-9` (`nk_session_bootstrap.py`, `rsi_convergence_engine.py`):** Elimina la tripla lettura cache usando `os.replace` atomico, sincronizza `append_telemetry_record` ed escludi `.venv`/`.git` da `rglob`.
+8. **`OPT-10` e `OPT-11` (`preflight_health_check.py`, `healing_snapshot_rollback.py`, `nk_ipc_contracts.py`):** Unifica `os.walk`, rendi atomico `snapshot_manifest.json` e allinea `mode_d` nei contratti IPC.
+9. **Stress Suite (`tests/test_nk_ecosystem_stress_opt5.py`):** Espandi a `15` test Zero-Mock su bootstrap, telemetria concorrente, compliance checker `OPT-12` e router.
+
+### WP6: Riforma Costituzionale `GT-68` Zero-Padding (`NK-MS-20261017-GT68-PARETO-v3.3.0`)
+1. **Regola `[RULE-01.10]` (`.agents/AGENTS.md` e `NK-Oracle-Evaluator/SKILL.md`):** Ricalibra il pavimento costituzionale a `68` Golden Tests ortogonali (`>= 60` Core Tests).
+2. **Consolidamento Suite (`tests/`):** Elimina `55` test superflui e unifica i sottoprocessi con fixture `scope="module"` (`68/68 PASS` in `< 7 s`).
+3. **Ricalibrazione Baseline (`nk_tracking/quality_baseline.json` e `scripts/quality_baseline_manager.py`):** Allinea `total_golden_tests`, `unit_tests_total` e `unit_tests_passed` a `68` (`100.0% PASS`).
+
+### WP7: Rifondazione Neuro-Simbolica TAS v4.0 (`1A + 2C + 3B`)
+1. **Opzione 1A (`NK-Security-Auditor`):** Crea in `resources/` le matrici modulari `tas_l1_module_audit.md`, `tas_l2_ipc_contract_audit.md` e `tas_l3_fullstack_system_audit.md`.
+2. **Opzione 2C (Ibrido Neuro-Simbolico):** Unisci la sequenza deterministica Python con l'esplorazione probabilistica di Argon validata dal Referee PoC.
+3. **Opzione 3B (`scripts/`):** Espandi `SASTConstructChecker` ed esponi `--allowed-mutations` in `ast_guard_validator.py`.
+4. **Riparazione Motori Core:** Collega `sbfl_engine.py` in `sbfl_pytest_bridge.py`, ripara i nodi misti in `oracle_evaluator_l3.py` ed estendi `dast_sandbox_runner.py`.
+5. **Canali Tensor-RSI v4.0:** Aggiungi `poc_confirmed_exploits` e `semantic_drift_findings` a `RSIDefectVector` in `rsi_convergence_engine.py`.
+
+### WP8: Indice Tassonomico Modulare O(1) e Disaccoppiamento SSOT (`NK-MS-20261017-MODULAR-INDEX-v3.5.1-RSI2`)
+1. **Regola `[RULE-01.14]` (`.agents/AGENTS.md`):** Istituisci il registro modulare O(1) basato su `nk_genome/nk_registry_manifest.json` e `nk_genome/SKILL_INDEX.md`.
+2. **Indicizzatore AST (`scripts/nk_registry_indexer.py`):** Mappa i `5` domini `DOM-01..DOM-05`, le `16` skill e i `30` script con flag `--sync`, `--verify` e `--lookup`.
+3. **Disaccoppiamento SSOT (`preflight_health_check.py`, `vibe_sprint_router.py`):** Carica skill e domini direttamente dal manifesto JSON eliminando le liste hardcoded.
+4. **Dual-Schema Lifecycle (`.agents/hooks.json`):** Espone gli hook sia sotto la chiave `hooks` sia a livello root con `timeout` e `timeout_ms`.

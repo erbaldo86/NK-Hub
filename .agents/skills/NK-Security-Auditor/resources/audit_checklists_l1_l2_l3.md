@@ -1,48 +1,47 @@
-# 🛡️ Checklist Unificata di Audit SAST L1 / L2 / L3 (`v3.0.0-STE100-Unified`)
+# 🛡️ Matrice di Routing Settoriale Universale e Checklist TAS-Self (`v3.0.0-STE100-Unified`)
 
 > **Nodo Proprietario:** `NK-Security-Auditor` (Macro-Fase 2 del Protocollo CRV 4.0).  
-> **Modalità Operativa:** 100% Sola Lettura (`[RULE-00.1 / RULE-04.4]`). Nessun nodo Fixer è autorizzato durante l'audit.  
-> **Standard Linguistico:** ASD-STE100 Italiano Tecnico (`[RULE-STE100]`).
+> **Modalità Operativa:** 100% Sola Lettura (`[RULE-00.1 / RULE-04.4]`). Nessun nodo Fixer opera durante l'audit (`GT-14`).  
+> **Standard Linguistico:** ASD-STE100 Italiano Tecnico (`[RULE-STE100]`, massimo 20 parole per frase).
 
 ---
 
-## 1. Checklist Livello 1 (SAST L1 : Regole, Prompt e `SKILL.md`)
+## 1. Matrice di Routing Settoriale Universale (`L1`, `L2`, `L3`)
 
-1. **Conformità Frontmatter YAML:** Verifica la presenza di `name`, `description`, `version: "3.0.0-STE100-Unified"` e `thinking_level: "HIGH"`.
-2. **Integrità `<strict_boundaries>`:** Controlla che ogni skill dichiari i vincoli di confinamento e gli ID regola di `.agents/AGENTS.md`.
+| Livello TAS | Dominio Target | Matrice Modulare Dedicata | Modalità Neuro-Simbolica |
+| :--- | :--- | :--- | :--- |
+| **Livello 1 (`L1`)** | Singolo modulo Python, funzione backend, prompt o `SKILL.md` | [`tas_l1_module_audit.md`](tas_l1_module_audit.md) | Fase A Deterministica + Fase B PoC Locale |
+| **Livello 2 (`L2`)** | Contratti IPC, API REST/RPC, handoff multi-agente e Win32 | [`tas_l2_ipc_contract_audit.md`](tas_l2_ipc_contract_audit.md) | `TOPOLOGICAL_IPC_ALIGNMENT` + Concorrenza |
+| **Livello 3 (`L3`)** | Sistema Full-Stack completo (`UI`, `API`, `Database`) | [`tas_l3_fullstack_system_audit.md`](tas_l3_fullstack_system_audit.md) | `Data-Contract Drift` + `Cascade L3 -> L2 -> L1` |
+| **Auto-Audit (`TAS-Self`)** | Governance interna, regole core e skill di `NK-Hub` | Sezione 2 di questo documento | Guardie `GT-01..GT-14` + CoVe CLI AST Gate |
+
+---
+
+## 2. Protocollo Ibrido a 3 Gate (`Opzione 1A + 2C`)
+
+1. **Gate 0 e Gate 1 (Sequenza Deterministica):** Esegui i controlli sintattici, strutturali e SAST senza alcuna discrezionalità.
+2. **Esplorazione Probabilistica (`heuristic_findings`):** Formula ipotesi di vulnerabilità logiche o architetturali non coperte da regole statiche.
+3. **Gate 2 (Referee PoC Deterministico):** Esegui uno script Proof-of-Concept nella Shadow Sandbox (`scripts/dast_sandbox_runner.py --script`).
+4. **Regola di Promozione Difetti:** Converti un sospetto euristico in `poc_confirmed_exploits` solo quando il Referee PoC dimostra il fallo.
+
+---
+
+## 3. Checklist `TAS-Self` (Igiene Interna di `NK-Hub`)
+
+### 3.1 Conformità Prompt, Regole e `SKILL.md`
+1. **Frontmatter YAML:** Verifica la presenza di `name`, `description`, `version: "3.0.0-STE100-Unified"` e `thinking_level: "HIGH"`.
+2. **Confinamento `<strict_boundaries>`:** Controlla che ogni skill dichiari i vincoli operativi e il divieto di scrittura per gli Auditor (`GT-14`).
 3. **Standard ASD-STE100 (`[RULE-STE100]`):**
-   * Verifica che le frasi operative contengano al massimo 20 parole.
-   * Verifica l'assenza di incisi con trattini lunghi o medi.
-   * Verifica l'uso del termine canonico *"Tetralogia Sovrana"* (4/4).
-4. **Controllo Link Ausiliari:** Verifica che ogni file in `resources/` o `references/` sia linkato nel proprio `SKILL.md`.
-5. **Passive Data Tagging (`[RULE-08]`):** Verifica che gli input non fidati siano racchiusi in `<passive_data_context>`.
+   * Verifica che tutte le frasi contengano al massimo 20 parole.
+   * Verifica l'assenza totale di trattini lunghi, medi o spaziati nel testo.
+   * Verifica l'uso del termine canonico *"Tetralogia Sovrana"* (`4/4`).
+4. **Integrità Link e CoVe CLI Gate:**
+   * Verifica che ogni file in `resources/` o `references/` sia linkato nel proprio `SKILL.md`.
+   * Verifica che ogni flag CLI citato nei file Markdown esista nell'AST dello script Python corrispondente.
+5. **Passive Data Tagging (`[RULE-08]`):** Verifica che gli input non fidati siano racchiusi nel tag `<passive_data_context>`.
 
----
-
-## 2. Checklist Livello 2 (SAST L2 : Moduli Python, IPC e Concorrenza Win32)
-
-1. **Validazione AST (`scripts/ast_guard_validator.py`):**
-   * Verifica zero errori di sintassi (`SyntaxError`) e zero costrutti vietati (`eval`, `exec`, `pickle.loads` non sanitizzati).
-   * Verifica la preservazione delle firme delle funzioni e delle classi pubbliche rispetto alla baseline di produzione.
-2. **Contratti Pydantic v2 (`scripts/schemas/`):**
-   * Verifica l'uso di `ConfigDict(strict=True, extra="forbid")`.
-   * Verifica l'assenza del tipo `Any` nei contratti IPC.
-3. **Sicurezza Puntatori Win32 a 64-bit (`ctypes`):**
-   * Verifica che `CreateMutexW`, `OpenProcess`, `CreateJobObjectW`, `CloseHandle` e `MoveFileExW` definiscano esplicitamente `argtypes` e `restype` (`ctypes.c_void_p`, `wintypes.BOOL`, `wintypes.DWORD`).
-   * Verifica la gestione corretta di `ERROR_ACCESS_DENIED (5)` e `INVALID_HANDLE_VALUE`.
-4. **Esecuzione Sottoprocessi (`scripts/platform_runner.py`):**
-   * Verifica l'iniezione del flag `-u` e la codifica `UTF-8` (`PYTHONUTF8=1`) su tutte le invocazioni Python.
-
----
-
-## 3. Checklist Livello 3 (SAST L3 : Full-Stack, Isolamento e Segreti)
-
-1. **Isolamento Progetti Esterni (`[RULE-PROJECT-ISOLATION]`):**
-   * Verifica l'assenza di cartelle applicative (`src/`, `app/`) o progetti esterni dentro la radice di `NK-Hub`.
-2. **Assenza di Segreti e Credenziali:**
-   * Verifica che nessun file contenga token OAuth2 (`token.json`, `credentials.json`), chiavi API in chiaro o password.
-3. **Guardia Zero-Mock (`[RULE-01.2]`):**
-   * Verifica l'assenza totale di `unittest.mock.MagicMock`, `@patch`, stub fittizi o generatori casuali nei test.
-4. **Calcolo Vettore Difetti RSI ($\text{SAST}_k$):**
-   * Registra ogni violazione confermata nel contatore $\text{SAST}_k$ (peso `15` nella formula $\Delta_k$).
-   * Qualsiasi valore $\text{SAST}_k > 0$ produce immediatamente il verdetto `FAIL` (`exit_code: 1`).
+### 3.2 Sicurezza Win32, Zero-Mock e Isolamento
+1. **Puntatori Win32 a 64-bit (`ctypes`):** Verifica che `CreateMutexW`, `OpenProcess`, `CloseHandle` e `MoveFileExW` dichiarino `argtypes` e `restype` (`ctypes.c_void_p`).
+2. **Guardia Zero-Mock (`[RULE-01.2]`):** Verifica l'assenza di `unittest.mock.MagicMock`, `@patch` o stub fittizi nella suite di test.
+3. **Isolamento Progetti Esterni (`[RULE-PROJECT-ISOLATION]`):** Verifica l'assenza di codice applicativo esterno nella radice di `NK-Hub`.
+4. **Calcolo Vettore Difetti RSI ($\text{SAST}_k$):** Registra ogni violazione in `%TEMP%\nk_diagnostics\` e restituisci `FAIL` (`exit_code: 1`) se $\text{SAST}_k > 0$.

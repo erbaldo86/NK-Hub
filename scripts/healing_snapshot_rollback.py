@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Gestore snapshot di staging e rollback transazionale per Nexus Keystone v3.0.0.
+Gestore snapshot di staging e rollback transazionale per Nexus Keystone v3.2.0.
 Modulo: healing_snapshot_rollback.py.
-Implementa la correzione U-23 (persistenza di snapshot_manifest.json tra processi CLI).
+Implementa la correzione U-23 e l'ottimizzazione OPT-11a (scrittura atomica con Lock).
 
 Funzionalita principali:
 1. Crea snapshot SHA-256 in memoria e in %TEMP%/nk_heal_snapshots/.
-2. Salva snapshot_manifest.json su disco per supportare --rollback tra processi separati (U-23).
+2. Salva snapshot_manifest.json atomicamente tramite os.replace e threading.Lock (OPT-11a).
 3. Applica lo Strict Monotonic Fitness Gate per rilevare regressioni sui test.
 4. Esegue il rollback atomico e la pulizia delle risorse temporanee.
 """
@@ -17,9 +17,11 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import shutil
 import sys
 import tempfile
+import threading
 import time
 import uuid
 from enum import Enum
@@ -49,6 +51,9 @@ try:
     from platform_runner import reconfigure_streams
 except ImportError:
     from scripts.platform_runner import reconfigure_streams
+
+
+_MANIFEST_LOCK = threading.Lock()
 
 
 class FitnessVerdict(str, Enum):
@@ -95,8 +100,35 @@ class SnapshotBundle(BaseModel):
     files: Dict[str, FileSnapshot] = Field(default_factory=dict)
 
 
+def _atomic_write_text(target_path: Path, payload: str) -> None:
+    """Scrive una stringa su disco in modo atomico tramite file .tmp e os.replace (OPT-11a)."""
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = target_path.parent / (
+        f".{target_path.name}.{os.getpid()}.{threading.get_ident()}.tmp"
+    )
+    try:
+        tmp_path.write_text(payload, encoding="utf-8")
+        for _ in range(10):
+            try:
+                os.replace(str(tmp_path), str(target_path))
+                return
+            except PermissionError:
+                time.sleep(0.002)
+        os.replace(str(tmp_path), str(target_path))
+    except Exception:
+        pass
+    finally:
+        if tmp_path.exists():
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except Exception:
+                pass
+
+
 class HealingSnapshotManager:
-    """Gestisce gli snapshot transazionali e il rollback con persistenza su disco (U-23)."""
+    """Gestisce gli snapshot transazionali e il rollback con persistenza atomica (U-23, OPT-11a)."""
+
+    _MANIFEST_LOCK = _MANIFEST_LOCK
 
     def __init__(self, base_temp_dir: Optional[Path] = None):
         reconfigure_streams()
@@ -112,33 +144,35 @@ class HealingSnapshotManager:
 
     def _load_manifest(self) -> None:
         """Carica gli snapshot attivi da snapshot_manifest.json su disco (U-23)."""
-        if not self.manifest_path.exists():
-            return
-        try:
-            raw = json.loads(self.manifest_path.read_text(encoding="utf-8"))
-            if isinstance(raw, dict):
-                for sid, b_data in raw.items():
-                    try:
-                        bundle = SnapshotBundle.model_validate(b_data)
-                        self.active_snapshots[sid] = bundle
-                    except Exception:
-                        pass
-        except Exception:
-            pass
+        with _MANIFEST_LOCK:
+            if not self.manifest_path.exists():
+                return
+            try:
+                raw = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+                if isinstance(raw, dict):
+                    for sid, b_data in raw.items():
+                        try:
+                            bundle = SnapshotBundle.model_validate(b_data)
+                            self.active_snapshots[sid] = bundle
+                        except Exception:
+                            pass
+            except Exception:
+                pass
 
     def _save_manifest(self) -> None:
-        """Persiste il dizionario degli snapshot attivi in snapshot_manifest.json (U-23)."""
-        try:
-            self.base_temp_dir.mkdir(parents=True, exist_ok=True)
-            serialized = {
-                sid: bundle.model_dump()
-                for sid, bundle in self.active_snapshots.items()
-            }
-            self.manifest_path.write_text(
-                json.dumps(serialized, indent=2), encoding="utf-8"
-            )
-        except Exception:
-            pass
+        """Persiste atomicamente il dizionario degli snapshot in snapshot_manifest.json (OPT-11a)."""
+        with _MANIFEST_LOCK:
+            try:
+                self.base_temp_dir.mkdir(parents=True, exist_ok=True)
+                serialized = {
+                    sid: bundle.model_dump()
+                    for sid, bundle in self.active_snapshots.items()
+                }
+                _atomic_write_text(
+                    self.manifest_path, json.dumps(serialized, indent=2)
+                )
+            except Exception:
+                pass
 
     def create_snapshot(self, target_files: Sequence[Path | str]) -> str:
         """Cattura SHA-256 e contenuto dei file target in memoria e in %TEMP%."""
@@ -177,15 +211,16 @@ class HealingSnapshotManager:
                 )
             bundle.files[str(p)] = file_snap
 
-        # Salva anche una copia locale del manifesto nella cartella dello snapshot
         try:
-            (snap_temp_dir / "snapshot_manifest.json").write_text(
-                bundle.model_dump_json(indent=2), encoding="utf-8"
+            _atomic_write_text(
+                snap_temp_dir / "snapshot_manifest.json",
+                bundle.model_dump_json(indent=2),
             )
         except Exception:
             pass
 
-        self.active_snapshots[snapshot_id] = bundle
+        with _MANIFEST_LOCK:
+            self.active_snapshots[snapshot_id] = bundle
         self._save_manifest()
         return snapshot_id
 
@@ -288,23 +323,27 @@ class HealingSnapshotManager:
     def cleanup(self, snapshot_id: Optional[str] = None) -> None:
         """Rimuove le directory temporanee degli snapshot e aggiorna il manifesto."""
         if snapshot_id:
-            bundle = self.active_snapshots.pop(snapshot_id, None)
+            with _MANIFEST_LOCK:
+                bundle = self.active_snapshots.pop(snapshot_id, None)
             if bundle and Path(bundle.temp_backup_dir).exists():
                 shutil.rmtree(bundle.temp_backup_dir, ignore_errors=True)
             self._save_manifest()
         else:
-            for _, bundle in list(self.active_snapshots.items()):
+            with _MANIFEST_LOCK:
+                bundles = list(self.active_snapshots.values())
+                self.active_snapshots.clear()
+                if self.manifest_path.exists():
+                    try:
+                        self.manifest_path.unlink()
+                    except Exception:
+                        pass
+            for bundle in bundles:
                 if Path(bundle.temp_backup_dir).exists():
                     shutil.rmtree(bundle.temp_backup_dir, ignore_errors=True)
-            self.active_snapshots.clear()
-            if self.manifest_path.exists():
-                try:
-                    self.manifest_path.unlink()
-                except Exception:
-                    pass
 
 
 def main() -> int:
+    """Punto di ingresso CLI per il gestore snapshot e rollback di Nexus Keystone."""
     reconfigure_streams()
     parser = argparse.ArgumentParser(
         description="Nexus Keystone Staging Snapshot & Rollback Engine"

@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Sentinella del contesto e motore anti-saturazione per Nexus Keystone v3.0.0.
+Sentinella del contesto e motore anti-saturazione per Nexus Keystone v3.2.0.
 Modulo: nk_context_sentry.py.
-Implementa le regole [RULE-01] e [RULE-SWARM-HYGIENE] con le guardie GT-01 e GT-04.
+Implementa le regole [RULE-01] e [RULE-SWARM-HYGIENE] con le guardie GT-01, GT-04 e OPT-7.
 
 Funzionalita principali:
 1. Valuta lo stato del contesto con architettura Dual-Profile (standard vs argon).
 2. Mantiene le soglie predefinite 70/100 step (80k/120k token) per il profilo standard (GT-01).
 3. Attiva le soglie 150/250 step (250k/500k token senza thinking) per il profilo argon.
-4. Verifica il limite SWARM_MSG_HARD_CAP = 2000 sui messaggi di ritorno dai sub-agenti (GT-04, U-02).
+4. Traccia SWARM_MSG_MSS_CAP = 1800 (MSS) e SWARM_MSG_HARD_CAP = 2000 (MTU) sui sub-agenti (OPT-7).
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -40,14 +41,19 @@ except ImportError:
             pass
 
 
+SWARM_MSG_MSS_CAP: int = 1800
+SWARM_MSG_HARD_CAP: int = 2000
+
+
 class NKContextSentry:
-    """Sentinella deterministica del contesto con supporto Dual-Profile."""
+    """Sentinella deterministica del contesto con supporto Dual-Profile e soglia MSS."""
 
     GREEN_STEP_THRESHOLD = 70
     RED_STEP_THRESHOLD = 100
     ARGON_GREEN_STEP_THRESHOLD = 150
     ARGON_RED_STEP_THRESHOLD = 250
-    SWARM_MSG_HARD_CAP = 2000
+    SWARM_MSG_MSS_CAP = SWARM_MSG_MSS_CAP
+    SWARM_MSG_HARD_CAP = SWARM_MSG_HARD_CAP
 
     def __init__(
         self,
@@ -61,7 +67,9 @@ class NKContextSentry:
         if profile is not None:
             self.profile = profile.lower().strip()
         else:
-            self.profile = os.environ.get("NK_MODEL_PROFILE", "standard").lower().strip()
+            self.profile = (
+                os.environ.get("NK_MODEL_PROFILE", "standard").lower().strip()
+            )
 
     @staticmethod
     def estimate_tokens(text: str) -> int:
@@ -173,6 +181,7 @@ class NKContextSentry:
         chars_by_source: Dict[str, int] = {}
         tool_counts: Dict[str, int] = {}
         swarm_hygiene_violations: List[Dict[str, Any]] = []
+        swarm_mss_warnings: List[Dict[str, Any]] = []
         consecutive_direct_audit_tools = 0
         max_consecutive_direct_audit = 0
 
@@ -200,7 +209,7 @@ class NKContextSentry:
                 total_chars += step_chars
                 chars_by_source[source] = chars_by_source.get(source, 0) + step_chars
 
-                # Verifica Swarm Hygiene solo sui messaggi di ritorno dai sub-agenti (U-02)
+                # Verifica Swarm Hygiene solo sui messaggi di ritorno dai sub-agenti (U-02, OPT-7)
                 is_background = self.is_background_task_message(data, content)
                 is_initial_subagent_prompt = steps_count == 1 and (
                     "### Blocco 1" in content or "BLOCCO 1" in content
@@ -213,8 +222,6 @@ class NKContextSentry:
                 )
 
                 if is_swarm_return:
-                    import re as _re
-
                     raw_msgs = (
                         content.split("[Message]")[1:]
                         if "[Message]" in content
@@ -228,17 +235,26 @@ class NKContextSentry:
                         net_body = net_body.replace(
                             "<passive_data_context>", ""
                         ).replace("</passive_data_context>", "")
-                        net_body = _re.sub(
+                        net_body = re.sub(
                             r"\[([^\]]*)\]\([^\)]+\)", r"\1", net_body
                         )
-                        net_body = _re.sub(r"`[^`]+`", "T", net_body)
-                        net_body = _re.sub(r"[\|\-\*\#\>\_\~]+", "", net_body)
-                        net_body = _re.sub(r"\s+", " ", net_body).strip()
-                        if len(net_body) > self.SWARM_MSG_HARD_CAP:
+                        net_body = re.sub(r"`[^`]+`", "T", net_body)
+                        net_body = re.sub(r"[\|\-\*\#\>\_\~]+", "", net_body)
+                        net_body = re.sub(r"\s+", " ", net_body).strip()
+                        msg_len = len(net_body)
+                        if msg_len > self.SWARM_MSG_MSS_CAP:
+                            swarm_mss_warnings.append(
+                                {
+                                    "step_index": data.get("step_index", steps_count),
+                                    "length": msg_len,
+                                    "limit": self.SWARM_MSG_MSS_CAP,
+                                }
+                            )
+                        if msg_len > self.SWARM_MSG_HARD_CAP:
                             swarm_hygiene_violations.append(
                                 {
                                     "step_index": data.get("step_index", steps_count),
-                                    "length": len(net_body),
+                                    "length": msg_len,
                                     "limit": self.SWARM_MSG_HARD_CAP,
                                 }
                             )
@@ -279,12 +295,16 @@ class NKContextSentry:
             "chars_by_source": chars_by_source,
             "tool_counts": tool_counts,
             "max_consecutive_direct_audit": max_consecutive_direct_audit,
+            "swarm_mss_cap": self.SWARM_MSG_MSS_CAP,
+            "swarm_mss_warnings_count": len(swarm_mss_warnings),
+            "swarm_mss_warnings": swarm_mss_warnings[:5],
             "swarm_hygiene_violations_count": len(swarm_hygiene_violations),
             "swarm_hygiene_violations": swarm_hygiene_violations[:5],
         }
 
 
 def main() -> int:
+    """Punto di ingresso CLI per la sentinella del contesto Nexus Keystone."""
     reconfigure_streams()
     parser = argparse.ArgumentParser(
         description="Nexus Keystone Context Sentry & Debloating Guard"

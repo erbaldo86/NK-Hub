@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Motore di routing Mode A/B/C per Nexus Keystone v3.0.0-STE100-Unified.
+Motore di routing Mode A/B/C/D per Nexus Keystone v3.5.0.
 Calcola la reale profondita AST max_depth e applica la soglia <= 150 LOC per Mode C.
+Supporta Mode D e risolve il dominio O(1) tramite nk_registry_manifest.json.
 """
 
 from __future__ import annotations
@@ -12,13 +13,42 @@ import ast
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 if hasattr(sys.stdout, "reconfigure"):
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     except Exception:
         pass
+
+_SCRIPT_DIR = Path(__file__).resolve().parent
+_DEFAULT_WORKSPACE_ROOT = (
+    _SCRIPT_DIR.parent.parent
+    if _SCRIPT_DIR.parent.name == ".staging"
+    else _SCRIPT_DIR.parent
+)
+
+MODE_D_KEYWORDS: Tuple[str, ...] = (
+    "audit",
+    "benchmark",
+    "discovery",
+    "ricerca",
+    "analizza",
+    "analisi",
+    "quanti bandi",
+    "copertura",
+    "censimento",
+    "mappatura",
+    "esplora",
+    "read-only",
+    "readonly",
+    "report analitico",
+    "stato dell'arte",
+)
+
+MODE_D_LABEL: str = (
+    "Mode D (Analytical Discovery & Benchmark - 100% Read-Only + MCP/Web)"
+)
 
 
 class _ASTDepthVisitor(ast.NodeVisitor):
@@ -54,16 +84,180 @@ class _ASTDepthVisitor(ast.NodeVisitor):
 
 
 class VibeSprintRouter:
-    """Valuta il rischio strutturale AST e seleziona la modalita operativa (Mode A, B o C)."""
+    """Valuta il rischio strutturale AST e seleziona la modalita operativa (Mode A, B, C o D)."""
 
     MODE_C_MAX_LOC: int = 150
+    DISCOVERY_KEYWORDS: Tuple[str, ...] = MODE_D_KEYWORDS
 
     def __init__(self, workspace_root: Optional[Path] = None) -> None:
         if workspace_root is None:
-            self.workspace_root = Path(__file__).resolve().parent.parent
+            self.workspace_root = _DEFAULT_WORKSPACE_ROOT
         else:
             self.workspace_root = Path(workspace_root).resolve()
         self.staging_dir = self.workspace_root / ".staging"
+
+    def _load_registry_manifest(self) -> Dict[str, Any]:
+        """Carica nk_registry_manifest.json da staging o root con fallback sicuro."""
+        candidates = (
+            self.staging_dir / "nk_genome" / "nk_registry_manifest.json",
+            self.workspace_root / "nk_genome" / "nk_registry_manifest.json",
+            _DEFAULT_WORKSPACE_ROOT / ".staging" / "nk_genome" / "nk_registry_manifest.json",
+            _DEFAULT_WORKSPACE_ROOT / "nk_genome" / "nk_registry_manifest.json",
+        )
+        for cand in candidates:
+            if cand.exists() and cand.is_file():
+                try:
+                    data = json.loads(cand.read_text(encoding="utf-8"))
+                    if isinstance(data, dict):
+                        return data
+                except Exception:
+                    pass
+        return {}
+
+    def resolve_domain_from_manifest(self, prompt: str) -> Dict[str, Any]:
+        """Risolve in O(1) il dominio funzionale DOM-01..DOM-05 interrogando il manifesto SSOT."""
+        text_lower = (prompt or "").strip().lower()
+        manifest = self._load_registry_manifest()
+        domains = manifest.get("domains", {})
+        skills_index = manifest.get("skills_index", {})
+        scripts_index = manifest.get("scripts_index", {})
+        dispatch_table = manifest.get("intent_dispatch_table", {})
+
+        # 1. Riferimento esplicito a ID dominio nel prompt (es. DOM-04)
+        for dom_id, dom_meta in domains.items():
+            if dom_id.lower() in text_lower or dom_meta.get("name", "").lower() in text_lower:
+                return {
+                    "domain_id": dom_id,
+                    "domain_name": dom_meta.get("name", ""),
+                    "primary_skill": dom_meta.get("primary_skill", "NK-Master-Hub"),
+                    "matched_triggers": [dom_id],
+                }
+
+        # 2. Riferimento esplicito a una skill o script nel prompt
+        for sk_name, sk_meta in skills_index.items():
+            if sk_name.lower() in text_lower:
+                return {
+                    "domain_id": sk_meta.get("domain_id", "DOM-01"),
+                    "domain_name": sk_meta.get("domain_name", "GOV_AND_ROUTING"),
+                    "primary_skill": sk_name,
+                    "matched_triggers": [sk_name],
+                }
+
+        for sc_name, sc_meta in scripts_index.items():
+            stem = sc_name[:-3].lower() if sc_name.endswith(".py") else sc_name.lower()
+            if sc_name.lower() in text_lower or stem in text_lower:
+                dom_id = sc_meta.get("domain_id", "DOM-03")
+                dom_meta = domains.get(dom_id, {})
+                return {
+                    "domain_id": dom_id,
+                    "domain_name": sc_meta.get("domain_name", "BUILD_AND_HEAL"),
+                    "primary_skill": dom_meta.get("primary_skill", "NK-Python-Async-Builder"),
+                    "matched_triggers": [sc_name],
+                }
+
+        # 3. Punteggio keyword tramite domains e intent_dispatch_table
+        tokens = set(
+            "".join(ch if ch.isalnum() or ch == "_" else " " for ch in text_lower).split()
+        )
+        best_dom_id = ""
+        best_score = 0
+        best_triggers: List[str] = []
+
+        for dom_id, dom_meta in domains.items():
+            kws = dom_meta.get("keywords", [])
+            hits = [
+                kw
+                for kw in kws
+                if kw.lower() in tokens or (len(kw) >= 4 and kw.lower() in text_lower)
+            ]
+            if len(hits) > best_score:
+                best_score = len(hits)
+                best_dom_id = dom_id
+                best_triggers = hits
+
+        if best_dom_id and best_score > 0:
+            dom_meta = domains[best_dom_id]
+            return {
+                "domain_id": best_dom_id,
+                "domain_name": dom_meta.get("name", ""),
+                "primary_skill": dom_meta.get("primary_skill", "NK-Master-Hub"),
+                "matched_triggers": best_triggers,
+            }
+
+        for kw, entry in dispatch_table.items():
+            if kw in tokens or (len(kw) >= 4 and kw in text_lower):
+                return {
+                    "domain_id": entry.get("domain_id", "DOM-03"),
+                    "domain_name": entry.get("domain_name", "BUILD_AND_HEAL"),
+                    "primary_skill": entry.get("primary_agent", "NK-Python-Async-Builder"),
+                    "matched_triggers": [kw],
+                }
+
+        is_disc = any(kw in text_lower for kw in self.DISCOVERY_KEYWORDS)
+        if is_disc:
+            return {
+                "domain_id": "DOM-02",
+                "domain_name": "IDEATION_AND_ARCH",
+                "primary_skill": "NK-Ideator",
+                "matched_triggers": [],
+            }
+        return {
+            "domain_id": "DOM-03",
+            "domain_name": "BUILD_AND_HEAL",
+            "primary_skill": "NK-Python-Async-Builder",
+            "matched_triggers": [],
+        }
+
+    def classify_prompt_intent(
+        self,
+        prompt: str,
+        files: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """Classifica il prompt, attiva Mode D su discovery e arricchisce con domain_id."""
+        text_lower = (prompt or "").strip().lower()
+        has_code_files = bool(files and len(files) > 0)
+        matched = [kw for kw in self.DISCOVERY_KEYWORDS if kw in text_lower]
+        domain_info = self.resolve_domain_from_manifest(prompt)
+
+        if matched and not has_code_files:
+            return {
+                "recommended_mode": "mode_d",
+                "mode": MODE_D_LABEL,
+                "mode_label": MODE_D_LABEL,
+                "is_discovery": True,
+                "read_only": True,
+                "matched_keywords": matched,
+                "primary_agent": "NK-Ideator",
+                "domain_id": domain_info["domain_id"],
+                "domain_name": domain_info["domain_name"],
+                "tools_allowed": [
+                    "view_file",
+                    "search_web",
+                    "read_url_content",
+                    "call_mcp_tool",
+                    "list_resources",
+                    "read_resource",
+                ],
+                "prompt": prompt,
+                "reason": (
+                    f"Analytical discovery intent detected via keywords: {matched}"
+                ),
+            }
+
+        return {
+            "recommended_mode": "mode_c",
+            "mode": "Mode A/B/C (Code & Specification Routing)",
+            "mode_label": "Mode A/B/C (Code & Specification Routing)",
+            "is_discovery": False,
+            "read_only": False,
+            "matched_keywords": matched,
+            "primary_agent": "NK-Python-Async-Builder",
+            "domain_id": domain_info["domain_id"],
+            "domain_name": domain_info["domain_name"],
+            "tools_allowed": [],
+            "prompt": prompt,
+            "reason": "Standard implementation or file modification routing.",
+        }
 
     def compute_ast_risk_score(
         self,
@@ -78,7 +272,9 @@ class VibeSprintRouter:
             loc = len(lines)
             risk = min(1.0, round(loc / 300.0, 2))
             eligible = risk <= 0.5 and loc <= self.MODE_C_MAX_LOC
-            recommended_mode = "mode_c" if eligible else ("mode_b" if loc <= 300 else "mode_a")
+            recommended_mode = (
+                "mode_c" if eligible else ("mode_b" if loc <= 300 else "mode_a")
+            )
             return {
                 "risk_score": risk,
                 "mode_eligible": eligible,
@@ -200,6 +396,25 @@ class VibeSprintRouter:
         }
 
 
+def resolve_domain_from_manifest(
+    prompt: str,
+    workspace_root: Optional[Path] = None,
+) -> Dict[str, Any]:
+    """Funzione helper di modulo per risolvere il dominio O(1) dal manifesto SSOT."""
+    router = VibeSprintRouter(workspace_root=workspace_root)
+    return router.resolve_domain_from_manifest(prompt=prompt)
+
+
+def classify_prompt_intent(
+    prompt: str,
+    files: Optional[List[str]] = None,
+    workspace_root: Optional[Path] = None,
+) -> Dict[str, Any]:
+    """Funzione helper di modulo per classificare l'intento del prompt (Mode D vs A/B/C)."""
+    router = VibeSprintRouter(workspace_root=workspace_root)
+    return router.classify_prompt_intent(prompt=prompt, files=files)
+
+
 def load_prewarmed_capsule(workspace_root: Optional[Path] = None) -> Dict[str, Any]:
     """Funzione helper di modulo per caricare la capsula Tier-1 pre-riscaldata."""
     router = VibeSprintRouter(workspace_root=workspace_root)
@@ -207,7 +422,7 @@ def load_prewarmed_capsule(workspace_root: Optional[Path] = None) -> Dict[str, A
 
 
 def run_test() -> int:
-    """Esegue l'autotest rapido del router Mode C."""
+    """Esegue l'autotest rapido del router Mode C e Mode D."""
     router = VibeSprintRouter()
     code_sample = '''
 def calculate_vat(amount: float, rate: float = 0.22) -> float:
@@ -225,14 +440,17 @@ def calculate_vat(amount: float, rate: float = 0.22) -> float:
         res,
     )
     assert "NK-VIBE-SPRINT-SPEC" in spec
+    disc = router.classify_prompt_intent("Esegui audit e benchmark copertura bandi")
+    assert disc["recommended_mode"] == "mode_d"
+    assert "domain_id" in disc
     print(f"VibeSprintRouter test PASS: Risk {res['risk_score']} | Depth {res['max_depth']}")
     return 0
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    """Punto di ingresso CLI per il router Mode A/B/C di Nexus Keystone."""
+    """Punto di ingresso CLI per il router Mode A/B/C/D di Nexus Keystone."""
     parser = argparse.ArgumentParser(
-        description="Router Mode A/B/C basato sul rischio AST per Nexus Keystone"
+        description="Router Mode A/B/C/D basato sul rischio AST e intento prompt per Nexus Keystone"
     )
     parser.add_argument(
         "--test",
@@ -243,13 +461,18 @@ def main(argv: Optional[List[str]] = None) -> int:
         "--prompt",
         type=str,
         default="Vibe Sprint Change",
-        help="Descrizione sintetica dell'intento di modifica",
+        help="Descrizione sintetica dell'intento di modifica o discovery",
     )
     parser.add_argument(
         "--files",
         nargs="*",
         default=None,
         help="Elenco dei file sorgente da valutare per il routing",
+    )
+    parser.add_argument(
+        "--discovery-check",
+        action="store_true",
+        help="Valuta l'intento del prompt per attivare Mode D Read-Only Discovery",
     )
     parser.add_argument(
         "--capsule",
@@ -293,6 +516,19 @@ def main(argv: Optional[List[str]] = None) -> int:
         else:
             for item in results:
                 print(item["micro_spec"])
+        return 0
+
+    intent = router.classify_prompt_intent(args.prompt, files=args.files)
+    if args.discovery_check or intent["is_discovery"]:
+        if args.capsule:
+            intent["tier1_capsule"] = router.load_prewarmed_capsule()
+        if args.json:
+            print(json.dumps(intent, indent=2))
+        else:
+            print(
+                f"[{intent['mode_label']}] | Mode: {intent['recommended_mode']} | "
+                f"Agent: {intent['primary_agent']} | Domain: {intent['domain_id']}"
+            )
         return 0
 
     if args.capsule:

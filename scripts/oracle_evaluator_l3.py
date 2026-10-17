@@ -8,6 +8,7 @@ Gestisce i void tag HTML5 senza sbilanciare lo stack e risolve i path Windows co
 from __future__ import annotations
 
 import argparse
+import difflib
 from html.parser import HTMLParser
 import sys
 from pathlib import Path
@@ -252,50 +253,107 @@ class DOMOracleEvaluator:
                     )
                 )
 
-        if not exp.children and not act.children:
-            if exp.text.strip() != act.text.strip():
-                deltas.append(
-                    DOMDeltaItem(
-                        change_type="TEXT_MISMATCH",
-                        path=path,
-                        expected=exp.text.strip(),
-                        actual=act.text.strip(),
-                        details=f"Text mismatch at {path}",
-                    )
+        if exp.text.strip() != act.text.strip():
+            deltas.append(
+                DOMDeltaItem(
+                    change_type="TEXT_MISMATCH",
+                    path=path,
+                    expected=exp.text.strip(),
+                    actual=act.text.strip(),
+                    details=f"Text mismatch at {path}",
                 )
+            )
 
         exp_len = len(exp.children)
         act_len = len(act.children)
-        min_len = min(exp_len, act_len)
 
-        for i in range(min_len):
-            child_path = f"{path}/{exp.children[i].tag}[{i}]"
-            self._compare_nodes(exp.children[i], act.children[i], child_path, deltas)
+        def _node_sig(n: DOMNode) -> str:
+            key = n.attrs.get("id") or n.attrs.get("data-key") or ""
+            return f"{n.tag}#{key}" if key else n.tag
 
-        if exp_len > act_len:
-            for i in range(act_len, exp_len):
-                missing = exp.children[i]
-                deltas.append(
-                    DOMDeltaItem(
-                        change_type="REMOVED",
-                        path=f"{path}/{missing.tag}[{i}]",
-                        expected=f"<{missing.tag}>",
-                        actual=None,
-                        details=f"Expected child <{missing.tag}> missing at index {i}",
-                    )
+        exp_keys = [c.attrs.get("id") or c.attrs.get("data-key") for c in exp.children]
+        act_keys = [c.attrs.get("id") or c.attrs.get("data-key") for c in act.children]
+
+        if exp_len == act_len and exp_keys == act_keys:
+            for i in range(exp_len):
+                child_path = f"{path}/{exp.children[i].tag}[{i}]"
+                self._compare_nodes(
+                    exp.children[i], act.children[i], child_path, deltas
                 )
-        elif act_len > exp_len:
-            for i in range(exp_len, act_len):
-                extra = act.children[i]
-                deltas.append(
-                    DOMDeltaItem(
-                        change_type="ADDED",
-                        path=f"{path}/{extra.tag}[{i}]",
-                        expected=None,
-                        actual=f"<{extra.tag}>",
-                        details=f"Unexpected extra child <{extra.tag}> found at index {i}",
+            return
+
+        exp_sigs = [_node_sig(c) for c in exp.children]
+        act_sigs = [_node_sig(c) for c in act.children]
+        matcher = difflib.SequenceMatcher(None, exp_sigs, act_sigs, autojunk=False)
+
+        for tag_op, i1, i2, j1, j2 in matcher.get_opcodes():
+            if tag_op == "equal":
+                for offset in range(i2 - i1):
+                    idx_e = i1 + offset
+                    idx_a = j1 + offset
+                    child_path = f"{path}/{exp.children[idx_e].tag}[{idx_e}]"
+                    self._compare_nodes(
+                        exp.children[idx_e], act.children[idx_a], child_path, deltas
                     )
-                )
+            elif tag_op == "replace":
+                span_e = i2 - i1
+                span_a = j2 - j1
+                common = min(span_e, span_a)
+                for offset in range(common):
+                    idx_e = i1 + offset
+                    idx_a = j1 + offset
+                    child_path = f"{path}/{exp.children[idx_e].tag}[{idx_e}]"
+                    self._compare_nodes(
+                        exp.children[idx_e], act.children[idx_a], child_path, deltas
+                    )
+                if span_e > common:
+                    for idx_e in range(i1 + common, i2):
+                        missing = exp.children[idx_e]
+                        deltas.append(
+                            DOMDeltaItem(
+                                change_type="REMOVED",
+                                path=f"{path}/{missing.tag}[{idx_e}]",
+                                expected=f"<{missing.tag}>",
+                                actual=None,
+                                details=f"Expected child <{missing.tag}> missing at index {idx_e}",
+                            )
+                        )
+                elif span_a > common:
+                    for idx_a in range(j1 + common, j2):
+                        extra = act.children[idx_a]
+                        deltas.append(
+                            DOMDeltaItem(
+                                change_type="ADDED",
+                                path=f"{path}/{extra.tag}[{idx_a}]",
+                                expected=None,
+                                actual=f"<{extra.tag}>",
+                                details=f"Unexpected extra child <{extra.tag}> found at index {idx_a}",
+                            )
+                        )
+            elif tag_op == "delete":
+                for idx_e in range(i1, i2):
+                    missing = exp.children[idx_e]
+                    deltas.append(
+                        DOMDeltaItem(
+                            change_type="REMOVED",
+                            path=f"{path}/{missing.tag}[{idx_e}]",
+                            expected=f"<{missing.tag}>",
+                            actual=None,
+                            details=f"Expected child <{missing.tag}> missing at index {idx_e}",
+                        )
+                    )
+            elif tag_op == "insert":
+                for idx_a in range(j1, j2):
+                    extra = act.children[idx_a]
+                    deltas.append(
+                        DOMDeltaItem(
+                            change_type="ADDED",
+                            path=f"{path}/{extra.tag}[{idx_a}]",
+                            expected=None,
+                            actual=f"<{extra.tag}>",
+                            details=f"Unexpected extra child <{extra.tag}> found at index {idx_a}",
+                        )
+                    )
 
 
 def main() -> int:

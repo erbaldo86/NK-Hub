@@ -35,6 +35,52 @@ INVALID_HANDLE_VALUE = ctypes.c_void_p(-1).value
 TH32CS_SNAPPROCESS = 0x00000002
 PROCESS_QUERY_INFORMATION = 0x0400
 PROCESS_VM_READ = 0x0010
+PROCESS_SET_QUOTA = 0x0100
+PROCESS_TERMINATE = 0x0001
+JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000
+JobObjectExtendedLimitInformation = 9
+
+
+class IO_COUNTERS(ctypes.Structure):
+    """Struttura Win32 per i contatori di I/O del Job Object."""
+
+    _fields_ = [
+        ("ReadOperationCount", ctypes.c_ulonglong),
+        ("WriteOperationCount", ctypes.c_ulonglong),
+        ("OtherOperationCount", ctypes.c_ulonglong),
+        ("ReadTransferCount", ctypes.c_ulonglong),
+        ("WriteTransferCount", ctypes.c_ulonglong),
+        ("OtherTransferCount", ctypes.c_ulonglong),
+    ]
+
+
+class JOBOBJECT_BASIC_LIMIT_INFORMATION(ctypes.Structure):
+    """Struttura Win32 per i limiti base di un Job Object."""
+
+    _fields_ = [
+        ("PerProcessUserTimeLimit", ctypes.c_longlong),
+        ("PerJobUserTimeLimit", ctypes.c_longlong),
+        ("LimitFlags", wintypes.DWORD),
+        ("MinimumWorkingSetSize", ctypes.c_size_t),
+        ("MaximumWorkingSetSize", ctypes.c_size_t),
+        ("ActiveProcessLimit", wintypes.DWORD),
+        ("Affinity", ctypes.c_size_t),
+        ("PriorityClass", wintypes.DWORD),
+        ("SchedulingClass", wintypes.DWORD),
+    ]
+
+
+class JOBOBJECT_EXTENDED_LIMIT_INFORMATION(ctypes.Structure):
+    """Struttura Win32 per i limiti estesi con JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE."""
+
+    _fields_ = [
+        ("BasicLimitInformation", JOBOBJECT_BASIC_LIMIT_INFORMATION),
+        ("IoInfo", IO_COUNTERS),
+        ("ProcessMemoryLimit", ctypes.c_size_t),
+        ("JobMemoryLimit", ctypes.c_size_t),
+        ("PeakProcessMemoryUsed", ctypes.c_size_t),
+        ("PeakJobMemoryUsed", ctypes.c_size_t),
+    ]
 
 
 class PROCESSENTRY32(ctypes.Structure):
@@ -97,8 +143,62 @@ if sys.platform == "win32":
 
     _kernel32.CloseHandle.argtypes = [ctypes.c_void_p]
     _kernel32.CloseHandle.restype = wintypes.BOOL
+
+    _kernel32.CreateJobObjectW.argtypes = [ctypes.c_void_p, wintypes.LPCWSTR]
+    _kernel32.CreateJobObjectW.restype = ctypes.c_void_p
+
+    _kernel32.SetInformationJobObject.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_int,
+        ctypes.c_void_p,
+        wintypes.DWORD,
+    ]
+    _kernel32.SetInformationJobObject.restype = wintypes.BOOL
+
+    _kernel32.AssignProcessToJobObject.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_void_p,
+    ]
+    _kernel32.AssignProcessToJobObject.restype = wintypes.BOOL
 else:
     _kernel32 = None
+
+
+def _assign_to_kill_on_close_job(pid: int) -> Optional[int]:
+    """Associa il processo a un Job Object Win32 con flag KILL_ON_JOB_CLOSE."""
+    if sys.platform != "win32" or not pid or _kernel32 is None:
+        return None
+    try:
+        h_job = _kernel32.CreateJobObjectW(None, None)
+        if not h_job or h_job == INVALID_HANDLE_VALUE:
+            return None
+        info = JOBOBJECT_EXTENDED_LIMIT_INFORMATION()
+        info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        ok_info = _kernel32.SetInformationJobObject(
+            h_job,
+            JobObjectExtendedLimitInformation,
+            ctypes.byref(info),
+            ctypes.sizeof(info),
+        )
+        if not ok_info:
+            _kernel32.CloseHandle(h_job)
+            return None
+        h_proc = _kernel32.OpenProcess(
+            PROCESS_SET_QUOTA | PROCESS_TERMINATE | PROCESS_QUERY_INFORMATION,
+            False,
+            pid,
+        )
+        if h_proc and h_proc != INVALID_HANDLE_VALUE:
+            try:
+                assigned = _kernel32.AssignProcessToJobObject(h_job, h_proc)
+                if assigned:
+                    return int(h_job)
+            finally:
+                _kernel32.CloseHandle(h_proc)
+        _kernel32.CloseHandle(h_job)
+        return None
+    except Exception:
+        return None
 
 
 class SandboxConfig(BaseModel):
@@ -365,7 +465,7 @@ def main():
             code = compile(f.read(), str(target_script), "exec")
 
         global_dict = {"__name__": "__main__", "__file__": str(target_script)}
-        tracer.runctx(code, global_dict)
+        tracer.runctx(code, global_dict, global_dict)
     finally:
         results = tracer.results()
         counts = results.counts
@@ -409,6 +509,12 @@ class DASTSandboxRunner:
         env.update(self.config.env_vars)
         env["PYTHONUNBUFFERED"] = "1"
         env["PYTHONDONTWRITEBYTECODE"] = "1"
+        sandbox_path_str = str(sandbox.sandbox_dir)
+        existing_pypath = env.get("PYTHONPATH", "")
+        if existing_pypath:
+            env["PYTHONPATH"] = f"{sandbox_path_str}{os.pathsep}{existing_pypath}"
+        else:
+            env["PYTHONPATH"] = sandbox_path_str
 
         actual_cmd = list(command)
         cov_out_file = sandbox.sandbox_dir / "_nk_coverage_out.json"
@@ -444,6 +550,7 @@ class DASTSandboxRunner:
         )
 
         pid = proc.pid
+        job_handle = _assign_to_kill_on_close_job(pid) if pid else None
         max_bytes = int(self.config.max_memory_mb * 1024 * 1024)
         watchdog_active = True
 
@@ -496,7 +603,7 @@ class DASTSandboxRunner:
                 )
                 self._kill_process_tree(proc, p_proc)
             except Exception:
-                pass
+                p_proc = None
         finally:
             watchdog_active = False
             if not watchdog_task.done():
@@ -504,7 +611,12 @@ class DASTSandboxRunner:
                 try:
                     await watchdog_task
                 except asyncio.CancelledError:
-                    pass
+                    watchdog_active = False
+            if job_handle is not None and _kernel32 is not None:
+                try:
+                    _kernel32.CloseHandle(ctypes.c_void_p(job_handle))
+                except Exception:
+                    job_handle = None
 
         duration_sec = round(time.perf_counter() - start_time, 6)
         exit_code = proc.returncode if proc.returncode is not None else -1
@@ -529,7 +641,7 @@ class DASTSandboxRunner:
                 executed_statements = sorted(set(executed_statements))
                 statement_traces.sort(key=lambda x: (x.file_name, x.line_number))
             except Exception:
-                pass
+                statement_traces = []
 
         success = (exit_code == 0) and not timed_out and not memory_exceeded
 
@@ -571,7 +683,7 @@ class DASTSandboxRunner:
                     timeout=2.0,
                 )
             except Exception:
-                pass
+                target_pid = None
 
         if _HAS_PSUTIL and psutil is not None and parent is not None:
             all_procs = (children or []) + [parent]
@@ -579,13 +691,13 @@ class DASTSandboxRunner:
                 try:
                     p.kill()
                 except Exception:
-                    pass
+                    continue
 
         if proc is not None and proc.returncode is None:
             try:
                 proc.kill()
             except Exception:
-                pass
+                return
 
 
 def main() -> int:
@@ -610,7 +722,20 @@ def main() -> int:
     async def _run() -> SandboxTelemetryReport:
         with ShadowSandbox() as sb:
             sb.copy_file(src_script)
-            runner = DASTSandboxRunner(SandboxConfig(timeout_sec=args.timeout))
+            sibling_py = [
+                p
+                for p in src_script.parent.glob("*.py")
+                if p.is_file() and p.resolve() != src_script
+            ]
+            if len(sibling_py) <= 50:
+                for sib in sibling_py:
+                    sb.copy_file(sib)
+            py_paths = f"{src_script.parent}{os.pathsep}{src_script.parent.parent}"
+            cfg = SandboxConfig(
+                timeout_sec=args.timeout,
+                env_vars={"PYTHONPATH": py_paths},
+            )
+            runner = DASTSandboxRunner(cfg)
             return await runner.run_in_sandbox(
                 sb,
                 [sys.executable, src_script.name],

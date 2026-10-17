@@ -45,6 +45,11 @@ try:
 except ImportError:
     from scripts.platform_runner import reconfigure_streams, safe_subprocess_run
 
+try:
+    from sbfl_engine import SpectrumCounts, calculate_ochiai
+except ImportError:
+    from scripts.sbfl_engine import SpectrumCounts, calculate_ochiai
+
 
 class PytestRunSummary(BaseModel):
     """Riepilogo strutturato di un'esecuzione pytest."""
@@ -167,6 +172,7 @@ class SBFLPytestBridge:
         self,
         summary: PytestRunSummary,
         target_file_hint: Optional[str] = None,
+        passed_line_counts: Optional[Dict[Tuple[str, int], int]] = None,
     ) -> Optional[OchiaiBridgeLocation]:
         """Estrae la posizione della riga responsabile del fallimento e calcola lo score Ochiai."""
         if summary.exit_code == 0:
@@ -236,8 +242,8 @@ class SBFLPytestBridge:
                     flines = candidate_path.read_text(encoding="utf-8").splitlines()
                     if 1 <= target_line <= len(flines):
                         failing_code = flines[target_line - 1].strip()
-            except Exception:
-                pass
+            except OSError:
+                failing_code = ""
 
         # GT-07 / U-19: Calcola n_ef = matched_failures (con fallback a total_failed se tutte convergono)
         total_failed = max(1, summary.failed_count)
@@ -246,9 +252,24 @@ class SBFLPytestBridge:
             n_ef = total_failed
         else:
             n_ef = min(total_failed, matched_failures)
-        n_ep = 0
-        denominator = math.sqrt(total_failed * (n_ef + n_ep))
-        ochiai_score = (n_ef / denominator) if denominator > 0 else 1.0
+
+        if passed_line_counts is not None:
+            n_ep = passed_line_counts.get(
+                (target_file, target_line),
+                passed_line_counts.get((Path(target_file).name, target_line), 0),
+            )
+            ochiai_score = calculate_ochiai(
+                SpectrumCounts(
+                    n_ef=n_ef,
+                    n_ep=n_ep,
+                    n_nf=max(0, total_failed - n_ef),
+                    n_np=max(0, summary.passed_count - n_ep),
+                )
+            )
+        else:
+            n_ep = 0
+            denominator = math.sqrt(total_failed * (n_ef + n_ep))
+            ochiai_score = (n_ef / denominator) if denominator > 0 else 1.0
 
         return OchiaiBridgeLocation(
             file_path=target_file,
@@ -262,11 +283,83 @@ class SBFLPytestBridge:
             n_ep=n_ep,
         )
 
+    def rank_all_locations(
+        self,
+        summary: PytestRunSummary,
+        passed_line_counts: Optional[Dict[Tuple[str, int], int]] = None,
+    ) -> List[OchiaiBridgeLocation]:
+        """Restituisce tutte le righe del traceback ordinate per score Ochiai decrescente."""
+        if summary.exit_code == 0:
+            return []
+
+        combined_text = summary.raw_stdout + "\n" + summary.raw_stderr
+        lines = combined_text.splitlines()
+
+        error_type: str = "TestFailure"
+        error_msg: str = "Test failed"
+        for line in reversed(lines):
+            line_str = line.strip()
+            if line_str.startswith("E   ") or line_str.startswith("E:  "):
+                err_content = line_str[4:].strip()
+                if ":" in err_content:
+                    parts = err_content.split(":", 1)
+                    error_type = parts[0].strip()
+                    error_msg = parts[1].strip()
+                else:
+                    error_type = "AssertionError"
+                    error_msg = err_content
+                break
+
+        location_counts: Dict[Tuple[str, int], int] = {}
+        for line in lines:
+            match = self.TRACEBACK_FILE_RE.search(line.strip())
+            if match:
+                fpath = match.group(1).strip().replace("\\", "/")
+                lno = int(match.group(2))
+                if "test_" not in Path(fpath).name.lower():
+                    location_counts[(fpath, lno)] = (
+                        location_counts.get((fpath, lno), 0) + 1
+                    )
+
+        total_failed = max(1, summary.failed_count)
+        ranked: List[OchiaiBridgeLocation] = []
+        counts_map = passed_line_counts or {}
+
+        for (fpath, lno), matched in location_counts.items():
+            n_ef = min(total_failed, max(1, matched))
+            n_ep = counts_map.get(
+                (fpath, lno), counts_map.get((Path(fpath).name, lno), 0)
+            )
+            score = calculate_ochiai(
+                SpectrumCounts(
+                    n_ef=n_ef,
+                    n_ep=n_ep,
+                    n_nf=max(0, total_failed - n_ef),
+                    n_np=max(0, summary.passed_count - n_ep),
+                )
+            )
+            ranked.append(
+                OchiaiBridgeLocation(
+                    file_path=fpath,
+                    line_number=lno,
+                    suspiciousness=min(1.0, score),
+                    error_type=error_type,
+                    error_message=error_msg,
+                    total_failed_tests=total_failed,
+                    n_ef=n_ef,
+                    n_ep=n_ep,
+                )
+            )
+
+        ranked.sort(key=lambda x: (x.suspiciousness, x.n_ef), reverse=True)
+        return ranked
+
     def run_and_diagnose(
         self,
         test_cmd: Sequence[str] | str,
         target_file_hint: Optional[str] = None,
         timeout_sec: float = 60.0,
+        passed_line_counts: Optional[Dict[Tuple[str, int], int]] = None,
     ) -> Tuple[PytestRunSummary, Optional[OchiaiBridgeLocation]]:
         """Esegue il comando pytest e restituisce il riepilogo e la localizzazione Ochiai."""
         t0 = time.perf_counter()
@@ -277,7 +370,11 @@ class SBFLPytestBridge:
         )
         duration = time.perf_counter() - t0
         summary = self.parse_pytest_output(stdout, stderr, rc, duration)
-        loc = self.extract_failure_location(summary, target_file_hint=target_file_hint)
+        loc = self.extract_failure_location(
+            summary,
+            target_file_hint=target_file_hint,
+            passed_line_counts=passed_line_counts,
+        )
         return summary, loc
 
 

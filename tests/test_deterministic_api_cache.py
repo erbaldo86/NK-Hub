@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Nexus Keystone v3.0.0-STE100-Unified
-Modulo: test_deterministic_api_cache.py
-Valida la connessione SQLite WAL persistente e la scadenza TTL.
+Test unitari Zero-Mock per deterministic_api_cache.py di Nexus Keystone v3.3.0.
+Modulo: tests/test_deterministic_api_cache.py.
+Valida la connessione SQLite WAL persistente, il bypass force_refresh e la scadenza TTL.
 """
 
 from __future__ import annotations
@@ -20,10 +20,15 @@ if str(_workspace_root) not in sys.path:
 
 
 def _load_cache_module():
-    staging_target = _workspace_root / ".staging" / "scripts" / "deterministic_api_cache.py"
+    """Carica il modulo deterministic_api_cache dando priorita a .staging/scripts."""
+    staging_target = (
+        _workspace_root / ".staging" / "scripts" / "deterministic_api_cache.py"
+    )
     prod_target = _workspace_root / "scripts" / "deterministic_api_cache.py"
     target = staging_target if staging_target.exists() else prod_target
-    spec = importlib.util.spec_from_file_location("deterministic_api_cache", str(target))
+    spec = importlib.util.spec_from_file_location(
+        "deterministic_api_cache", str(target)
+    )
     mod = importlib.util.module_from_spec(spec)
     sys.modules["deterministic_api_cache"] = mod
     spec.loader.exec_module(mod)
@@ -35,27 +40,39 @@ DeterministicApiCache = cache_mod.DeterministicApiCache
 
 
 def test_api_cache_persistent_wal_connection_and_close(tmp_path: Path) -> None:
-    """1. Verifica il riutilizzo della connessione WAL persistente e la chiusura pulita."""
+    """1. Verifica connessione WAL persistente, force_refresh, scadenza TTL ed eviction."""
     db_path = tmp_path / "wal_persistent.db"
-    with DeterministicApiCache(db_path=db_path, ttl_seconds=3600.0) as cache:
+    with DeterministicApiCache(db_path=db_path, ttl_seconds=0.02) as cache:
+        assert cache.health_check() is True
         conn_initial = cache._conn
         assert conn_initial is not None
-        cache.set("https://example.org/v1", 200, '{"ok": true}')
-        hit = cache.get("https://example.org/v1")
+
+        cache.set(
+            "https://example.org/v1",
+            200,
+            '{"ok": true}',
+            method="POST",
+            params={"q": "nk"},
+        )
+        hit = cache.get("https://example.org/v1", method="POST", params={"q": "nk"})
         assert hit is not None
+        assert hit[0] == 200
         assert cache._conn is conn_initial
+
+        bypass = cache.get(
+            "https://example.org/v1",
+            method="POST",
+            params={"q": "nk"},
+            force_refresh=True,
+        )
+        assert bypass is None
+
+        time.sleep(0.03)
+        assert (
+            cache.get("https://example.org/v1", method="POST", params={"q": "nk"})
+            is None
+        )
+
+        cache.set("https://example.org/v2", 200, '{"ephemeral": 2}')
+        assert cache.clear() == 1
     assert cache._conn is None
-
-
-def test_api_cache_ttl_expiration_and_eviction(tmp_path: Path) -> None:
-    """2. Verifica l'invalidazione per scadenza TTL e la pulizia della tabella cache."""
-    db_path = tmp_path / "ttl_test.db"
-    with DeterministicApiCache(db_path=db_path, ttl_seconds=0.05) as cache:
-        cache.set("https://example.org/short", 200, '{"ephemeral": 1}')
-        time.sleep(0.08)
-        expired_hit = cache.get("https://example.org/short")
-        assert expired_hit is None
-
-        cache.set("https://example.org/short2", 200, '{"ephemeral": 2}')
-        cleared = cache.clear()
-        assert cleared == 1

@@ -4,8 +4,10 @@ description: Oracolo deterministico e Cold Auditor in sola lettura per la Macro-
 version: "3.0.0-STE100-Unified"
 thinking_level: "HIGH"
 nk_tas_audit: "CRV-4.0-Universal"
-patch_version: 3
-nk_tas_date: "2026-10-14"
+patch_version: 4
+nk_tas_date: "2026-10-17"
+domain_id: "DOM-04"
+sector: "AUDIT_DAST_AND_RCA"
 ---
 
 <strict_boundaries>
@@ -42,7 +44,7 @@ Sei **NK-Oracle-Evaluator**, il giudice imparziale e Cold Auditor dell'ecosistem
 3. **Gate 4 (Preservation):** Esegui `python scripts/ast_guard_validator.py --stage-dir .staging` per confermare l'integrità di firme, tipi e commenti.
 
 ### Passo 2: Esecuzione degli Oracoli Deterministici Gate 5..6 ([`verification_oracles.md`](references/verification_oracles.md))
-1. **Gate 5 (Truth/DAST):** Esegui i test unitari e i 100 Golden Tests (`[RULE-01.10]`) verificando `exit_code: 0`.
+1. **Gate 5 (Truth/DAST):** Esegui i test unitari e i 68 Golden Tests (`[RULE-01.10]`) verificando `exit_code: 0` e pass rate `100.0%`.
 2. **DOM & UI Oracle (`scripts/oracle_evaluator_l3.py`):** Valida la struttura HTML5/DOM e consiglia il comando `/browser` per le ispezioni visive interattive.
 3. **Gate 6 (RSI Convergence):** Esegui `python scripts/rsi_convergence_engine.py --verify` e verifica $\Delta_k == 0$ e $Q(S_k) == 100.0$.
 

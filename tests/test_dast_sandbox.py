@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Nexus Keystone v3.0.0-STE100-Unified
-Modulo di test 2: DAST Sandbox Runner e Dynamic Line Tracer.
+Suite di test unitari Zero-Mock per DAST Sandbox Runner e Line Tracer (v3.3.0).
+Modulo: tests/test_dast_sandbox.py.
+Valida ciclo di vita sandbox, trace.Trace, watchdog timeout/memory e taskkill /F /T.
 """
 
 from __future__ import annotations
@@ -12,20 +13,22 @@ from pathlib import Path
 
 CURRENT_DIR = Path(__file__).resolve().parent
 STAGING_DIR = CURRENT_DIR.parent
-SCRIPTS_DIR = STAGING_DIR / "scripts"
+WORKSPACE_ROOT = (
+    STAGING_DIR.parent if STAGING_DIR.name == ".staging" else STAGING_DIR
+)
+SCRIPTS_DIR = WORKSPACE_ROOT / "scripts"
 
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
-if str(STAGING_DIR) not in sys.path:
-    sys.path.insert(0, str(STAGING_DIR))
+if str(WORKSPACE_ROOT) not in sys.path:
+    sys.path.insert(0, str(WORKSPACE_ROOT))
 
 from dast_sandbox_runner import DASTSandboxRunner, SandboxConfig, ShadowSandbox
 
 
 class TestDASTSandbox(unittest.IsolatedAsyncioTestCase):
-    # 9. test_sandbox_lifecycle_and_mirroring
     async def test_sandbox_lifecycle_and_mirroring(self):
-        """9. Valida creazione, mirroring e teardown pulito della shadow sandbox."""
+        """1. Valida creazione, scrittura, tracciamento statement trace.Trace e teardown."""
         sb = ShadowSandbox()
         created_path = sb.create()
         self.assertTrue(created_path.exists())
@@ -34,81 +37,59 @@ class TestDASTSandbox(unittest.IsolatedAsyncioTestCase):
             f = sb.write_file("nested/module.py", "X = 42\n")
             self.assertTrue(f.exists())
             self.assertEqual(f.read_text(encoding="utf-8"), "X = 42\n")
-        finally:
-            sb.cleanup()
-        self.assertFalse(created_path.exists())
 
-    # 11. test_execution_line_tracer_accuracy
-    async def test_execution_line_tracer_accuracy(self):
-        """11. Valida il tracciamento deterministico degli statement via trace.Trace."""
-        sb = ShadowSandbox()
-        sb.create()
-        try:
-            code = """
-def calc(a, b):
-    res = a + b
-    return res
-
-calc(10, 20)
-"""
+            code = "def calc(a, b):\n    res = a + b\n    return res\ncalc(10, 20)\n"
             sb.write_file("calc_test.py", code)
-            config = SandboxConfig(timeout_sec=5.0, trace_coverage=True)
+            config = SandboxConfig(timeout_sec=3.0, trace_coverage=True)
             runner = DASTSandboxRunner(config=config)
-
-            rep = await runner.run_in_sandbox(sb, [sys.executable, "calc_test.py"], target_script_name="calc_test.py")
+            rep = await runner.run_in_sandbox(
+                sb,
+                [sys.executable, "calc_test.py"],
+                target_script_name="calc_test.py",
+            )
             self.assertTrue(rep.success)
             self.assertGreater(len(rep.executed_statements), 0)
         finally:
             sb.cleanup()
+        self.assertFalse(created_path.exists())
 
-    # 12. test_watchdog_timeout_enforcement
     async def test_watchdog_timeout_enforcement(self):
-        """12. Valida che i loop infiniti siano terminati dal timeout watchdog."""
+        """2. Valida l'interruzione deterministica per timeout e superamento tetto memoria."""
         sb = ShadowSandbox()
         sb.create()
         try:
-            hang_code = "import time\nwhile True:\n    time.sleep(0.05)\n"
+            hang_code = "import time\nwhile True:\n    time.sleep(0.02)\n"
             sb.write_file("hang.py", hang_code)
-            config = SandboxConfig(timeout_sec=0.4, poll_interval_sec=0.02)
-            runner = DASTSandboxRunner(config=config)
+            cfg_timeout = SandboxConfig(timeout_sec=0.15, poll_interval_sec=0.01)
+            runner_timeout = DASTSandboxRunner(config=cfg_timeout)
+            rep_to = await runner_timeout.run_in_sandbox(sb, [sys.executable, "hang.py"])
+            self.assertTrue(rep_to.timed_out)
+            self.assertFalse(rep_to.success)
 
-            rep = await runner.run_in_sandbox(sb, [sys.executable, "hang.py"])
-            self.assertTrue(rep.timed_out)
-            self.assertFalse(rep.success)
-        finally:
-            sb.cleanup()
-
-    # 13. test_watchdog_memory_cap_enforcement
-    async def test_watchdog_memory_cap_enforcement(self):
-        """13. Valida che il superamento del tetto di memoria termini il processo."""
-        sb = ShadowSandbox()
-        sb.create()
-        try:
-            mem_code = 'import time\nb = bytearray(b"X" * (80 * 1024 * 1024))\ntime.sleep(2.0)\n'
+            mem_code = 'import time\nb = bytearray(b"X" * (70 * 1024 * 1024))\ntime.sleep(0.5)\n'
             sb.write_file("mem.py", mem_code)
-            config = SandboxConfig(timeout_sec=5.0, max_memory_mb=30.0, poll_interval_sec=0.02)
-            runner = DASTSandboxRunner(config=config)
-
-            rep = await runner.run_in_sandbox(sb, [sys.executable, "mem.py"])
-            self.assertTrue(rep.memory_exceeded or not rep.success)
+            cfg_mem = SandboxConfig(
+                timeout_sec=2.0, max_memory_mb=25.0, poll_interval_sec=0.01
+            )
+            runner_mem = DASTSandboxRunner(config=cfg_mem)
+            rep_mem = await runner_mem.run_in_sandbox(sb, [sys.executable, "mem.py"])
+            self.assertTrue(rep_mem.memory_exceeded or not rep_mem.success)
         finally:
             sb.cleanup()
 
-    # 14. test_watchdog_taskkill_pre_kill_tree
     async def test_watchdog_taskkill_pre_kill_tree(self):
-        """14. Valida il pre-kill taskkill /F /T per eliminare alberi di processi figli."""
+        """3. Valida il pre-kill taskkill /F /T per eliminare alberi di processi figli."""
         sb = ShadowSandbox()
         sb.create()
         try:
-            tree_code = """
-import subprocess, sys, time
-proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(10)"])
-time.sleep(10)
-"""
+            tree_code = (
+                "import subprocess, sys, time\n"
+                'proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(5)"])\n'
+                "time.sleep(5)\n"
+            )
             sb.write_file("tree.py", tree_code)
-            config = SandboxConfig(timeout_sec=0.5, poll_interval_sec=0.02)
+            config = SandboxConfig(timeout_sec=0.18, poll_interval_sec=0.01)
             runner = DASTSandboxRunner(config=config)
-
             rep = await runner.run_in_sandbox(sb, [sys.executable, "tree.py"])
             self.assertTrue(rep.timed_out or not rep.success)
         finally:

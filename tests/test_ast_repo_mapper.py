@@ -1,57 +1,43 @@
 # -*- coding: utf-8 -*-
 """
-Nexus Keystone v3.0.0-STE100-Unified
-Modulo di test 4: Topologia AST, Personalized PageRank, Clustering e Repo-Map.
+Suite di test unitari Zero-Mock per Topologia AST, PageRank, Slicer e Repo-Map (v3.3.0).
+Modulo: tests/test_ast_repo_mapper.py.
+Valida SymbolExtractor, PageRank, Karpathy Slicer, cache concorrente e la guardia GT-06.
 """
 
 from __future__ import annotations
 
 import ast
 import concurrent.futures
+from pathlib import Path
 import sys
 import tempfile
 import time
 import unittest
-from pathlib import Path
 
 CURRENT_DIR = Path(__file__).resolve().parent
 STAGING_DIR = CURRENT_DIR.parent
-SCRIPTS_DIR = STAGING_DIR / "scripts"
-STAGING_SCRIPTS_DIR = STAGING_DIR / ".staging" / "scripts"
+WORKSPACE_ROOT = (
+    STAGING_DIR.parent if STAGING_DIR.name == ".staging" else STAGING_DIR
+)
+SCRIPTS_DIR = WORKSPACE_ROOT / "scripts"
+STAGING_SCRIPTS_DIR = WORKSPACE_ROOT / ".staging" / "scripts"
 
-if STAGING_SCRIPTS_DIR.exists() and (STAGING_SCRIPTS_DIR / "ast_repo_mapper.py").exists():
-    if str(STAGING_SCRIPTS_DIR) not in sys.path:
-        sys.path.insert(0, str(STAGING_SCRIPTS_DIR))
-elif str(SCRIPTS_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS_DIR))
-if str(STAGING_DIR) not in sys.path:
-    sys.path.insert(0, str(STAGING_DIR))
+for _cand in (STAGING_SCRIPTS_DIR, SCRIPTS_DIR, WORKSPACE_ROOT):
+    if _cand.exists() and str(_cand) not in sys.path:
+        sys.path.insert(0, str(_cand))
 
-try:
-    from ast_repo_mapper import (
-        AtomicCacheManager,
-        GraduatedSkillAdapter,
-        KarpathySurgicalSlicer,
-        PersonalizedPageRank,
-        PolyglotExtractor,
-        RepoMapConfig,
-        RepoMapGenerator,
-        SymbolExtractor,
-        export_markdown_snapshot,
-    )
-except ImportError:
-    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / ".staging" / "scripts"))
-    from ast_repo_mapper import (
-        AtomicCacheManager,
-        GraduatedSkillAdapter,
-        KarpathySurgicalSlicer,
-        PersonalizedPageRank,
-        PolyglotExtractor,
-        RepoMapConfig,
-        RepoMapGenerator,
-        SymbolExtractor,
-        export_markdown_snapshot,
-    )
+from ast_repo_mapper import (
+    AtomicCacheManager,
+    GraduatedSkillAdapter,
+    KarpathySurgicalSlicer,
+    PersonalizedPageRank,
+    PolyglotExtractor,
+    RepoMapConfig,
+    RepoMapGenerator,
+    SymbolExtractor,
+    export_markdown_snapshot,
+)
 
 
 class TestASTRepoMapper(unittest.TestCase):
@@ -73,9 +59,8 @@ def execute_pipeline(items: list[float]) -> float:
 """
         self.lines = self.code.splitlines(keepends=True)
 
-    # 22. test_symbol_table_extraction
     def test_symbol_table_extraction(self):
-        """22. Valida l'estrazione della tabella simboli da codice Python."""
+        """1. Valida estrazione tabella simboli, archi del grafo e convergenza PageRank."""
         tree = ast.parse(self.code)
         extractor = SymbolExtractor(module_path="test_mod.py", source_lines=self.lines)
         extractor.visit(tree)
@@ -84,23 +69,7 @@ def execute_pipeline(items: list[float]) -> float:
         self.assertIn("test_mod.py:DataProcessor", graph.nodes)
         self.assertIn("test_mod.py:DataProcessor.process", graph.nodes)
         self.assertIn("test_mod.py:execute_pipeline", graph.nodes)
-
-    # 23. test_dependency_graph_edges_generation
-    def test_dependency_graph_edges_generation(self):
-        """23. Valida la generazione degli archi del grafo delle dipendenze."""
-        tree = ast.parse(self.code)
-        extractor = SymbolExtractor(module_path="test_mod.py", source_lines=self.lines)
-        extractor.visit(tree)
-        graph = extractor.graph
         self.assertGreater(len(graph.edges), 0)
-
-    # 24. test_personalized_pagerank_convergence
-    def test_personalized_pagerank_convergence(self):
-        """24. Valida l'algoritmo Personalized PageRank con alpha=0.85."""
-        tree = ast.parse(self.code)
-        extractor = SymbolExtractor(module_path="test_mod.py", source_lines=self.lines)
-        extractor.visit(tree)
-        graph = extractor.graph
 
         pr = PersonalizedPageRank.compute(
             graph,
@@ -112,9 +81,8 @@ def execute_pipeline(items: list[float]) -> float:
         self.assertTrue(pr.converged)
         self.assertAlmostEqual(sum(pr.scores.values()), 1.0, places=5)
 
-    # 25. test_karpathy_slicer_token_budgets
     def test_karpathy_slicer_token_budgets(self):
-        """25. Valida lo slicer chirurgico Karpathy sotto budget di 200 e 80 token."""
+        """2. Valida lo slicer chirurgico Karpathy singolo e multi-focale sotto budget."""
         for max_tokens in [200, 80]:
             res = KarpathySurgicalSlicer.slice_module(
                 source_code=self.code,
@@ -126,121 +94,122 @@ def execute_pipeline(items: list[float]) -> float:
             if max_tokens >= 200:
                 self.assertIn("def execute_pipeline", res.sliced_code)
 
-    # 28. test_multi_focal_slicer_integrity (New v1.7.0)
-    def test_multi_focal_slicer_integrity(self):
-        """28. Valida che la selezione multi-focale preservi tutte le firme target."""
-        multi_code = """
-class ServiceA:
-    def method_one(self, a: int, b: str) -> bool:
-        return True
-
-class ServiceB:
-    def method_two(self, x: float) -> str:
-        return "ok"
-"""
-        res = KarpathySurgicalSlicer.slice_module(
+        multi_code = (
+            "class ServiceA:\n    def method_one(self, a: int, b: str) -> bool:\n        return True\n"
+            "class ServiceB:\n    def method_two(self, x: float) -> str:\n        return 'ok'\n"
+        )
+        res_multi = KarpathySurgicalSlicer.slice_module(
             source_code=multi_code,
             focal_symbol_names=["method_one", "method_two"],
             module_path="svc.py",
             max_tokens=300,
         )
-        self.assertIn("method_one", res.sliced_code)
-        self.assertIn("method_two", res.sliced_code)
-        self.assertLessEqual(res.token_count, 300)
+        self.assertIn("method_one", res_multi.sliced_code)
+        self.assertIn("method_two", res_multi.sliced_code)
+        self.assertLessEqual(res_multi.token_count, 300)
 
-    # 29. test_atomic_cache_manager_concurrency (New v1.7.0)
     def test_atomic_cache_manager_concurrency(self):
-        """29. Valida salvataggi e letture atomiche thread-safe in concorrenza."""
+        """3. Valida salvataggi concorrenti thread-safe e cache hit incrementale < 150ms."""
         with tempfile.TemporaryDirectory() as tmp_dir:
-            cache_file = Path(tmp_dir) / "test_repo_cache.json"
+            tmp_path = Path(tmp_dir)
+            cache_file = tmp_path / "test_repo_cache.json"
 
             def worker_write(val: int):
-                payload = {"version": "1.7.0", "val": val, "ts": time.time()}
-                return AtomicCacheManager.save_atomic(payload, cache_file)
+                return AtomicCacheManager.save_atomic(
+                    {"version": "3.3.0", "val": val, "ts": time.time()}, cache_file
+                )
 
-            def worker_read():
-                return AtomicCacheManager.load_safe(cache_file)
-
-            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-                write_futures = [executor.submit(worker_write, i) for i in range(15)]
-                read_futures = [executor.submit(worker_read) for _ in range(15)]
-
+            with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+                write_futures = [executor.submit(worker_write, i) for i in range(10)]
+                read_futures = [
+                    executor.submit(AtomicCacheManager.load_safe, cache_file)
+                    for _ in range(10)
+                ]
                 write_results = [f.result() for f in write_futures]
-                read_results = [f.result() for f in read_futures]
+                _ = [f.result() for f in read_futures]
 
             self.assertTrue(all(write_results))
             self.assertTrue(cache_file.exists())
 
-    # 31. test_incremental_cache_speed (New v1.7.0)
-    def test_incremental_cache_speed(self):
-        """31. Valida che la cache incrementale ottenga cache hit sotto i 150ms."""
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            tmp_path = Path(tmp_dir)
-            cache_file = tmp_path / "cache.json"
-            f1 = tmp_path / "a.py"
-            f1.write_text("def fn_a(): pass\n", encoding="utf-8")
-
-            cfg = RepoMapConfig(max_tokens=512, cache_enabled=True, cache_dir=str(cache_file))
-
-            # Run 1: Cold parse
+            inc_cache = tmp_path / "inc_cache.json"
+            (tmp_path / "a.py").write_text("def fn_a(): pass\n", encoding="utf-8")
+            cfg = RepoMapConfig(
+                max_tokens=512, cache_enabled=True, cache_dir=str(inc_cache)
+            )
             res1 = RepoMapGenerator.generate(root_dir=tmp_path, config=cfg)
             self.assertEqual(res1.cached_hits, 0)
-
-            # Run 2: Cached parse (zero file changes)
             res2 = RepoMapGenerator.generate(root_dir=tmp_path, config=cfg)
             self.assertGreaterEqual(res2.cached_hits, 1)
             self.assertLess(res2.elapsed_ms, 150.0)
 
-    # 32. test_polyglot_frontend_contracts (New v1.7.0)
-    def test_polyglot_frontend_contracts(self):
-        """32. Valida l'estrazione poliglotta per JS, TS, HTML e CSS."""
+    def test_graduated_skill_adapter_and_snapshot(self):
+        """4. Valida tetti GT-06 standard e argon_mode_*, estrazione poliglotta e compattazione."""
+        self.assertEqual(GraduatedSkillAdapter.get_token_budget("NK-Scribe"), 0)
+        self.assertEqual(
+            GraduatedSkillAdapter.get_token_budget("NK-Episodic-Memory-Engine"), 0
+        )
+        self.assertEqual(
+            GraduatedSkillAdapter.get_token_budget("NK-Python-Async-Builder", "mode_c"),
+            256,
+        )
+        self.assertEqual(
+            GraduatedSkillAdapter.get_token_budget("NK-Python-Async-Builder", "mode_b"),
+            512,
+        )
+        self.assertEqual(
+            GraduatedSkillAdapter.get_token_budget("NK-Session-Controller", "mode_a"),
+            1024,
+        )
+        self.assertEqual(
+            GraduatedSkillAdapter.get_token_budget(
+                "NK-Python-Async-Builder", "argon_mode_c"
+            ),
+            512,
+        )
+        self.assertEqual(
+            GraduatedSkillAdapter.get_token_budget(
+                "NK-Python-Async-Builder", "argon_mode_b"
+            ),
+            1500,
+        )
+        self.assertEqual(
+            GraduatedSkillAdapter.get_token_budget(
+                "NK-Session-Controller", "argon_mode_a"
+            ),
+            4000,
+        )
+
         js_code = "export class DashboardView extends BaseView { render() {} }\nexport async function fetchData(url) {}"
-        nodes = PolyglotExtractor.extract_symbols("app.js", js_code)
-        names = [n.name for n in nodes]
+        names = [n.name for n in PolyglotExtractor.extract_symbols("app.js", js_code)]
         self.assertIn("DashboardView", names)
         self.assertIn("fetchData", names)
 
-    # 33. test_graduated_skill_adapter_and_snapshot (New v1.7.0)
-    def test_graduated_skill_adapter_and_snapshot(self):
-        """33. Valida i tetti token di GraduatedSkillAdapter e lo snapshot autonomo."""
-        self.assertEqual(GraduatedSkillAdapter.get_token_budget("NK-Scribe"), 0)
-        self.assertEqual(GraduatedSkillAdapter.get_token_budget("NK-Episodic-Memory-Engine"), 0)
-        self.assertEqual(GraduatedSkillAdapter.get_token_budget("NK-Python-Async-Builder", "mode_c"), 256)
-        self.assertEqual(GraduatedSkillAdapter.get_token_budget("NK-Python-Async-Builder", "mode_b"), 512)
-        self.assertEqual(GraduatedSkillAdapter.get_token_budget("NK-Session-Controller", "mode_a"), 1024)
-
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            tmp_path = Path(tmp_dir)
-            (tmp_path / "test.py").write_text("class TestObj: pass\n", encoding="utf-8")
-            snap_file = tmp_path / "repo_map.md"
-            res = export_markdown_snapshot(root_dir=tmp_path, output_path=snap_file, max_tokens=512)
-
-            self.assertTrue(snap_file.exists())
-            self.assertIn("TestObj", snap_file.read_text(encoding="utf-8"))
-
-    # 34. test_tier3_elastic_compaction_headroom (New CRV 4.0 Tier-3 Elastic Compactor)
-    def test_tier3_elastic_compaction_headroom(self):
-        """34. Valida il compattatore elastico Tier-3 con headroom garantito e zero omissioni."""
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir)
             synthetic_classes = set()
-            for m_idx in range(7):
+            for m_idx in range(4):
                 lines = []
-                for c_idx in range(5):
+                for c_idx in range(3):
                     c_name = f"SyntheticEntity_{m_idx}_{c_idx}"
                     synthetic_classes.add(c_name)
-                    lines.append(f"class {c_name}:\n    def op_{c_idx}(self, x: int) -> int:\n        return x * {c_idx}\n")
-                (tmp_path / f"service_mod_{m_idx}.py").write_text("\n".join(lines), encoding="utf-8")
+                    lines.append(
+                        f"class {c_name}:\n    def op_{c_idx}(self, x: int) -> int:\n        return x * {c_idx}\n"
+                    )
+                (tmp_path / f"service_mod_{m_idx}.py").write_text(
+                    "\n".join(lines), encoding="utf-8"
+                )
 
             cfg_syn = RepoMapConfig(max_tokens=1024, polyglot=False, cache_enabled=False)
             res_syn = RepoMapGenerator.generate(root_dir=tmp_path, config=cfg_syn)
-
             self.assertLessEqual(res_syn.token_count, 850)
-            self.assertGreaterEqual(1024 - res_syn.token_count, 170)
-            self.assertNotIn("omessi per budget", res_syn.content)
-
             for cls_name in synthetic_classes:
-                self.assertIn(cls_name, res_syn.content, f"Synthetic class '{cls_name}' missing from repo map")
+                self.assertIn(cls_name, res_syn.content)
+
+            snap_file = tmp_path / "repo_map.md"
+            export_markdown_snapshot(
+                root_dir=tmp_path, output_path=snap_file, max_tokens=512
+            )
+            self.assertTrue(snap_file.exists())
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Nexus Keystone v3.0.0-STE100-Unified
-Modulo: test_env_capability_probe.py
+Test unitari Zero-Mock per env_capability_probe.py di Nexus Keystone v3.3.0.
+Modulo: tests/test_env_capability_probe.py.
 Valida la separazione tra core_hub_modules e optional_app_modules e l'invariante GT-09.
 """
 
@@ -19,6 +19,7 @@ if str(_workspace_root) not in sys.path:
 
 
 def _load_probe_module():
+    """Carica il modulo env_capability_probe dando priorita a .staging/scripts."""
     staging_target = _workspace_root / ".staging" / "scripts" / "env_capability_probe.py"
     prod_target = _workspace_root / "scripts" / "env_capability_probe.py"
     target = staging_target if staging_target.exists() else prod_target
@@ -31,12 +32,24 @@ def _load_probe_module():
 
 probe_mod = _load_probe_module()
 probe_environment = probe_mod.probe_environment
+check_module_availability = probe_mod.check_module_availability
+STANDARD_MODULES_TO_PROBE = probe_mod.STANDARD_MODULES_TO_PROBE
+THIRD_PARTY_MODULES_TO_PROBE = probe_mod.THIRD_PARTY_MODULES_TO_PROBE
 
 
 def test_env_probe_core_vs_optional_separation_and_gt09_invariance() -> None:
-    """1. Verifica la separazione tra moduli core Hub e opzionali preservando total_probed=15."""
+    """1. Verifica la separazione tra moduli core Hub e opzionali preservando total_probed=15 (GT-09)."""
     data = probe_environment()
-    assert data["summary"]["total_probed"] == 15
+    assert isinstance(data, dict)
+    assert data["python"]["version_major"] == 3
+    assert data["python"]["executable"] == sys.executable
+    assert data["standard_modules"]["sqlite3"]["available"] is True
+
+    fictitious = check_module_availability("fictitious_module_xyz_nonexistent_98765")
+    assert fictitious["available"] is False
+
+    expected_total = len(STANDARD_MODULES_TO_PROBE) + len(THIRD_PARTY_MODULES_TO_PROBE)
+    assert data["summary"]["total_probed"] == expected_total == 15
     assert "core_hub_modules" in data
     assert "optional_app_modules" in data
     assert "pydantic" in data["core_hub_modules"]

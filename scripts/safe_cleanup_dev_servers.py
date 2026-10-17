@@ -118,8 +118,8 @@ def get_pids_listening_on_ports(
 
     try:
         output = subprocess.check_output(
-            "netstat -ano",
-            shell=True,
+            ["netstat", "-ano"],
+            shell=False,
             text=True,
             stderr=subprocess.DEVNULL,
         )

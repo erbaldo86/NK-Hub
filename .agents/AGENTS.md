@@ -1,7 +1,7 @@
 # Regolamento di Sistema: Ecosistema Antigravity (Nexus Keystone v3.0.0-STE100-Unified)
 
 > **Ambito:** Regole vincolanti del workspace per tutti gli agenti, i sub-agenti e i nodi NK.  
-> **Versione:** `v3.0.0-STE100-Unified` (`[RULE-STE100]`, `[RULE-RSI]`, Dual-Profile Argon, Topologia 2-Tier, Win32 2PC e 100 Golden Tests).
+> **Versione:** `v3.0.0-STE100-Unified` (`[RULE-STE100]`, `[RULE-RSI]`, Dual-Profile Argon, Topologia 2-Tier, Win32 2PC e 68 Golden Tests).
 
 ---
 
@@ -63,6 +63,7 @@
 * Per scrivere codice, l'Agente Principale delega il lavoro a un Builder in `.staging/`.
 * Per gli audit profondi, l'Agente Principale delega la verifica agli Auditor in sola lettura.
 * Il Fast-Track consente fino a `12` chiamate dirette consecutive (`<= 8` letture da `800` righe e `<= 4` comandi).
+* Nessun agente esegue one-liner `python -c` multi-riga su PowerShell. L'agente salva ed esegue gli script diagnostici in `scratch/` o `%TEMP%\nk_diagnostics\`.
 
 ### [RULE-SWARM-HYGIENE] / [RULE-08] / [RULE-08.2] SWARM_MESSAGE_HYGIENE_MANDATE
 * Nessun sub-agente invia messaggi `send_message` di ritorno superiori a `1.800` caratteri netti (`2.000` MTU).
@@ -80,13 +81,14 @@
 * **Mode C (Vibe-Sprint):** Gestisce task rapidi UI o script (`<= 150` LOC) tramite `scripts/vibe_sprint_router.py`.
 * **Mode B (CRV Lite):** Gestisce bugfix backend con staging, validazione AST, DAST e test mirati.
 * **Mode A (Sovereign CRV 4.0):** Gestisce rilasci architetturali con l'Auto-Brief Swarm FSM a 5 turni.
+* **Mode D (Analytical Discovery):** Gestisce audit, benchmark esterni e ricerche MCP/Web in sola lettura tramite `scripts/vibe_sprint_router.py`.
 
 ### [RULE-01.9] ANTI_FREEZE_HEARTBEAT_MANDATE
 * Ogni task oltre `60` secondi emette un heartbeat ogni `45` secondi con `schedule(DurationSeconds=45)` o `scripts/async_heartbeat_signaler.py`.
 * Lo script salva i dump diagnostici in `%TEMP%\nk_diagnostics\`.
 
-### [RULE-01.10] PERMANENT_TEST_SUITE_MANDATE (100 Golden Tests Ratchet)
-* Nessun agente elimina o degrada i `100` test permanenti Zero-Mock presenti in `tests/`.
+### [RULE-01.10] PERMANENT_TEST_SUITE_MANDATE (68 Golden Tests Ratchet)
+* Nessun agente elimina o degrada i `68` Golden Tests ortogonali Zero-Mock (`>= 60` Core Tests, zero padding) in `tests/`.
 * `nk_tracking/quality_baseline.json` blocca ogni commit se il pass rate scende sotto il `100.0%`.
 
 ### [RULE-01.11] INTRINSIC_IMPLEMENTATION_MANDATE
@@ -101,6 +103,11 @@
 ### [RULE-01.13] INTRINSIC_REPO_MAP_MANDATE (Tetralogia Sovrana 4/4)
 * La Tetralogia Sovrana comprende `concept_map.md`, `structural_tree.md`, `implementation_plan.md` e `repo_map.md` (più `idea_canvas.md`).
 * Ad ogni commit 2PC, `NK-Scribe` aggiorna `nk_genome/repo_map.md` tramite `scripts/ast_repo_mapper.py`.
+
+### [RULE-01.14] MODULAR_O1_REGISTRY_AND_ZERO_REWRITE_MANDATE
+* L'agente risolve le skill in tempo O(1) tramite `nk_genome/nk_registry_manifest.json` e `nk_genome/SKILL_INDEX.md`.
+* Ogni nuova skill richiede solo una nuova cartella dedicata senza riscrivere i file esistenti.
+* L'agente sincronizza il registro modulare eseguendo `scripts/nk_registry_indexer.py --sync` dopo ogni modifica alle skill.
 
 ### [RULE-01.2] ZERO_MOCK_MANDATE & TIER-0 LOCAL API CACHE
 * Nessun agente usa `MagicMock`, `unittest.mock`, stub sintetici o fuzzer casuali.

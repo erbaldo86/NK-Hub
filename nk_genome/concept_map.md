@@ -1,8 +1,8 @@
-# NK Genome: Concept Map e Master Brief (`v3.1.0-Tensor-RSI` / `v3.0.0-STE100-Unified`)
+# NK Genome: Concept Map e Master Brief (`v3.5.1-RSI2` / `v3.4.0` / `v3.1.0-Tensor-RSI` / `v3.0.0-STE100-Unified`)
 
 > **Badge di Certificazione:** 🛡️ [NK-BRIEF-STATUS: AUDITED_AND_OPTIMIZED 🟢] | [RSI-CONVERGENCE: CONVERGED_OPTIMAL (Δ3=0, Q=100.0) 🟢]  
-> **Milestone Anchor ID:** `NK-MS-20261015-TENSOR-RSI-v3.1.0`  
-> **Versione Target:** `v3.1.0-Tensor-RSI` (`v3.0.0-STE100-Unified` Compatible)  
+> **Milestone Anchor ID:** `NK-MS-20261017-MODULAR-INDEX-v3.5.1-RSI2` (`NK-MS-20261015-TENSOR-RSI-v3.1.0`)  
+> **Versione Target:** `v3.5.1-RSI2` (`v3.4.0` / `v3.1.0-Tensor-RSI` / `v3.0.0-STE100-Unified` Compatible)  
 > **Standard Linguistico:** ASD-STE100 Italiano Tecnico (`[RULE-STE100]`)  
 > **Stato Produzione:** 100% Sola Lettura (`[RULE-00]`)
 
@@ -10,15 +10,15 @@
 
 ## 1. Visione Concettuale e Simbiosi con Gemini 4 Argon (High)
 
-L'architettura `v3.1.0-Tensor-RSI` unifica i rilievi forensi di Argon e Opus con il motore Tensor-RSI 2D (`[RULE-RSI.1]`). Il sistema trasforma Nexus Keystone in una piattaforma di miglioramento ricorsivo continuo (`[RULE-RSI]`). Questa architettura opera con **Gemini 4 Argon (High)** e protegge i `108` Golden Tests tramite `GT-01..GT-14`.
+L'architettura `v3.4.0` (`v3.1.0-Tensor-RSI`) unifica i rilievi forensi di Argon e Opus con il motore Tensor-RSI 2D (`[RULE-RSI.1]`). Il sistema trasforma Nexus Keystone in una piattaforma di miglioramento ricorsivo continuo (`[RULE-RSI]`). Questa architettura opera con **Gemini 4 Argon (High)** e protegge i `68` Golden Tests tramite `GT-01..GT-14`.
 
 1. **Direttiva Linguistica Universale (`[RULE-STE100]`):**
    * Tutto l'ecosistema adotta lo standard **ASD-STE100 Italiano Tecnico**.
    * Ogni frase operativa contiene al massimo 20 parole e una sola istruzione.
    * Tutte le regole usano la forma attiva, vocaboli univoci e zero incisi con trattini.
-   * Il peso di `.agents/AGENTS.md` e `.agents/rules/anti_crash_rules.md` scende da `22.084 byte` a `< 10.500 byte` (`-53%`).
+   * Il peso di `.agents/AGENTS.md` e `.agents/rules/anti_crash_rules.md` resta confinato entro il budget costituzionale.
 2. **Architettura Dual-Profile (`standard` vs `argon`) con Auto-Attivazione (`GT-01..GT-06`):**
-   * Le firme predefinite dei moduli Python mantengono le soglie `standard` (`70/100` step, `350` token Tier-1, `0/256/512/1024` token Repo-Map). Questa scelta protegge i `100+` Golden Tests.
+   * Le firme predefinite dei moduli Python mantengono le soglie `standard` (`70/100` step, `350` token Tier-1, `0/256/512/1024` token Repo-Map). Questa scelta protegge i `68` Golden Tests ortogonali.
    * Lo script `scripts/nk_session_bootstrap.py` imposta automaticamente `NK_MODEL_PROFILE=argon` nelle sessioni operative.
    * Il profilo `argon` esclude `len(thinking)` dal conteggio token e innalza le soglie a `150/250` step (`250k/500k` token).
 3. **Topologia 2-Tier Hub-and-Spoke a Singolo Livello (`U-01`, `MC-01`):**
@@ -39,14 +39,14 @@ L'architettura `v3.1.0-Tensor-RSI` unifica i rilievi forensi di Argon e Opus con
 
 ## 2. Architettura del Motore RSI Continuo (`[RULE-RSI]`)
 
-Il nuovo motore deterministico `scripts/rsi_convergence_engine.py` governa il ciclo di convergenza su tutte le attività dell'Hub.
+Il motore deterministico `scripts/rsi_convergence_engine.py` governa il ciclo di convergenza neuro-simbolico su tutte le attività dell'Hub.
 
 ```mermaid
 flowchart TD
     subgraph TETRALOGIA["Tetralogia Sovrana 4/4 (nk_genome/)"]
-        CM["1. concept_map.md (Visione v3.0.0-STE100-Unified)"]
-        ST["2. structural_tree.md (29+1 Script, 16 Skill, 13 File Ausiliari, 100 Test)"]
-        IP["3. implementation_plan.md (Piano Esecutivo M1-M6 e Guardie GT-01..10)"]
+        CM["1. concept_map.md (Visione v3.4.0 / v3.0.0-STE100-Unified)"]
+        ST["2. structural_tree.md (30 Script, 16 Skill, 16 File Ausiliari, 68 Test)"]
+        IP["3. implementation_plan.md (Piano Esecutivo WP1-WP7 e Guardie GT-01..14)"]
         RM["4. repo_map.md (Mappa AST PageRank Pura senza Progetti Esterni)"]
     end
 
@@ -75,36 +75,38 @@ flowchart TD
 ```
 
 ### Formula Dual-Metric e Guardie del Motore RSI
-1. **Doppia Metrica Accoppiata ($\Delta_k$ e $Q(S_k)$):**
-   $$\Delta_k = 15 \cdot \text{SAST}_k + 10 \cdot (T_{\text{fail},k} + C_k) + 5 \cdot H_k + 2 \cdot M_k + 1 \cdot (L_k + G_k)$$
+1. **Doppia Metrica Accoppiata ($\Delta_k$ e $Q(S_k)$) con Canali TAS v4.0:**
+   $$\Delta_k = 20 \cdot E_{\text{PoC},k} + 15 \cdot \text{SAST}_k + 12 \cdot D_{\text{sem},k} + 10 \cdot (T_{\text{fail},k} + C_k) + 5 \cdot H_k + 2 \cdot M_k + 1 \cdot (L_k + G_k)$$
    $$Q(S_k) = \text{round}\left(60.0 \cdot \frac{T_{\text{pass},k}}{T_{\text{total},k}} + \frac{40.0}{1.0 + \Delta_k / 25.0},\; 4\right)$$
+   * Il termine `20 E_{PoC,k}` (`poc_confirmed_exploits`) penalizza gli exploit confermati dal Referee PoC nella Shadow Sandbox.
+   * Il termine `12 D_{sem,k}` (`semantic_drift_findings`) penalizza il drift semantico tra specifica, UI, API e database.
 2. **Sei Guardie Invarianti (`G1..G6`):**
-   * **G1 (Zero-Delta Stop):** Il ciclo termina con `CONVERGED_OPTIMAL` solo quando `Delta_k == 0` e `Q(S_k) == 100.0`.
-   * **G2 (Strict Monotonic Hard Gate):** Il motore esegue il rollback via `HealingSnapshotManager` se peggiorano test, SAST o contratti.
-   * **G3 (Anti-Oscillation Guard):** Il motore salva gli hash SHA-256 in `visited_hashes` e blocca i cicli con `HALTED_CYCLE_DETECTED`.
-   * **G4 (Tamper-Evident Ledger):** Il motore registra ogni iterazione in `nk_tracking/rsi_telemetry.jsonl` con catena SHA-256 (`prev_hash` e `record_hash`).
-   * **G5 (Iteration Cap per Modalità):** Il motore applica i limiti `K_max = 2` (Mode C), `3` (Mode B) e `4` (Mode A).
-   * **G6 (Validatore CLI `--verify`):** Il flag `--verify` controlla tag `[RULE-XX]`, file ausiliari, CoVe CLI AST e standard `[RULE-STE100]`.
+   * **G1 (`Zero-Delta Stop`):** Il ciclo termina con `CONVERGED_OPTIMAL` solo quando `Delta_k == 0` e `Q(S_k) == 100.0`.
+   * **G2 (`Strict Monotonic Hard Gate`):** Esegue il rollback via `HealingSnapshotManager` se peggiorano test, SAST, PoC o contratti.
+   * **G3 (`Anti-Oscillation Guard`):** Salva gli hash SHA-256 in `visited_hashes` e blocca i cicli con `HALTED_CYCLE_DETECTED`.
+   * **G4 (`Tamper-Evident Ledger`):** Registra ogni iterazione in `nk_tracking/rsi_telemetry.jsonl` con catena SHA-256 (`prev_hash` e `record_hash`).
+   * **G5 (`Iteration Cap`):** Applica i limiti `K_max = 2` (`Mode C`), `3` (`Mode B`) e `4` (`Mode A`).
+   * **G6 (`Validatore CLI`):** Il flag `--verify` valida i `16` file ausiliari, i `68` test e `[RULE-STE100]`.
 
 ---
 
-## 3. Mappa delle 16 Skill Vocazionali (`v3.0.0-STE100-Unified`)
+## 3. Mappa delle 16 Skill Vocazionali e dei 16 File Ausiliari (`v3.0.0-STE100-Unified`)
 
-| Indice | Skill (`.agents/skills/`) | Ruolo nella Topologia 2-Tier e nel Loop RSI | Allineamento `v3.0.0-STE100-Unified` |
+| Indice | Skill (`.agents/skills/`) | Ruolo nella Topologia 2-Tier e nel Loop RSI | Allineamento `v3.4.0` (`v3.0.0-STE100-Unified`) |
 | :---: | :--- | :--- | :--- |
 | **L3** | **`NK-Master-Hub`** | Orchestratore Infrastrutturale e Committer 2PC | Preserva i nodi `[0]`..`[14]` e il footer a due vie (`GT-08`). Usa `ask_question` e `manage_task(Action="kill", TaskId="<id>")`. Elimina gli 8 file legacy in `scripts/` e `resources/`. |
-| **`[0]`** | **`NK-Ideator`** | Actor L0 per Sintesi Concettuale | Usa `/grill-me` e `ask_question`. Scrive `concept_map.md` e `idea_canvas.md`. Linka `resources/idea_canvas_template.md`. |
+| **`[0]`** | **`NK-Ideator`** | Actor L0 per Sintesi Concettuale | Usa `/grill-me` e `ask_question`. Scrive `concept_map.md` e `idea_canvas.md`. Linka `resources/idea_canvas_template.md` (`01/16`). |
 | **`[1]`** | **`NK-App-UX-Architect`** | Actor L3 per UX, Design System e UI | Usa la Tetralogia 4/4 (rimosso `ui_design.md`). Integra `generate_image`, `<agent-embed>` (`generative_ui`) e `thinking_level: "HIGH"`. |
 | **`[2]`** | **`NK-Backend-Architect`** | Actor L2 per DAG Backend e Contratti IPC | Valida schemi Pydantic v2 e contratti OpenAPI 3.0. Allinea l'output alla Tetralogia 4/4 in `nk_genome/`. |
 | **`[3]`** | **`NK-Agent-Instruction-Forge`** | Meta-Refiner per Skill e Regole (`/learn`, `/boost`) | Applica lo standard `[RULE-STE100]` e verifica il budget di byte su `.agents/AGENTS.md` e sui 16 `SKILL.md`. |
 | **`[4]`** | **`NK-Python-Async-Builder`** | Builder Primario e Refiner in `.staging/` | Legge fino a `800` righe per chiamata. Esegue `auto_heal_pipeline.py` e `rsi_convergence_engine.py` fino a $\Delta_k = 0$. |
-| **`[5]`** | **`NK-Delta-Architect`** | Refiner Chirurgico in `.staging/` (1 Livello) | Opera come worker foglia (`enable_subagent_tools=False`). Linka `resources/delta_brief_template.md` con Receipt v3.0. |
-| **`[6]`** | **`NK-Security-Auditor`** | Critic Swarm SAST L1/L2/L3 (Sola Lettura) | Elimina i 21 file in `resources/l1,l2,l3/` (inclusi i 4 nodi `Fixer`). Linka il nuovo file `resources/audit_checklists_l1_l2_l3.md`. |
-| **`[7]`** | **`NK-Oracle-Evaluator`** | Critic Swarm e Oracolo Cold Audit (Gate 1-6) | Integra `/browser` (`chrome-devtools-mcp`) e `scripts/oracle_evaluator_l3.py`. Elimina i 5 script duplicati in `scripts/` e `resources/`. Linka i 2 file in `references/`. |
+| **`[5]`** | **`NK-Delta-Architect`** | Refiner Chirurgico in `.staging/` (1 Livello) | Opera come worker foglia (`enable_subagent_tools=False`). Linka `resources/delta_brief_template.md` (`02/16`) con Receipt v3.0. |
+| **`[6]`** | **`NK-Security-Auditor`** | Critic Swarm TAS v4.0 SAST L1/L2/L3 (Sola Lettura) | Elimina i 21 file coi 4 nodi `Fixer`. Linka le 4 matrici modulari in `resources/` (`03/16..06/16`: routing, `L1`, `L2`, `L3`). |
+| **`[7]`** | **`NK-Oracle-Evaluator`** | Critic Swarm e Oracolo Cold Audit (Gate 1-6) | Integra `/browser` (`chrome-devtools-mcp`) e `scripts/oracle_evaluator_l3.py`. Linka i 2 file in `references/` (`07/16..08/16`). |
 | **`[8]`** | **`NK-Dynamic-Sandbox-StressTester`** | Critic Swarm DAST in `%TEMP%\nk_sandbox_<uuid>\` | Invoca `scripts/dast_sandbox_runner.py`. Elimina i 3 script legacy con fuzzer casuale in `resources/`. |
-| **`[9]`** | **`NK-Bug-Diagnostic-Engine`** | Critic Swarm e Localizzatore RCA (SBFL Ochiai) | Invoca `scripts/sbfl_engine.py` e `scripts/sbfl_pytest_bridge.py` (`< 320` char, `GT-07`). Elimina `trace_rca_analyzer.py`. Linka i 2 file in `resources/`. |
+| **`[9]`** | **`NK-Bug-Diagnostic-Engine`** | Critic Swarm e Localizzatore RCA (SBFL Ochiai) | Invoca `scripts/sbfl_engine.py` e `scripts/sbfl_pytest_bridge.py` (`< 320` char, `GT-07`). Linka i 2 file in `resources/` (`09/16..10/16`). |
 | **`[10]`** | **`NK-Plan-Aligner`** | Certificatore Turno 4 della Tetralogia 4/4 | Verifica l'allineamento 1:1 di `concept_map.md`, `structural_tree.md`, `implementation_plan.md` e `repo_map.md` con `rsi_convergence_engine.py --verify`. |
 | **`[11]`** | **`NK-State-Router`** | Verificatore Topologico DAG di Kahn (Sola Lettura) | Opera come verificatore in sola lettura per `NK-Master-Hub`. Non acquisisce lock concorrenti al motore 2PC. |
-| **`[12]`** | **`NK-Scribe`** | Cronista Post-Commit (`[RULE-00.2]`) | Usa il filtro `act` completo (`CREATE, MODIFY, DELETE, REFACTOR, AUDIT, FIX, SYNC`). Sincronizza `README.md`, `README.it.md`, `PATCH_NOTES.md` e `repo_map.md`. Linka i 2 file in `resources/`. |
+| **`[12]`** | **`NK-Scribe`** | Cronista Post-Commit (`[RULE-00.2]`) | Usa il filtro `act` completo (`CREATE, MODIFY, DELETE, REFACTOR, AUDIT, FIX, SYNC`). Linka i 2 file in `resources/` (`11/16..12/16`). |
 | **`[13]`** | **`NK-Episodic-Memory-Engine`** | Gestore Memoria 3-Tier (`ARCH`, `SEC`, `OPS`, `DEVX`) | Usa `DOMAIN_ALIAS_MAP` in `scripts/memory_3tier_engine.py` con cap `350` token standard (`GT-05`) e `1.200` token in profilo `argon`. |
-| **`[14]`** | **`NK-Session-Controller`** | Sovrano Critico di Sessione e Cold Reviewer | Guida l'Auto-Brief FSM con convergenza RSI ($\Delta_k = 0$), la Cold Review a 6 Gate e `/compact`. Preserva `"10. UNIFIED_ONBOARDING_COMPLIANCE"` (`GT-08`). Linka i 4 file validi in `resources/`. |
+| **`[14]`** | **`NK-Session-Controller`** | Sovrano Critico di Sessione e Cold Reviewer | Guida l'Auto-Brief FSM con convergenza RSI ($\Delta_k = 0$), la Cold Review a 6 Gate e `/compact`. Linka i 4 file validi in `resources/` (`13/16..16/16`). |

@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-Contratti IPC e schemi Pydantic v2 per Nexus Keystone v3.0.0-STE100-Unified.
-Tutti i modelli applicano la validazione rigorosa e vietano campi extra.
+Contratti IPC e schemi Pydantic v2 per Nexus Keystone v3.2.0-STE100-Unified.
+Tutti i modelli applicano la validazione rigorosa e supportano Mode A/B/C/D (OPT-11b).
 """
 
-from typing import Dict, List, Literal, Optional
+import time
+from typing import Dict, List, Literal, Optional, Tuple
 from pydantic import BaseModel, ConfigDict, Field
+
+
+ExecutionModeLiteral = Literal["mode_a", "mode_b", "mode_c", "mode_d", "verify"]
 
 
 class IPCPointerReturn(BaseModel):
@@ -163,61 +167,93 @@ class GoalFailureManifest(BaseModel):
     resume_command: str = "/goal --resume"
 
 
+class RoutingIntentContract(BaseModel):
+    """Contratto di classificazione del routing per Mode A, B, C e D (OPT-11b)."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    recommended_mode: Literal["mode_a", "mode_b", "mode_c", "mode_d", "verify"] = (
+        "mode_c"
+    )
+    is_discovery: bool = False
+    read_only: bool = False
+    primary_agent: str = "NK-Python-Async-Builder"
+
+
 try:
     from rsi_convergence_engine import (
         RSIDefectVector,
         RSIIterationRecord,
-        RSISessionReport,
     )
 except Exception:
     try:
         from scripts.rsi_convergence_engine import (
             RSIDefectVector,
             RSIIterationRecord,
-            RSISessionReport,
         )
     except Exception:
 
         class RSIDefectVector(BaseModel):
-            """Vettore dei difetti rilevati in una singola iterazione del motore RSI."""
+            """Vettore dei difetti allineato a rsi_convergence_engine (OPT-11b)."""
 
             model_config = ConfigDict(strict=True, extra="forbid")
 
-            sast: int = Field(default=0, ge=0)
-            t_fail: int = Field(default=0, ge=0)
-            c_violations: int = Field(default=0, ge=0)
-            h_violations: int = Field(default=0, ge=0)
-            m_gaps: int = Field(default=0, ge=0)
-            l_warnings: int = Field(default=0, ge=0)
-            g_drift: int = Field(default=0, ge=0)
-            t_pass: int = Field(default=0, ge=0)
-            t_total: int = Field(default=1, ge=1)
+            sast_critical: int = Field(default=0, ge=0)
+            tests_failed: int = Field(default=0, ge=0)
+            tests_passed: int = Field(default=100, ge=0)
+            tests_total: int = Field(default=0, ge=0)
+            contract_violations: int = Field(default=0, ge=0)
+            high_findings: int = Field(default=0, ge=0)
+            medium_findings: int = Field(default=0, ge=0)
+            low_findings: int = Field(default=0, ge=0)
+            doc_drift: int = Field(default=0, ge=0)
+            poc_confirmed_exploits: int = Field(default=0, ge=0)
+            semantic_drift_findings: int = Field(default=0, ge=0)
+
+            def effective_totals(self) -> Tuple[int, int]:
+                """Restituisce la coppia (tests_passed, tests_total) normalizzata."""
+                if self.tests_total > 0:
+                    return self.tests_passed, self.tests_total
+                computed_total = self.tests_passed + self.tests_failed
+                if computed_total > 0:
+                    return self.tests_passed, computed_total
+                return 100, 100
 
         class RSIIterationRecord(BaseModel):
-            """Singolo record crittografico di iterazione per il ledger RSI."""
+            """Singolo record crittografico di iterazione per il ledger RSI (OPT-11b)."""
 
             model_config = ConfigDict(strict=True, extra="forbid")
 
+            session_id: str = "RSI-DEFAULT"
             iteration: int = Field(ge=0)
-            delta_k: float = Field(ge=0.0)
-            fitness_q: float = Field(ge=0.0, le=100.0)
-            status: str
-            state_hash: str
+            mode: Literal["mode_a", "mode_b", "mode_c", "mode_d", "verify"] = "mode_a"
+            defects: RSIDefectVector = Field(default_factory=RSIDefectVector)
+            delta_k: int = Field(default=0, ge=0)
+            fitness_q: float = Field(default=100.0, ge=0.0, le=100.0)
+            state_hash: str = ""
+            verdict: str = "CONVERGED_OPTIMAL"
+            rolled_back: bool = False
             prev_hash: str = "0" * 64
             record_hash: str = ""
-            timestamp_utc: float = 0.0
+            timestamp: float = Field(default_factory=time.time)
 
-        class RSISessionReport(BaseModel):
-            """Rapporto finale di convergenza prodotto dal motore RSI."""
 
-            model_config = ConfigDict(strict=True, extra="forbid")
+class RSISessionReport(BaseModel):
+    """Rapporto finale di convergenza RSI con supporto esplicito a mode_d (OPT-11b)."""
 
-            session_id: str
-            mode: Literal["mode_a", "mode_b", "mode_c", "verify"] = "mode_a"
-            converged: bool
-            final_status: str
-            iterations_used: int = Field(ge=0)
-            final_delta: float = Field(ge=0.0)
-            final_fitness_q: float = Field(ge=0.0, le=100.0)
-            records: List[RSIIterationRecord] = Field(default_factory=list)
+    model_config = ConfigDict(strict=True, extra="forbid")
 
+    session_id: str
+    mode: Literal["mode_a", "mode_b", "mode_c", "mode_d", "verify"] = "mode_a"
+    max_iterations: int = Field(default=4, ge=1)
+    iterations_used: int = Field(default=0, ge=0)
+    converged: bool = True
+    final_status: str = "CONVERGED_OPTIMAL"
+    initial_delta: int = Field(default=0, ge=0)
+    final_delta: int = Field(default=0, ge=0)
+    initial_fitness_q: float = Field(default=100.0, ge=0.0, le=100.0)
+    final_fitness_q: float = Field(default=100.0, ge=0.0, le=100.0)
+    rollbacks_count: int = Field(default=0, ge=0)
+    cycle_detected: bool = False
+    visited_hashes: List[str] = Field(default_factory=list)
+    history: List[RSIIterationRecord] = Field(default_factory=list)

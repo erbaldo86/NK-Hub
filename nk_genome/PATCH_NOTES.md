@@ -1,10 +1,102 @@
 # NEXUS KEYSTONE OFFICIAL CHANGELOG E PATCH NOTES (SSOT)
 
 > **Single Source of Truth (SSOT):** `nk_genome/PATCH_NOTES.md`  
-> **Release Ufficiale:** `v3.1.0-Tensor-RSI (Tensor-RSI 2D Architecture, RSIProfileRegistry, Capsule Pre-Warming, CoVe CLI AST Gate & 108 Golden Tests Ratchet)`  
-> **Milestone Anchor:** `NK-MS-20261015-TENSOR-RSI-v3.1.0`  
-> **Data Consolidamento:** `2026-10-15`  
-> **Stato Release:** `[NK-SUPER-BRIEF-STATUS: AUDITED_AND_OFFICIAL_v3.1.0-Tensor-RSI]`
+> **Release Ufficiale:** `v3.5.2-Global-Filter-61-Skills (Global Skill Isolation, Zero Context Overhead & 74 Golden Tests)`  
+> **Milestone Anchor:** `NK-MS-20261017-GLOBAL-FILTER-v3.5.2` (`NK-MS-20261017-MODULAR-INDEX-v3.5.1-RSI2`)  
+> **Data Consolidamento:** `2026-10-17`  
+> **Stato Release:** `[NK-SUPER-BRIEF-STATUS: AUDITED_AND_OFFICIAL_v3.5.2]`
+
+---
+
+## Release v3.5.2-Global-Filter-61-Skills: Isolamento Skill Globali Esterne, Zero Context Overhead e 74 Golden Tests (`2026-10-17`)
+1. **Filtro Deterministico delle 61 Skill Globali (`scripts/nk_registry_indexer.py`)**:
+   - `nk_registry_indexer.py` espone `--apply-global-filter` per isolare le `61` skill globali esterne in `4` plugin disabilitati.
+   - Il filtro riduce le skill globali attive da `61` a `0` e azzera `28.170` byte di overhead (`7.042 -> 0` token/turno).
+   - `nk_registry_indexer.py --verify` certifica l'isolamento delle skill globali e aggiorna il manifesto `O(1)`.
+2. **Espansione della Suite Permanente a 74 Golden Tests (`tests/test_nk_registry_indexer.py`, `nk_tracking/quality_baseline.json`)**:
+   - `test_nk_registry_indexer.py` verifica indice `O(1)`, integrità SHA-256, lookup `< 1 ms`, Hot-Swap e filtro delle `61` skill.
+   - La suite Zero-Mock raggiunge `74/74 PASS` in `5.49s` mantenendo il Modularity Score a `100.0/100.0`.
+
+| Area Funzionale | Prima (`v3.4.0`) | Dopo (`v3.5.2`) | Come Si Comporta Adesso |
+| :--- | :---: | :---: | :--- |
+| **Skill Globali Esterne (`~/.gemini`)** | `61` attive (`28.170` byte) | `0` attive (`61` isolate) | Risparmia `7.042` token ad ogni turno senza inquinare il contesto. |
+| **Lookup e Indice Modulare (`DOM-01..05`)** | Scansione `O(N)` (`50.0/100`) | Indice `O(1)` (`100.0/100`) | Risolve dominio, skill primaria e flag CLI in `< 1 ms`. |
+| **Registrazione Nuove Skill (Hot-Swap)** | `12+` file da riscrivere | `0` file esterni da toccare | `nk_registry_indexer.py --sync` rileva automaticamente YAML e AST. |
+| **Suite Test Zero-Mock (`pytest`)** | `68/68 PASS` | `74/74 PASS` in `5.49s` | Protegge indice `O(1)`, Hot-Swap e isolamento globale al `100%`. |
+
+---
+
+## Release v3.5.0 / v3.5.1-RSI2: Indice Tassonomico Modulare O(1), 5 Domini DOM-01..DOM-05 e Disaccoppiamento SSOT (`2026-10-17`)
+1. **Regola Costituzionale `[RULE-01.14]` e Indice Tassonomico O(1) (`nk_genome/nk_registry_manifest.json`, `nk_genome/SKILL_INDEX.md`)**:
+   - `.agents/AGENTS.md` introduce `[RULE-01.14]` per la risoluzione O(1) delle skill tramite il manifesto JSON e l'indice Markdown.
+   - La tassonomia suddivide `16` skill e `30` script nei `5` domini funzionali `DOM-01..DOM-05`.
+   - I frontmatter YAML delle `16` skill integrano i campi `domain_id` e `sector` per l'indicizzazione deterministica.
+2. **Motore di Indicizzazione AST e Verifica Crittografica (`scripts/nk_registry_indexer.py`)**:
+   - `nk_registry_indexer.py` scansiona le cartelle delle skill e gli AST degli script calcolando gli hash SHA-256.
+   - Il modulo espone i flag CLI `--sync`, `--verify`, `--lookup`, `--stage-dir`, `--root` e `--json`.
+   - Il comando `--sync` rigenera `nk_registry_manifest.json` e `SKILL_INDEX.md` senza richiedere riscritture manuali.
+3. **Disaccoppiamento SSOT di Diagnostica e Router (`scripts/preflight_health_check.py`, `scripts/vibe_sprint_router.py`)**:
+   - `preflight_health_check.py` legge l'elenco canonico delle skill direttamente da `nk_registry_manifest.json` eliminando le tuple hardcoded.
+   - `vibe_sprint_router.py` risolve il dominio target e la skill primaria in tempo O(1) interrogando il manifesto.
+4. **Compatibilità Dual-Schema degli Hook di Ciclo di Vita (`.agents/hooks.json`, `NK-MS-20261017-MODULAR-INDEX-v3.5.1-RSI2`)**:
+   - `.agents/hooks.json` adotta la modalità `DUAL_COMPATIBLE_NATIVE_AND_NK` per supportare sia il runtime nativo sia gli script dell'Hub.
+   - Ogni voce definisce `SessionStart`, `PostToolUse` e `Stop` sia in `hooks` sia nella root con `timeout` e `timeout_ms`.
+
+---
+
+## Release v3.4.0-TAS-v4-NeuroSym: Rifondazione Neuro-Simbolica TAS v4.0 (1A + 2C + 3B) (`2026-10-17`)
+1. **Tassonomia Modulare SAST e DAST (`NK-Security-Auditor/resources/`, `NK-Security-Auditor/SKILL.md`)**:
+   - La skill separa la conoscenza di sicurezza in `4` matrici modulari caricate on demand per stack tecnologico.
+   - I nuovi moduli coprono Python, Web, Mobile, AI LLM, IoT, Cloud IaC e protocolli crittografici PQC.
+2. **Estensione SAST Deterministica e Controllo Mutazioni (`scripts/ast_guard_validator.py`, `scripts/sbfl_pytest_bridge.py`)**:
+   - `ast_guard_validator.py` rileva sink SQL, comandi shell, deserializzazione insicura, XXE, SSRF e template injection.
+   - Il flag `--allowed-mutations` blocca le modifiche alle funzioni non elencate nella whitelist di remediation.
+   - `sbfl_pytest_bridge.py` delega il calcolo Ochiai a `sbfl_engine.py` con fallback deterministico sulle tracce di stack.
+3. **Oracolo DOM L3, Sandbox DAST Win32 e Canali Tensor-RSI (`scripts/oracle_evaluator_l3.py`, `scripts/dast_sandbox_runner.py`, `scripts/rsi_convergence_engine.py`)**:
+   - `oracle_evaluator_l3.py` ispeziona attributi ARIA, ruoli semantici e vincoli geometrici su liste DOM eterogenee.
+   - `dast_sandbox_runner.py` applica limiti di memoria con Win32 Job Object e inietta `PYTHONPATH` nella sandbox.
+   - `rsi_convergence_engine.py` integra `poc_confirmed_exploits` e `semantic_drift_findings` nel calcolo del residuo `Delta_k`.
+4. **Bonifica Ciclo 2 RSI per PoC e Drift Semantici (`NK-MS-20261017-TAS-V4-RSI-CYCLE2`)**:
+   - `ast_guard_validator.py` e `safe_cleanup_dev_servers.py` sanificano le mutazioni AST fuori funzione e la pulizia dei processi.
+   - `dast_sandbox_runner.py`, `oracle_evaluator_l3.py` e `sbfl_pytest_bridge.py` risolvono `POC-01..04` su timeout, metriche DOM e trace.
+   - `nk_ipc_contracts.py`, `structural_tree.md` e `concept_map.md` risolvono `DRIFT-01..02` allineando gli schemi IPC e la mappa.
+
+---
+
+## Release v3.3.0-GT68-Pareto: Riforma Costituzionale GT-68 Zero-Padding, Suite Ortogonale in 5 Secondi e OPT-1..OPT-12
+1. **Riforma Costituzionale `[RULE-01.10]` e Baseline Ratchet (`scripts/quality_baseline_manager.py`, `nk_tracking/quality_baseline.json`)**:
+   - `.agents/AGENTS.md` e `NK-Oracle-Evaluator/SKILL.md` ricalibrano il pavimento costituzionale a `68` Golden Tests ortogonali (`>= 60` Core Tests).
+   - `quality_baseline_manager.py` fissa `CONSTITUTIONAL_MIN_TESTS = 60` e allinea `quality_baseline.json` a `68` Golden Tests (`100.0% PASS`).
+2. **Consolidamento Pareto Zero-Padding della Suite di Test (`tests/`, `68/68 PASS` in `~5 s`)**:
+   - La bonifica rimuove `55` test ridondanti di padding preservando il `100%` di copertura sui `30` moduli core.
+   - Le suite unificano i sottoprocessi tramite fixture `scope="module"` riducendo il tempo da `42 s` a `5 s`.
+
+---
+
+## Release v3.2.0-OPT11-Stress-Hardened: Ottimizzazioni Forensi OPT-1..OPT-12, Mode D Discovery e 123 Golden Tests
+1. **Accelerazione Bootstrap Sotto 50 ms e Cache Atomica (`OPT-1`, `OPT-8`, `scripts/nk_session_bootstrap.py`)**:
+   - `_check_root_hygiene()` memorizza `root_mtime` nella cache per evitare scansioni ripetute su disco.
+   - `_verify_context_sentry()` legge gli ultimi byte del transcript per ridurre la latenza sotto `50 ms`.
+   - `run_bootstrap()` carica la cache una sola volta e salva lo stato tramite `os.replace` atomico.
+2. **Isolamento Progetti Esterni e Concorrenza Telemetrica RSI (`OPT-2`, `OPT-9`, `scripts/rsi_convergence_engine.py`)**:
+   - `main()` propaga il flag `--profile` verso `verify_ecosystem()` e `run_convergence_loop()`.
+   - Il motore esclude i file Markdown privi di marker NK nelle cartelle esterne e ignora `.venv`.
+   - Il flag `--benchmark-suite` integra il pass rate dei benchmark nel calcolo di `Delta_k`.
+   - `append_telemetry_record()` usa un lock multi-thread e multi-processo per proteggere `rsi_telemetry.jsonl`.
+3. **Mode D Discovery, Governanza Skill e Shell (`OPT-3`, `OPT-4`, `OPT-5`, `scripts/vibe_sprint_router.py`)**:
+   - `vibe_sprint_router.py` classifica i prompt analitici e di benchmark in `Mode D` (`read_only: true`).
+   - `NK-Ideator` abilita `call_mcp_tool` per interrogare connettori MCP in sola lettura.
+   - `NK-Session-Controller` impone i nomi canonici delle skill in `define_subagent` e l'isolamento in `.staging/`.
+   - `.agents/AGENTS.md` vieta i comandi `python -c` multi-riga su PowerShell a favore di script dedicati.
+4. **Hardening Compliance, Context Sentry, Preflight e IPC (`OPT-6`, `OPT-7`, `OPT-10`, `OPT-11`, `OPT-12`)**:
+   - `nk_compliance_checker.py` rileva exit code non nulli nei blocchi `GENERIC` e conta ogni tool diretto per il DDI.
+   - `nk_compliance_checker.py` esenta i passi `REFINING` convergenti e riconosce `ast_guard_validator.py` delegato (`OPT-12`).
+   - `nk_context_sentry.py` traccia separatamente la soglia `SWARM_MSG_MSS_CAP = 1800` e il tetto `SWARM_MSG_HARD_CAP = 2000`.
+   - `preflight_health_check.py` unifica la scansione `os.walk` potando `.venv`, `.git` e `node_modules`.
+   - `healing_snapshot_rollback.py` scrive `snapshot_manifest.json` in modo atomico e `nk_ipc_contracts.py` supporta `mode_d`.
+5. **Stress Evaluation Suite e Ratchet Permanente a 123 Golden Tests (`tests/test_nk_ecosystem_stress_opt5.py`)**:
+   - La nuova suite verifica concorrenza a `16` thread, latenza `< 50 ms`, lock telemetrico e guardie `GT-01..GT-14`.
+   - La suite permanente sale da `108` a **123 Golden Tests Zero-Mock** con il `100.0%` di successo.
 
 ---
 

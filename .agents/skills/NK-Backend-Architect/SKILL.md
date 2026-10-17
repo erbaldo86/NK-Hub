@@ -6,6 +6,8 @@ thinking_level: "HIGH"
 nk_tas_audit: "CRV-4.0-Universal"
 patch_version: 3
 nk_tas_date: "2026-10-14"
+domain_id: "DOM-02"
+sector: "IDEATION_AND_ARCH"
 ---
 
 <strict_boundaries>

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Verificatore di conformita e scorecard duale per Nexus Keystone v3.0.0.
+Verificatore di conformita e scorecard duale per Nexus Keystone v3.2.0.
 Modulo: nk_compliance_checker.py.
-Implementa le regole [RULE-00.4], [RULE-REACTIVE-SILENCE] e [RULE-01].
+Implementa le regole [RULE-00.4], [RULE-REACTIVE-SILENCE] e [RULE-01] con OPT-6 e OPT-12.
 Rispetta le guardie GT-03, GT-08, GT-10 e le correzioni U-15 e U-18.
 """
 
@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -59,6 +60,23 @@ EXEMPT_WRITE_MARKERS = (
     "nk_sandbox_",
     "nk_diagnostics",
 )
+
+DIRECT_AUDIT_TOOLS = (
+    "view_file",
+    "run_command",
+    "replace_file_content",
+    "write_to_file",
+    "grep_search",
+    "find_by_name",
+)
+
+DELEGATION_TOOLS = (
+    "invoke_subagent",
+    "define_subagent",
+    "send_message",
+)
+
+_EXIT_CODE_RE = re.compile(r"The command exited with code\s+(-?\d+)")
 
 
 def _is_subagent_transcript(transcript_path: Path) -> bool:
@@ -113,6 +131,22 @@ def _is_production_code_write(target_file: str) -> bool:
     return True
 
 
+def _is_exempt_diagnostic_nonzero(content_text: str) -> str:
+    """Classifica gli exit code != 0 di audit esterni o cicli intermedi REFINING (OPT-12)."""
+    if (
+        '"status": "FAIL"' in content_text
+        and '"scores":' in content_text
+        and '"procedural_score":' in content_text
+    ):
+        return "EXEMPT_EXTERNAL_AUDIT"
+    if '"status": "REFINING"' in content_text and (
+        '"profile": "vibe_sprint_micro_rsi"' in content_text
+        or '"delta_k":' in content_text
+    ):
+        return "INTERMEDIATE_REFINING"
+    return "REAL_ERROR"
+
+
 class NKComplianceChecker:
     """Auditor forense di sessione e calcolatore della scorecard composita."""
 
@@ -124,15 +158,22 @@ class NKComplianceChecker:
             Path(workspace_root).resolve() if workspace_root else _workspace_root
         )
 
-    def _read_rsi_convergence_score(self, transcript_file: Optional[Path] = None) -> int | float:
+    def _read_rsi_convergence_score(
+        self, transcript_file: Optional[Path] = None
+    ) -> int | float:
         """Legge l'ultimo punteggio RSI da rsi_telemetry.jsonl mantenendo 100 se convergente."""
         candidates = []
         if transcript_file is not None:
             candidates.append(transcript_file.parent / "rsi_telemetry.jsonl")
-            candidates.append(transcript_file.parent / "nk_tracking" / "rsi_telemetry.jsonl")
+            candidates.append(
+                transcript_file.parent / "nk_tracking" / "rsi_telemetry.jsonl"
+            )
         candidates.extend(
             [
-                self.workspace_root / ".staging" / "nk_tracking" / "rsi_telemetry.jsonl",
+                self.workspace_root
+                / ".staging"
+                / "nk_tracking"
+                / "rsi_telemetry.jsonl",
                 self.workspace_root / "nk_tracking" / "rsi_telemetry.jsonl",
             ]
         )
@@ -156,7 +197,9 @@ class NKComplianceChecker:
                     pass
         return 100
 
-    def audit_transcript(self, transcript_path: Optional[Path] = None) -> Dict[str, Any]:
+    def audit_transcript(
+        self, transcript_path: Optional[Path] = None
+    ) -> Dict[str, Any]:
         """Scansiona transcript.jsonl e calcola i punteggi operativo, procedurale e RSI."""
         if transcript_path is None:
             active = find_active_transcript()
@@ -183,6 +226,11 @@ class NKComplianceChecker:
         write_calls = 0
         code_write_calls = 0
         error_steps = 0
+        command_error_steps = 0
+        refining_vibe_steps = 0
+        saw_converged_optimal = False
+        current_direct_calls_streak = 0
+        max_direct_tool_calls_streak = 0
         healing_loop_executed = False
         ast_guard_executed = False
         win32_2pc_executed = False
@@ -193,10 +241,42 @@ class NKComplianceChecker:
                 try:
                     data = json.loads(line)
                     total_steps += 1
-                    if str(data.get("status", "")).upper() == "ERROR":
+                    step_has_error = str(data.get("status", "")).upper() == "ERROR"
+                    if step_has_error:
                         error_steps += 1
 
-                    calls = data.get("tool_calls", [])
+                    content_text = str(
+                        data.get("content", "")
+                        or data.get("output", "")
+                        or line
+                    )
+
+                    # OPT-12: riconosce ast_guard_validator.py e convergenza RSI anche da delega 2-Tier
+                    if "ast_guard_validator.py" in content_text:
+                        ast_guard_executed = True
+                    if "CONVERGED_OPTIMAL" in content_text:
+                        saw_converged_optimal = True
+                    if (
+                        "rsi_convergence_engine.py" in content_text
+                        or "auto_heal_pipeline.py" in content_text
+                    ):
+                        healing_loop_executed = True
+
+                    # OPT-6 + OPT-12: rileva exit code != 0 esentando REFINING convergenti e audit esterni
+                    m_exit = _EXIT_CODE_RE.search(content_text)
+                    if m_exit and m_exit.group(1) != "0":
+                        err_kind = _is_exempt_diagnostic_nonzero(content_text)
+                        if err_kind == "INTERMEDIATE_REFINING":
+                            refining_vibe_steps += 1
+                        elif err_kind == "REAL_ERROR":
+                            command_error_steps += 1
+                            if not step_has_error:
+                                error_steps += 1
+
+                    calls = data.get("tool_calls", []) or []
+                    step_direct_calls = 0
+                    step_has_delegation = False
+
                     for call in calls:
                         total_tool_calls += 1
                         tname = (
@@ -206,6 +286,11 @@ class NKComplianceChecker:
                             or ""
                         )
                         args = call.get("args") or call.get("arguments") or {}
+
+                        if tname in DELEGATION_TOOLS:
+                            step_has_delegation = True
+                        elif tname in DIRECT_AUDIT_TOOLS:
+                            step_direct_calls += 1
 
                         if tname == "manage_task":
                             action = args.get("Action", "")
@@ -238,8 +323,22 @@ class NKComplianceChecker:
                                 win32_2pc_executed = True
                             if "nk_session_bootstrap.py" in cmd:
                                 bootstrap_executed = True
+
+                    source_val = str(data.get("source") or data.get("type") or "")
+                    if step_has_delegation or (
+                        source_val == "USER_EXPLICIT" and total_steps > 1
+                    ):
+                        current_direct_calls_streak = 0
+                    elif step_direct_calls > 0:
+                        current_direct_calls_streak += step_direct_calls
+                        if current_direct_calls_streak > max_direct_tool_calls_streak:
+                            max_direct_tool_calls_streak = current_direct_calls_streak
                 except Exception:
                     pass
+
+        if refining_vibe_steps > 0 and not saw_converged_optimal:
+            command_error_steps += refining_vibe_steps
+            error_steps += refining_vibe_steps
 
         sentry_res: Dict[str, Any] = {}
         if NKContextSentry is not None:
@@ -303,8 +402,9 @@ class NKComplianceChecker:
                 f"Swarm hygiene violation: {swarm_violations} oversized inter-agent message(s) (>2000 chars) [-{swarm_penalty}]"
             )
 
-        # 4. Penalita Oggettiva DDI (GT-03: max_consecutive_direct > 12 -> -20 punti)
-        max_consecutive_direct = sentry_res.get("max_consecutive_direct_audit", 0)
+        # 4. Penalita Oggettiva DDI (GT-03 + OPT-6: step streak o call streak > 12 -> -20 punti)
+        sentry_streak = int(sentry_res.get("max_consecutive_direct_audit", 0))
+        max_consecutive_direct = max(sentry_streak, max_direct_tool_calls_streak)
         if max_consecutive_direct > self.DDI_DIRECT_STREAK_LIMIT:
             procedural_score -= 20
             penalties.append(
@@ -323,15 +423,20 @@ class NKComplianceChecker:
                 "Staging bypass: writes performed without 2PC atomic commit [-20]"
             )
 
-        # 6. Penalita Omissione AST Guard (solo se ci sono state chiamate write)
-        if write_calls > 0 and not ast_guard_executed:
+        # 6. Penalita Omissione AST Guard (OPT-12: esenta scritture esenti delegate in 2-Tier)
+        exempt_delegated_writes = code_write_calls == 0 and (
+            subagents_invoked > 0 or win32_2pc_executed
+        )
+        if write_calls > 0 and not ast_guard_executed and not exempt_delegated_writes:
             procedural_score -= 10
             penalties.append("AST Guard omitted [-10]")
 
         procedural_score = max(0, procedural_score)
 
         # Guardia GT-10: default 100 per operational_score e rsi_convergence_score su transcript sani
-        operational_score = max(0, 100 - (error_steps * 10)) if error_steps > 0 else 100
+        operational_score = (
+            max(0, 100 - (error_steps * 10)) if error_steps > 0 else 100
+        )
         rsi_convergence_score = self._read_rsi_convergence_score(transcript_file)
 
         composite_score = round(
@@ -360,6 +465,9 @@ class NKComplianceChecker:
                 "win32_2pc_executed": win32_2pc_executed,
                 "bootstrap_executed": bootstrap_executed,
                 "max_consecutive_direct_audit": max_consecutive_direct,
+                "direct_tool_calls_streak": max_direct_tool_calls_streak,
+                "command_error_steps": command_error_steps,
+                "error_steps": error_steps,
                 "swarm_hygiene_violations_count": swarm_violations,
                 "context_sentry_status": sentry_status,
             },
@@ -375,6 +483,7 @@ class NKComplianceChecker:
 
 
 def main() -> int:
+    """Punto di ingresso CLI per il verificatore di conformita Nexus Keystone."""
     reconfigure_streams()
     parser = argparse.ArgumentParser(
         description="Nexus Keystone Hard Compliance Checker"

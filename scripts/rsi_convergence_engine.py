@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Motore di convergenza RSI per Nexus Keystone v3.0.0.
+Motore di convergenza RSI per Nexus Keystone v3.2.0.
 Modulo: scripts/rsi_convergence_engine.py.
-Implementa le regole [RULE-RSI] e [RULE-STE100].
+Implementa le regole [RULE-RSI] e [RULE-STE100] con ottimizzazioni OPT-2 e OPT-9.
 
 Funzionalita principali:
 1. Calcola la metrica lineare di difetto Delta_k e la fitness Q(S_k).
 2. Applica le sei guardie invarianti G1, G2, G3, G4, G5 e G6.
-3. Gestisce la catena hash SHA-256 nel file nk_tracking/rsi_telemetry.jsonl.
-4. Esegue la verifica di conformita dell'ecosistema tramite il flag --verify.
+3. Sincronizza con threading.Lock la catena SHA-256 in nk_tracking/rsi_telemetry.jsonl (OPT-9).
+4. Esegue la verifica di conformita dell'ecosistema con filtro directory escluse (OPT-9).
 """
 
 from __future__ import annotations
@@ -17,17 +17,18 @@ from __future__ import annotations
 import argparse
 import ast
 import hashlib
+import importlib.util
 import json
 import re
+import subprocess
 import sys
+import threading
 import time
 import uuid
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Set, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field
-
-import importlib.util
 
 _scripts_dir = Path(__file__).resolve().parent
 _workspace_root = (
@@ -64,7 +65,9 @@ try:
     if not hasattr(ASTGuardValidator, "check_sast_constructs"):
         _agv_path = _scripts_dir / "ast_guard_validator.py"
         if _agv_path.exists():
-            _agv_spec = importlib.util.spec_from_file_location("ast_guard_validator", str(_agv_path))
+            _agv_spec = importlib.util.spec_from_file_location(
+                "ast_guard_validator", str(_agv_path)
+            )
             if _agv_spec and _agv_spec.loader:
                 _agv_mod = importlib.util.module_from_spec(_agv_spec)
                 sys.modules["ast_guard_validator"] = _agv_mod
@@ -89,6 +92,18 @@ MODE_ITERATION_CAPS: Dict[str, int] = {
     "sovereign": 4,
 }
 
+EXCLUDED_SCAN_DIRS: Set[str] = {
+    ".git",
+    ".venv",
+    "venv",
+    "node_modules",
+    "__pycache__",
+    ".staging",
+    ".pytest_cache",
+}
+
+_TELEMETRY_LOCK = threading.Lock()
+
 
 class RSIDefectVector(BaseModel):
     """Vettore dei difetti rilevati in una singola iterazione RSI."""
@@ -99,11 +114,27 @@ class RSIDefectVector(BaseModel):
     tests_failed: int = Field(default=0, ge=0, description="Test falliti nella suite")
     tests_passed: int = Field(default=100, ge=0, description="Test superati nella suite")
     tests_total: int = Field(default=0, ge=0, description="Totale test eseguiti")
-    contract_violations: int = Field(default=0, ge=0, description="Violazioni contratti IPC o 2PC")
+    contract_violations: int = Field(
+        default=0, ge=0, description="Violazioni contratti IPC o 2PC"
+    )
     high_findings: int = Field(default=0, ge=0, description="Finding ad alta gravita")
-    medium_findings: int = Field(default=0, ge=0, description="Finding a media gravita")
+    medium_findings: int = Field(
+        default=0, ge=0, description="Finding a media gravita"
+    )
     low_findings: int = Field(default=0, ge=0, description="Finding a bassa gravita")
-    doc_drift: int = Field(default=0, ge=0, description="Disallineamenti documentali o STE100")
+    doc_drift: int = Field(
+        default=0, ge=0, description="Disallineamenti documentali o STE100"
+    )
+    poc_confirmed_exploits: int = Field(
+        default=0,
+        ge=0,
+        description="Exploit o bug logici confermati da Referee PoC",
+    )
+    semantic_drift_findings: int = Field(
+        default=0,
+        ge=0,
+        description="Drift contrattuali o topologici L2/L3 confermati",
+    )
 
     def effective_totals(self) -> Tuple[int, int]:
         """Restituisce la coppia (tests_passed, tests_total) normalizzata."""
@@ -122,14 +153,18 @@ class RSIIterationRecord(BaseModel):
 
     session_id: str = Field(description="Identificativo univoco della sessione RSI")
     iteration: int = Field(ge=0, description="Indice progressivo dell'iterazione")
-    mode: str = Field(default="mode_a", description="Modalita operativa Mode A, B o C")
+    mode: str = Field(default="mode_a", description="Modalita operativa Mode A, B, C o D")
     defects: RSIDefectVector = Field(description="Vettore analitico dei difetti")
     delta_k: int = Field(ge=0, description="Distanza lineare pesata dallo stato ottimale")
-    fitness_q: float = Field(ge=0.0, le=100.0, description="Punteggio di fitness iperbolica")
+    fitness_q: float = Field(
+        ge=0.0, le=100.0, description="Punteggio di fitness iperbolica"
+    )
     state_hash: str = Field(description="Hash SHA-256 dello stato dei file target")
     verdict: str = Field(description="Esito deterministico dell'iterazione")
     rolled_back: bool = Field(default=False, description="Indica se e avvenuto un rollback")
-    prev_hash: str = Field(default="0" * 64, description="Hash del record precedente nella catena")
+    prev_hash: str = Field(
+        default="0" * 64, description="Hash del record precedente nella catena"
+    )
     record_hash: str = Field(default="", description="Hash SHA-256 del record corrente")
     timestamp: float = Field(default_factory=time.time, description="Timestamp epoch UTC")
 
@@ -141,18 +176,34 @@ class RSISessionReport(BaseModel):
 
     session_id: str = Field(description="Identificativo della sessione RSI")
     mode: str = Field(default="mode_a", description="Modalita di esecuzione")
-    max_iterations: int = Field(ge=1, description="Limite massimo di iterazioni per la modalita")
-    iterations_used: int = Field(ge=0, description="Numero di iterazioni effettivamente eseguite")
+    max_iterations: int = Field(
+        ge=1, description="Limite massimo di iterazioni per la modalita"
+    )
+    iterations_used: int = Field(
+        ge=0, description="Numero di iterazioni effettivamente eseguite"
+    )
     converged: bool = Field(description="True se Delta_k == 0 e Q(S_k) == 100.0")
     final_status: str = Field(description="Stato finale del motore RSI")
     initial_delta: int = Field(ge=0, description="Valore iniziale di Delta_k")
     final_delta: int = Field(ge=0, description="Valore finale di Delta_k")
-    initial_fitness_q: float = Field(ge=0.0, le=100.0, description="Fitness iniziale Q(S_0)")
-    final_fitness_q: float = Field(ge=0.0, le=100.0, description="Fitness finale Q(S_k)")
-    rollbacks_count: int = Field(default=0, ge=0, description="Totale rollback eseguiti per Guardia G2")
-    cycle_detected: bool = Field(default=False, description="True se Guardia G3 ha rilevato un ciclo")
-    visited_hashes: List[str] = Field(default_factory=list, description="Lista hash SHA-256 visitati")
-    history: List[RSIIterationRecord] = Field(default_factory=list, description="Cronologia iterazioni")
+    initial_fitness_q: float = Field(
+        ge=0.0, le=100.0, description="Fitness iniziale Q(S_0)"
+    )
+    final_fitness_q: float = Field(
+        ge=0.0, le=100.0, description="Fitness finale Q(S_k)"
+    )
+    rollbacks_count: int = Field(
+        default=0, ge=0, description="Totale rollback eseguiti per Guardia G2"
+    )
+    cycle_detected: bool = Field(
+        default=False, description="True se Guardia G3 ha rilevato un ciclo"
+    )
+    visited_hashes: List[str] = Field(
+        default_factory=list, description="Lista hash SHA-256 visitati"
+    )
+    history: List[RSIIterationRecord] = Field(
+        default_factory=list, description="Cronologia iterazioni"
+    )
 
 
 class RSIProfileConfig(BaseModel):
@@ -256,7 +307,7 @@ def compute_delta(defects: RSIDefectVector, profile: str = "code_rsi") -> int:
     """Calcola la metrica lineare pesata Delta_k secondo il profilo specificato."""
     cfg = RSIProfileRegistry.get(profile)
     w_sast, w_tfail, w_c, w_h, w_m, w_l, w_g = cfg.weights
-    return (
+    raw_delta = (
         w_sast * defects.sast_critical
         + w_tfail * defects.tests_failed
         + w_c * defects.contract_violations
@@ -264,7 +315,10 @@ def compute_delta(defects: RSIDefectVector, profile: str = "code_rsi") -> int:
         + w_m * defects.medium_findings
         + w_l * defects.low_findings
         + w_g * defects.doc_drift
+        + 20 * defects.poc_confirmed_exploits
+        + 12 * defects.semantic_drift_findings
     )
+    return raw_delta
 
 
 def compute_fitness(
@@ -276,6 +330,8 @@ def compute_fitness(
     cfg = RSIProfileRegistry.get(profile)
     d_val = compute_delta(defects, profile=profile) if delta_k is None else delta_k
     if cfg.test_weight <= 0.0:
+        if defects.tests_failed > 0:
+            d_val += 10 * defects.tests_failed
         q_val = cfg.delta_weight / (1.0 + (float(d_val) / cfg.delta_scale))
         return round(q_val, 4)
 
@@ -343,18 +399,32 @@ def verify_ste100_compliance(text: str, max_sentence_words: int = 20) -> Dict[st
     }
 
 
+def _is_excluded_rel_path(path: Path, base_root: Path) -> bool:
+    """Verifica se il percorso relativo a base_root attraversa directory escluse (OPT-9)."""
+    try:
+        rel_parts = path.relative_to(base_root).parts
+    except ValueError:
+        rel_parts = path.parts
+    return any(part in EXCLUDED_SCAN_DIRS for part in rel_parts)
+
+
 class RSIConvergenceEngine:
     """Motore deterministico di convergenza RSI con guardie G1..G6."""
+
+    _TELEMETRY_LOCK = _TELEMETRY_LOCK
 
     def __init__(
         self,
         workspace_root: Optional[Path] = None,
         telemetry_path: Optional[Path] = None,
+        root: Optional[Path] = None,
     ) -> None:
         reconfigure_streams()
+        effective_root = root if root is not None else workspace_root
         self.workspace_root = (
-            Path(workspace_root).resolve() if workspace_root else _workspace_root
+            Path(effective_root).resolve() if effective_root else _workspace_root
         )
+        self.root = self.workspace_root
         self.telemetry_path = (
             Path(telemetry_path).resolve()
             if telemetry_path
@@ -422,6 +492,16 @@ class RSIConvergenceEngine:
                 True,
                 f"Finding High saliti da {prev_defects.high_findings} a {curr_defects.high_findings}.",
             )
+        if curr_defects.poc_confirmed_exploits > prev_defects.poc_confirmed_exploits:
+            return (
+                True,
+                f"Exploit PoC confermati saliti da {prev_defects.poc_confirmed_exploits} a {curr_defects.poc_confirmed_exploits}.",
+            )
+        if curr_defects.semantic_drift_findings > prev_defects.semantic_drift_findings:
+            return (
+                True,
+                f"Semantic drift saliti da {prev_defects.semantic_drift_findings} a {curr_defects.semantic_drift_findings}.",
+            )
         if strict_monotonic:
             prev_d = compute_delta(prev_defects)
             curr_d = compute_delta(curr_defects)
@@ -474,18 +554,20 @@ class RSIConvergenceEngine:
         return last_hash
 
     def append_telemetry_record(self, record: RSIIterationRecord) -> RSIIterationRecord:
-        """Aggiunge un record alla catena SHA-256 in rsi_telemetry.jsonl (Guardia G4)."""
-        self.telemetry_path.parent.mkdir(parents=True, exist_ok=True)
-        prev_hash = self._get_last_telemetry_hash()
-        rec_dict = record.model_dump()
-        rec_dict["prev_hash"] = prev_hash
-        rec_hash = self._compute_record_hash(rec_dict)
-        rec_dict["record_hash"] = rec_hash
+        """Aggiunge in modo thread-safe un record alla catena SHA-256 (Guardia G4, OPT-9)."""
+        with _TELEMETRY_LOCK:
+            self.telemetry_path.parent.mkdir(parents=True, exist_ok=True)
+            prev_hash = self._get_last_telemetry_hash()
+            rec_dict = record.model_dump()
+            rec_dict["prev_hash"] = prev_hash
+            rec_hash = self._compute_record_hash(rec_dict)
+            rec_dict["record_hash"] = rec_hash
 
-        signed_record = RSIIterationRecord.model_validate(rec_dict)
-        with open(self.telemetry_path, "a", encoding="utf-8") as f:
-            f.write(signed_record.model_dump_json() + "\n")
-        return signed_record
+            signed_record = RSIIterationRecord.model_validate(rec_dict)
+            with open(self.telemetry_path, "a", encoding="utf-8") as f:
+                f.write(signed_record.model_dump_json() + "\n")
+                f.flush()
+            return signed_record
 
     def verify_telemetry_chain(
         self, telemetry_path: Optional[Path] = None
@@ -532,6 +614,7 @@ class RSIConvergenceEngine:
         target_files: Optional[Sequence[Path | str]] = None,
         mode: str = "mode_a",
         session_id: Optional[str] = None,
+        profile: str = "code_rsi",
     ) -> RSISessionReport:
         """Esegue il ciclo deterministico RSI applicando le guardie G1..G5."""
         sid = session_id or f"RSI-{int(time.time())}-{uuid.uuid4().hex[:6]}"
@@ -546,8 +629,8 @@ class RSIConvergenceEngine:
 
         # Valutazione iniziale (k = 0)
         init_defects = evaluate_fn(0)
-        init_delta = self.compute_delta(init_defects)
-        init_q = self.compute_fitness(init_defects, delta_k=init_delta)
+        init_delta = self.compute_delta(init_defects, profile=profile)
+        init_q = self.compute_fitness(init_defects, delta_k=init_delta, profile=profile)
         init_hash = self.compute_files_state_hash(tracked_files)
         visited_hashes.append(init_hash)
         seen_hashes.add(init_hash)
@@ -636,8 +719,10 @@ class RSIConvergenceEngine:
             seen_hashes.add(curr_hash)
 
             curr_defects = evaluate_fn(k)
-            curr_delta = self.compute_delta(curr_defects)
-            curr_q = self.compute_fitness(curr_defects, delta_k=curr_delta)
+            curr_delta = self.compute_delta(curr_defects, profile=profile)
+            curr_q = self.compute_fitness(
+                curr_defects, delta_k=curr_delta, profile=profile
+            )
 
             # Guardia G2: Strict Monotonic Hard Gate
             regressed, _ = self.check_hard_gate_regression(best_defects, curr_defects)
@@ -737,7 +822,9 @@ class RSIConvergenceEngine:
             for node in ast.walk(tree):
                 if isinstance(node, ast.Constant) and isinstance(node.value, str):
                     val = node.value.strip()
-                    if val.startswith("--") and re.match(r"^--[a-zA-Z0-9][a-zA-Z0-9_-]*$", val):
+                    if val.startswith("--") and re.match(
+                        r"^--[a-zA-Z0-9][a-zA-Z0-9_-]*$", val
+                    ):
                         flags.add(val)
         except Exception:
             pass
@@ -766,7 +853,13 @@ class RSIConvergenceEngine:
                 merged.extend(stg_map.values())
                 md_files = sorted(merged)
         else:
-            md_files.extend(sorted(root.rglob("*.md")))
+            md_files.extend(
+                sorted(
+                    p
+                    for p in root.rglob("*.md")
+                    if not _is_excluded_rel_path(p, root)
+                )
+            )
 
         flag_cache: Dict[str, Set[str]] = {}
         pattern = re.compile(r"scripts/([a-zA-Z0-9_]+\.py)\s+([^\r\n`'\"]*)")
@@ -780,7 +873,9 @@ class RSIConvergenceEngine:
             for match in pattern.finditer(content):
                 script_name = match.group(1)
                 args_tail = match.group(2)
-                cited_flags = re.findall(r"(?<!\w)(--[a-zA-Z0-9][a-zA-Z0-9_-]*)", args_tail)
+                cited_flags = re.findall(
+                    r"(?<!\w)(--[a-zA-Z0-9][a-zA-Z0-9_-]*)", args_tail
+                )
                 if not cited_flags:
                     continue
 
@@ -790,7 +885,9 @@ class RSIConvergenceEngine:
                         cand_script = self._resolve_candidate(
                             self.workspace_root, f"scripts/{script_name}"
                         )
-                    flag_cache[script_name] = self._extract_script_supported_flags(cand_script)
+                    flag_cache[script_name] = self._extract_script_supported_flags(
+                        cand_script
+                    )
 
                 supported = flag_cache[script_name]
                 if len(supported) <= 1:
@@ -807,10 +904,15 @@ class RSIConvergenceEngine:
             "invalid_flags": invalid_flags,
         }
 
-    def run_vibe_check(self, target_path: Path | str) -> Dict[str, Any]:
+    def run_vibe_check(
+        self,
+        target_path: Path | str,
+        profile: str = "vibe_sprint_micro_rsi",
+    ) -> Dict[str, Any]:
         """Esegue il micro-loop Vibe Check in-memory in meno di 500 ms (EXT-05)."""
         t0 = time.perf_counter()
         target = Path(target_path).resolve()
+        active_profile = RSIProfileRegistry.get(profile).name
         violations: List[str] = []
         sast_count = 0
         contract_count = 0
@@ -820,7 +922,7 @@ class RSIConvergenceEngine:
             return {
                 "status": "REFINING",
                 "passed": False,
-                "profile": "vibe_sprint_micro_rsi",
+                "profile": active_profile,
                 "target": str(target),
                 "delta_k": 10,
                 "fitness_q": 71.4286,
@@ -828,6 +930,7 @@ class RSIConvergenceEngine:
                 "violations": [f"Target non trovato: {target}"],
             }
 
+        vibe_excluded = EXCLUDED_SCAN_DIRS - {".staging"}
         files_to_check: List[Path] = (
             [target]
             if target.is_file()
@@ -837,7 +940,9 @@ class RSIConvergenceEngine:
                     for p in target.rglob("*")
                     if p.is_file()
                     and p.suffix in (".py", ".md")
-                    and "__pycache__" not in p.parts
+                    and not any(
+                        part in vibe_excluded for part in p.relative_to(target).parts
+                    )
                 ]
             )
         )
@@ -885,15 +990,15 @@ class RSIConvergenceEngine:
             contract_violations=contract_count,
             doc_drift=drift_count,
         )
-        d_k = compute_delta(defects, profile="vibe_sprint_micro_rsi")
-        q_k = compute_fitness(defects, delta_k=d_k, profile="vibe_sprint_micro_rsi")
+        d_k = compute_delta(defects, profile=active_profile)
+        q_k = compute_fitness(defects, delta_k=d_k, profile=active_profile)
         elapsed_ms = round((time.perf_counter() - t0) * 1000.0, 2)
         passed = d_k == 0 and len(violations) == 0
 
         return {
             "status": "CONVERGED_OPTIMAL" if passed else "REFINING",
             "passed": passed,
-            "profile": "vibe_sprint_micro_rsi",
+            "profile": active_profile,
             "target": str(target),
             "delta_0": d_k,
             "delta_k": d_k,
@@ -902,23 +1007,109 @@ class RSIConvergenceEngine:
             "violations": violations,
         }
 
-    def verify_ecosystem(self, root_dir: Optional[Path] = None) -> Dict[str, Any]:
+    def run_benchmark_suite(
+        self, benchmark_suite: Path | str, root_dir: Optional[Path] = None
+    ) -> Dict[str, Any]:
+        """Esegue una suite Pytest di benchmark funzionale e restituisce i conteggi."""
+        base_root = Path(root_dir).resolve() if root_dir else self.workspace_root
+        suite_path = Path(benchmark_suite)
+        if not suite_path.is_absolute():
+            cand = base_root / suite_path
+            suite_path = (
+                cand.resolve()
+                if cand.exists()
+                else (self.workspace_root / suite_path).resolve()
+            )
+
+        if not suite_path.exists():
+            return {
+                "passed": False,
+                "tests_failed": 1,
+                "tests_passed": 0,
+                "tests_total": 1,
+                "suite_path": str(suite_path),
+                "details": f"Benchmark suite non trovata: {suite_path}",
+            }
+
+        try:
+            proc = subprocess.run(
+                [sys.executable, "-m", "pytest", str(suite_path), "-q", "--tb=short"],
+                cwd=str(base_root),
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=60,
+            )
+            combined = f"{proc.stdout}\n{proc.stderr}"
+            m_fail = re.search(r"(\d+)\s+failed", combined)
+            m_err = re.search(r"(\d+)\s+error", combined)
+            m_pass = re.search(r"(\d+)\s+passed", combined)
+
+            t_fail = (int(m_fail.group(1)) if m_fail else 0) + (
+                int(m_err.group(1)) if m_err else 0
+            )
+            t_pass = int(m_pass.group(1)) if m_pass else 0
+            if proc.returncode != 0 and t_fail == 0:
+                t_fail = 1
+            if proc.returncode == 0 and t_pass == 0:
+                t_pass = 1
+            t_total = max(1, t_pass + t_fail)
+
+            return {
+                "passed": t_fail == 0 and proc.returncode == 0,
+                "tests_failed": t_fail,
+                "tests_passed": t_pass,
+                "tests_total": t_total,
+                "suite_path": str(suite_path),
+                "details": f"Benchmark pytest: {t_pass} passed, {t_fail} failed.",
+            }
+        except Exception as exc:
+            return {
+                "passed": False,
+                "tests_failed": 1,
+                "tests_passed": 0,
+                "tests_total": 1,
+                "suite_path": str(suite_path),
+                "details": f"Errore esecuzione benchmark suite: {exc}",
+            }
+
+    def verify_ecosystem(
+        self,
+        root_dir: Optional[Path] = None,
+        run_pytest: bool = False,
+        profile: str = "code_rsi",
+        benchmark_suite: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """Esegue la verifica completa Guardia G6 sull'ecosistema o directory target."""
-        root = Path(root_dir).resolve() if root_dir else self.workspace_root
+        if isinstance(root_dir, bool):
+            should_run_pytest = root_dir or bool(run_pytest)
+            root = self.workspace_root
+        else:
+            should_run_pytest = bool(run_pytest)
+            root = Path(root_dir).resolve() if root_dir else self.workspace_root
+
+        canonical_profile = RSIProfileRegistry.get(profile).name
         violations: List[str] = []
         checks: Dict[str, Any] = {}
 
         # 1. Verifica integrita AGENTS.md e budget di byte
         agents_md = self._resolve_candidate(root, ".agents/AGENTS.md")
-        anti_crash_md = self._resolve_candidate(root, ".agents/rules/anti_crash_rules.md")
+        anti_crash_md = self._resolve_candidate(
+            root, ".agents/rules/anti_crash_rules.md"
+        )
 
         if agents_md.exists():
             agents_bytes = agents_md.stat().st_size
-            crash_bytes = anti_crash_md.stat().st_size if anti_crash_md.exists() else 0
+            crash_bytes = (
+                anti_crash_md.stat().st_size if anti_crash_md.exists() else 0
+            )
             combined_bytes = agents_bytes + crash_bytes
             budget_ok = agents_bytes < 24000
             if not budget_ok:
-                violations.append(f"AGENTS.md supera il limite di 24000 byte ({agents_bytes} B).")
+                violations.append(
+                    f"AGENTS.md supera il limite di 24000 byte ({agents_bytes} B)."
+                )
 
             agents_text = agents_md.read_text(encoding="utf-8", errors="replace")
             ste_res = verify_ste100_compliance(agents_text)
@@ -926,7 +1117,8 @@ class RSIConvergenceEngine:
                 violations.extend(ste_res["violations"][:5])
 
             checks["agents_md"] = {
-                "passed": budget_ok and (ste_res["passed"] or "[RULE-STE100]" not in agents_text),
+                "passed": budget_ok
+                and (ste_res["passed"] or "[RULE-STE100]" not in agents_text),
                 "agents_bytes": agents_bytes,
                 "combined_bytes": combined_bytes,
                 "ste100_passed": ste_res["passed"],
@@ -947,13 +1139,16 @@ class RSIConvergenceEngine:
                 if not skill_md.exists():
                     continue
                 content = skill_md.read_text(encoding="utf-8", errors="replace")
-                if "v3.0.0" in content or "v3.1.0" in content:
+                if "v3.0.0" in content or "v3.1.0" in content or "v3.2.0" in content:
                     ste_skill = verify_ste100_compliance(content)
                     if not ste_skill["passed"]:
                         ste100_issues.extend(
-                            f"{skill_folder.name}: {v}" for v in ste_skill["violations"][:2]
+                            f"{skill_folder.name}: {v}"
+                            for v in ste_skill["violations"][:2]
                         )
-                for m in re.finditer(r"\]\(((?:resources|references)/[^\)]+)\)", content):
+                for m in re.finditer(
+                    r"\]\(((?:resources|references)/[^\)]+)\)", content
+                ):
                     rel_link = m.group(1)
                     target_aux = self._resolve_candidate(
                         root, f".agents/skills/{skill_folder.name}/{rel_link}"
@@ -961,17 +1156,36 @@ class RSIConvergenceEngine:
                     if not target_aux.exists():
                         broken_links.append(f"{skill_folder.name}/{rel_link}")
         else:
-            # Modalita directory sintetica di test: controlla i file .md presenti
+            # Directory esterna o temporanea: esclude EXCLUDED_SCAN_DIRS (OPT-9) e filtra STE100 (OPT-2)
             for md_file in root.rglob("*.md"):
+                if _is_excluded_rel_path(md_file, root):
+                    continue
                 content = md_file.read_text(encoding="utf-8", errors="replace")
-                ste_md = verify_ste100_compliance(content)
-                if not ste_md["passed"]:
-                    ste100_issues.extend(
-                        f"{md_file.name}: {v}" for v in ste_md["violations"]
-                    )
+                has_nk_marker = (
+                    ".agents" in md_file.parts
+                    or md_file.name == "SKILL.md"
+                    or ".agents" in content
+                    or "SKILL.md" in content
+                    or "[RULE-STE100]" in content
+                )
+                if canonical_profile in ("ste100_rsi", "spec_rsi") or has_nk_marker:
+                    ste_md = verify_ste100_compliance(content)
+                    if not ste_md["passed"]:
+                        ste100_issues.extend(
+                            f"{md_file.name}: {v}" for v in ste_md["violations"]
+                        )
                 for m in re.finditer(r"\]\(([^\)]+)\)", content):
                     link_target = m.group(1)
-                    if link_target.startswith(("http://", "https://", "file://", "#", "conversation://")):
+                    if link_target.startswith(
+                        (
+                            "http://",
+                            "https://",
+                            "file://",
+                            "#",
+                            "conversation://",
+                            "mailto:",
+                        )
+                    ):
                         continue
                     if not (md_file.parent / link_target).exists():
                         broken_links.append(f"{md_file.name} -> {link_target}")
@@ -1006,19 +1220,39 @@ class RSIConvergenceEngine:
             "details": chain_msg,
         }
 
+        # 5. Esegue eventuale suite di benchmark funzionale o pytest se richiesto
+        bench_failed = 0
+        bench_passed = 100
+        bench_total = 100
+        if benchmark_suite or should_run_pytest:
+            target_suite = benchmark_suite if benchmark_suite else str(root / "tests")
+            bench_res = self.run_benchmark_suite(target_suite, root_dir=root)
+            checks["benchmark_suite"] = bench_res
+            bench_failed = int(bench_res["tests_failed"])
+            bench_passed = int(bench_res["tests_passed"])
+            bench_total = int(bench_res["tests_total"])
+            if not bench_res["passed"]:
+                violations.append(bench_res["details"])
+
         defects = RSIDefectVector(
+            tests_failed=bench_failed,
+            tests_passed=bench_passed,
+            tests_total=bench_total,
             contract_violations=len(broken_links)
             + len(cove_res["invalid_flags"])
             + (0 if chain_ok else 1),
             doc_drift=len(ste100_issues),
         )
-        delta_k = self.compute_delta(defects)
-        fitness_q = self.compute_fitness(defects, delta_k=delta_k)
+        delta_k = self.compute_delta(defects, profile=canonical_profile)
+        fitness_q = self.compute_fitness(
+            defects, delta_k=delta_k, profile=canonical_profile
+        )
         passed = len(violations) == 0 and delta_k == 0
 
         return {
             "status": "CONVERGED_OPTIMAL" if passed else "REFINING",
             "passed": passed,
+            "profile": canonical_profile,
             "delta_k": delta_k,
             "fitness_q": fitness_q,
             "checks": checks,
@@ -1026,11 +1260,11 @@ class RSIConvergenceEngine:
         }
 
 
-def main() -> int:
+def main(argv: Optional[Sequence[str]] = None) -> int:
     """Entry point CLI per il motore di convergenza RSI."""
     reconfigure_streams()
     parser = argparse.ArgumentParser(
-        description="Motore di Convergenza RSI Nexus Keystone v3.1.0-Tensor-RSI"
+        description="Motore di Convergenza RSI Nexus Keystone v3.2.0-Tensor-RSI"
     )
     parser.add_argument(
         "--verify",
@@ -1050,6 +1284,12 @@ def main() -> int:
         help="Profilo Tensor-RSI attivo (code_rsi, vibe_sprint_micro_rsi, spec_rsi, ui_ux_rsi, ste100_rsi)",
     )
     parser.add_argument(
+        "--benchmark-suite",
+        type=str,
+        default=None,
+        help="Percorso opzionale a file o cartella pytest di benchmark funzionale",
+    )
+    parser.add_argument(
         "--root",
         type=str,
         default=None,
@@ -1061,12 +1301,15 @@ def main() -> int:
         help="Stampa il risultato in formato JSON",
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     root_path = Path(args.root).resolve() if args.root else _workspace_root
-    engine = RSIConvergenceEngine(workspace_root=root_path)
+    engine = RSIConvergenceEngine(workspace_root=root_path, root=root_path)
 
     if args.vibe_check:
-        vibe_res = engine.run_vibe_check(args.vibe_check)
+        vibe_profile = (
+            args.profile if args.profile != "code_rsi" else "vibe_sprint_micro_rsi"
+        )
+        vibe_res = engine.run_vibe_check(args.vibe_check, profile=vibe_profile)
         if args.json:
             print(json.dumps(vibe_res, indent=2))
         else:
@@ -1078,13 +1321,18 @@ def main() -> int:
                 print(f"  - {v}")
         return 0 if vibe_res["passed"] else 1
 
-    res = engine.verify_ecosystem(root_dir=root_path)
+    res = engine.verify_ecosystem(
+        root_dir=root_path,
+        run_pytest=False,
+        profile=args.profile,
+        benchmark_suite=args.benchmark_suite,
+    )
     if args.json or not args.verify:
         print(json.dumps(res, indent=2))
     else:
         sym = "🟢" if res["passed"] else "🔴"
         print(
-            f"{sym} [RSI-VERIFY] Stato: {res['status']} | Delta: {res['delta_k']} | Q: {res['fitness_q']}"
+            f"{sym} [RSI-VERIFY] Stato: {res['status']} | Profilo: {res['profile']} | Delta: {res['delta_k']} | Q: {res['fitness_q']}"
         )
         for v in res["violations"]:
             print(f"  - {v}")
