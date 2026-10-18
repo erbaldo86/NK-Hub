@@ -1,8 +1,8 @@
-# NK Genome: Concept Map e Master Brief (`v3.5.1-RSI2` / `v3.4.0` / `v3.1.0-Tensor-RSI` / `v3.0.0-STE100-Unified`)
+# NK Genome: Concept Map e Master Brief (`v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified`)
 
-> **Badge di Certificazione:** 🛡️ [NK-BRIEF-STATUS: AUDITED_AND_OPTIMIZED 🟢] | [RSI-CONVERGENCE: CONVERGED_OPTIMAL (Δ3=0, Q=100.0) 🟢]  
-> **Milestone Anchor ID:** `NK-MS-20261017-MODULAR-INDEX-v3.5.1-RSI2` (`NK-MS-20261015-TENSOR-RSI-v3.1.0`)  
-> **Versione Target:** `v3.5.1-RSI2` (`v3.4.0` / `v3.1.0-Tensor-RSI` / `v3.0.0-STE100-Unified` Compatible)  
+> **Badge di Certificazione:** 🛡️ [NK-BRIEF-STATUS: AUDITED_AND_OPTIMIZED 🟢] | [RSI-CONVERGENCE: CONVERGED_OPTIMAL (Δ=0, Q=100.0) 🟢]  
+> **Milestone Anchor ID:** `NK-MS-20261018-COLD-TRIAL-v4.0.0-RSI` (`NK-MS-20261018-NATIVE-AGENTS-V4.0`)  
+> **Versione Target:** `v4.0.0-Native-Swarm-Playbooks` (`v3.0.0-STE100-Unified` Compatible)  
 > **Standard Linguistico:** ASD-STE100 Italiano Tecnico (`[RULE-STE100]`)  
 > **Stato Produzione:** 100% Sola Lettura (`[RULE-00]`)
 
@@ -10,7 +10,7 @@
 
 ## 1. Visione Concettuale e Simbiosi con Gemini 4 Argon (High)
 
-L'architettura `v3.4.0` (`v3.1.0-Tensor-RSI`) unifica i rilievi forensi di Argon e Opus con il motore Tensor-RSI 2D (`[RULE-RSI.1]`). Il sistema trasforma Nexus Keystone in una piattaforma di miglioramento ricorsivo continuo (`[RULE-RSI]`). Questa architettura opera con **Gemini 4 Argon (High)** e protegge i `68` Golden Tests tramite `GT-01..GT-14`.
+L'architettura `v4.0.0-Native-Swarm-Playbooks` separa il Router O(1), i `5` Sub-Agenti Nativi e i `16` Playbook Procedurali (`[RULE-01]`). Il sistema trasforma Nexus Keystone in una piattaforma di miglioramento ricorsivo continuo (`[RULE-RSI]`). Questa architettura opera con **Gemini 4 Argon (High)** e protegge gli `86` Golden e Stress Tests tramite `GT-01..GT-14`.
 
 1. **Direttiva Linguistica Universale (`[RULE-STE100]`):**
    * Tutto l'ecosistema adotta lo standard **ASD-STE100 Italiano Tecnico**.
@@ -18,13 +18,13 @@ L'architettura `v3.4.0` (`v3.1.0-Tensor-RSI`) unifica i rilievi forensi di Argon
    * Tutte le regole usano la forma attiva, vocaboli univoci e zero incisi con trattini.
    * Il peso di `.agents/AGENTS.md` e `.agents/rules/anti_crash_rules.md` resta confinato entro il budget costituzionale.
 2. **Architettura Dual-Profile (`standard` vs `argon`) con Auto-Attivazione (`GT-01..GT-06`):**
-   * Le firme predefinite dei moduli Python mantengono le soglie `standard` (`70/100` step, `350` token Tier-1, `0/256/512/1024` token Repo-Map). Questa scelta protegge i `68` Golden Tests ortogonali.
+   * Le firme predefinite dei moduli Python mantengono le soglie `standard` (`70/100` step, `350` token Tier-1, `0/256/512/1024` token Repo-Map). Questa scelta protegge i `68` Golden Tests ortogonali e i `18` test di stress ed estensione (`86` totali).
    * Lo script `scripts/nk_session_bootstrap.py` imposta automaticamente `NK_MODEL_PROFILE=argon` nelle sessioni operative.
    * Il profilo `argon` esclude `len(thinking)` dal conteggio token e innalza le soglie a `150/250` step (`250k/500k` token).
-3. **Topologia 2-Tier Hub-and-Spoke a Singolo Livello (`U-01`, `MC-01`):**
-   * L'Agente Principale (`NK-Master-Hub` e `NK-Session-Controller`) registra i worker con `define_subagent(enable_subagent_tools=False)`.
-   * L'Agente Principale invoca direttamente i Builder in `.staging/` e successivamente gli Auditor in sola lettura.
-   * Questa topologia elimina il deadlock di doppia delega in cui `NK-Delta-Architect` non poteva invocare i sub-agenti.
+3. **Topologia 2-Tier Hub-and-Spoke e 5 Sub-Agenti Nativi (`U-01`, `MC-01`, `WP11`):**
+   * Il workspace registra stabilmente `5` Sub-Agenti Nativi in `.agents/agents/*/agent.md` con `enable_subagent_tools: false`.
+   * I `5` Sub-Agenti Nativi sono `NK-Specifier-Agent`, `NK-Builder-Agent`, `NK-Security-DAST-Auditor`, `NK-RSI-Auditor` e `NK-Scribe-Agent`.
+   * Gli Auditor `NK-Security-DAST-Auditor` e `NK-RSI-Auditor` impongono il blocco hardware `enable_write_tools: false` (`GT-14`).
 4. **Holistic Fast-Track (`GT-03`, `U-05`) e Swarm Message Hygiene (`GT-04`, `U-02`, `U-06`):**
    * Il limite di chiamate dirette consecutive sale a `DDI_DIRECT_STREAK_LIMIT = 12` (`<= 8` letture da `800` righe e `<= 4` comandi). Lo stress test a 15 chiamate continua a scattare regolarmente.
    * `nk_swarm_messenger.py` mantiene il payload a `1.800` caratteri (MSS) entro la busta di `2.000` caratteri (MTU).
@@ -44,9 +44,9 @@ Il motore deterministico `scripts/rsi_convergence_engine.py` governa il ciclo di
 ```mermaid
 flowchart TD
     subgraph TETRALOGIA["Tetralogia Sovrana 4/4 (nk_genome/)"]
-        CM["1. concept_map.md (Visione v3.4.0 / v3.0.0-STE100-Unified)"]
-        ST["2. structural_tree.md (30 Script, 16 Skill, 16 File Ausiliari, 68 Test)"]
-        IP["3. implementation_plan.md (Piano Esecutivo WP1-WP7 e Guardie GT-01..14)"]
+        CM["1. concept_map.md (Visione v4.0.0-Native-Swarm-Playbooks)"]
+        ST["2. structural_tree.md (32 Script, 5 Sub-Agenti, 16 Playbook, 86 Test)"]
+        IP["3. implementation_plan.md (Piano Esecutivo WP1-WP12 e Guardie GT-01..14)"]
         RM["4. repo_map.md (Mappa AST PageRank Pura senza Progetti Esterni)"]
     end
 

@@ -195,15 +195,21 @@ def main() -> int:
     parser.add_argument(
         "--target",
         type=str,
-        required=True,
+        required=False,
+        default=None,
         help="Percorso assoluto esterno a NK-Hub",
     )
 
     args = parser.parse_args()
+    target_str = (
+        args.target
+        if args.target is not None
+        else str(_workspace_root.parent / "NK_External_Projects" / args.name)
+    )
     try:
         scaffolder = ExternalProjectScaffolder(
             project_name=args.name,
-            target_dir=Path(args.target),
+            target_dir=Path(target_str),
         )
         res = scaffolder.scaffold()
         print(f"[NK-SCAFFOLDER] Progetto creato: {res['project_name']} -> {res['target_dir']}")

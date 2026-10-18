@@ -63,7 +63,7 @@ La versione **`v4.0.0-Native-Swarm-Playbooks`** introduce una rifondazione archi
 | **Audit di Sicurezza, DAST e RSI** | Solo `NK-RSI-Auditor` era nativo; mancava il blocco hardware su tutti gli altri nodi di controllo. | `NK-Security-DAST-Auditor` e `NK-RSI-Auditor` operano con blocco hardware `enable_write_tools: false` certificato da `GT-14`. |
 | **Collaudo Frontend e Full-Stack** | Limitato al backend Python; i server `chrome-devtools-mcp` e `puppeteer` non erano collegati ai playbook. | `NK-Delta-Architect` costruisce UI moderne e `NK-Dynamic-Sandbox-StressTester` valida DOM, console, network e Lighthouse live. |
 | **Indice Modulare O(1) (`nk_registry_manifest.json`)** | Indicizzava solo le `16` skill (`skills_index`) e i `32` script Python (`scripts_index`). | Indicizza separatamente `skills_index` (`16` Playbook) e `native_agents_index` (`5` Sub-Agenti) con lookup medio di `1.08 ms`. |
-| **Certificazione Test e Contratti CLI** | `74` Golden Tests (`100% PASS`) e `111` flag CLI controllati dal CoVe AST Gate. | **`86` Golden & Stress Tests (`100% PASS`)** e **`149` flag CLI** verificati con $\Delta_k = 0$ e $Q(S_k) = 100.0\%$. |
+| **Certificazione Test e Contratti CLI** | `74` Golden Tests (`100% PASS`) e `111` flag CLI controllati dal CoVe AST Gate. | **`86` Golden e Stress Tests (`100% PASS` in `7.08 s`)** e **`152` flag CLI** verificati con $\Delta_k = 0$ e $Q(S_k) = 100.0\%$. |
 
 ---
 
@@ -77,3 +77,27 @@ La versione **`v4.0.0-Native-Swarm-Playbooks`** introduce una rifondazione archi
 | **`NK-Security-DAST-Auditor`** | `DOM-04` | **`write: false`**, `subagent: false`, `mcp: true` | `[6] NK-Security-Auditor`, `[8] NK-Dynamic-Sandbox-StressTester`, `[9] NK-Bug-Diagnostic-Engine` |
 | **`NK-RSI-Auditor`** | `DOM-04` | **`write: false`**, `subagent: false`, `mcp: false` | `[7] NK-Oracle-Evaluator`, `[11] NK-State-Router`, `rsi_convergence_engine.py` |
 | **`NK-Scribe-Agent`** | `DOM-05` | `write: true`, `subagent: false`, `mcp: false` | `[12] NK-Scribe`, `[13] NK-Episodic-Memory-Engine` |
+
+---
+
+### 4. Collaudo Avversariale a Freddo (Zero-Bias Cold Trial) e Pulizia Release (`NK-MS-20261018-COLD-TRIAL-v4.0.0-RSI`)
+
+1. **Stress Test del Router O(1) e Lookup Multi-Skill (`10/10 PASS`):**
+   - `scripts/vibe_sprint_router.py` introduce il flag `--classify-prompt` e la matrice `SKILL_ROUTING_RULES`.
+   - Il router protegge i nomi file della Tetralogia Sovrana dalle collisioni lessicali di sottostringa (`"implementa"` e `"repo_map"`).
+   - `scripts/nk_registry_indexer.py` filtra l'estrazione AST dei flag CLI alle sole chiamate `add_argument` (`152` flag reali).
+
+2. **Raffinamento Chirurgico dei Moduli Core e dei Manifesti Sub-Agente (`15` Fix RSI):**
+   - `scripts/rsi_convergence_engine.py` ignora i blocchi `<yaml_metadata_card>`, protegge i punti interni (`v3.0.0`) e allinea `w_tfail == 0`.
+   - `scripts/ast_guard_validator.py` supporta `--json` e gestisce `.staging/` assente senza falsi errori.
+   - `scripts/auto_heal_pipeline.py` elimina lo snapshot duplicato al ciclo 1 e rende opzionali `--test-cmd` e `--target-file`.
+   - `scripts/external_project_scaffolder.py` imposta il percorso predefinito `../NK_External_Projects/<name>` quando `--target` è omesso.
+   - `scripts/memory_3tier_engine.py` sincronizza sempre gli ultimi 5 episodi Tier-2 in `sync_tier1_capsule` e legge `NK_MODEL_PROFILE`.
+   - `scripts/oracle_evaluator_l3.py` solleva `FileNotFoundError` su percorsi `.html` inesistenti e `nk_auto_inning.py` espone `--json`.
+
+3. **Ottimizzazione Prestazioni e Pulizia Scorie Legacy (`-43.5%` Tempo Suite Test):**
+   - `scripts/dast_sandbox_runner.py` esclude `sys.prefix` e `sys.exec_prefix` dal tracciamento `trace.Trace` nella Shadow Sandbox.
+   - `scripts/nk_session_bootstrap.py` filtra i transcript dei sub-agenti tramite `<env_capsule>` privilegiando la conversazione principale.
+   - Rimossa la cartella duplicata `nk_tracking/episodic_memory/`, i file `.bak_*` e i `18` report obsoleti `v1.9..v3.5`.
+   - Il tempo di esecuzione degli `86` Golden e Stress Tests scende da `12.54 s` a **`7.08 s` (`100.0% PASS`)**.
+

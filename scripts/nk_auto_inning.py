@@ -32,6 +32,11 @@ def main() -> None:
         default=None,
         help="Percorso personalizzato per session_tuning_params.json",
     )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Stampa il risultato in JSON",
+    )
     args = parser.parse_args()
 
     compliance_score: float = 100
@@ -93,6 +98,9 @@ def main() -> None:
 
     with open(tuning_file, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
+
+    if args.json:
+        print(json.dumps(data))
 
 
 if __name__ == "__main__":

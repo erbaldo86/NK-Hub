@@ -27,7 +27,7 @@ Sei **NK-Security-DAST-Auditor**, il sub-agente di sicurezza, stress test e diag
 1. Monta con `view_file` (`<= 800` righe) il Playbook richiesto: `.agents/skills/NK-Security-Auditor/SKILL.md`, `.agents/skills/NK-Dynamic-Sandbox-StressTester/SKILL.md` o `.agents/skills/NK-Bug-Diagnostic-Engine/SKILL.md`.
 2. Esegui l'audit statico SAST con `python scripts/ast_guard_validator.py --stage-dir .staging`.
 3. Esegui i test dinamici in Shadow Sandbox tramite `python scripts/dast_sandbox_runner.py --script <target> --json`.
-4. Per la diagnosi dei guasti, localizza la causa radice con `python scripts/sbfl_engine.py --json` (`< 80` token).
+4. Per la diagnosi dei guasti, localizza la causa radice con `python scripts/sbfl_engine.py --records-file <file> --json` (`< 80` token).
 5. Per le verifiche UI/DOM, esegui test Browser E2E tramite `call_mcp_tool` verso `chrome-devtools-mcp` e `puppeteer`.
 6. Invia al chiamante tramite `send_message` il verdetto sintetico e il percorso del report in `%TEMP%\nk_diagnostics\`.
 </directive>

@@ -1,28 +1,36 @@
-# NK Genome: Structural Tree Master (`v3.5.1-RSI2` / `v3.4.0` / `v3.1.0-Tensor-RSI` / `v3.0.0-STE100-Unified`)
+# NK Genome: Structural Tree Master (`v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified`)
 
-> **Badge di Certificazione:** 🛡️ [NK-BRIEF-STATUS: AUDITED_AND_OPTIMIZED 🟢] | [RSI-CONVERGENCE: CONVERGED_OPTIMAL (Δ3=0, Q=100.0) 🟢]  
-> **Milestone Anchor ID:** `NK-MS-20261017-MODULAR-INDEX-v3.5.1-RSI2` (`NK-MS-20261015-TENSOR-RSI-v3.1.0`)  
-> **Versione Target:** `v3.5.1-RSI2` (`v3.4.0` / `v3.1.0-Tensor-RSI` / `v3.0.0-STE100-Unified` Compatible)  
+> **Badge di Certificazione:** 🛡️ [NK-BRIEF-STATUS: AUDITED_AND_OPTIMIZED 🟢] | [RSI-CONVERGENCE: CONVERGED_OPTIMAL (Δ=0, Q=100.0) 🟢]  
+> **Milestone Anchor ID:** `NK-MS-20261018-COLD-TRIAL-v4.0.0-RSI` (`NK-MS-20261018-NATIVE-AGENTS-V4.0`)  
+> **Versione Target:** `v4.0.0-Native-Swarm-Playbooks` (`v3.0.0-STE100-Unified` Compatible)  
 > **Standard Linguistico:** ASD-STE100 Italiano Tecnico (`[RULE-STE100]`)  
 > **Stato Produzione:** 100% Sola Lettura (`[RULE-00]`)
 
 ---
 
-## 1. Albero Strutturale Canonico del Repository `NK-Hub` (`v3.5.1-RSI2`)
+## 1. Albero Strutturale Canonico del Repository `NK-Hub` (`v4.0.0-Native-Swarm-Playbooks`)
 
-L'albero seguente rappresenta la struttura target bonificata di `NK-Hub`. Le 3 cartelle di progetti esterni (`Output Business Keystone/`, `Antigravity model/`, `google-docs-mcp/`) sono spostate in `G:/Il mio Drive/NK_External_Projects/` (`BS-03`). I 39 file ausiliari orfani o con mock nelle skill sono rimossi (`C-06`). I 16 file ausiliari validi sono tutti linkati nei rispettivi `SKILL.md`.
+L'albero seguente rappresenta la struttura release bonificata di `NK-Hub`. Le cartelle di progetti esterni risiedono in `G:/Il mio Drive/NK_External_Projects/` (`BS-03`). La cartella duplicata `nk_tracking/episodic_memory/`, i file `.bak_*` e i report `v1.9..v3.5` sono stati rimossi. I `5` Sub-Agenti Nativi e i `16` Playbook con `16` file ausiliari sono indicizzati in `nk_genome/nk_registry_manifest.json`.
 
 ```text
 G:/Il mio Drive/Antigravity/
 ├── .agents/
-│   ├── AGENTS.md                                    # Regolamento Master in ASD-STE100 (~10.800 B, Dual-Alias, 8 trigger [RULE-00.5])
-│   ├── hooks.json                                   # [NUOVO v3.0] Hook del ciclo di vita (SessionStart, PostToolUse, Stop)
-│   ├── agents/
-│   │   └── NK-RSI-Auditor/
-│   │       └── agent.md                             # [NUOVO v3.0] Definizione Sub-Agente Critic/Evaluator Read-Only
+│   ├── AGENTS.md                                    # Regolamento Master in ASD-STE100 (Dual-Alias, 8 trigger [RULE-00.5])
+│   ├── hooks.json                                   # Hook del ciclo di vita (SessionStart, PostToolUse, Stop)
+│   ├── agents/                                      # 5 Sub-Agenti Esecutori Nativi Pre-Registrati (v4.0.0)
+│   │   ├── NK-Specifier-Agent/
+│   │   │   └── agent.md                             # Sub-Agente DOM-02 (Ideazione, UX/UI, Backend, Allineamento 4/4)
+│   │   ├── NK-Builder-Agent/
+│   │   │   └── agent.md                             # Sub-Agente DOM-03 (Sviluppo Python, Full-Stack UI e .staging/)
+│   │   ├── NK-Security-DAST-Auditor/
+│   │   │   └── agent.md                             # Sub-Agente DOM-04 Read-Only (SAST L1-L3, DAST, Browser E2E, SBFL)
+│   │   ├── NK-RSI-Auditor/
+│   │   │   └── agent.md                             # Sub-Agente DOM-04 Read-Only (6 Gate, Convergenza RSI, DAG Kahn)
+│   │   └── NK-Scribe-Agent/
+│   │       └── agent.md                             # Sub-Agente DOM-05 (Changelog SSOT, Repo-Map, Baseline, Memoria 3-Tier)
 │   ├── rules/
 │   │   └── anti_crash_rules.md                      # Regole operative Win32, I/O, UTF-8 e /compact in ASD-STE100 (~1.400 B)
-│   └── skills/                                      # 16 Skill Vocazionali + 16 File Ausiliari Verificati e Linkati (39 rimossi)
+│   └── skills/                                      # 16 Playbook Procedurali + 16 File Ausiliari Verificati e Linkati
 │       ├── NK-Master-Hub/                           # [L3] Sovrano Infrastrutturale (2PC Mutex, Routing 2-Tier, Dashboard [0]-[14])
 │       │   └── SKILL.md                             # [v3.0.0-STE100 | Rimossi 5 script in scripts/ e 3 YAML in resources/]
 │       ├── NK-Ideator/                              # [0] Sintesi Concettuale L0, SCAMPER e /grill-me
@@ -37,7 +45,7 @@ G:/Il mio Drive/Antigravity/
 │       │   └── SKILL.md                             # [v3.0.0-STE100 | Verifica byte-budget e standard ASD-STE100]
 │       ├── NK-Python-Async-Builder/                 # [4] Builder Primario in .staging/ e Fast-Healing Loop
 │       │   └── SKILL.md                             # [v3.0.0-STE100 | view_file <= 800 righe, auto_heal + rsi_convergence_engine]
-│       ├── NK-Delta-Architect/                      # [5] Surgical Refiner in .staging/ (Topologia 2-Tier a 1 livello)
+│       ├── NK-Delta-Architect/                      # [5] Playbook Full-Stack, Frontend UI e Surgical Refiner in .staging/
 │       │   ├── SKILL.md                             # [v3.0.0-STE100 | Link esplicito a resources/delta_brief_template.md]
 │       │   └── resources/
 │       │       └── delta_brief_template.md          # [File Ausiliario 02/16 - Aggiornato con Execution Receipt v3.0]
@@ -45,16 +53,16 @@ G:/Il mio Drive/Antigravity/
 │       │   ├── SKILL.md                             # [v3.0.0-STE100 | Protocollo 3 Gate + Cascade L3 -> L2 -> L1 + 4 risorse linkate]
 │       │   └── resources/
 │       │       ├── audit_checklists_l1_l2_l3.md     # [File Ausiliario 03/16 - Matrice di Routing Settoriale e Checklist TAS-Self]
-│       │       ├── tas_l1_module_audit.md           # [File Ausiliario 04/16 - NUOVO v3.4 Matrice Audit Universale Livello 1]
-│       │       ├── tas_l2_ipc_contract_audit.md     # [File Ausiliario 05/16 - NUOVO v3.4 Matrice Audit Contratti IPC Livello 2]
-│       │       └── tas_l3_fullstack_system_audit.md # [File Ausiliario 06/16 - NUOVO v3.4 Matrice Audit Full-Stack e Cascade L3]
+│       │       ├── tas_l1_module_audit.md           # [File Ausiliario 04/16 - Matrice Audit Universale Livello 1]
+│       │       ├── tas_l2_ipc_contract_audit.md     # [File Ausiliario 05/16 - Matrice Audit Contratti IPC Livello 2]
+│       │       └── tas_l3_fullstack_system_audit.md # [File Ausiliario 06/16 - Matrice Audit Full-Stack e Cascade L3]
 │       ├── NK-Oracle-Evaluator/                     # [7] Oracolo Deterministico Cold Audit (Gate 1-6) e /browser
 │       │   ├── SKILL.md                             # [v3.0.0-STE100 | Rimossi 5 script duplicati in scripts/ e resources/]
 │       │   └── references/
 │       │       ├── anti_pattern_guards.md           # [File Ausiliario 07/16 - Guardie Anti-Mock e Anti-Hardcoding]
 │       │       └── verification_oracles.md          # [File Ausiliario 08/16 - Rubrica di Verifica Deterministica]
-│       ├── NK-Dynamic-Sandbox-StressTester/         # [8] Critic Swarm DAST in %TEMP%\nk_sandbox_<uuid>\
-│       │   └── SKILL.md                             # [v3.0.0-STE100 | Rimossi i 3 script legacy con fuzzer random in resources/]
+│       ├── NK-Dynamic-Sandbox-StressTester/         # [8] Critic Swarm DAST e Browser E2E MCP in %TEMP%\nk_sandbox_<uuid>\
+│       │   └── SKILL.md                             # [v3.0.0-STE100 | Integrazione chrome-devtools-mcp e puppeteer]
 │       ├── NK-Bug-Diagnostic-Engine/                # [9] Localizzatore RCA e SBFL Ochiai (<320 char JSON, GT-07)
 │       │   ├── SKILL.md                             # [v3.0.0-STE100 | Rimosso trace_rca_analyzer.py]
 │       │   └── resources/
@@ -63,7 +71,7 @@ G:/Il mio Drive/Antigravity/
 │       ├── NK-Plan-Aligner/                         # [10] Certificatore Turno 4 della Tetralogia Sovrana 4/4
 │       │   └── SKILL.md                             # [v3.0.0-STE100 | Allineamento 4/4 con rsi_convergence_engine.py --verify]
 │       ├── NK-State-Router/                         # [11] Verificatore Topologico DAG di Kahn in Sola Lettura
-│       │   └── SKILL.md                             # [v3.0.0-STE100 | Rimossa acquisizione lock concorrente al 2PC]
+│       │   └── SKILL.md                             # [v3.0.0-STE100 | Verifica SHA-256 di 16 skill, 5 sub-agenti e 32 script]
 │       ├── NK-Scribe/                               # [12] Cronista Post-Commit ([RULE-00.2]) e Sincronizzatore SSOT
 │       │   ├── SKILL.md                             # [v3.0.0-STE100 | Filtro act a 7 stati, [RULE-01.10], sync docs]
 │       │   └── resources/
@@ -80,76 +88,74 @@ G:/Il mio Drive/Antigravity/
 │               └── saturation_thresholds.yaml       # [File Ausiliario 16/16 - Soglie Dual-Profile standard vs argon]
 ├── .github/
 │   └── workflows/
-│       └── ci.yml                                   # Pipeline CI/CD aggiornata (68 Golden Tests, --check-only, --verify)
+│       └── ci.yml                                   # Pipeline CI/CD aggiornata (86 Golden e Stress Tests, --check-only, --verify)
 ├── nk_genome/                                       # Tetralogia Sovrana 4/4 + Idea Canvas L0 + Indice O(1) + Changelog SSOT
 │   ├── idea_canvas.md                               # [L0] Idea Canvas preliminare (6 sezioni, SCAMPER, STORM)
-│   ├── concept_map.md                               # [1/4] Visione Concettuale e Architettura v3.5.1-RSI2 (Tensor-RSI + Indice O(1))
-│   ├── structural_tree.md                           # [2/4] Albero Strutturale Canonico v3.5.1-RSI2 (16 File Ausiliari, 68 Golden Tests)
-│   ├── implementation_plan.md                       # [3/4] Piano Esecutivo Atomico WP1-WP8 e Guardie GT-01..GT-14
-│   ├── repo_map.md                                  # [4/4] Snapshot AST Repo-Map a 4.000 token Argon (34 moduli + test)
-│   ├── SKILL_INDEX.md                               # [NUOVO v3.5] Indice Tassonomico Modulare O(1) per i 5 Domini DOM-01..DOM-05
-│   ├── nk_registry_manifest.json                    # [NUOVO v3.5] Manifesto SSOT O(1) generato da nk_registry_indexer.py
+│   ├── concept_map.md                               # [1/4] Visione Concettuale e Architettura v4.0.0-Native-Swarm-Playbooks
+│   ├── structural_tree.md                           # [2/4] Albero Strutturale Canonico v4.0.0 (5 Sub-Agenti, 16 Playbook, 86 Test)
+│   ├── implementation_plan.md                       # [3/4] Piano Esecutivo Atomico WP1-WP12 e Guardie GT-01..GT-14
+│   ├── repo_map.md                                  # [4/4] Snapshot AST Repo-Map a 4.000 token Argon (34 moduli + 25 test)
+│   ├── SKILL_INDEX.md                               # Indice Tassonomico Modulare O(1) per i 5 Domini DOM-01..DOM-05
+│   ├── nk_registry_manifest.json                    # Manifesto SSOT O(1) generato da nk_registry_indexer.py
 │   └── PATCH_NOTES.md                               # Single Source of Truth del Changelog (sincronizzato con PATCH_NOTES.md root)
-├── nk_tracking/                                     # Tracciamento, Telemetria, Memoria Episodica e Baseline Ratchet
+├── nk_tracking/                                     # Tracciamento, Telemetria, Memoria Episodica 3-Tier e Baseline Ratchet
 │   ├── anchor/
 │   │   └── session_anchor.jsonl                     # Registro Eventi (bonificato da righe vuote, duplicati e timestamp fuori ordine)
 │   ├── cockpit/
 │   │   └── nk_cockpit.html                          # Dashboard Visuale HTML
-│   ├── episodic_memory/                             # Store JSONL a 3 Livelli per i 4 Domini (ARCH, SEC, OPS, DEVX)
-│   ├── memory_3tier/
-│   │   └── tier1_active_capsule.json                # [NUOVO v3.1] Capsula attiva Tier-1 per Pre-Warming < 2ms
+│   ├── memory_3tier/                                # Store Canonico a 3 Livelli per i 4 Domini (ARCH, SEC, OPS, DEVX)
+│   │   └── tier1_active_capsule.json                # Capsula attiva Tier-1 per Pre-Warming < 2ms
 │   ├── handoff/
-│   │   └── next_session_prompt.md                   # Stato Handoff generato da scripts/nk_session_handoff.py
-│   ├── manifests/                                   # Manifesti Operativi dell'Hub (rimosso il relitto legacy LabNK-Bandi)
-│   ├── reports_and_briefs/                          # Report di Audit e Master Brief
-│   │   ├── Brief_Unificato_NK_v3_STE100.md          # [v3.0] Brief Unificato in standard ASD-STE100
-│   │   └── Super_Brief_Unificato_NK_v3_1_Tensor_RSI.md # [NUOVO v3.1] Super-Brief Tensor-RSI 2D
-│   ├── quality_baseline.json                        # Ratchet di Non-Regressione (68 Golden Tests, 100.0% pass rate)
-│   ├── rsi_telemetry.jsonl                          # [NUOVO v3.0] Ledger Crittografico SHA-256 delle iterazioni RSI
+│   │   ├── next_session_prompt.md                   # Stato Handoff generato da scripts/nk_session_handoff.py
+│   │   └── session_handoff_latest.json              # Snapshot JSON Handoff
+│   ├── manifests/                                   # Manifesti Operativi dell'Hub
+│   ├── reports_and_briefs/                          # Report di Audit e Collaudo
+│   │   └── Cold_Trial_Report_v4_0_0_Native_Swarm.md # Report Ufficiale Collaudo Avversariale a Freddo e Pulizia v4.0.0
+│   ├── quality_baseline.json                        # Ratchet di Non-Regressione (86 Golden e Stress Tests, 100.0% pass rate)
+│   ├── rsi_telemetry.jsonl                          # Ledger Crittografico SHA-256 delle iterazioni RSI
 │   └── tuning/
 │       └── session_tuning_params.json               # Telemetria Inning e Punteggio Reale di Conformità
-│   # Cache AST esterna: %TEMP%\nk_diagnostics\repo_map_cache.json (scrittura atomica con nodi ed edges)
-├── scripts/                                         # 30 Moduli Logici Core (33 File Python totali inclusi __init__.py e schemas/)
+├── scripts/                                         # 32 Moduli Indicizzati (34 File Python totali inclusi __init__.py e schemas/)
 │   ├── __init__.py                                  # [01] Package Marker
-│   ├── ast_guard_validator.py                       # [02] Validatore Statico AST (SASTConstructChecker, --stage-dir e --allowed-mutations)
+│   ├── ast_guard_validator.py                       # [02] Validatore Statico AST (SASTConstructChecker, --stage-dir, --json)
 │   ├── ast_repo_mapper.py                           # [03] AST Repo-Mapper PageRank (fix serializzazione edges e GT-06)
 │   ├── async_heartbeat_signaler.py                  # [04] Demone Heartbeat e Watchdog 45s (fix timer last_beat_time U-22)
 │   ├── auto_heal_pipeline.py                        # [05] Pipeline Fast-Healing collegata a rsi_convergence_engine.py
-│   ├── dast_sandbox_runner.py                       # [06] Sandbox Runner Win32 Job Objects (fix ctypes 64-bit, command[2:] e CLI)
+│   ├── dast_sandbox_runner.py                       # [06] Sandbox Runner Win32 Job Objects (trace ignoredirs e CLI)
 │   ├── deterministic_api_cache.py                   # [07] Cache SQLite WAL (fix connessione persistente BS-05)
 │   ├── env_capability_probe.py                      # [08] Probe Ambiente (fix core vs optional preservando total_probed GT-09)
-│   ├── external_project_scaffolder.py               # [09] Scaffolder Progetti Esterni (fix blocco path interno a NK-Hub BS-03)
+│   ├── external_project_scaffolder.py               # [09] Scaffolder Progetti Esterni (--target opzionale e blocco path interno)
 │   ├── healing_snapshot_rollback.py                 # [10] Gestore Snapshot e Rollback SHA-256 (fix snapshot_manifest.json U-23)
 │   ├── invisible_healing_loop.py                    # [11] Wrapper Compatibile collegato a auto_heal_pipeline.py e sbfl_engine.py
-│   ├── memory_3tier_engine.py                       # [12] Motore Memoria 3-Tier (fix DOMAIN_ALIAS_MAP e cap 350/1200 GT-05)
+│   ├── memory_3tier_engine.py                       # [12] Motore Memoria 3-Tier (DOMAIN_ALIAS_MAP, sync_tier1_capsule e GT-05)
 │   ├── micro_hud_renderer.py                        # [13] Renderer Telemetrico UTF-8 allineato a MicroUIHUDState
 │   ├── nk_active_runtime_sentinel.py                # [14] Sentinella Step Runtime (soglie default 60/85/100 GT-02 + profilo argon)
-│   ├── nk_auto_inning.py                            # [15] Chiusura Inning (fix flag --transcript e lettura JSON reale U-14)
+│   ├── nk_auto_inning.py                            # [15] Chiusura Inning (flag --transcript, --json e lettura JSON reale U-14)
 │   ├── nk_compliance_checker.py                     # [16] Verificatore Conformità (fix DDI 12 GT-03, path GT-08 e default 100 GT-10)
 │   ├── nk_context_sentry.py                         # [17] Sentinella Contesto (default 70/100 GT-01, MTU 2000 GT-04, profilo argon)
-│   ├── nk_registry_indexer.py                       # [18] Indicizzatore Modulare O(1) e Manifesto SSOT (DOM-01..DOM-05, [RULE-01.14])
-│   ├── nk_session_bootstrap.py                      # [19] Session Bootstrap Gate <50ms (purge .wal, check src/, auto-profilo argon)
-│   ├── nk_session_handoff.py                        # [19] Generatore Handoff (lettura dinamica quality_baseline.json U-49)
-│   ├── nk_swarm_messenger.py                        # [20] Formattatore Messaggi Swarm (taglio MSS 1800 char GT-04 e UTF-8)
-│   ├── oracle_evaluator_l3.py                       # [21] Valutatore DOM L3 (fix void tag HTML5, nodi misti e split path Windows)
-│   ├── platform_runner.py                           # [22] Esecutore Sottoprocessi UTF-8 (fix iniezione -u su stringhe BS-04)
-│   ├── preflight_health_check.py                    # [23] Diagnostica Manutenzione (fix falso positivo auto_fix BS-01 e --check-only)
-│   ├── quality_baseline_manager.py                  # [24] Gestore Ratchet Baseline (fix fail-closed su errore I/O BS-02 e exit 1)
-│   ├── rsi_convergence_engine.py                    # [25] Motore RSI Dual-Metric (Delta_k + Q(S_k), poc_confirmed_exploits, semantic_drift_findings)
-│   ├── safe_cleanup_dev_servers.py                  # [26] Pulizia Dev Server (fix filtro psutil per CWD/cmdline U-13)
-│   ├── sbfl_engine.py                               # [27] Motore Matematico SBFL Ochiai/Tarantula/DStar (<80 tok payload + CLI)
-│   ├── sbfl_pytest_bridge.py                        # [28] Bridge Pytest SBFL (collegato a sbfl_engine.py e suspiciousness 1.0 GT-07)
-│   ├── vibe_sprint_router.py                        # [29] Router Mode A/B/C/D (fix calcolo AST max_depth e soglia 150 LOC U-10)
-│   ├── win32_2pc_engine.py                          # [30] Motore Commit Atomico 2PC (fix ctypes 64-bit, age > 10s e MOVEFILE_COPY_ALLOWED)
-│   └── schemas/                                     # [31-33] Contratti Pydantic v2 e Dual Ledgers
-│       ├── __init__.py                              # [31] Esportazione Schemi
-│       ├── dual_ledgers.py                          # [32] TaskLedger e ProgressLedger (fix ctypes 64-bit e ERROR_ACCESS_DENIED U-25)
-│       └── nk_ipc_contracts.py                      # [33] Contratti IPC Strict (IPCPointerReturn, GoalFailureManifest, RSISessionReport)
-├── tests/                                           # Suite Consolidata Zero-Padding v3.4.0 (68 Golden Tests ortogonali, 100.0% PASS)
+│   ├── nk_registry_indexer.py                       # [18] Indicizzatore Modulare O(1) Dual-Layer (16 Skill, 5 Agenti, 32 Script)
+│   ├── nk_session_bootstrap.py                      # [19] Session Bootstrap Gate <50ms (filtro <env_capsule>, auto-profilo argon)
+│   ├── nk_session_handoff.py                        # [20] Generatore Handoff (lettura dinamica quality_baseline.json U-49)
+│   ├── nk_swarm_messenger.py                        # [21] Formattatore Messaggi Swarm (taglio MSS 1800 char GT-04 e UTF-8)
+│   ├── oracle_evaluator_l3.py                       # [22] Valutatore DOM L3 (void tag HTML5, FileNotFoundError e split path Windows)
+│   ├── platform_runner.py                           # [23] Esecutore Sottoprocessi UTF-8 (fix iniezione -u su stringhe BS-04)
+│   ├── preflight_health_check.py                    # [24] Diagnostica Manutenzione (fix falso positivo auto_fix BS-01 e --check-only)
+│   ├── quality_baseline_manager.py                  # [25] Gestore Ratchet Baseline (fix fail-closed su errore I/O BS-02 e exit 1)
+│   ├── rsi_convergence_engine.py                    # [26] Motore RSI Dual-Metric (Delta_k + Q(S_k), <yaml_metadata_card>, --vibe-check)
+│   ├── safe_cleanup_dev_servers.py                  # [27] Pulizia Dev Server (fix filtro psutil per CWD/cmdline U-13)
+│   ├── sbfl_engine.py                               # [28] Motore Matematico SBFL Ochiai/Tarantula/DStar (<80 tok payload + CLI)
+│   ├── sbfl_pytest_bridge.py                        # [29] Bridge Pytest SBFL (collegato a sbfl_engine.py e suspiciousness 1.0 GT-07)
+│   ├── vibe_sprint_router.py                        # [30] Router O(1) Mode A/B/C/D (--classify-prompt e SKILL_ROUTING_RULES)
+│   ├── win32_2pc_engine.py                          # [31] Motore Commit Atomico 2PC (fix ctypes 64-bit, age > 10s e MOVEFILE_COPY_ALLOWED)
+│   └── schemas/                                     # [32-34] Contratti Pydantic v2 e Dual Ledgers
+│       ├── __init__.py                              # [32] Esportazione Schemi
+│       ├── dual_ledgers.py                          # [33] TaskLedger e ProgressLedger (fix ctypes 64-bit e ERROR_ACCESS_DENIED U-25)
+│       └── nk_ipc_contracts.py                      # [34] Contratti IPC Strict (IPCPointerReturn, GoalFailureManifest, RSISessionReport)
+├── tests/                                           # Suite Consolidata Zero-Mock v4.0.0 (86 Golden e Stress Tests, 100.0% PASS)
 │   ├── __init__.py
-│   ├── conftest.py                                  # Fixtures Pytest aggiornate a v3.4.0
+│   ├── conftest.py                                  # Fixtures Pytest aggiornate a v4.0.0
 │   ├── evals/
-│   │   └── skill_golden_eval_set.json               # [NUOVO v3.1] Set di validazione L3 Meta-RSI per le 16 Skill
+│   │   └── skill_golden_eval_set.json               # Set di validazione L3 Meta-RSI per le 16 Skill
 │   ├── test_active_sentinel_suite.py                # [Protetto da GT-02 e GT-04]
 │   ├── test_ast_guard_validator.py                  # [Validazione AST, SASTConstructChecker e --allowed-mutations]
 │   ├── test_ast_repo_mapper.py                      # [Protetto da GT-06]
@@ -165,7 +171,7 @@ G:/Il mio Drive/Antigravity/
 │   ├── test_win32_2pc.py                            # [Validazione transazionale Win32 2PC]
 │   ├── test_rsi_convergence_engine.py               # [Protetto da GT-11, GT-12 e canali TAS v4.0]
 │   ├── test_preflight_health_check.py               # [Validazione --check-only e fail-closed]
-│   ├── test_quality_baseline_manager.py             # [Protetto da GT-13 e Ratchet 68 Golden Tests]
+│   ├── test_quality_baseline_manager.py             # [Protetto da GT-13 e Ratchet Golden Tests]
 │   ├── test_external_scaffolder.py                  # [Validazione isolamento progetti esterni]
 │   ├── test_platform_runner.py                      # [Validazione sottoprocessi UTF-8 e tree-kill]
 │   ├── test_deterministic_api_cache.py              # [Validazione SQLite WAL persistente]
@@ -174,13 +180,15 @@ G:/Il mio Drive/Antigravity/
 │   ├── test_vibe_sprint_router.py                   # [Validazione Mode A/B/C/D e AST depth]
 │   ├── test_oracle_l3_and_hud.py                    # [Validazione DOM L3 void tag, nodi misti e HUD]
 │   ├── test_nk_ecosystem_stress_opt5.py             # [Stress suite OPT-1..OPT-12]
+│   ├── test_nk_registry_indexer.py                  # [Validazione Indice Modulare O(1) e Filtro 61 Skill]
+│   ├── test_phase2_3tier_stress_suite.py            # [Stress suite a 3 livelli L1/L2/L3 per i 5 Sub-Agenti Nativi]
 │   └── stress/
 │       ├── __init__.py
 │       └── test_real_sandbox_stress.py              # [Protetto da GT-01 e GT-03]
-├── README.md                                        # Documentazione Master EN (allineata a v3.4.0 e 68 Golden Tests)
+├── README.md                                        # Documentazione Master EN (allineata a v4.0.0 e 86 Golden e Stress Tests)
 ├── README.it.md                                     # Documentazione Master IT (allineata 1:1 a README.md in ASD-STE100)
 ├── PATCH_NOTES.md                                   # Mirror Root del Changelog SSOT
-├── GUIDA_INSTALLAZIONE.md                           # Guida Setup aggiornata a v3.0.0-STE100-Unified (68 Golden Tests pytest)
+├── GUIDA_INSTALLAZIONE.md                           # Guida Setup aggiornata a v3.0.0-STE100-Unified
 ├── install.ps1                                      # Installer PowerShell aggiornato a v3.0.0-STE100-Unified
 ├── install.sh                                       # Installer Bash aggiornato a v3.0.0-STE100-Unified
 ├── requirements.txt                                 # Dipendenze Core (pydantic>=2.7.0,<3.0.0, psutil>=5.9.8,<8.0.0, pytest>=8.2.0,<10.0.0)
@@ -191,7 +199,7 @@ G:/Il mio Drive/Antigravity/
 
 ---
 
-## 2. Matrice Completa dei 30 Moduli Core in `scripts/` e dei 68 Golden Tests (`v3.4.0`)
+## 2. Matrice Completa dei 32 Moduli Indicizzati in `scripts/` e degli 86 Golden e Stress Tests (`v4.0.0`)
 
 | # | Modulo Core (`scripts/`) | Intervento Chirurgico in `v3.4.0` (`v3.1.0-Tensor-RSI`) | Guardia di Compatibilità | File di Test (`tests/`) |
 | :---: | :--- | :--- | :---: | :--- |

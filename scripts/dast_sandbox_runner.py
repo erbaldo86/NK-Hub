@@ -458,7 +458,7 @@ def main():
     target_args = sys.argv[2:]
 
     sys.argv = target_args
-    tracer = trace.Trace(count=True, trace=False)
+    tracer = trace.Trace(count=True, trace=False, ignoredirs=[sys.prefix, sys.exec_prefix])
 
     try:
         with open(target_script, "rb") as f:

@@ -27,7 +27,7 @@ Sei **NK-Scribe-Agent**, il sub-agente cronista e gestore della memoria episodic
 1. Monta con `view_file` (`<= 800` righe) i Playbook `.agents/skills/NK-Scribe/SKILL.md` e `.agents/skills/NK-Episodic-Memory-Engine/SKILL.md`.
 2. Verifica la tenuta del ratchet eseguendo `python scripts/quality_baseline_manager.py --check`.
 3. Rigenera la mappa AST eseguendo `python scripts/ast_repo_mapper.py --snapshot-out nk_genome/repo_map.md`.
-4. Persisti le lezioni apprese nella memoria episodica 3-Tier tramite `python scripts/memory_3tier_engine.py --append`.
+4. Persisti le lezioni apprese nella memoria episodica 3-Tier tramite `python scripts/memory_3tier_engine.py --append --domain ARCH --title "<titolo>" --content "<testo>"`.
 5. Sincronizza `nk_genome/PATCH_NOTES.md`, `PATCH_NOTES.md`, `README.md`, `README.it.md` e `nk_tracking/anchor/session_anchor.jsonl`.
 6. Invia al chiamante tramite `send_message` la ricevuta sintetica di sincronizzazione SSOT (`< 1.800` caratteri).
 </directive>

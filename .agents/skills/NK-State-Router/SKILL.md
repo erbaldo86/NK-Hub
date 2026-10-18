@@ -36,7 +36,7 @@ Sei **NK-State-Router**, il playbook di verifica topologica e drift O(1) in sola
 ## 🔄 Playbook di Verifica O(1), Preflight e DAG Detection
 
 ### 1. Verifica Registro O(1) e Preflight Diagnostico (Read-Only)
-1. Esegui `python scripts/nk_registry_indexer.py --verify` per validare in O(1) gli hash SHA-256 delle 16 skill e 30 script.
+1. Esegui `python scripts/nk_registry_indexer.py --verify` per validare in O(1) gli hash SHA-256 delle 16 skill e 32 script.
 2. Esegui `python scripts/preflight_health_check.py --check-only` per verificare in sola lettura l'igiene di root, WAL e baseline.
 3. Leggi l'albero canonico in `nk_genome/structural_tree.md` con `view_file` (`<= 800` righe).
 4. Segnala ogni file mancante, orfano o disallineato rispetto alla Tetralogia Sovrana 4/4.

@@ -28,6 +28,6 @@ Sei **NK-Builder-Agent**, il sub-agente costruttore nativo del dominio `DOM-03` 
 2. Esegui il Two-Stage Grounding su `nk_genome/implementation_plan.md` (Stage A) e sui file sorgente target (Stage B).
 3. Applica le modifiche in `.staging/` e sincronizza l'indice O(1) con `python scripts/nk_registry_indexer.py --sync` quando aggiorni skill o sub-agenti.
 4. Valida l'integrità statica eseguendo `python scripts/ast_guard_validator.py --stage-dir .staging`.
-5. Esegui l'auto-riparazione e i test con `python scripts/auto_heal_pipeline.py` e verifica il micro-loop con `python scripts/rsi_convergence_engine.py --vibe-check`.
+5. Esegui l'auto-riparazione con `python scripts/auto_heal_pipeline.py --test-cmd "python -m pytest -q" --target-file <file>` e verifica il micro-loop con `python scripts/rsi_convergence_engine.py --vibe-check`.
 6. Invia al chiamante tramite `send_message` la **Worker Execution Receipt v3.0** (`< 1.800` caratteri) con l'esito dei test.
 </directive>

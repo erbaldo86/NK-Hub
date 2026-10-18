@@ -297,9 +297,13 @@ class AutoHealPipeline:
 
         for cycle in range(1, self.max_cycles + 1):
             cycle_snap_id = (
-                self.snapshot_mgr.create_snapshot([target_path])
-                if cycle < self.max_cycles
-                else None
+                None
+                if cycle >= self.max_cycles
+                else (
+                    init_snap_id
+                    if cycle == 1
+                    else self.snapshot_mgr.create_snapshot([target_path])
+                )
             )
 
             if repair_callback and latest_loc:
@@ -362,7 +366,8 @@ class AutoHealPipeline:
             elif fitness.verdict == FitnessVerdict.REGRESSION:
                 if cycle_snap_id is not None:
                     self.snapshot_mgr.rollback(cycle_snap_id)
-                    self.snapshot_mgr.cleanup(cycle_snap_id)
+                    if cycle_snap_id != init_snap_id:
+                        self.snapshot_mgr.cleanup(cycle_snap_id)
                 self._record_rsi_iteration(
                     session_id=session_id,
                     iteration=cycle,
@@ -377,7 +382,7 @@ class AutoHealPipeline:
                 prev_failed = new_summary.failed_count
                 prev_passed = new_summary.passed_count
                 latest_loc = new_loc
-                if cycle_snap_id is not None:
+                if cycle_snap_id is not None and cycle_snap_id != init_snap_id:
                     self.snapshot_mgr.cleanup(cycle_snap_id)
                 self._record_rsi_iteration(
                     session_id=session_id,
@@ -421,10 +426,18 @@ def main() -> int:
         description="Nexus Keystone Universal CLI Auto-Healer Pipeline"
     )
     parser.add_argument(
-        "--test-cmd", type=str, required=True, help="Comando pytest da eseguire"
+        "--test-cmd",
+        type=str,
+        default="pytest -q",
+        required=False,
+        help="Comando pytest da eseguire",
     )
     parser.add_argument(
-        "--target-file", type=str, required=True, help="File sorgente target da riparare"
+        "--target-file",
+        type=str,
+        default="",
+        required=False,
+        help="File sorgente target da riparare",
     )
     parser.add_argument(
         "--cwd", type=str, default=None, help="Directory di lavoro"
@@ -440,11 +453,37 @@ def main() -> int:
     )
 
     args = parser.parse_args()
+    cwd_path = Path(args.cwd).resolve() if args.cwd else Path.cwd()
+    target_file_str = args.target_file.strip() if args.target_file else ""
+    if not target_file_str:
+        stg_dir = cwd_path / ".staging"
+        stg_py = (
+            sorted(f for f in stg_dir.rglob("*.py") if "__pycache__" not in f.parts)
+            if stg_dir.exists()
+            else []
+        )
+        if stg_py:
+            target_file_str = str(stg_py[0])
+        else:
+            report = AutoHealSessionReport(
+                success=True,
+                cycles_used=0,
+                max_cycles=args.max_cycles,
+                initial_failed=0,
+                final_failed=0,
+                message="Clean staging: no target file required healing.",
+            )
+            if args.json:
+                print(report.model_dump_json(indent=2))
+            else:
+                print(f"🟢 [AUTO-HEAL] {report.message}")
+            return 0
+
     pipeline = AutoHealPipeline(
         cwd=Path(args.cwd) if args.cwd else None, max_cycles=args.max_cycles
     )
     norm_cmd = normalize_test_command(args.test_cmd)
-    report = pipeline.run_pipeline(test_cmd=norm_cmd, target_file=args.target_file)
+    report = pipeline.run_pipeline(test_cmd=norm_cmd, target_file=target_file_str)
 
     if args.json:
         print(report.model_dump_json(indent=2))

@@ -1,18 +1,18 @@
-# NK Genome: Implementation Plan (`v3.1.0-Tensor-RSI`)
+# NK Genome: Implementation Plan (`v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified`)
 
-> **Badge di Certificazione:** 🛡️ `[NK-BRIEF-STATUS: AUDITED_AND_CONVERGED 🟢]` | `[RSI-CONVERGENCE: CONVERGED_OPTIMAL (Δ3=0, Q=100.0) 🟢]`  
-> **Milestone Anchor ID:** `NK-MS-20261015-TENSOR-RSI-v3.1.0`  
-> **Versione Target:** `v3.1.0-Tensor-RSI` (`v3.0.0-STE100-Unified` Compatible)  
+> **Badge di Certificazione:** 🛡️ `[NK-BRIEF-STATUS: AUDITED_AND_CONVERGED 🟢]` | `[RSI-CONVERGENCE: CONVERGED_OPTIMAL (Δ=0, Q=100.0) 🟢]`  
+> **Milestone Anchor ID:** `NK-MS-20261018-COLD-TRIAL-v4.0.0-RSI`  
+> **Versione Target:** `v4.0.0-Native-Swarm-Playbooks` (`v3.0.0-STE100-Unified` Compatible)  
 > **Standard Linguistico:** ASD-STE100 Italiano Tecnico (`[RULE-STE100]`, frasi `<= 20` parole)  
 > **Modalità Esecutiva:** Protocollo CRV 4.0 in `.staging/` con promozione atomica Win32 2PC (`[RULE-00]`)
 
 ---
 
-## 1. Sintesi di Convergenza RSI ($\Delta_3 = 0$, $Q(S_3) = 100.0$)
+## 1. Sintesi di Convergenza RSI ($\Delta_k = 0$, $Q(S_k) = 100.0$)
 
-Questo piano esecutivo unifica i rilievi post-refactoring di `Opus` (`030a38dc`) e `Argon` (`c9fe96c8`) con `7` innovazioni inedite (`EXT-01..EXT-07`).
-Il piano integra l'architettura **Tensor-RSI 2D** (`4` livelli verticali `L0..L3` per `5` profili di dominio `RSIProfileRegistry`).
-Tutte le modifiche preservano il `100%` di successo sui `100` Golden Tests esistenti e aggiungono `8` nuovi test (`108` totali).
+Questo piano esecutivo coordina l'evoluzione di Nexus Keystone fino alla release **`v4.0.0-Native-Swarm-Playbooks`**.
+Il piano integra l'architettura **Tensor-RSI 2D**, i `5` Sub-Agenti Nativi e i `16` Playbook Procedurali.
+Tutte le modifiche preservano il `100%` di successo sugli `86` Golden e Stress Tests certificati.
 
 * **Iterazione 1 ($k=1$):** Verifica empirica sul codice reale e sintesi preliminare ($\Delta_1 = 17$, $Q(S_1) = 83.8095$).
 * **Iterazione 2 ($k=2$):** Audit avversariale di `NK-RSI-Auditor` su link, guardie `GT-01..GT-14` e soglia `20` parole.
@@ -41,7 +41,7 @@ Ogni Builder deve rispettare le `14` guardie seguenti per mantenere il `100%` di
 
 ---
 
-## 3. Piano Esecutivo Atomico in 4 Work Package (`WP1..WP4`)
+## 3. Piano Esecutivo Atomico in 12 Work Package (`WP1..WP12`)
 
 ### WP1: Bonifica dei 14 Script Core e Motore Tensor-RSI (`scripts/`)
 1. **`ast_guard_validator.py`:** Aggiungi `--stage-dir` come alias di `--target` e rileva nell'AST `eval()`, `exec()`, `pickle.loads()`, `yaml.load()` e `MagicMock`.
@@ -120,3 +120,8 @@ Ogni Builder deve rispettare le `14` guardie seguenti per mantenere il `100%` di
 3. **Router Nativo e Fast-Bypass (`scripts/vibe_sprint_router.py`):** Mappa ogni dominio/skill al rispettivo `native_subagent` e calcola `fast_bypass_eligible` per `Mode C` (`<= 150` LOC) preservando `primary_agent`.
 4. **Allineamento Governance (`.agents/AGENTS.md`, `NK-Master-Hub`, `NK-Session-Controller`):** Documenta i `5` Sub-Agenti Nativi in `.agents/agents/` e il Fast-Bypass `Mode C` rispettando il budget `< 24.000` byte.
 5. **Strategia di Stress-Test a 3 Livelli (`tests/test_phase2_3tier_stress_suite.py`):** Valida Livello 1 (Strutturale/Concorrenza 16-thread), Livello 2 (Flussi End-to-End Mode A/B/C/D e Rollback) e Livello 3 (Avversariale SAST/DAST, Boundary e Benchmark Prima/Dopo) con loop RSI fino a $\Delta_k = 0$.
+
+### WP12: Collaudo Avversariale a Freddo (Zero-Bias Cold Trial) e Pulizia Release (`NK-MS-20261018-COLD-TRIAL-v4.0.0-RSI`)
+1. **Router O(1) Multi-Skill (`scripts/vibe_sprint_router.py`, `scripts/nk_registry_indexer.py`):** Aggiungi `--classify-prompt` e `SKILL_ROUTING_RULES` per `10/10` di accuratezza sui prompt ibridi. Proteggi i file della Tetralogia dalle collisioni di sottostringa e filtra l'estrazione AST dei flag CLI a `add_argument`.
+2. **Raffinamento dei 9 Moduli Core (`scripts/`):** Correggi `rsi_convergence_engine.py` (`<yaml_metadata_card>`, punti interni, asimmetria `w_tfail == 0`, `--vibe-check` su `.staging`), `ast_guard_validator.py` (`--json` e `.staging` assente), `auto_heal_pipeline.py` (snapshot ciclo 1 e flag opzionali), `external_project_scaffolder.py`, `nk_auto_inning.py`, `memory_3tier_engine.py` e `oracle_evaluator_l3.py`.
+3. **Ottimizzazione Performance e Pulizia Scorie (`dast_sandbox_runner.py`, `nk_session_bootstrap.py`):** Aggiungi `ignoredirs=[sys.prefix, sys.exec_prefix]` al tracer DAST e filtra i transcript dei sub-agenti con `<env_capsule>`. Rimuovi la cartella duplicata `nk_tracking/episodic_memory/`, i file `.bak_*` e i vecchi report `v1.9..v3.5`.

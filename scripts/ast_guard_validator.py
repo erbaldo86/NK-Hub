@@ -236,23 +236,24 @@ class SignatureCollector(ast.NodeVisitor):
         kw_defaults_count = len([d for d in node.args.kw_defaults if d is not None])
 
         annotations: Dict[str, str] = {}
-        for arg in (
-            getattr(node.args, "posonlyargs", [])
-            + node.args.args
-            + node.args.kwonlyargs
-        ):
-            if arg.annotation:
-                annotations[arg.arg] = ast.unparse(arg.annotation)
-        if node.args.vararg and node.args.vararg.annotation:
-            annotations[node.args.vararg.arg] = ast.unparse(
-                node.args.vararg.annotation
-            )
-        if node.args.kwarg and node.args.kwarg.annotation:
-            annotations[node.args.kwarg.arg] = ast.unparse(
-                node.args.kwarg.annotation
-            )
-
-        return_ann = ast.unparse(node.returns) if node.returns else None
+        return_ann: Optional[str] = None
+        if not getattr(self, "skip_unparse", False):
+            for arg in (
+                getattr(node.args, "posonlyargs", [])
+                + node.args.args
+                + node.args.kwonlyargs
+            ):
+                if arg.annotation:
+                    annotations[arg.arg] = ast.unparse(arg.annotation)
+            if node.args.vararg and node.args.vararg.annotation:
+                annotations[node.args.vararg.arg] = ast.unparse(
+                    node.args.vararg.annotation
+                )
+            if node.args.kwarg and node.args.kwarg.annotation:
+                annotations[node.args.kwarg.arg] = ast.unparse(
+                    node.args.kwarg.annotation
+                )
+            return_ann = ast.unparse(node.returns) if node.returns else None
 
         self.signatures[key] = FunctionSignatureSnapshot(
             name=node.name,
@@ -840,8 +841,12 @@ class ASTGuardValidator:
         violations: List[GuardViolation] = []
         allowed = allowed_mutations or set()
 
-        pre_tree = cls._parse_or_report(pre_code, "pre_edit", violations)
-        post_tree = cls._parse_or_report(post_code, "post_edit", violations)
+        if pre_code == post_code:
+            post_tree = cls._parse_or_report(post_code, "post_edit", violations)
+            pre_tree = post_tree
+        else:
+            pre_tree = cls._parse_or_report(pre_code, "pre_edit", violations)
+            post_tree = cls._parse_or_report(post_code, "post_edit", violations)
 
         if post_tree is None:
             return ValidationReport(
@@ -852,19 +857,23 @@ class ASTGuardValidator:
                 metrics={"fatal_syntax_error": True},
             )
 
-        pre_collector = SignatureCollector()
-        if pre_tree:
-            pre_collector.visit(pre_tree)
-
         post_collector = SignatureCollector()
+        if pre_code == post_code:
+            post_collector.skip_unparse = True  # type: ignore[attr-defined]
         post_collector.visit(post_tree)
 
-        cls._verify_signatures(
-            pre_collector.signatures,
-            post_collector.signatures,
-            allowed,
-            violations,
-        )
+        if pre_code == post_code:
+            pre_collector = post_collector
+        else:
+            pre_collector = SignatureCollector()
+            if pre_tree:
+                pre_collector.visit(pre_tree)
+            cls._verify_signatures(
+                pre_collector.signatures,
+                post_collector.signatures,
+                allowed,
+                violations,
+            )
 
         checker = ScopeIntegrityChecker(global_names=post_collector.defined_globals)
         checker.visit(post_tree)
@@ -875,14 +884,17 @@ class ASTGuardValidator:
         sast_violations = sast_checker.violations
         violations.extend(sast_violations)
 
-        diff = difflib.unified_diff(
-            pre_code.splitlines(),
-            post_code.splitlines(),
-            fromfile=f"pre/{target_file}",
-            tofile=f"post/{target_file}",
-            lineterm="",
-        )
-        diff_lines = list(diff)
+        if pre_code == post_code:
+            diff_lines: List[str] = []
+        else:
+            diff = difflib.unified_diff(
+                pre_code.splitlines(),
+                post_code.splitlines(),
+                fromfile=f"pre/{target_file}",
+                tofile=f"post/{target_file}",
+                lineterm="",
+            )
+            diff_lines = list(diff)
 
         is_valid = len(violations) == 0
 
@@ -1040,6 +1052,7 @@ def _resolve_production_counterpart(py_file: Path, workspace_root: Path) -> Opti
 
 def main() -> int:
     import argparse
+    import json
     import sys
 
     parser = argparse.ArgumentParser(description="Deterministic AST Guard Validator")
@@ -1061,6 +1074,11 @@ def main() -> int:
         type=str,
         default="",
         help="Simboli separati da virgola autorizzati a mutare firma",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Stampa il report in JSON",
     )
 
     args = parser.parse_args()
@@ -1098,7 +1116,20 @@ def main() -> int:
         else:
             p = Path(raw_target)
             if not p.exists():
-                print(f"[ERROR] Path does not exist: {p}")
+                if p.name == ".staging" or raw_target.rstrip("/\\").endswith(".staging"):
+                    continue
+                if args.json:
+                    print(
+                        json.dumps(
+                            {
+                                "passed": False,
+                                "files_scanned": 0,
+                                "total_violations": 1,
+                            }
+                        )
+                    )
+                else:
+                    print(f"[ERROR] Path does not exist: {p}")
                 return 1
             targets_to_scan.append(p)
 
@@ -1114,15 +1145,17 @@ def main() -> int:
     py_files = sorted(list(dict.fromkeys(py_files)))
 
     total_violations = 0
-    print("================================================================================")
-    print(f"AST GUARD VALIDATOR: Scanning {len(py_files)} files across targets")
-    print("================================================================================")
+    if not args.json:
+        print("================================================================================")
+        print(f"AST GUARD VALIDATOR: Scanning {len(py_files)} files across targets")
+        print("================================================================================")
 
     for py_file in py_files:
         try:
             code = py_file.read_text(encoding="utf-8")
         except Exception as e:
-            print(f"[FAIL] {py_file} - Could not read file: {e}")
+            if not args.json:
+                print(f"[FAIL] {py_file} - Could not read file: {e}")
             total_violations += 1
             continue
 
@@ -1143,17 +1176,31 @@ def main() -> int:
         )
         rel_path = py_file.as_posix()
         if not report.is_valid:
-            print(f"[FAIL] {rel_path} - {len(report.violations)} AST violation(s):")
-            for v in report.violations:
-                loc = (
-                    f"L{v.line_number}:{v.column}"
-                    if v.line_number is not None
-                    else "GLOBAL"
-                )
-                print(f"       - [{v.violation_type.value}] {loc}: {v.message}")
+            if not args.json:
+                print(f"[FAIL] {rel_path} - {len(report.violations)} AST violation(s):")
+                for v in report.violations:
+                    loc = (
+                        f"L{v.line_number}:{v.column}"
+                        if v.line_number is not None
+                        else "GLOBAL"
+                    )
+                    print(f"       - [{v.violation_type.value}] {loc}: {v.message}")
             total_violations += len(report.violations)
         else:
-            print(f"[PASS] {rel_path} (Symbols: {report.post_symbol_count})")
+            if not args.json:
+                print(f"[PASS] {rel_path} (Symbols: {report.post_symbol_count})")
+
+    if args.json:
+        print(
+            json.dumps(
+                {
+                    "passed": total_violations == 0,
+                    "files_scanned": len(py_files),
+                    "total_violations": total_violations,
+                }
+            )
+        )
+        return 0 if total_violations == 0 else 1
 
     print("================================================================================")
     if total_violations == 0:

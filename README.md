@@ -273,7 +273,7 @@ All `34` Python files in `scripts/` (`32` indexed in `nk_registry_manifest.json`
 ### 1. Runtime Defense, Session Governance & Tensor-RSI Convergence
 - [`scripts/nk_registry_indexer.py`](scripts/nk_registry_indexer.py): O(1) taxonomic indexer for `16` Playbooks (`skills_index`), `5` Native Sub-Agents (`native_agents_index`), and `32` scripts. Enforces `GT-14` (`enable_write_tools: false` on Auditors), `RULE-01` (`enable_subagent_tools: false`), `_MANIFEST_CACHE` (`1.08 ms` lookup), and `--apply-global-filter`.
 - [`scripts/nk_session_bootstrap.py`](scripts/nk_session_bootstrap.py): Fast-Stat gate (`< 50` ms cached via `transcript_mtime` and `transcript_size`), `.wal` purge, root isolation check, and `NK_MODEL_PROFILE=argon` activation.
-- [`scripts/rsi_convergence_engine.py`](scripts/rsi_convergence_engine.py): Tensor-RSI 2D engine tracking `poc_confirmed_exploits` and `semantic_drift_findings`. Supports `--vibe-check <target>`, CoVe CLI AST Gate (`149` verified CLI flags), and STE100 validation (`--verify`).
+- [`scripts/rsi_convergence_engine.py`](scripts/rsi_convergence_engine.py): Tensor-RSI 2D engine tracking `poc_confirmed_exploits` and `semantic_drift_findings`. Supports `--vibe-check <target>`, CoVe CLI AST Gate (`152` verified CLI flags), and STE100 validation (`--verify`).
 - [`scripts/nk_active_runtime_sentinel.py`](scripts/nk_active_runtime_sentinel.py): Dual-Profile runtime step monitor (`60/85/100` standard, `120/180/250` argon) with subagent transcript filtering (`EXT-02`).
 - [`scripts/nk_context_sentry.py`](scripts/nk_context_sentry.py): Dual-Profile token/step sentry (`70/100` standard, `150/250` argon excluding `thinking`) and subagent return MTU gate (`2000` chars).
 - [`scripts/nk_compliance_checker.py`](scripts/nk_compliance_checker.py): Transcript auditor with `DDI_DIRECT_STREAK_LIMIT = 12`, `write_calls == 0` AST exemption, live `rsi_telemetry.jsonl` score reading, and `GT-08`/`GT-10` guards.
@@ -405,8 +405,8 @@ Hard regressions ($\text{SAST}_k > \text{SAST}_{k-1}$ or $T_{\text{fail},k} + C_
 | **SHA-256 Registry & `GT-14`/`RULE-01` Verification (`--verify`)** | `< 350 ms` | **`133 ms` (`16` Playbooks + `5` Native Agents)** |
 | **61-Skill Global Isolation Filter (`--apply-global-filter`)** | `0` active external skills | **`0 active (-7,042 tokens/turn)`** |
 | **Mode C Fast-Bypass & Single-Process Vibe-Check (`--vibe-check`)** | `< 500 ms` | **`15 ms - 65 ms` (`-71.9%` token usage)** |
-| **CoVe CLI AST Gate (`verify_cli_flags_cove`)** | `100%` valid CLI flags | **`149/149 flags verified (0 invalid)`** |
-| **86 Orthogonal Golden & 3-Tier Stress Tests (`pytest tests/ -q`)** | `100.0% PASS` | **`10.64 s (86/86 PASS)`** |
+| **CoVe CLI AST Gate (`verify_cli_flags_cove`)** | `100%` valid CLI flags | **`152/152 flags verified (0 invalid)`** |
+| **86 Orthogonal Golden & 3-Tier Stress Tests (`pytest tests/ -q`)** | `100.0% PASS` | **`7.08 s (86/86 PASS)`** |
 
 ---
 
@@ -424,7 +424,7 @@ Release **`v4.0.0-Native-Swarm-Playbooks`** replaces the old hybrid "Persona-Ski
 | **4. Mode C Vibe-Sprint (`<= 150` LOC)** | Small UI or script tweaks still triggered heavy multi-turn delegation ceremonies (`~18,500` tokens). | `vibe_sprint_router.py` computes `"fast_bypass_eligible": true` in `1.19 ms`, allowing direct staging edits verified via `--vibe-check` in `< 500 ms` (**`-71.9%` token consumption**). |
 | **5. Full-Stack UI, Browser E2E & Cloud MCP** | Focused only on Python backend; `chrome-devtools-mcp`, `puppeteer`, `tavily-mcp`, and `firebase-mcp-server` were not integrated into the playbooks. | `NK-Delta-Architect` covers **Full-Stack & Frontend UI** (`TypeScript/React/Next.js/Tailwind`), `NK-Dynamic-Sandbox-StressTester` runs **live Browser E2E & Lighthouse audits**, and `DOM-02` integrates **Tavily, Docs, and Firebase MCP**. |
 | **6. O(1) Manifest & Router Caching** | `nk_registry_manifest.json` indexed only skills (`~6.80 ms`), and `vibe_sprint_router.py` re-read JSON from disk on every call (`~8.40 ms`). | Added `native_agents_index` and in-memory stat caches (`_MANIFEST_CACHE` and `_ROUTER_MANIFEST_CACHE`), cutting lookup latency to **`1.08 ms` (`-84.0%`)** and routing latency to **`1.19 ms` (`-85.8%`)**. |
-| **7. 3-Tier Stress Suite & CLI CoVe Verification** | `74` Golden Tests and `111` verified CLI flags. | Added `tests/test_phase2_3tier_stress_suite.py` (`12` tests across `L1` Structural/Concurrency, `L2` E2E Routing/Rollback, `L3` Red-Team/SLA), reaching **`86/86 PASS`** and **`149/149` verified CLI flags**. |
+| **7. 3-Tier Stress Suite & CLI CoVe Verification** | `74` Golden Tests and `111` verified CLI flags. | Added `tests/test_phase2_3tier_stress_suite.py` (`12` tests across `L1` Structural/Concurrency, `L2` E2E Routing/Rollback, `L3` Red-Team/SLA), reaching **`86/86 PASS`** and **`152/152` verified CLI flags**. |
 
 ### 2. Live Runtime Behavior Window: How `v4.0.0` Behaves in Practice
 
@@ -448,10 +448,10 @@ PS G:\Il mio Drive\Antigravity> python -u scripts/nk_registry_indexer.py --verif
 🟢 [NK-REGISTRY-VERIFY] Status: VALID | Skills: 16 | Native Agents: 5 | Scripts: 32 | GT-14 & RULE-01: PASS
 
 PS G:\Il mio Drive\Antigravity> python -u scripts/rsi_convergence_engine.py --verify --profile ste100_rsi --json
-{"status": "CONVERGED_OPTIMAL", "passed": true, "delta_k": 0, "fitness_q": 100.0, "checked_flags_count": 149}
+{"status": "CONVERGED_OPTIMAL", "passed": true, "delta_k": 0, "fitness_q": 100.0, "checked_flags_count": 152}
 
 PS G:\Il mio Drive\Antigravity> python -u -m pytest tests/ -q
-86 passed in 10.64s
+86 passed in 7.08s
 ```
 
 ### 3. Certified Golden & 3-Tier Stress Test Suite Matrix (`86/86 PASS`)

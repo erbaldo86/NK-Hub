@@ -254,6 +254,243 @@ NATIVE_AGENT_DOMAIN_MAP: Dict[str, str] = {
     "NK-Scribe-Agent": "DOM-05",
 }
 
+_EXCLUDED_SUBPROCESS_FLAGS: Set[str] = {
+    "--porcelain",
+    "--tb=short",
+    "--version",
+    "--quiet",
+    "--short",
+}
+
+_INDEXER_SKILL_RULES: Tuple[Tuple[str, str, str, str, Tuple[str, ...]], ...] = (
+    (
+        "NK-Plan-Aligner",
+        "DOM-01",
+        "GOV_AND_ROUTING",
+        "NK-RSI-Auditor",
+        (
+            "allinea 1:1",
+            "allinea",
+            "1:1",
+            "tetralogia",
+            "concept_map.md",
+            "concept_map",
+            "implementation_plan.md",
+            "turno 4",
+            "auto-brief",
+        ),
+    ),
+    (
+        "NK-Oracle-Evaluator",
+        "DOM-04",
+        "AUDIT_DAST_AND_RCA",
+        "NK-RSI-Auditor",
+        (
+            "cold review",
+            "6 gate",
+            "oracolo",
+            "oracle",
+            "delta_k",
+            "convergenza rsi",
+        ),
+    ),
+    (
+        "NK-State-Router",
+        "DOM-01",
+        "GOV_AND_ROUTING",
+        "NK-RSI-Auditor",
+        (
+            "dag di kahn",
+            "dag",
+            "kahn",
+            "drift sha",
+        ),
+    ),
+    (
+        "NK-Security-Auditor",
+        "DOM-04",
+        "AUDIT_DAST_AND_RCA",
+        "NK-Security-DAST-Auditor",
+        (
+            "sast",
+            "audit di sicurezza",
+            "sicurezza",
+            "l1/l2/l3",
+            "l1",
+            "l2",
+            "l3",
+            "security",
+            "vulnerabilita",
+            "exploit",
+            "cove",
+        ),
+    ),
+    (
+        "NK-Dynamic-Sandbox-StressTester",
+        "DOM-04",
+        "AUDIT_DAST_AND_RCA",
+        "NK-Security-DAST-Auditor",
+        (
+            "dast",
+            "sandbox",
+            "e2e",
+            "puppeteer",
+            "chrome-devtools-mcp",
+            "chrome-devtools",
+            "lighthouse",
+            "browser",
+            "stress",
+        ),
+    ),
+    (
+        "NK-Bug-Diagnostic-Engine",
+        "DOM-04",
+        "AUDIT_DAST_AND_RCA",
+        "NK-Security-DAST-Auditor",
+        (
+            "sbfl",
+            "ochiai",
+            "tarantula",
+            "dstar",
+            "causa radice",
+            "rca",
+            "falsi bug",
+            "crash",
+            "diagnosi",
+        ),
+    ),
+    (
+        "NK-Agent-Instruction-Forge",
+        "DOM-03",
+        "BUILD_AND_HEAL",
+        "NK-Builder-Agent",
+        (
+            "forgia",
+            "forge",
+            "skill.md",
+            "playbook",
+            "metaprompt",
+            "strict_boundaries",
+        ),
+    ),
+    (
+        "NK-Delta-Architect",
+        "DOM-03",
+        "BUILD_AND_HEAL",
+        "NK-Builder-Agent",
+        (
+            "react",
+            "typescript",
+            "tailwind",
+            "nextjs",
+            "next.js",
+            "html",
+            "css",
+            "fullstack",
+            "full-stack",
+            "refactoring chirurgico",
+            "chirurgico",
+            "multi-file",
+            "multifile",
+            "delta",
+        ),
+    ),
+    (
+        "NK-Python-Async-Builder",
+        "DOM-03",
+        "BUILD_AND_HEAL",
+        "NK-Builder-Agent",
+        (
+            "fastapi",
+            "pydantic",
+            "asincrono",
+            "async",
+            "asyncio",
+            "sqlite",
+            "endpoint",
+        ),
+    ),
+    (
+        "NK-App-UX-Architect",
+        "DOM-02",
+        "IDEATION_AND_ARCH",
+        "NK-Specifier-Agent",
+        (
+            "ux/ui",
+            "ux",
+            "ui",
+            "8px",
+            "hsl",
+            "palette",
+            "generative_ui",
+            "design system",
+            "bounded context",
+            "user journey",
+            "canvas architetturale",
+        ),
+    ),
+    (
+        "NK-Backend-Architect",
+        "DOM-02",
+        "IDEATION_AND_ARCH",
+        "NK-Specifier-Agent",
+        (
+            "openapi",
+            "architettura backend",
+            "contratti dati",
+        ),
+    ),
+    (
+        "NK-Scribe",
+        "DOM-05",
+        "MEMORY_TELEMETRY_AND_DOCS",
+        "NK-Scribe-Agent",
+        (
+            "sincronizza",
+            "patch_notes.md",
+            "patch_notes",
+            "quality_baseline.json",
+            "quality_baseline",
+            "changelog",
+            "scribe",
+            "readme",
+        ),
+    ),
+    (
+        "NK-Episodic-Memory-Engine",
+        "DOM-05",
+        "MEMORY_TELEMETRY_AND_DOCS",
+        "NK-Scribe-Agent",
+        (
+            "memoria 3-tier",
+            "memoria episodica",
+            "memoria",
+            "memory",
+            "3-tier",
+            "bm25",
+            "rrf",
+            "recall",
+        ),
+    ),
+    (
+        "NK-Ideator",
+        "DOM-02",
+        "IDEATION_AND_ARCH",
+        "NK-Specifier-Agent",
+        (
+            "ricerca competitor",
+            "tavily",
+            "benchmark analitico",
+            "stato dell'arte",
+            "ricerca web",
+            "ideazione",
+            "scamper",
+            "quanti bandi",
+            "copertura bandi",
+        ),
+    ),
+)
+
 
 class NKRegistryIndexer:
     """Indicizzatore deterministico O(1) per skill, script, sub-agenti nativi e domini di Nexus Keystone."""
@@ -458,7 +695,7 @@ class NKRegistryIndexer:
 
     @staticmethod
     def _extract_script_metadata(script_path: Path) -> Dict[str, Any]:
-        """Estrae docstring, @domain_id, flag CLI supportati, LOC e SHA-256 da uno script."""
+        """Estrae docstring, @domain_id, flag CLI add_argument, LOC e SHA-256 da uno script."""
         st = script_path.stat()
         cache_key = (str(script_path), st.st_mtime_ns, st.st_size)
         if st.st_size > 256 and cache_key in NKRegistryIndexer._META_CACHE:
@@ -496,13 +733,39 @@ class NKRegistryIndexer:
                     ):
                         description = cleaned
                         break
+
+            has_add_argument = False
             for node in ast.walk(tree):
-                if isinstance(node, ast.Constant) and isinstance(node.value, str):
-                    val = node.value.strip()
-                    if val.startswith("--") and re.match(
-                        r"^--[a-zA-Z0-9][a-zA-Z0-9_-]*$", val
-                    ):
-                        flags.add(val)
+                if isinstance(node, ast.Call):
+                    func_name = ""
+                    if isinstance(node.func, ast.Attribute):
+                        func_name = node.func.attr
+                    elif isinstance(node.func, ast.Name):
+                        func_name = node.func.id
+                    if func_name == "add_argument":
+                        has_add_argument = True
+                        for arg in node.args:
+                            if isinstance(arg, ast.Constant) and isinstance(
+                                arg.value, str
+                            ):
+                                val = arg.value.strip()
+                                if (
+                                    val.startswith("--")
+                                    and val not in _EXCLUDED_SUBPROCESS_FLAGS
+                                    and re.match(r"^--[a-zA-Z0-9][a-zA-Z0-9_-]*$", val)
+                                ):
+                                    flags.add(val)
+
+            if not has_add_argument:
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                        val = node.value.strip()
+                        if (
+                            val.startswith("--")
+                            and val not in _EXCLUDED_SUBPROCESS_FLAGS
+                            and re.match(r"^--[a-zA-Z0-9][a-zA-Z0-9_-]*$", val)
+                        ):
+                            flags.add(val)
         except Exception:
             pass
 
@@ -1354,6 +1617,7 @@ class NKRegistryIndexer:
                 "domain_id": dom_id,
                 "domain_name": dom["name"],
                 "primary_skill": dom["primary_skill"],
+                "matched_skills": [dom["primary_skill"]],
                 "native_subagent": dom_to_native.get(dom_id, "NK-Builder-Agent"),
                 "skills": dom["skills"],
                 "scripts": dom["scripts"],
@@ -1370,6 +1634,7 @@ class NKRegistryIndexer:
                     "domain_id": dom_id,
                     "domain_name": dom["name"],
                     "primary_skill": dom["primary_skill"],
+                    "matched_skills": [dom["primary_skill"]],
                     "native_subagent": dom_to_native.get(dom_id, "NK-Builder-Agent"),
                     "skills": dom["skills"],
                     "scripts": dom["scripts"],
@@ -1382,11 +1647,12 @@ class NKRegistryIndexer:
             if sk_name.lower() == q_lower:
                 dom_id = sk_meta["domain_id"]
                 dom = domains.get(dom_id, {})
-                native_ag = (
-                    "NK-RSI-Auditor"
-                    if sk_name in rsi_skills
-                    else dom_to_native.get(dom_id, "NK-Builder-Agent")
-                )
+                if sk_name == "NK-Agent-Instruction-Forge":
+                    native_ag = "NK-Builder-Agent"
+                elif sk_name in rsi_skills:
+                    native_ag = "NK-RSI-Auditor"
+                else:
+                    native_ag = dom_to_native.get(dom_id, "NK-Builder-Agent")
                 return {
                     "found": True,
                     "match_type": "skill",
@@ -1394,6 +1660,7 @@ class NKRegistryIndexer:
                     "domain_id": dom_id,
                     "domain_name": sk_meta["domain_name"],
                     "primary_skill": sk_name,
+                    "matched_skills": [sk_name],
                     "native_subagent": native_ag,
                     "skills": dom.get("skills", [sk_name]),
                     "scripts": dom.get("scripts", []),
@@ -1413,6 +1680,7 @@ class NKRegistryIndexer:
                     "domain_id": dom_id,
                     "domain_name": ag_meta.get("domain_name", dom.get("name", "")),
                     "primary_skill": dom.get("primary_skill", ""),
+                    "matched_skills": [dom.get("primary_skill", "")],
                     "native_subagent": ag_name,
                     "skills": dom.get("skills", []),
                     "scripts": dom.get("scripts", []),
@@ -1435,6 +1703,7 @@ class NKRegistryIndexer:
                     "domain_id": dom_id,
                     "domain_name": sc_meta["domain_name"],
                     "primary_skill": dom.get("primary_skill", ""),
+                    "matched_skills": [dom.get("primary_skill", "")],
                     "native_subagent": dom_to_native.get(dom_id, "NK-Builder-Agent"),
                     "skills": dom.get("skills", []),
                     "scripts": [sc_name],
@@ -1443,19 +1712,26 @@ class NKRegistryIndexer:
                     "elapsed_ms": round((time.perf_counter() - t0) * 1000.0, 3),
                 }
 
-        # 4. Lookup su intent_dispatch_table (O(1) diretto o per token nel prompt)
+        # 4a. Lookup diretto su keyword singola in intent_dispatch_table
         if q_lower in dispatch_table:
             entry = dispatch_table[q_lower]
             dom_id = entry["domain_id"]
             dom = domains.get(dom_id, {})
+            primary_sk = entry["primary_agent"]
+            native_ag = (
+                "NK-RSI-Auditor"
+                if primary_sk in rsi_skills or q_lower in ("rsi", "oracle", "dag", "kahn", "aligner")
+                else dom_to_native.get(dom_id, "NK-Builder-Agent")
+            )
             return {
                 "found": True,
                 "match_type": "intent",
                 "query": query,
                 "domain_id": dom_id,
                 "domain_name": entry["domain_name"],
-                "primary_skill": entry["primary_agent"],
-                "native_subagent": dom_to_native.get(dom_id, "NK-Builder-Agent"),
+                "primary_skill": primary_sk,
+                "matched_skills": [primary_sk],
+                "native_subagent": native_ag,
                 "recommended_mode": entry["recommended_mode"],
                 "skills": dom.get("skills", []),
                 "scripts": entry["scripts"],
@@ -1463,11 +1739,80 @@ class NKRegistryIndexer:
                 "elapsed_ms": round((time.perf_counter() - t0) * 1000.0, 3),
             }
 
-        tokens = set(re.findall(r"[a-z0-9_]+", q_lower))
+        # 4b. Regole granulari multi-skill per prompt testuali liberi o ibridi
+        tokens_raw = set(re.findall(r"[a-z0-9_]+", q_lower))
+        skill_matches: List[Tuple[int, int, str, str, str, str]] = []
+        for idx, (sk_name, dom_id, dom_name, subagent, kws) in enumerate(_INDEXER_SKILL_RULES):
+            hit_count = 0
+            for kw in kws:
+                if " " in kw or "." in kw or "/" in kw or "-" in kw:
+                    if kw in q_lower:
+                        hit_count += 1
+                elif kw in tokens_raw or (len(kw) >= 5 and kw in q_lower):
+                    hit_count += 1
+            if hit_count > 0:
+                skill_matches.append((hit_count, -idx, sk_name, dom_id, dom_name, subagent))
+
+        if skill_matches:
+            skill_matches.sort(reverse=True)
+            _, _, primary_sk, dom_id, dom_name, subagent = skill_matches[0]
+            matched_skills = [m[2] for m in skill_matches]
+            dom = domains.get(dom_id, {})
+            if primary_sk == "NK-Ideator" or (
+                any(dk in q_lower for dk in ("read-only", "readonly", "stato dell'arte"))
+                and not any(wk in q_lower for wk in (".staging", "refactoring", "implementa"))
+            ):
+                rec_mode = "mode_d"
+            elif any(
+                ak in q_lower
+                for ak in (
+                    "allinea 1:1",
+                    "turno 4",
+                    "cold review",
+                    "6 gate",
+                    "oracolo",
+                    "multi-file",
+                    "sast",
+                    "e2e",
+                )
+            ):
+                rec_mode = "mode_a"
+            elif any(bk in q_lower for bk in ("sbfl", "ochiai", "causa radice", "rca")):
+                rec_mode = "mode_b"
+            else:
+                rec_mode = "mode_c"
+
+            return {
+                "found": True,
+                "match_type": "intent",
+                "query": query,
+                "domain_id": dom_id,
+                "domain_name": dom_name,
+                "primary_skill": primary_sk,
+                "matched_skills": matched_skills,
+                "native_subagent": subagent,
+                "recommended_mode": rec_mode,
+                "skills": dom.get("skills", matched_skills),
+                "scripts": dom.get("scripts", []),
+                "result": {
+                    "domain_id": dom_id,
+                    "domain_name": dom_name,
+                    "primary_agent": primary_sk,
+                    "matched_skills": matched_skills,
+                    "recommended_mode": rec_mode,
+                },
+                "elapsed_ms": round((time.perf_counter() - t0) * 1000.0, 3),
+            }
+
+        # 4c. Fallback su intent_dispatch_table (con sanitizzazione nomi file Tetralogia)
+        clean_q = q_lower
+        for fname in ("implementation_plan.md", "concept_map.md", "structural_tree.md", "repo_map.md"):
+            clean_q = clean_q.replace(fname, " ")
+        tokens = set(re.findall(r"[a-z0-9_]+", clean_q))
         best_kw = ""
         best_entry: Optional[Dict[str, Any]] = None
         for kw, entry in dispatch_table.items():
-            if kw in tokens or (len(kw) >= 4 and kw in q_lower):
+            if kw in tokens or (len(kw) >= 4 and kw in clean_q):
                 if len(kw) > len(best_kw):
                     best_kw = kw
                     best_entry = entry
@@ -1475,13 +1820,15 @@ class NKRegistryIndexer:
         if best_entry is not None:
             dom_id = best_entry["domain_id"]
             dom = domains.get(dom_id, {})
+            primary_sk = best_entry["primary_agent"]
             return {
                 "found": True,
                 "match_type": "intent",
                 "query": query,
                 "domain_id": dom_id,
                 "domain_name": best_entry["domain_name"],
-                "primary_skill": best_entry["primary_agent"],
+                "primary_skill": primary_sk,
+                "matched_skills": [primary_sk],
                 "native_subagent": dom_to_native.get(dom_id, "NK-Builder-Agent"),
                 "recommended_mode": best_entry["recommended_mode"],
                 "skills": dom.get("skills", []),
@@ -1497,6 +1844,7 @@ class NKRegistryIndexer:
             "domain_id": "DOM-01",
             "domain_name": "GOV_AND_ROUTING",
             "primary_skill": "NK-Master-Hub",
+            "matched_skills": ["NK-Master-Hub"],
             "native_subagent": "NK-Specifier-Agent",
             "skills": domains.get("DOM-01", {}).get("skills", []),
             "scripts": domains.get("DOM-01", {}).get("scripts", []),

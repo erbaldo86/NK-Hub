@@ -42,7 +42,7 @@ La tabella seguente elenca ogni skill con il relativo dominio e hash SHA-256.
 | `NK-Scribe` | `DOM-05` | `HIGH` | `2` | `68` | `6512f2b18da0` |
 | `NK-Security-Auditor` | `DOM-04` | `HIGH` | `4` | `68` | `acaec8019278` |
 | `NK-Session-Controller` | `DOM-01` | `HIGH` | `4` | `96` | `b9d515f2f149` |
-| `NK-State-Router` | `DOM-01` | `HIGH` | `0` | `56` | `b0e55b42d7d0` |
+| `NK-State-Router` | `DOM-01` | `HIGH` | `0` | `56` | `ccd64f0dd9ee` |
 
 ## 3. Registro degli Script Core, Schemi e Flag CLI
 
@@ -50,37 +50,37 @@ La tabella seguente mappa ogni modulo Python ai flag CLI verificati via AST.
 
 | Script (`scripts/`) | Dominio | Flag CLI Supportati | LOC | SHA-256 (12 char) |
 | :--- | :---: | :--- | :---: | :--- |
-| `ast_guard_validator.py` | `DOM-04` | `--allowed-mutations`, `--stage-dir`, `--target` | `1174` | `275202442b88` |
+| `ast_guard_validator.py` | `DOM-04` | `--allowed-mutations`, `--json`, `--stage-dir`, `--target` | `1221` | `6e145586b886` |
 | `ast_repo_mapper.py` | `DOM-02` | `--export`, `--focus-files`, `--json`, `--max-tokens`, `--mode`, `--repo-map`, `--root`, `--snapshot-out` | `1596` | `35b0d3415f71` |
 | `async_heartbeat_signaler.py` | `DOM-03` | `--interval`, `--json`, `--max-beats`, `--once`, `--step-name`, `--task-id`, `--test` | `244` | `eb12de020c2f` |
-| `auto_heal_pipeline.py` | `DOM-03` | `--cwd`, `--json`, `--max-cycles`, `--target-file`, `--test-cmd` | `467` | `8026ea63092d` |
-| `dast_sandbox_runner.py` | `DOM-04` | `--json`, `--script`, `--timeout` | `754` | `515d365208e3` |
+| `auto_heal_pipeline.py` | `DOM-03` | `--cwd`, `--json`, `--max-cycles`, `--target-file`, `--test-cmd` | `506` | `a850481b4909` |
+| `dast_sandbox_runner.py` | `DOM-04` | `--json`, `--script`, `--timeout` | `754` | `7f87c1a03ac1` |
 | `deterministic_api_cache.py` | `DOM-03` | `--clear`, `--force-refresh`, `--health`, `--stats` | `303` | `504dd3f749eb` |
 | `env_capability_probe.py` | `DOM-02` | `--check-module`, `--export`, `--json` | `333` | `cee0957e4c68` |
-| `external_project_scaffolder.py` | `DOM-02` | `--name`, `--target` | `217` | `81ac179d6b8b` |
+| `external_project_scaffolder.py` | `DOM-02` | `--name`, `--target` | `223` | `af5a666b5a42` |
 | `healing_snapshot_rollback.py` | `DOM-03` | `--cleanup`, `--create`, `--rollback` | `382` | `61d5efcb7818` |
 | `invisible_healing_loop.py` | `DOM-03` | `--cwd`, `--json`, `--max-cycles`, `--target-file`, `--test-cmd` | `440` | `f78599ed86ac` |
-| `memory_3tier_engine.py` | `DOM-05` | `--append`, `--base-dir`, `--content`, `--domain`, `--json`, `--output`, `--profile`, `--query`, `--recall`, `--tags`, `--tier1-sync`, `--title` | `923` | `f32b65c8db2a` |
+| `memory_3tier_engine.py` | `DOM-05` | `--append`, `--base-dir`, `--content`, `--domain`, `--json`, `--output`, `--profile`, `--query`, `--recall`, `--tags`, `--tier1-sync`, `--title` | `934` | `03f2be3a2ec5` |
 | `micro_hud_renderer.py` | `DOM-05` | `--agent`, `--ascii`, `--domain`, `--json`, `--mutex`, `--percent` | `366` | `2e4ca26b5190` |
 | `nk_active_runtime_sentinel.py` | `DOM-05` | `--check`, `--json`, `--profile`, `--transcript` | `141` | `a32eb2abef76` |
-| `nk_auto_inning.py` | `DOM-05` | `--audit`, `--close-inning`, `--json`, `--transcript`, `--tuning-file` | `99` | `04228bcf05a2` |
+| `nk_auto_inning.py` | `DOM-05` | `--audit`, `--close-inning`, `--json`, `--transcript`, `--tuning-file` | `107` | `904422703c62` |
 | `nk_compliance_checker.py` | `DOM-05` | `--json`, `--min-score`, `--transcript` | `561` | `c959ddf0b93b` |
 | `nk_context_sentry.py` | `DOM-05` | `--json`, `--profile`, `--transcript`, `--verbose` | `356` | `2079bc63f5d7` |
-| `nk_registry_indexer.py` | `DOM-01` | `--apply-global-filter`, `--json`, `--lookup`, `--root`, `--stage-dir`, `--sync`, `--verify` | `1618` | `5a0d3e907837` |
-| `nk_session_bootstrap.py` | `DOM-01` | `--force-full`, `--json` | `602` | `671fb5c960b5` |
-| `nk_session_handoff.py` | `DOM-01` | `--generate-prompt`, `--output-dir`, `--porcelain`, `--transcript` | `160` | `1055fede72d7` |
+| `nk_registry_indexer.py` | `DOM-01` | `--apply-global-filter`, `--json`, `--lookup`, `--root`, `--stage-dir`, `--sync`, `--verify` | `1966` | `e73e14b580d2` |
+| `nk_session_bootstrap.py` | `DOM-01` | `--force-full`, `--json` | `611` | `bb0650f5497c` |
+| `nk_session_handoff.py` | `DOM-01` | `--generate-prompt`, `--output-dir`, `--transcript` | `160` | `1055fede72d7` |
 | `nk_swarm_messenger.py` | `DOM-01` | `--payload`, `--payload-file`, `--recipient`, `--sender` | `97` | `bcde0726690b` |
-| `oracle_evaluator_l3.py` | `DOM-04` | `--actual`, `--expected`, `--json` | `400` | `2234bd46e8e5` |
+| `oracle_evaluator_l3.py` | `DOM-04` | `--actual`, `--expected`, `--json` | `404` | `2481dc94adc2` |
 | `platform_runner.py` | `DOM-03` | `--cmd`, `--cwd`, `--no-capture`, `--timeout` | `231` | `80313464c8a0` |
 | `preflight_health_check.py` | `DOM-05` | `--check-only`, `--root` | `491` | `d0861442e840` |
 | `quality_baseline_manager.py` | `DOM-05` | `--check`, `--check-only`, `--file`, `--json`, `--metrics`, `--recalibrate`, `--update` | `423` | `8923d50a39b3` |
-| `rsi_convergence_engine.py` | `DOM-04` | `--benchmark-suite`, `--help`, `--json`, `--profile`, `--root`, `--verify`, `--vibe-check` | `1372` | `bbd476548286` |
+| `rsi_convergence_engine.py` | `DOM-04` | `--benchmark-suite`, `--json`, `--profile`, `--root`, `--verify`, `--vibe-check` | `1390` | `04274bb9f5c3` |
 | `safe_cleanup_dev_servers.py` | `DOM-03` | `--dry-run`, `--json`, `--workspace-root` | `247` | `aed1388e3fda` |
 | `sbfl_engine.py` | `DOM-04` | `--json`, `--records-file` | `545` | `56f8c7e2249b` |
 | `sbfl_pytest_bridge.py` | `DOM-04` | `--cwd`, `--json`, `--target-file`, `--test-cmd` | `426` | `0ff0a6c3b252` |
 | `schemas/dual_ledgers.py` | `DOM-01` | `nessuno` | `445` | `9154623e74df` |
 | `schemas/nk_ipc_contracts.py` | `DOM-01` | `nessuno` | `259` | `7f5fdbf583cf` |
-| `vibe_sprint_router.py` | `DOM-01` | `--capsule`, `--discovery-check`, `--files`, `--json`, `--mode`, `--prompt`, `--task`, `--test` | `652` | `09609641bdb1` |
+| `vibe_sprint_router.py` | `DOM-01` | `--capsule`, `--classify-prompt`, `--discovery-check`, `--files`, `--json`, `--mode`, `--prompt`, `--task`, `--test` | `1050` | `348c813f5135` |
 | `win32_2pc_engine.py` | `DOM-01` | `--git-sync`, `--milestone`, `--promote-staging`, `--repo-root`, `--staging-dir`, `--verify-baseline` | `919` | `a0a30838d4b2` |
 
 ## 4. Profilo di Igiene del Contesto Globale

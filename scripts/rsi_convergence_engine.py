@@ -318,6 +318,8 @@ def compute_delta(defects: RSIDefectVector, profile: str = "code_rsi") -> int:
         + 20 * defects.poc_confirmed_exploits
         + 12 * defects.semantic_drift_findings
     )
+    if w_tfail == 0 and defects.tests_failed > 0:
+        raw_delta += 10 * defects.tests_failed
     return raw_delta
 
 
@@ -330,7 +332,7 @@ def compute_fitness(
     cfg = RSIProfileRegistry.get(profile)
     d_val = compute_delta(defects, profile=profile) if delta_k is None else delta_k
     if cfg.test_weight <= 0.0:
-        if defects.tests_failed > 0:
+        if d_val == 0 and defects.tests_failed > 0:
             d_val += 10 * defects.tests_failed
         q_val = cfg.delta_weight / (1.0 + (float(d_val) / cfg.delta_scale))
         return round(q_val, 4)
@@ -349,6 +351,7 @@ def verify_ste100_compliance(text: str, max_sentence_words: int = 20) -> Dict[st
     violations: List[str] = []
     in_code_block = False
     in_yaml_frontmatter = False
+    in_yaml_card = False
     seen_first_content = False
 
     for line_idx, raw_line in enumerate(text.splitlines(), start=1):
@@ -363,6 +366,15 @@ def verify_ste100_compliance(text: str, max_sentence_words: int = 20) -> Dict[st
         elif in_yaml_frontmatter:
             if stripped == "---":
                 in_yaml_frontmatter = False
+            continue
+
+        if stripped.startswith("<yaml_metadata_card>"):
+            if "</yaml_metadata_card>" not in stripped:
+                in_yaml_card = True
+            continue
+        if in_yaml_card:
+            if "</yaml_metadata_card>" in stripped:
+                in_yaml_card = False
             continue
 
         if stripped.startswith("```"):
@@ -383,6 +395,7 @@ def verify_ste100_compliance(text: str, max_sentence_words: int = 20) -> Dict[st
         clean_line = re.sub(r"`[^`]*`", "TOKEN", stripped)
         clean_line = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", clean_line)
         clean_line = re.sub(r"^[\*\-\+\d\.\>\s#]+", "", clean_line)
+        clean_line = re.sub(r"(?<=\w)\.(?=\w)", "_", clean_line)
 
         sentences = [s.strip() for s in re.split(r"[\.!\?]+", clean_line) if s.strip()]
         for sent in sentences:
@@ -813,6 +826,7 @@ class RSIConvergenceEngine:
 
     def _extract_script_supported_flags(self, script_path: Path) -> Set[str]:
         """Estrae i flag CLI --flag supportati nell'AST di uno script Python."""
+        ignored_external = {"--porcelain", "--tb=short", "--version"}
         flags: Set[str] = {"--help"}
         if not script_path.exists():
             return flags
@@ -822,8 +836,10 @@ class RSIConvergenceEngine:
             for node in ast.walk(tree):
                 if isinstance(node, ast.Constant) and isinstance(node.value, str):
                     val = node.value.strip()
-                    if val.startswith("--") and re.match(
-                        r"^--[a-zA-Z0-9][a-zA-Z0-9_-]*$", val
+                    if (
+                        val.startswith("--")
+                        and val not in ignored_external
+                        and re.match(r"^--[a-zA-Z0-9][a-zA-Z0-9_-]*$", val)
                     ):
                         flags.add(val)
         except Exception:
@@ -934,20 +950,25 @@ class RSIConvergenceEngine:
         if target.is_file():
             files_to_check: List[Path] = [target]
         elif (target == self.root or target == _workspace_root) and (
-            target / ".agents"
-        ).exists():
-            scan_root = (
-                target / ".staging" / ".agents"
-                if (target / ".staging" / ".agents").exists()
-                else target / ".agents"
-            )
-            files_to_check = sorted(
-                [
+            (target / ".agents").exists() or (target / ".staging").exists()
+        ):
+            roots_to_scan: List[Path] = []
+            if (target / ".agents").exists():
+                roots_to_scan.append(target / ".agents")
+            if (target / ".staging").exists():
+                roots_to_scan.append(target / ".staging")
+            collected: List[Path] = []
+            for s_root in roots_to_scan:
+                collected.extend(
                     p
-                    for p in scan_root.rglob("*")
-                    if p.is_file() and p.suffix in (".py", ".md")
-                ]
-            )
+                    for p in s_root.rglob("*")
+                    if p.is_file()
+                    and p.suffix in (".py", ".md")
+                    and not any(
+                        part in vibe_excluded for part in p.relative_to(s_root).parts
+                    )
+                )
+            files_to_check = sorted(list(dict.fromkeys(collected)))
         else:
             files_to_check = sorted(
                 [
@@ -975,14 +996,11 @@ class RSIConvergenceEngine:
                         text, text, target_file=fpath.name
                     )
                     if not rep.is_valid:
-                        contract_count += len(rep.violations)
+                        sast_in_rep = int(rep.metrics.get("sast_violations_count", 0))
+                        sast_count += sast_in_rep
+                        contract_count += max(0, len(rep.violations) - sast_in_rep)
                         for v in rep.violations:
                             violations.append(f"{fpath.name}: {v.message}")
-                    sast_list = ASTGuardValidator.check_sast_constructs(text)
-                    if sast_list:
-                        sast_count += len(sast_list)
-                        for sv in sast_list:
-                            violations.append(f"{fpath.name}: {sv.message}")
                 else:
                     try:
                         ast.parse(text)

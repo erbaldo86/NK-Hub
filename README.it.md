@@ -273,7 +273,7 @@ Tutti i `34` file Python in `scripts/` (`32` moduli indicizzati nel manifesto) s
 ### 1. Difesa Runtime, Governance di Sessione, Indice O(1) e Convergenza Tensor-RSI
 - [`scripts/nk_registry_indexer.py`](scripts/nk_registry_indexer.py): Indicizzatore O(1) per `16` Playbook (`skills_index`), `5` Sub-Agenti Nativi (`native_agents_index`) e `32` script. Verifica le guardie hardware `GT-14` (`enable_write_tools: false` sugli Auditor) e `RULE-01` (`enable_subagent_tools: false`), mantiene `_MANIFEST_CACHE` (`1.08 ms`) ed esegue `--apply-global-filter`.
 - [`scripts/nk_session_bootstrap.py`](scripts/nk_session_bootstrap.py): Cancello Fast-Stat (`< 50` ms su cache hit tramite `transcript_mtime` e `transcript_size`), pulizia `.wal`, verifica isolamento root e attivazione `NK_MODEL_PROFILE=argon`.
-- [`scripts/rsi_convergence_engine.py`](scripts/rsi_convergence_engine.py): Motore Tensor-RSI 2D con `RSIProfileRegistry`, `--vibe-check <target>`, CoVe CLI AST Gate (`149` flag validati) e validatore STE100.
+- [`scripts/rsi_convergence_engine.py`](scripts/rsi_convergence_engine.py): Motore Tensor-RSI 2D con `RSIProfileRegistry`, `--vibe-check <target>`, CoVe CLI AST Gate (`152` flag validati) e validatore STE100.
 - [`scripts/nk_active_runtime_sentinel.py`](scripts/nk_active_runtime_sentinel.py): Sentinella step Dual-Profile (`60/85/100` standard, `120/180/250` argon) con filtro dei transcript dei sub-agenti (`EXT-02`).
 - [`scripts/nk_context_sentry.py`](scripts/nk_context_sentry.py): Sentinella token/step Dual-Profile (`70/100` standard, `150/250` argon senza `thinking`) e filtro ritorni sub-agenti (`2000` char MTU).
 - [`scripts/nk_compliance_checker.py`](scripts/nk_compliance_checker.py): Revisore transcript con `DDI_DIRECT_STREAK_LIMIT = 12`, esenzione AST su `write_calls == 0`, lettura di `rsi_telemetry.jsonl` e guardie `GT-08`/`GT-10`.
@@ -405,8 +405,8 @@ Qualsiasi regressione sui cancelli rigidi ($\text{SAST}_k > \text{SAST}_{k-1}$ o
 | **Verifica SHA-256 e Guardie `GT-14`/`RULE-01` (`--verify`)** | `< 350 ms` | **`133 ms` (`16` Playbook + `5` Sub-Agenti)** |
 | **Filtro Isolamento 61 Skill Globali (`--apply-global-filter`)** | `0` skill esterne | **`0 attive (-7.042 token/turno)`** |
 | **Fast-Bypass Mode C e Vibe-Check Singolo Processo (`--vibe-check`)** | `< 500 ms` | **`15..65 ms` (`-71.9%` consumo token)** |
-| **CoVe CLI AST Gate (`verify_cli_flags_cove`)** | `100%` flag validi | **`149/149 flag validati (0 errori)`** |
-| **Suite Ortogonale di 86 Golden e Stress Test (`pytest tests/ -q`)** | `100.0% PASS` | **`10.64 s (86/86 PASS)`** |
+| **CoVe CLI AST Gate (`verify_cli_flags_cove`)** | `100%` flag validi | **`152/152 flag validati (0 errori)`** |
+| **Suite Ortogonale di 86 Golden e Stress Test (`pytest tests/ -q`)** | `100.0% PASS` | **`7.08 s (86/86 PASS)`** |
 
 ---
 
@@ -424,7 +424,7 @@ La release **`v4.0.0-Native-Swarm-Playbooks`** adotta l'architettura a 3 strati:
 | **4. Corsia Veloce `Mode C` (`<= 150` LOC)** | Anche le piccole modifiche UI o script passavano per deleghe multi-turno (`~18.500` token). | `vibe_sprint_router.py` calcola `"fast_bypass_eligible": true` in `1.19 ms`, abilitando l'esecuzione diretta in `.staging/` con `--vibe-check` in `< 500 ms` (**`-71.9%` token consumati**). |
 | **5. Sviluppo Full-Stack UI, Browser E2E e MCP** | Focalizzato solo sul backend Python; `chrome-devtools-mcp`, `puppeteer`, `tavily-mcp` e `firebase-mcp-server` erano inutilizzati. | `NK-Delta-Architect` copre **Full-Stack e Frontend UI** (`TypeScript/React/Next.js/Tailwind`), `NK-Dynamic-Sandbox-StressTester` esegue **test Browser E2E e Lighthouse live**, e `DOM-02` integra **Tavily, Docs e Firebase MCP**. |
 | **6. Cache Manifesto O(1) e Routing** | `nk_registry_manifest.json` indicizzava solo le skill (`~6.80 ms`) e `vibe_sprint_router.py` rileggeva il JSON da disco ad ogni chiamata (`~8.40 ms`). | Aggiunto `native_agents_index` e le cache in-memory (`_MANIFEST_CACHE` e `_ROUTER_MANIFEST_CACHE`), portando il lookup a **`1.08 ms` (`-84.0%`)** e il routing a **`1.19 ms` (`-85.8%`)**. |
-| **7. Stress-Test a 3 Livelli e Verifica CLI CoVe** | `74` Golden Tests e `111` flag CLI controllati. | Aggiunto `tests/test_phase2_3tier_stress_suite.py` (`12` test su `L1` Struttura/Concorrenza, `L2` Routing E2E/Rollback, `L3` Red-Team/SLA), raggiungendo **`86/86 PASS`** e **`149/149` flag CLI validati**. |
+| **7. Stress-Test a 3 Livelli e Verifica CLI CoVe** | `74` Golden Tests e `111` flag CLI controllati. | Aggiunto `tests/test_phase2_3tier_stress_suite.py` (`12` test su `L1` Struttura/Concorrenza, `L2` Routing E2E/Rollback, `L3` Red-Team/SLA), raggiungendo **`86/86 PASS`** e **`152/152` flag CLI validati**. |
 
 ### 2. Finestra Comportamentale: Come Si Comporta Adesso la `v4.0.0` in Tempo Reale
 
@@ -439,10 +439,10 @@ PS G:\Il mio Drive\Antigravity> python -u scripts/nk_registry_indexer.py --verif
 🟢 [NK-REGISTRY-VERIFY] Status: VALID | Skills: 16 | Native Agents: 5 | Scripts: 32 | GT-14 & RULE-01: PASS
 
 PS G:\Il mio Drive\Antigravity> python -u scripts/rsi_convergence_engine.py --verify --profile ste100_rsi --json
-{"status": "CONVERGED_OPTIMAL", "passed": true, "delta_k": 0, "fitness_q": 100.0, "checked_flags_count": 149}
+{"status": "CONVERGED_OPTIMAL", "passed": true, "delta_k": 0, "fitness_q": 100.0, "checked_flags_count": 152}
 
 PS G:\Il mio Drive\Antigravity> python -u -m pytest tests/ -q
-86 passed in 10.64s
+86 passed in 7.08s
 ```
 
 ### 3. Matrice Certificata degli 86 Golden e 3-Tier Stress Tests (`86/86 PASS`)

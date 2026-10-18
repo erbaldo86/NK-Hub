@@ -68,6 +68,10 @@ def resolve_html_source(source_or_path: str) -> str:
             p_base = Path(base_str)
             if p_base.exists() and p_base.is_file():
                 return p_base.read_text(encoding="utf-8")
+            if base_str.lower().endswith((".html", ".htm")):
+                raise FileNotFoundError(f"HTML file not found: {candidate}")
+        if candidate.lower().endswith((".html", ".htm")):
+            raise FileNotFoundError(f"HTML file not found: {candidate}")
     return source_or_path
 
 

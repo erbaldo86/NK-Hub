@@ -328,7 +328,7 @@ class NKSessionBootstrap:
             return {"passed": False, "details": str(exc)}
 
     def _find_recent_transcript(self, brain_dir: Path) -> Optional[Path]:
-        """Individua il transcript attivo ispezionando solo le 3 conversazioni piu recenti."""
+        """Individua il transcript attivo ispezionando le 8 conversazioni piu recenti."""
         if not brain_dir.exists():
             return None
         try:
@@ -343,17 +343,26 @@ class NKSessionBootstrap:
             subdirs.sort(key=lambda item: item[0], reverse=True)
             best_file: Optional[Path] = None
             best_mtime: float = -1.0
-            for _, conv_dir in subdirs[:MAX_RECENT_BRAIN_DIRS]:
+            fallback_file: Optional[Path] = None
+            fallback_mtime: float = -1.0
+            for _, conv_dir in subdirs[:8]:
                 cand = conv_dir / ".system_generated" / "logs" / "transcript.jsonl"
                 if cand.exists():
                     try:
                         cmtime = cand.stat().st_mtime
-                        if cmtime > best_mtime:
-                            best_mtime = cmtime
-                            best_file = cand
+                        with open(cand, "rb") as f:
+                            head_bytes = f.read(2048)
+                        if b"<env_capsule>" in head_bytes:
+                            if cmtime > fallback_mtime:
+                                fallback_mtime = cmtime
+                                fallback_file = cand
+                        else:
+                            if cmtime > best_mtime:
+                                best_mtime = cmtime
+                                best_file = cand
                     except Exception:
                         continue
-            return best_file
+            return best_file or fallback_file
         except Exception:
             return None
 

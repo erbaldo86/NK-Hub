@@ -406,7 +406,11 @@ class Tier1CoreMemory:
         token_cap: int = TIER1_TOKEN_CAP,
         profile: Optional[str] = None,
     ) -> None:
-        if profile == "argon" and token_cap == TIER1_TOKEN_CAP:
+        if (
+            isinstance(profile, str)
+            and profile.strip().lower() == "argon"
+            and token_cap == TIER1_TOKEN_CAP
+        ):
             self.token_cap = TIER1_TOKEN_CAP_ARGON
         else:
             self.token_cap = token_cap
@@ -621,21 +625,23 @@ class ThreeTierMemoryEngine:
         profile: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Sincronizza e persiste su disco il file tier1_active_capsule.json."""
-        if profile == "argon" and self.tier1.token_cap == TIER1_TOKEN_CAP:
+        norm_prof = profile.strip().lower() if isinstance(profile, str) and profile.strip() else None
+        if norm_prof == "argon" and self.tier1.token_cap == TIER1_TOKEN_CAP:
             self.tier1.token_cap = TIER1_TOKEN_CAP_ARGON
 
         for dom in NK_DOMAINS:
-            if not self.tier1._domains[dom].items:
-                recent_eps = self.get_tier2_episodes(dom)[-5:]
-                for idx, ep in enumerate(recent_eps, start=1):
-                    self.tier1.set_item(
-                        domain=dom,
-                        key=ep.episode_id,
-                        value=f"{ep.title}: {ep.content}",
-                        priority=min(10, idx + 2),
-                    )
+            recent_eps = self.get_tier2_episodes(dom)[-5:]
+            for idx, ep in enumerate(recent_eps, start=1):
+                existing = self.tier1._domains[dom].items.get(ep.episode_id)
+                eff_prio = max(existing.priority if existing else 0, min(10, idx + 2))
+                self.tier1.set_item(
+                    domain=dom,
+                    key=ep.episode_id,
+                    value=f"{ep.title}: {ep.content}",
+                    priority=eff_prio,
+                )
 
-        active_profile = profile or (
+        active_profile = norm_prof or (
             "argon" if self.tier1.token_cap == TIER1_TOKEN_CAP_ARGON else "standard"
         )
         domains_payload: Dict[str, Any] = {}
@@ -768,8 +774,11 @@ def sync_tier1_capsule(
         if base_dir
         else (_workspace_root / "nk_tracking" / "memory_3tier")
     )
-    engine = ThreeTierMemoryEngine(base_dir=resolved_base, profile=profile)
-    return engine.sync_tier1_capsule(output_path=output_path, profile=profile)
+    eff_prof = profile or os.environ.get("NK_MODEL_PROFILE")
+    if isinstance(eff_prof, str):
+        eff_prof = eff_prof.strip().lower() or None
+    engine = ThreeTierMemoryEngine(base_dir=resolved_base, profile=eff_prof)
+    return engine.sync_tier1_capsule(output_path=output_path, profile=eff_prof)
 
 
 def main() -> int:
@@ -852,7 +861,9 @@ def main() -> int:
         if args.base_dir
         else (_workspace_root / "nk_tracking" / "memory_3tier")
     )
-    engine = ThreeTierMemoryEngine(base_dir=base_path, profile=args.profile)
+    raw_prof = args.profile or os.environ.get("NK_MODEL_PROFILE")
+    active_profile = raw_prof.strip().lower() if isinstance(raw_prof, str) and raw_prof.strip() else None
+    engine = ThreeTierMemoryEngine(base_dir=base_path, profile=active_profile)
 
     if args.append:
         tag_list = [t.strip() for t in args.tags.split(",") if t.strip()]
@@ -864,7 +875,7 @@ def main() -> int:
             tags=tag_list,
         )
         engine.append_episode(ep)
-        capsule = engine.sync_tier1_capsule(output_path=args.output, profile=args.profile)
+        capsule = engine.sync_tier1_capsule(output_path=args.output, profile=active_profile)
         out = {
             "status": "APPENDED",
             "episode_id": ep.episode_id,
@@ -879,7 +890,7 @@ def main() -> int:
         return 0
 
     if args.tier1_sync:
-        capsule = engine.sync_tier1_capsule(output_path=args.output, profile=args.profile)
+        capsule = engine.sync_tier1_capsule(output_path=args.output, profile=active_profile)
         if args.json:
             print(json.dumps(capsule, indent=2))
         else:
@@ -911,7 +922,7 @@ def main() -> int:
                 print(f"[{round(score, 4)}] {ep.episode_id}: {ep.title} -> {ep.content}")
         return 0
 
-    capsule = engine.sync_tier1_capsule(output_path=args.output, profile=args.profile)
+    capsule = engine.sync_tier1_capsule(output_path=args.output, profile=active_profile)
     if args.json:
         print(json.dumps(capsule, indent=2))
     else:

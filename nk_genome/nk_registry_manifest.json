@@ -1,7 +1,7 @@
 {
   "version": "3.5.1-MODULAR-INDEX-RSI2",
   "milestone_anchor_id": "NK-MS-20261017-MODULAR-INDEX-v3.5.1-RSI2",
-  "generated_at": "2026-10-18T09:41:09Z",
+  "generated_at": "2026-10-18T17:31:30Z",
   "summary": {
     "total_domains": 5,
     "total_skills": 16,
@@ -431,7 +431,7 @@
       "bytes": 9469,
       "sha256": "26459e2e3557037df811730520c62f866c50d9627be850bd669e30b4f917a7ac",
       "path": ".agents/skills/NK-Master-Hub/SKILL.md",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "NK-Oracle-Evaluator": {
       "name": "NK-Oracle-Evaluator",
@@ -581,7 +581,7 @@
       "bytes": 8005,
       "sha256": "b9d515f2f149e0ec7b1ba301ac672c64567a096fff89f92d33be164fea46a74c",
       "path": ".agents/skills/NK-Session-Controller/SKILL.md",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "NK-State-Router": {
       "name": "NK-State-Router",
@@ -600,7 +600,7 @@
       "auxiliary_links": [],
       "loc": 56,
       "bytes": 3556,
-      "sha256": "b0e55b42d7d0ef994c7b53b9cb2cd67ebbb112612fd128bf7df829cdc35c2d3e",
+      "sha256": "ccd64f0dd9eeaddaa310350da932ff295ae17e44ba76f02406ab1dfc594a9b0a",
       "path": ".agents/skills/NK-State-Router/SKILL.md",
       "source_layer": "production"
     }
@@ -613,12 +613,13 @@
       "description": "Validatore statico AST deterministico per Nexus Keystone v3.0.0.",
       "cli_flags": [
         "--allowed-mutations",
+        "--json",
         "--stage-dir",
         "--target"
       ],
-      "loc": 1174,
-      "bytes": 47323,
-      "sha256": "275202442b88716dcf51490fa36a424704c11b520bbdc2f333e9c38af670c62a",
+      "loc": 1221,
+      "bytes": 49137,
+      "sha256": "6e145586b88634a137240b63debbe0fabdc1f28ef94814faf64e3dd933a1188b",
       "path": "scripts/ast_guard_validator.py",
       "source_layer": "production"
     },
@@ -675,9 +676,9 @@
         "--target-file",
         "--test-cmd"
       ],
-      "loc": 467,
-      "bytes": 17003,
-      "sha256": "8026ea63092ddb50878655f069f77baef50cab943ca5f11be1f87122ee614e1f",
+      "loc": 506,
+      "bytes": 18249,
+      "sha256": "a850481b490990e3dba1b5f4e3a5daec691b791adf396a5343dc24063515894b",
       "path": "scripts/auto_heal_pipeline.py",
       "source_layer": "production"
     },
@@ -692,10 +693,10 @@
         "--timeout"
       ],
       "loc": 754,
-      "bytes": 25776,
-      "sha256": "515d365208e39af528fede8cc8c597462c39414056edfa26695dd21419774e00",
+      "bytes": 25818,
+      "sha256": "7f87c1a03ac1ea648cbd69ea84c44e14aa25f68c3848cc50378c2886d24c550c",
       "path": "scripts/dast_sandbox_runner.py",
-      "source_layer": "production"
+      "source_layer": "staging"
     },
     "deterministic_api_cache.py": {
       "name": "deterministic_api_cache.py",
@@ -739,9 +740,9 @@
         "--name",
         "--target"
       ],
-      "loc": 217,
-      "bytes": 8145,
-      "sha256": "81ac179d6b8b67c83ea1defc328d9109f0c0749bbd1a1d733a226f9d1a947883",
+      "loc": 223,
+      "bytes": 8325,
+      "sha256": "af5a666b5a4257c0e136519254dc9aa0f56400733a2447664ff8030efe33c6eb",
       "path": "scripts/external_project_scaffolder.py",
       "source_layer": "production"
     },
@@ -798,9 +799,9 @@
         "--tier1-sync",
         "--title"
       ],
-      "loc": 923,
-      "bytes": 30888,
-      "sha256": "f32b65c8db2a005a38b2c052ea442d68e70877d367ddcac1580c08c3b1774a84",
+      "loc": 934,
+      "bytes": 31489,
+      "sha256": "03f2be3a2ec5ae3f42a31d28bdc031cd4284e4178e87f7d5e1101e7d3b836435",
       "path": "scripts/memory_3tier_engine.py",
       "source_layer": "production"
     },
@@ -852,9 +853,9 @@
         "--transcript",
         "--tuning-file"
       ],
-      "loc": 99,
-      "bytes": 3230,
-      "sha256": "04228bcf05a2346ed4f8fce19ccb4f2c887ea8b4930d5fb9038185d8aa5c7851",
+      "loc": 107,
+      "bytes": 3403,
+      "sha256": "904422703c629d926af9bb14deabd3bc199fa6a5860b03750e21ae015d2aa97e",
       "path": "scripts/nk_auto_inning.py",
       "source_layer": "production"
     },
@@ -905,11 +906,11 @@
         "--sync",
         "--verify"
       ],
-      "loc": 1618,
-      "bytes": 64598,
-      "sha256": "5a0d3e9078372721a77f2d46495c98465d4923f9f4ab3dee163c8e0dbb10260b",
+      "loc": 1966,
+      "bytes": 74723,
+      "sha256": "e73e14b580d2e37fd733802717c16712ac17fff034b7fc1def82404a09083e1f",
       "path": "scripts/nk_registry_indexer.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "nk_session_bootstrap.py": {
       "name": "nk_session_bootstrap.py",
@@ -920,11 +921,11 @@
         "--force-full",
         "--json"
       ],
-      "loc": 602,
-      "bytes": 24552,
-      "sha256": "671fb5c960b555e8e9909ed58ff7a1d5993e07bdff01562951d2f956cf21f9a1",
+      "loc": 611,
+      "bytes": 25006,
+      "sha256": "bb0650f5497c4b2cbae14b3718c392ff89355d59e2c4099772588abde63fa693",
       "path": "scripts/nk_session_bootstrap.py",
-      "source_layer": "production"
+      "source_layer": "staging"
     },
     "nk_session_handoff.py": {
       "name": "nk_session_handoff.py",
@@ -934,7 +935,6 @@
       "cli_flags": [
         "--generate-prompt",
         "--output-dir",
-        "--porcelain",
         "--transcript"
       ],
       "loc": 160,
@@ -970,9 +970,9 @@
         "--expected",
         "--json"
       ],
-      "loc": 400,
-      "bytes": 13848,
-      "sha256": "2234bd46e8e56278ab7641df4811b8dd8ccb0d1c033faa6f85138a96411e9d45",
+      "loc": 404,
+      "bytes": 14117,
+      "sha256": "2481dc94adc2e3694443ff81580c81c778dc339f13b673638370deae27746ea4",
       "path": "scripts/oracle_evaluator_l3.py",
       "source_layer": "production"
     },
@@ -1035,16 +1035,15 @@
       "description": "Motore di convergenza RSI per Nexus Keystone v3.2.0.",
       "cli_flags": [
         "--benchmark-suite",
-        "--help",
         "--json",
         "--profile",
         "--root",
         "--verify",
         "--vibe-check"
       ],
-      "loc": 1372,
-      "bytes": 53217,
-      "sha256": "bbd476548286713a7396853c36dfdfaf55366cd10518698a028510d2b6cd9f90",
+      "loc": 1390,
+      "bytes": 54116,
+      "sha256": "04274bb9f5c3a2247903e0e06d29269b74662eb982491e374a602492fbdcc033",
       "path": "scripts/rsi_convergence_engine.py",
       "source_layer": "production"
     },
@@ -1124,9 +1123,10 @@
       "name": "vibe_sprint_router.py",
       "domain_id": "DOM-01",
       "domain_name": "GOV_AND_ROUTING",
-      "description": "Motore di routing Mode A/B/C/D per Nexus Keystone v3.5.0.",
+      "description": "Motore di routing Mode A/B/C/D per Nexus Keystone v3.5.1.",
       "cli_flags": [
         "--capsule",
+        "--classify-prompt",
         "--discovery-check",
         "--files",
         "--json",
@@ -1135,11 +1135,11 @@
         "--task",
         "--test"
       ],
-      "loc": 652,
-      "bytes": 23979,
-      "sha256": "09609641bdb1538d634abc65d58489e64251572202f776b89d59ac4428297f90",
+      "loc": 1050,
+      "bytes": 34882,
+      "sha256": "348c813f513538e1d1115ae025b4673fb3ed1d2743444f679d65a631cc4d56a2",
       "path": "scripts/vibe_sprint_router.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "win32_2pc_engine.py": {
       "name": "win32_2pc_engine.py",
@@ -1171,10 +1171,10 @@
       "enable_subagent_tools": false,
       "enable_mcp_tools": false,
       "loc": 33,
-      "bytes": 2163,
-      "sha256": "1cc8a86b377160aea7aafb7123497d8668b0de39ba1ae7bf5d9cdfe27d13663a",
+      "bytes": 2208,
+      "sha256": "b29a78ff1aa84638a80a2622a0d16f60037f59f766c372b8d22478f2a1d8db6e",
       "path": ".agents/agents/NK-Builder-Agent/agent.md",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "NK-RSI-Auditor": {
       "name": "NK-RSI-Auditor",
@@ -1188,7 +1188,7 @@
       "bytes": 2060,
       "sha256": "1d605e3cfd065b5575f6a7dbf447270b09497164f1c704c99d4318d2f48ca296",
       "path": ".agents/agents/NK-RSI-Auditor/agent.md",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "NK-Scribe-Agent": {
       "name": "NK-Scribe-Agent",
@@ -1199,10 +1199,10 @@
       "enable_subagent_tools": false,
       "enable_mcp_tools": false,
       "loc": 33,
-      "bytes": 2008,
-      "sha256": "5b015d539a535a2158ddf63b5638b1609a373561284256c54fd1427421664a71",
+      "bytes": 2061,
+      "sha256": "0dc9355197dc5d81b8a8e41e8f8110aa30423eee6cc4517289e08a5e98f013c6",
       "path": ".agents/agents/NK-Scribe-Agent/agent.md",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "NK-Security-DAST-Auditor": {
       "name": "NK-Security-DAST-Auditor",
@@ -1213,10 +1213,10 @@
       "enable_subagent_tools": false,
       "enable_mcp_tools": true,
       "loc": 33,
-      "bytes": 2084,
-      "sha256": "dc4118cc29ceb7a333a59e2971ef4a2385602d2d80acc8843a36856abca4bb59",
+      "bytes": 2106,
+      "sha256": "c835611634de0093f5fc7ed187c4032c2a99082efec270dda1d493e4f31f2741",
       "path": ".agents/agents/NK-Security-DAST-Auditor/agent.md",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "NK-Specifier-Agent": {
       "name": "NK-Specifier-Agent",
@@ -1230,7 +1230,7 @@
       "bytes": 2206,
       "sha256": "475038bcb707ed41a264e395d654aa47c2476c6b9f5f2de7890c1697a6797548",
       "path": ".agents/agents/NK-Specifier-Agent/agent.md",
-      "source_layer": "staging"
+      "source_layer": "production"
     }
   },
   "intent_dispatch_table": {
