@@ -27,6 +27,7 @@ data/
 
 # Temp / Logs
 *.log
+*.bak*
 
 # Large Binaries & Generated Artifacts
 *.zip
