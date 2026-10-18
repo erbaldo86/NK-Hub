@@ -246,12 +246,21 @@ DOMAIN_TAXONOMY: Dict[str, Dict[str, Any]] = {
     },
 }
 
+NATIVE_AGENT_DOMAIN_MAP: Dict[str, str] = {
+    "NK-Specifier-Agent": "DOM-02",
+    "NK-Builder-Agent": "DOM-03",
+    "NK-Security-DAST-Auditor": "DOM-04",
+    "NK-RSI-Auditor": "DOM-04",
+    "NK-Scribe-Agent": "DOM-05",
+}
+
 
 class NKRegistryIndexer:
-    """Indicizzatore deterministico O(1) per skill, script e domini di Nexus Keystone."""
+    """Indicizzatore deterministico O(1) per skill, script, sub-agenti nativi e domini di Nexus Keystone."""
 
     MANIFEST_VERSION: str = "3.5.1-MODULAR-INDEX-RSI2"
     MILESTONE_ID: str = "NK-MS-20261017-MODULAR-INDEX-v3.5.1-RSI2"
+    NATIVE_AGENT_DOMAIN_MAP: Dict[str, str] = NATIVE_AGENT_DOMAIN_MAP
 
     def __init__(
         self,
@@ -290,6 +299,7 @@ class NKRegistryIndexer:
 
     _HASH_CACHE: Dict[Tuple[str, int, int], str] = {}
     _META_CACHE: Dict[Tuple[str, int, int], Dict[str, Any]] = {}
+    _MANIFEST_CACHE: Dict[Tuple[str, int, int], Dict[str, Any]] = {}
 
     @staticmethod
     def _compute_sha256(file_path: Path) -> str:
@@ -563,6 +573,108 @@ class NKRegistryIndexer:
                 ),
             }
         return skills_index
+
+    def _collect_priority_native_agents(
+        self,
+    ) -> Dict[str, Tuple[Path, os.stat_result]]:
+        """Raccoglie la mappa agent_name -> (agent.md, stat) dando priorita a .staging/."""
+        import os as _os
+
+        resolved_map: Dict[str, Tuple[Path, os.stat_result]] = {}
+        for base in (
+            self.workspace_root / ".agents" / "agents",
+            self.stage_dir / ".agents" / "agents",
+        ):
+            try:
+                with _os.scandir(base) as it:
+                    for entry in it:
+                        if entry.is_dir(follow_symlinks=False):
+                            ag_md = Path(entry.path) / "agent.md"
+                            try:
+                                st = ag_md.stat()
+                                resolved_map[entry.name] = (ag_md, st)
+                            except OSError:
+                                pass
+            except OSError:
+                pass
+        return resolved_map
+
+    @staticmethod
+    def _parse_native_agent_metadata(content: str) -> Dict[str, Any]:
+        """Estrae frontmatter YAML e permessi hardware da un file agent.md."""
+        meta: Dict[str, Any] = {
+            "name": "",
+            "description": "",
+            "domain_id": "",
+            "enable_write_tools": False,
+            "enable_subagent_tools": False,
+            "enable_mcp_tools": False,
+        }
+
+        fm_match = re.match(
+            r"^---\s*\r?\n(.*?)\r?\n---\s*(?:\r?\n|$)", content, re.DOTALL
+        )
+        block_to_parse = fm_match.group(1) if fm_match else content[:800]
+        for line in block_to_parse.splitlines():
+            if ":" not in line:
+                continue
+            k, v = line.split(":", 1)
+            key = k.strip()
+            val = v.strip().strip('"').strip("'")
+            if key in ("name", "description", "domain_id"):
+                meta[key] = val
+            elif key in (
+                "enable_write_tools",
+                "enable_subagent_tools",
+                "enable_mcp_tools",
+            ):
+                meta[key] = val.lower() in ("true", "1", "yes")
+
+        if re.search(r"(?m)^\s*enable_write_tools\s*:\s*true\b", content, re.IGNORECASE):
+            meta["enable_write_tools"] = True
+        return meta
+
+    def scan_native_agents(self) -> Dict[str, Dict[str, Any]]:
+        """Scansiona i sub-agenti nativi in .agents/agents/*/agent.md dando priorita a .staging/."""
+        agent_map = self._collect_priority_native_agents()
+        native_agents_index: Dict[str, Dict[str, Any]] = {}
+        for ag_name in sorted(agent_map.keys()):
+            resolved, st = agent_map[ag_name]
+            rel_path = f".agents/agents/{ag_name}/agent.md"
+            raw_bytes = resolved.read_bytes()
+            sha_hex = hashlib.sha256(raw_bytes).hexdigest()
+            NKRegistryIndexer._HASH_CACHE[
+                (str(resolved), st.st_mtime_ns, st.st_size)
+            ] = sha_hex
+
+            content = raw_bytes.decode("utf-8", errors="replace")
+            parsed = self._parse_native_agent_metadata(content)
+            declared_dom = str(parsed.get("domain_id", "")).strip().upper()
+            default_dom = "DOM-04" if "Auditor" in ag_name else "DOM-03"
+            dom_id = (
+                declared_dom
+                if declared_dom in DOMAIN_TAXONOMY
+                else NATIVE_AGENT_DOMAIN_MAP.get(ag_name, default_dom)
+            )
+            dom_name = DOMAIN_TAXONOMY.get(dom_id, DOMAIN_TAXONOMY["DOM-03"])["name"]
+
+            native_agents_index[ag_name] = {
+                "name": parsed["name"] or ag_name,
+                "description": parsed["description"],
+                "domain_id": dom_id,
+                "domain_name": dom_name,
+                "enable_write_tools": bool(parsed["enable_write_tools"]),
+                "enable_subagent_tools": bool(parsed["enable_subagent_tools"]),
+                "enable_mcp_tools": bool(parsed["enable_mcp_tools"]),
+                "loc": len(content.splitlines()),
+                "bytes": st.st_size,
+                "sha256": sha_hex,
+                "path": rel_path,
+                "source_layer": (
+                    "staging" if self.stage_dir in resolved.parents else "production"
+                ),
+            }
+        return native_agents_index
 
     def scan_scripts(self) -> Dict[str, Dict[str, Any]]:
         """Scansiona gli script in scripts/ e scripts/schemas/ dando priorita a .staging/."""
@@ -862,6 +974,7 @@ class NKRegistryIndexer:
         """Genera il dizionario completo di nk_registry_manifest.json con Hot-Swap dinamico."""
         skills_index = self.scan_skills()
         scripts_index = self.scan_scripts()
+        native_agents_index = self.scan_native_agents()
 
         domains_payload: Dict[str, Dict[str, Any]] = {}
         for dom_id, dom_meta in DOMAIN_TAXONOMY.items():
@@ -913,11 +1026,13 @@ class NKRegistryIndexer:
                 "total_domains": len(domains_payload),
                 "total_skills": len(skills_index),
                 "total_scripts": len(scripts_index),
+                "total_native_agents": len(native_agents_index),
                 "crv_macro_phases": 4,
             },
             "domains": domains_payload,
             "skills_index": skills_index,
             "scripts_index": scripts_index,
+            "native_agents_index": native_agents_index,
             "intent_dispatch_table": dispatch_table,
             "global_hygiene_profile": hygiene_profile,
         }
@@ -1024,14 +1139,18 @@ class NKRegistryIndexer:
         manifest_json = json.dumps(manifest, indent=2, ensure_ascii=False) + "\n"
         manifest_path.write_text(manifest_json, encoding="utf-8")
         skill_index_path.write_text(md_content, encoding="utf-8")
+        NKRegistryIndexer._MANIFEST_CACHE.pop(str(manifest_path), None)
+        NKRegistryIndexer._MANIFEST_CACHE.clear()
 
         if self.workspace_root != _DEFAULT_WORKSPACE_ROOT:
             root_genome = self.workspace_root / "nk_genome"
             root_genome.mkdir(parents=True, exist_ok=True)
-            (root_genome / "nk_registry_manifest.json").write_text(
+            root_manifest_path = root_genome / "nk_registry_manifest.json"
+            root_manifest_path.write_text(
                 manifest_json, encoding="utf-8"
             )
             (root_genome / "SKILL_INDEX.md").write_text(md_content, encoding="utf-8")
+            NKRegistryIndexer._MANIFEST_CACHE.pop(str(root_manifest_path), None)
 
         elapsed_ms = round((time.perf_counter() - t0) * 1000.0, 2)
         return {
@@ -1053,15 +1172,20 @@ class NKRegistryIndexer:
         for cand in candidates:
             if cand.exists() and cand.is_file():
                 try:
+                    st = cand.stat()
+                    ckey = (str(cand), st.st_mtime_ns, st.st_size)
+                    if ckey in NKRegistryIndexer._MANIFEST_CACHE:
+                        return NKRegistryIndexer._MANIFEST_CACHE[ckey]
                     data = json.loads(cand.read_text(encoding="utf-8"))
                     if isinstance(data, dict):
+                        NKRegistryIndexer._MANIFEST_CACHE[ckey] = data
                         return data
                 except Exception:
                     pass
         return None
 
     def verify(self) -> Dict[str, Any]:
-        """Verifica gli hash SHA-256 su disco senza ast.parse in meno di 30 ms."""
+        """Verifica gli hash SHA-256 su disco e le guardie GT-14 e RULE-01 in meno di 30 ms."""
         t0 = time.perf_counter()
         manifest = self.load_manifest()
         if manifest is None:
@@ -1126,6 +1250,58 @@ class NKRegistryIndexer:
                 if live_sha != recorded_sha:
                     issues.append(f"Drift SHA-256 rilevato sullo script: {sc_name}")
 
+        agent_map = self._collect_priority_native_agents()
+        manifest_agents = manifest.get("native_agents_index", {})
+        if "native_agents_index" in manifest:
+            if set(agent_map.keys()) != set(manifest_agents.keys()):
+                issues.append(
+                    f"Conteggio o nomi native agents disallineati: atteso {len(manifest_agents)}, trovato {len(agent_map)}"
+                )
+            else:
+                for ag_name, (resolved, st) in agent_map.items():
+                    recorded_sha = manifest_agents.get(ag_name, {}).get("sha256", "")
+                    ckey = (str(resolved), st.st_mtime_ns, st.st_size)
+                    live_sha = (
+                        NKRegistryIndexer._HASH_CACHE[ckey]
+                        if st.st_size > 256 and ckey in NKRegistryIndexer._HASH_CACHE
+                        else self._compute_sha256(resolved)
+                    )
+                    if live_sha != recorded_sha:
+                        issues.append(
+                            f"Drift SHA-256 rilevato sul sub-agente nativo: {ag_name}"
+                        )
+
+        all_agent_names = sorted(set(agent_map.keys()) | set(manifest_agents.keys()))
+        for ag_name in all_agent_names:
+            ag_meta = manifest_agents.get(ag_name, {})
+            parsed_live: Dict[str, Any] = {}
+            if ag_name in agent_map:
+                resolved, _ = agent_map[ag_name]
+                try:
+                    raw_txt = resolved.read_text(encoding="utf-8", errors="replace")
+                    parsed_live = self._parse_native_agent_metadata(raw_txt)
+                except Exception:
+                    pass
+
+            if "auditor" in ag_name.lower():
+                write_enabled = (
+                    ag_meta.get("enable_write_tools") is True
+                    or parsed_live.get("enable_write_tools") is True
+                )
+                if write_enabled:
+                    issues.append(
+                        f"Violazione GT-14: enable_write_tools attivo sull'Auditor {ag_name}"
+                    )
+
+            subagent_enabled = (
+                ag_meta.get("enable_subagent_tools") is True
+                or parsed_live.get("enable_subagent_tools") is True
+            )
+            if subagent_enabled:
+                issues.append(
+                    f"Violazione RULE-01 (2-Tier): enable_subagent_tools attivo sul Sub-Agente '{ag_name}'."
+                )
+
         passed = len(issues) == 0
         return {
             "status": "VALID" if passed else "DRIFT_DETECTED",
@@ -1133,12 +1309,13 @@ class NKRegistryIndexer:
             "total_domains": len(domains),
             "total_skills": len(manifest_skills),
             "total_scripts": len(manifest_scripts),
+            "total_native_agents": len(manifest_agents),
             "issues": issues,
             "elapsed_ms": round((time.perf_counter() - t0) * 1000.0, 2),
         }
 
     def lookup(self, query: str) -> Dict[str, Any]:
-        """Esegue una ricerca O(1) nel manifesto per dominio, skill, script o intento."""
+        """Esegue una ricerca O(1) nel manifesto per dominio, skill, native_agent, script o intento."""
         t0 = time.perf_counter()
         manifest = self.load_manifest()
         if manifest is None:
@@ -1151,18 +1328,33 @@ class NKRegistryIndexer:
         domains = manifest.get("domains", {})
         skills_index = manifest.get("skills_index", {})
         scripts_index = manifest.get("scripts_index", {})
+        native_agents_index = manifest.get("native_agents_index")
+        if not isinstance(native_agents_index, dict) or not native_agents_index:
+            native_agents_index = self.scan_native_agents()
+            manifest["native_agents_index"] = native_agents_index
         dispatch_table = manifest.get("intent_dispatch_table", {})
+
+        dom_to_native = {
+            "DOM-01": "NK-Specifier-Agent",
+            "DOM-02": "NK-Specifier-Agent",
+            "DOM-03": "NK-Builder-Agent",
+            "DOM-04": "NK-Security-DAST-Auditor",
+            "DOM-05": "NK-Scribe-Agent",
+        }
+        rsi_skills = {"NK-Oracle-Evaluator", "NK-State-Router", "NK-Plan-Aligner"}
 
         # 1. Lookup diretto su ID Dominio (es. DOM-01) o nome Dominio
         if q_upper in domains:
             dom = domains[q_upper]
+            dom_id = dom["domain_id"]
             return {
                 "found": True,
                 "match_type": "domain",
                 "query": query,
-                "domain_id": dom["domain_id"],
+                "domain_id": dom_id,
                 "domain_name": dom["name"],
                 "primary_skill": dom["primary_skill"],
+                "native_subagent": dom_to_native.get(dom_id, "NK-Builder-Agent"),
                 "skills": dom["skills"],
                 "scripts": dom["scripts"],
                 "result": dom,
@@ -1178,6 +1370,7 @@ class NKRegistryIndexer:
                     "domain_id": dom_id,
                     "domain_name": dom["name"],
                     "primary_skill": dom["primary_skill"],
+                    "native_subagent": dom_to_native.get(dom_id, "NK-Builder-Agent"),
                     "skills": dom["skills"],
                     "scripts": dom["scripts"],
                     "result": dom,
@@ -1189,6 +1382,11 @@ class NKRegistryIndexer:
             if sk_name.lower() == q_lower:
                 dom_id = sk_meta["domain_id"]
                 dom = domains.get(dom_id, {})
+                native_ag = (
+                    "NK-RSI-Auditor"
+                    if sk_name in rsi_skills
+                    else dom_to_native.get(dom_id, "NK-Builder-Agent")
+                )
                 return {
                     "found": True,
                     "match_type": "skill",
@@ -1196,9 +1394,29 @@ class NKRegistryIndexer:
                     "domain_id": dom_id,
                     "domain_name": sk_meta["domain_name"],
                     "primary_skill": sk_name,
+                    "native_subagent": native_ag,
                     "skills": dom.get("skills", [sk_name]),
                     "scripts": dom.get("scripts", []),
                     "result": sk_meta,
+                    "elapsed_ms": round((time.perf_counter() - t0) * 1000.0, 3),
+                }
+
+        # 2b. Lookup diretto su Sub-Agente Nativo (native_agents_index)
+        for ag_name, ag_meta in native_agents_index.items():
+            if ag_name.lower() == q_lower:
+                dom_id = ag_meta.get("domain_id", "DOM-03")
+                dom = domains.get(dom_id, {})
+                return {
+                    "found": True,
+                    "match_type": "native_agent",
+                    "query": query,
+                    "domain_id": dom_id,
+                    "domain_name": ag_meta.get("domain_name", dom.get("name", "")),
+                    "primary_skill": dom.get("primary_skill", ""),
+                    "native_subagent": ag_name,
+                    "skills": dom.get("skills", []),
+                    "scripts": dom.get("scripts", []),
+                    "result": ag_meta,
                     "elapsed_ms": round((time.perf_counter() - t0) * 1000.0, 3),
                 }
 
@@ -1217,6 +1435,7 @@ class NKRegistryIndexer:
                     "domain_id": dom_id,
                     "domain_name": sc_meta["domain_name"],
                     "primary_skill": dom.get("primary_skill", ""),
+                    "native_subagent": dom_to_native.get(dom_id, "NK-Builder-Agent"),
                     "skills": dom.get("skills", []),
                     "scripts": [sc_name],
                     "cli_flags": sc_meta.get("cli_flags", []),
@@ -1236,6 +1455,7 @@ class NKRegistryIndexer:
                 "domain_id": dom_id,
                 "domain_name": entry["domain_name"],
                 "primary_skill": entry["primary_agent"],
+                "native_subagent": dom_to_native.get(dom_id, "NK-Builder-Agent"),
                 "recommended_mode": entry["recommended_mode"],
                 "skills": dom.get("skills", []),
                 "scripts": entry["scripts"],
@@ -1262,6 +1482,7 @@ class NKRegistryIndexer:
                 "domain_id": dom_id,
                 "domain_name": best_entry["domain_name"],
                 "primary_skill": best_entry["primary_agent"],
+                "native_subagent": dom_to_native.get(dom_id, "NK-Builder-Agent"),
                 "recommended_mode": best_entry["recommended_mode"],
                 "skills": dom.get("skills", []),
                 "scripts": best_entry["scripts"],
@@ -1276,6 +1497,7 @@ class NKRegistryIndexer:
             "domain_id": "DOM-01",
             "domain_name": "GOV_AND_ROUTING",
             "primary_skill": "NK-Master-Hub",
+            "native_subagent": "NK-Specifier-Agent",
             "skills": domains.get("DOM-01", {}).get("skills", []),
             "scripts": domains.get("DOM-01", {}).get("scripts", []),
             "result": {},

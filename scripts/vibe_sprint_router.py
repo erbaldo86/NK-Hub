@@ -50,6 +50,46 @@ MODE_D_LABEL: str = (
     "Mode D (Analytical Discovery & Benchmark - 100% Read-Only + MCP/Web)"
 )
 
+DOMAIN_TO_NATIVE_SUBAGENT: Dict[str, str] = {
+    "DOM-01": "NK-Specifier-Agent",
+    "DOM-02": "NK-Specifier-Agent",
+    "DOM-03": "NK-Builder-Agent",
+    "DOM-04": "NK-Security-DAST-Auditor",
+    "DOM-05": "NK-Scribe-Agent",
+}
+
+_RSI_AUDITOR_SKILLS = frozenset(
+    {"NK-Oracle-Evaluator", "NK-State-Router", "NK-Plan-Aligner"}
+)
+_RSI_AUDITOR_KEYWORDS: Tuple[str, ...] = (
+    "rsi",
+    "oracolo",
+    "oracle",
+    "cold review",
+    "ste100",
+    "tetralogia",
+)
+_ROUTER_MANIFEST_CACHE: Dict[str, Tuple[int, int, Dict[str, Any]]] = {}
+
+
+def _resolve_native_subagent(
+    domain_id: str,
+    matched_skill: Optional[str] = None,
+    text: str = "",
+) -> str:
+    """Risolve il Sub-Agente Nativo instradando query RSI e Oracolo su NK-RSI-Auditor."""
+    if matched_skill and matched_skill in _RSI_AUDITOR_SKILLS:
+        return "NK-RSI-Auditor"
+    text_low = (text or "").strip().lower()
+    if text_low:
+        tokens = set(
+            "".join(ch if ch.isalnum() or ch == "_" else " " for ch in text_low).split()
+        )
+        for kw in _RSI_AUDITOR_KEYWORDS:
+            if (" " in kw and kw in text_low) or kw in tokens:
+                return "NK-RSI-Auditor"
+    return DOMAIN_TO_NATIVE_SUBAGENT.get(domain_id, "NK-Builder-Agent")
+
 
 class _ASTDepthVisitor(ast.NodeVisitor):
     """Calcola la profondita massima di annidamento del flusso di controllo AST."""
@@ -97,7 +137,7 @@ class VibeSprintRouter:
         self.staging_dir = self.workspace_root / ".staging"
 
     def _load_registry_manifest(self) -> Dict[str, Any]:
-        """Carica nk_registry_manifest.json da staging o root con fallback sicuro."""
+        """Carica nk_registry_manifest.json da staging o root con cache statica O(1)."""
         candidates = (
             self.staging_dir / "nk_genome" / "nk_registry_manifest.json",
             self.workspace_root / "nk_genome" / "nk_registry_manifest.json",
@@ -107,8 +147,22 @@ class VibeSprintRouter:
         for cand in candidates:
             if cand.exists() and cand.is_file():
                 try:
+                    st = cand.stat()
+                    key = str(cand)
+                    cached = _ROUTER_MANIFEST_CACHE.get(key)
+                    if (
+                        cached is not None
+                        and cached[0] == st.st_mtime_ns
+                        and cached[1] == st.st_size
+                    ):
+                        return cached[2]
                     data = json.loads(cand.read_text(encoding="utf-8"))
                     if isinstance(data, dict):
+                        _ROUTER_MANIFEST_CACHE[key] = (
+                            st.st_mtime_ns,
+                            st.st_size,
+                            data,
+                        )
                         return data
                 except Exception:
                     pass
@@ -126,20 +180,28 @@ class VibeSprintRouter:
         # 1. Riferimento esplicito a ID dominio nel prompt (es. DOM-04)
         for dom_id, dom_meta in domains.items():
             if dom_id.lower() in text_lower or dom_meta.get("name", "").lower() in text_lower:
+                primary_sk = dom_meta.get("primary_skill", "NK-Master-Hub")
                 return {
                     "domain_id": dom_id,
                     "domain_name": dom_meta.get("name", ""),
-                    "primary_skill": dom_meta.get("primary_skill", "NK-Master-Hub"),
+                    "primary_skill": primary_sk,
+                    "native_subagent": _resolve_native_subagent(
+                        dom_id, matched_skill=primary_sk, text=text_lower
+                    ),
                     "matched_triggers": [dom_id],
                 }
 
         # 2. Riferimento esplicito a una skill o script nel prompt
         for sk_name, sk_meta in skills_index.items():
             if sk_name.lower() in text_lower:
+                dom_id = sk_meta.get("domain_id", "DOM-01")
                 return {
-                    "domain_id": sk_meta.get("domain_id", "DOM-01"),
+                    "domain_id": dom_id,
                     "domain_name": sk_meta.get("domain_name", "GOV_AND_ROUTING"),
                     "primary_skill": sk_name,
+                    "native_subagent": _resolve_native_subagent(
+                        dom_id, matched_skill=sk_name, text=text_lower
+                    ),
                     "matched_triggers": [sk_name],
                 }
 
@@ -148,10 +210,14 @@ class VibeSprintRouter:
             if sc_name.lower() in text_lower or stem in text_lower:
                 dom_id = sc_meta.get("domain_id", "DOM-03")
                 dom_meta = domains.get(dom_id, {})
+                primary_sk = dom_meta.get("primary_skill", "NK-Python-Async-Builder")
                 return {
                     "domain_id": dom_id,
                     "domain_name": sc_meta.get("domain_name", "BUILD_AND_HEAL"),
-                    "primary_skill": dom_meta.get("primary_skill", "NK-Python-Async-Builder"),
+                    "primary_skill": primary_sk,
+                    "native_subagent": _resolve_native_subagent(
+                        dom_id, matched_skill=primary_sk, text=text_lower
+                    ),
                     "matched_triggers": [sc_name],
                 }
 
@@ -177,19 +243,28 @@ class VibeSprintRouter:
 
         if best_dom_id and best_score > 0:
             dom_meta = domains[best_dom_id]
+            primary_sk = dom_meta.get("primary_skill", "NK-Master-Hub")
             return {
                 "domain_id": best_dom_id,
                 "domain_name": dom_meta.get("name", ""),
-                "primary_skill": dom_meta.get("primary_skill", "NK-Master-Hub"),
+                "primary_skill": primary_sk,
+                "native_subagent": _resolve_native_subagent(
+                    best_dom_id, matched_skill=primary_sk, text=text_lower
+                ),
                 "matched_triggers": best_triggers,
             }
 
         for kw, entry in dispatch_table.items():
             if kw in tokens or (len(kw) >= 4 and kw in text_lower):
+                dom_id = entry.get("domain_id", "DOM-03")
+                primary_sk = entry.get("primary_agent", "NK-Python-Async-Builder")
                 return {
-                    "domain_id": entry.get("domain_id", "DOM-03"),
+                    "domain_id": dom_id,
                     "domain_name": entry.get("domain_name", "BUILD_AND_HEAL"),
-                    "primary_skill": entry.get("primary_agent", "NK-Python-Async-Builder"),
+                    "primary_skill": primary_sk,
+                    "native_subagent": _resolve_native_subagent(
+                        dom_id, matched_skill=primary_sk, text=text_lower
+                    ),
                     "matched_triggers": [kw],
                 }
 
@@ -199,12 +274,18 @@ class VibeSprintRouter:
                 "domain_id": "DOM-02",
                 "domain_name": "IDEATION_AND_ARCH",
                 "primary_skill": "NK-Ideator",
+                "native_subagent": _resolve_native_subagent(
+                    "DOM-02", matched_skill="NK-Ideator", text=text_lower
+                ),
                 "matched_triggers": [],
             }
         return {
             "domain_id": "DOM-03",
             "domain_name": "BUILD_AND_HEAL",
             "primary_skill": "NK-Python-Async-Builder",
+            "native_subagent": _resolve_native_subagent(
+                "DOM-03", matched_skill="NK-Python-Async-Builder", text=text_lower
+            ),
             "matched_triggers": [],
         }
 
@@ -228,6 +309,8 @@ class VibeSprintRouter:
                 "read_only": True,
                 "matched_keywords": matched,
                 "primary_agent": "NK-Ideator",
+                "native_subagent": "NK-Specifier-Agent",
+                "fast_bypass_eligible": False,
                 "domain_id": domain_info["domain_id"],
                 "domain_name": domain_info["domain_name"],
                 "tools_allowed": [
@@ -252,6 +335,15 @@ class VibeSprintRouter:
             "read_only": False,
             "matched_keywords": matched,
             "primary_agent": "NK-Python-Async-Builder",
+            "native_subagent": domain_info.get(
+                "native_subagent",
+                _resolve_native_subagent(
+                    domain_info["domain_id"],
+                    matched_skill=domain_info.get("primary_skill"),
+                    text=text_lower,
+                ),
+            ),
+            "fast_bypass_eligible": True,
             "domain_id": domain_info["domain_id"],
             "domain_name": domain_info["domain_name"],
             "tools_allowed": [],
@@ -278,6 +370,8 @@ class VibeSprintRouter:
             return {
                 "risk_score": risk,
                 "mode_eligible": eligible,
+                "fast_bypass_eligible": eligible,
+                "native_subagent": "NK-Builder-Agent",
                 "recommended_mode": recommended_mode,
                 "max_depth": 0,
                 "reason": f"Non-Python asset ({loc} LOC). Mode C eligible: {eligible}",
@@ -290,6 +384,8 @@ class VibeSprintRouter:
             return {
                 "risk_score": 1.0,
                 "mode_eligible": False,
+                "fast_bypass_eligible": False,
+                "native_subagent": "NK-Builder-Agent",
                 "recommended_mode": "mode_a",
                 "max_depth": 0,
                 "reason": f"SyntaxError in code: {exc}",
@@ -334,6 +430,8 @@ class VibeSprintRouter:
         return {
             "risk_score": risk,
             "mode_eligible": eligible,
+            "fast_bypass_eligible": eligible,
+            "native_subagent": "NK-Builder-Agent",
             "recommended_mode": recommended_mode,
             "loc": loc,
             "classes": class_count,
@@ -374,10 +472,12 @@ class VibeSprintRouter:
         return "\n".join(spec)
 
     def load_prewarmed_capsule(self) -> Dict[str, Any]:
-        """Carica la capsula di memoria Tier-1 pre-riscaldata se disponibile."""
+        """Carica la capsula di memoria Tier-1 pre-riscaldata con fallback a memory_3tier."""
         candidates = (
             self.staging_dir / "nk_tracking" / "memory" / "tier1_active_capsule.json",
             self.workspace_root / "nk_tracking" / "memory" / "tier1_active_capsule.json",
+            self.staging_dir / "nk_tracking" / "memory_3tier" / "tier1_active_capsule.json",
+            self.workspace_root / "nk_tracking" / "memory_3tier" / "tier1_active_capsule.json",
         )
         for cand in candidates:
             if cand.exists():
@@ -459,9 +559,17 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
     parser.add_argument(
         "--prompt",
+        "--task",
+        dest="prompt",
         type=str,
         default="Vibe Sprint Change",
         help="Descrizione sintetica dell'intento di modifica o discovery",
+    )
+    parser.add_argument(
+        "--mode",
+        type=str,
+        default=None,
+        help="Modalita operativa opzionale",
     )
     parser.add_argument(
         "--files",

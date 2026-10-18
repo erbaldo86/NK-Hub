@@ -48,7 +48,7 @@ def _is_subagent_transcript(transcript_path: Path) -> bool:
                 data = json.loads(line)
                 content = str(data.get("content", "") or "")
                 if (
-                    data.get("step_index", 1) == 1
+                    data.get("step_index", 1) in (0, 1)
                     and "<SYSTEM_MESSAGE>" in content
                     and "sender=" in content
                 ):

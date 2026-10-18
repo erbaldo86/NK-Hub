@@ -1,11 +1,12 @@
 {
   "version": "3.5.1-MODULAR-INDEX-RSI2",
   "milestone_anchor_id": "NK-MS-20261017-MODULAR-INDEX-v3.5.1-RSI2",
-  "generated_at": "2026-10-17T12:33:09Z",
+  "generated_at": "2026-10-18T09:41:09Z",
   "summary": {
     "total_domains": 5,
     "total_skills": 16,
     "total_scripts": 32,
+    "total_native_agents": 5,
     "crv_macro_phases": 4
   },
   "domains": {
@@ -228,7 +229,7 @@
       "version": "3.0.0-STE100-Unified",
       "description": "Costruttore L1 di System Instructions, regole e skill in standard ASD-STE100 Italiano (v3.0.0-STE100-Unified).",
       "thinking_level": "HIGH",
-      "role_identity": "Unified Meta-Prompter & ASD-STE100 Instruction Builder (L1)",
+      "role_identity": "Unified Meta-Prompter, Playbook SKILL.md & Sub-Agent Builder (L1)",
       "tools": [
         "view_file",
         "write_to_file",
@@ -238,11 +239,11 @@
         "send_message"
       ],
       "auxiliary_links": [],
-      "loc": 52,
-      "bytes": 3228,
-      "sha256": "fec665367cd9102f50fd543b398eea4188da22869837291ee4e1e120c4756dfa",
+      "loc": 54,
+      "bytes": 3794,
+      "sha256": "e58821e3ea303c6b62dc83ac8300058db87ba5533e6aef960dc14a92722f3817",
       "path": ".agents/skills/NK-Agent-Instruction-Forge/SKILL.md",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "NK-App-UX-Architect": {
       "name": "NK-App-UX-Architect",
@@ -252,7 +253,7 @@
       "version": "3.0.0-STE100-Unified",
       "description": "Architetto L3 per progettazione concettuale, Tetralogia Sovrana 4/4, Design System 8px/HSL e Generative UI (v3.0.0-STE100-Unified).",
       "thinking_level": "HIGH",
-      "role_identity": "Master Concept & UX/UI Specifier Architect (L3)",
+      "role_identity": "Master Concept, Mermaid & UX/UI Specifier Playbook (L3)",
       "tools": [
         "view_file",
         "write_to_file",
@@ -260,11 +261,11 @@
         "send_message"
       ],
       "auxiliary_links": [],
-      "loc": 67,
-      "bytes": 4058,
-      "sha256": "78937c449547034cc866b4ddef33c242f5bde6fc5a82d1afc074bb739e6bef71",
+      "loc": 68,
+      "bytes": 4353,
+      "sha256": "15f2c815f1f76f10dc90caf5f18e54bcf51cfb8a4617b20413b585b391b830d4",
       "path": ".agents/skills/NK-App-UX-Architect/SKILL.md",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "NK-Backend-Architect": {
       "name": "NK-Backend-Architect",
@@ -274,19 +275,20 @@
       "version": "3.0.0-STE100-Unified",
       "description": "Architetto L2 per topologie multi-agente DAG di Kahn, specifiche OpenAPI 3.0 e contratti Pydantic v2 (v3.0.0-STE100-Unified).",
       "thinking_level": "HIGH",
-      "role_identity": "Backend Topology & API Specifier Master Architect (L2)",
+      "role_identity": "Backend Topology, Cloud & API Specifier Playbook (L2)",
       "tools": [
         "view_file",
-        "write_to_file",
+        "run_command",
         "search_web",
+        "call_mcp_tool",
         "send_message"
       ],
       "auxiliary_links": [],
-      "loc": 61,
-      "bytes": 3785,
-      "sha256": "a02c837d8a9cdd27af00cac38b08847d8c35c091d9f02779d20ca8e0007ddc1b",
+      "loc": 63,
+      "bytes": 4386,
+      "sha256": "4b920ed1d35ecb8794a9f3816e52103e00e63125f2694b47c24e640cde57ff35",
       "path": ".agents/skills/NK-Backend-Architect/SKILL.md",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "NK-Bug-Diagnostic-Engine": {
       "name": "NK-Bug-Diagnostic-Engine",
@@ -294,9 +296,9 @@
       "domain_name": "AUDIT_DAST_AND_RCA",
       "sector": "AUDIT_DAST_AND_RCA",
       "version": "3.0.0-STE100-Unified",
-      "description": "Motore diagnostico RCA in sola lettura basato su SBFL Ochiai e False Bug Rejection Gate (v3.0.0-STE100-Unified).",
+      "description": "Playbook diagnostico RCA in sola lettura basato su SBFL Ochiai e False Bug Rejection Gate (v3.0.0-STE100-Unified).",
       "thinking_level": "HIGH",
-      "role_identity": "Bug Investigator, SBFL Ochiai Localizer & RCA Engine (100% Read-Only)",
+      "role_identity": "Bug Investigator, SBFL Ochiai Localizer & RCA Playbook Engine (100% Read-Only)",
       "tools": [
         "view_file",
         "run_command",
@@ -307,10 +309,10 @@
         "resources/rca_dual_language_template.md"
       ],
       "loc": 50,
-      "bytes": 3345,
-      "sha256": "abe067335e991a7599b54c311bdde58f82974968d82239d3096849d41a3b9b83",
+      "bytes": 3440,
+      "sha256": "1b3bb0b8a47cb9f2cebae721884a84e3f26de56a5d6b9d9958509ee2cad28237",
       "path": ".agents/skills/NK-Bug-Diagnostic-Engine/SKILL.md",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "NK-Delta-Architect": {
       "name": "NK-Delta-Architect",
@@ -318,9 +320,9 @@
       "domain_name": "BUILD_AND_HEAL",
       "sector": "BUILD_AND_HEAL",
       "version": "3.0.0-STE100-Unified",
-      "description": "Surgical Refiner e Worker post-rilascio in .staging/ con Two-Stage Grounding sulla Tetralogia Sovrana 4/4 (v3.0.0-STE100-Unified).",
+      "description": "Playbook Full-Stack, Frontend UI (TypeScript, React, Next.js, Tailwind CSS, HTML5/CSS3, generative_ui) e Surgical Multi-File Refiner in .staging/ (v3.0.0-STE100-Unified).",
       "thinking_level": "HIGH",
-      "role_identity": "Post-Release Surgical Refiner & Grounded Worker in .staging/ (L2)",
+      "role_identity": "Full-Stack Frontend UI Builder & Surgical Multi-File Refiner in .staging/ (L2)",
       "tools": [
         "view_file",
         "write_to_file",
@@ -332,11 +334,11 @@
       "auxiliary_links": [
         "resources/delta_brief_template.md"
       ],
-      "loc": 77,
-      "bytes": 4512,
-      "sha256": "d660d7c050988a889bb2e50b03b07353e726e9cf43b19c68b637a83178d67f02",
+      "loc": 80,
+      "bytes": 5193,
+      "sha256": "6f5f86e44ef08aca730768d87cbe43b512d9c2a8a92e089b726ce2064e24dd7c",
       "path": ".agents/skills/NK-Delta-Architect/SKILL.md",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "NK-Dynamic-Sandbox-StressTester": {
       "name": "NK-Dynamic-Sandbox-StressTester",
@@ -344,20 +346,21 @@
       "domain_name": "AUDIT_DAST_AND_RCA",
       "sector": "AUDIT_DAST_AND_RCA",
       "version": "3.0.0-STE100-Unified",
-      "description": "Motore DAST dinamico per stress test di concorrenza reale e verifica limiti in Shadow Sandbox (v3.0.0-STE100-Unified).",
+      "description": "Playbook DAST backend in Shadow Sandbox e verifica E2E Browser, DOM live, console, network e Lighthouse via chrome-devtools-mcp e puppeteer (v3.0.0-STE100-Unified).",
       "thinking_level": "HIGH",
-      "role_identity": "Dynamic Sandbox & Real DAST Concurrency Auditor (100% Read-Only)",
+      "role_identity": "Dynamic Sandbox DAST, E2E Browser, DOM Live & Lighthouse Auditor (100% Read-Only)",
       "tools": [
         "view_file",
         "run_command",
+        "call_mcp_tool",
         "send_message"
       ],
       "auxiliary_links": [],
-      "loc": 54,
-      "bytes": 3261,
-      "sha256": "78d323491fe2b51e590470d39ec705eecac03451018c1b01758eb456ad2b144b",
+      "loc": 65,
+      "bytes": 4638,
+      "sha256": "bc36ac0a3c41d666197662ac06a94ac8dafd816bd6a72c69aa77d64f8eb03b56",
       "path": ".agents/skills/NK-Dynamic-Sandbox-StressTester/SKILL.md",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "NK-Episodic-Memory-Engine": {
       "name": "NK-Episodic-Memory-Engine",
@@ -365,9 +368,9 @@
       "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
       "sector": "MEMORY_TELEMETRY_AND_DOCS",
       "version": "3.0.0-STE100-Unified",
-      "description": "Motore di memoria episodica a 3 livelli con BM25, Dense Cosine RRF e supporto Dual-Profile (v3.0.0-STE100-Unified).",
+      "description": "Playbook motore di memoria episodica a 3 livelli in nk_tracking/memory_3tier/ con BM25, Dense Cosine RRF e Dual-Profile (v3.0.0-STE100-Unified).",
       "thinking_level": "HIGH",
-      "role_identity": "3-Tier Episodic Memory & Hybrid BM25 + Cosine RRF Engine",
+      "role_identity": "3-Tier Episodic Memory & Hybrid BM25 + Cosine RRF Playbook Engine",
       "tools": [
         "view_file",
         "run_command",
@@ -375,10 +378,10 @@
       ],
       "auxiliary_links": [],
       "loc": 60,
-      "bytes": 3600,
-      "sha256": "b09af87930a2d1793609e11715bb83bec723f6b7e7bc3bdb6fd993e5bb35ea03",
+      "bytes": 3806,
+      "sha256": "ca3b2f614d256c6ee5be4ee96c8594a9e60a919b45ce15f1b069366ba9c8e0d9",
       "path": ".agents/skills/NK-Episodic-Memory-Engine/SKILL.md",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "NK-Ideator": {
       "name": "NK-Ideator",
@@ -388,10 +391,11 @@
       "version": "3.0.0-STE100-Unified",
       "description": "Nodo L0 per ideazione creativa, analisi SCAMPER e Turno 1 dell'Auto-Brief Swarm FSM (v3.0.0-STE100-Unified).",
       "thinking_level": "HIGH",
-      "role_identity": "Nexus Keystone 0 : Creative Ideation & Concept Node (L0)",
+      "role_identity": "Nexus Keystone 0 : Creative Ideation & Mode D Discovery Playbook (L0)",
       "tools": [
         "view_file",
         "write_to_file",
+        "run_command",
         "search_web",
         "call_mcp_tool",
         "send_message"
@@ -399,11 +403,11 @@
       "auxiliary_links": [
         "resources/idea_canvas_template.md"
       ],
-      "loc": 59,
-      "bytes": 3635,
-      "sha256": "467e4c81200b7447289a5c41c6de4f23cf3c74f96a329b89d7f1456db495a206",
+      "loc": 60,
+      "bytes": 4009,
+      "sha256": "02f5b2c2ba22f362415a92901bb8101c8a275e18d648617389cc724f02ff0e62",
       "path": ".agents/skills/NK-Ideator/SKILL.md",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "NK-Master-Hub": {
       "name": "NK-Master-Hub",
@@ -423,9 +427,9 @@
         "send_message"
       ],
       "auxiliary_links": [],
-      "loc": 172,
-      "bytes": 8593,
-      "sha256": "ffa5072811eb3a840999599bb3a803f1f9b9ab4144c539c883d95aa70fdc001b",
+      "loc": 176,
+      "bytes": 9469,
+      "sha256": "26459e2e3557037df811730520c62f866c50d9627be850bd669e30b4f917a7ac",
       "path": ".agents/skills/NK-Master-Hub/SKILL.md",
       "source_layer": "staging"
     },
@@ -435,9 +439,9 @@
       "domain_name": "AUDIT_DAST_AND_RCA",
       "sector": "AUDIT_DAST_AND_RCA",
       "version": "3.0.0-STE100-Unified",
-      "description": "Oracolo deterministico e Cold Auditor in sola lettura per la Macro-Fase 2 del CRV 4.0 e la verifica RSI (v3.0.0-STE100-Unified).",
+      "description": "Playbook Oracolo deterministico e Cold Auditor in sola lettura per i 6 Gate del CRV 4.0 e la verifica RSI (v3.0.0-STE100-Unified).",
       "thinking_level": "HIGH",
-      "role_identity": "Deterministic Cold Auditor & Truth Oracle (100% Read-Only)",
+      "role_identity": "Deterministic 6-Gate Cold Auditor & Truth Oracle Playbook (100% Read-Only)",
       "tools": [
         "view_file",
         "run_command",
@@ -448,10 +452,10 @@
         "references/verification_oracles.md"
       ],
       "loc": 58,
-      "bytes": 3824,
-      "sha256": "cc54481e9152476aa0c0c5d52468768a4e63c76cded07da6da2c71b84c002ef6",
+      "bytes": 3860,
+      "sha256": "414c99318d80614e519d863f30e27dc310c3adeb3fd94f5e6d2b67cd6ecb08b1",
       "path": ".agents/skills/NK-Oracle-Evaluator/SKILL.md",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "NK-Plan-Aligner": {
       "name": "NK-Plan-Aligner",
@@ -461,18 +465,18 @@
       "version": "3.0.0-STE100-Unified",
       "description": "Certificatore Turno 4 per l'allineamento 1:1 della Tetralogia Sovrana 4/4 e verifica RSI (v3.0.0-STE100-Unified).",
       "thinking_level": "HIGH",
-      "role_identity": "Sovereign Tetralogy 4/4 & RSI Convergence Certifier (Turn 4)",
+      "role_identity": "Sovereign Tetralogy 4/4, Fast-Spec & RSI Certifier Playbook (Turn 4)",
       "tools": [
         "view_file",
         "run_command",
         "send_message"
       ],
       "auxiliary_links": [],
-      "loc": 58,
-      "bytes": 3827,
-      "sha256": "688cbac791d6aa8a0025d66d628cb1505fb639490d0a5fd70816899123468c4c",
+      "loc": 56,
+      "bytes": 3899,
+      "sha256": "33d5c1ba65452e26e10613d87b3be4af5e25e731db9993cf820cc37a175a3aea",
       "path": ".agents/skills/NK-Plan-Aligner/SKILL.md",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "NK-Python-Async-Builder": {
       "name": "NK-Python-Async-Builder",
@@ -480,9 +484,9 @@
       "domain_name": "BUILD_AND_HEAL",
       "sector": "BUILD_AND_HEAL",
       "version": "3.0.0-STE100-Unified",
-      "description": "Builder primario Python asincrono in .staging/ con Pydantic v2, validazione AST e Fast-Healing Loop (v3.0.0-STE100-Unified).",
+      "description": "Playbook Core Backend Python asincrono in .staging/ con Pydantic v2 strict, SQLite WAL, Win32 64-bit e Fast-Healing (v3.0.0-STE100-Unified).",
       "thinking_level": "HIGH",
-      "role_identity": "Primary Python Async, Pydantic v2 & Win32 Builder (L2)",
+      "role_identity": "Core Async Python Backend, Pydantic v2 Strict, SQLite WAL & Win32 Builder (L2)",
       "tools": [
         "view_file",
         "write_to_file",
@@ -492,11 +496,11 @@
         "send_message"
       ],
       "auxiliary_links": [],
-      "loc": 56,
-      "bytes": 4032,
-      "sha256": "6a7a532ab8834a7ea0f21a34f01d180e4328b36520bee6d9b48ea4f4d831c97f",
+      "loc": 58,
+      "bytes": 4309,
+      "sha256": "19f1fbcce2b4d0663f916a1a6e9d2cc74716fac707eeffbbe360f862a953e9e0",
       "path": ".agents/skills/NK-Python-Async-Builder/SKILL.md",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "NK-Scribe": {
       "name": "NK-Scribe",
@@ -504,9 +508,9 @@
       "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
       "sector": "MEMORY_TELEMETRY_AND_DOCS",
       "version": "3.0.0-STE100-Unified",
-      "description": "Cronista post-commit per changelog SSOT, repo_map.md, quality_baseline.json e sincronizzazione Git (v3.0.0-STE100-Unified).",
+      "description": "Playbook cronista post-commit per changelog SSOT, repo_map.md, quality_baseline.json, verifica registro e sincronizzazione Git (v3.0.0-STE100-Unified).",
       "thinking_level": "HIGH",
-      "role_identity": "Sovereign Documentation, Changelog SSOT & Git Publisher Node",
+      "role_identity": "Sovereign Documentation, Changelog SSOT, Registry Verifier & Git Publisher Playbook",
       "tools": [
         "view_file",
         "write_to_file",
@@ -518,11 +522,11 @@
         "resources/activity_anchor_schema.md",
         "resources/scribe_knowledge.md"
       ],
-      "loc": 67,
-      "bytes": 4430,
-      "sha256": "1316eaadbd233d1efedd1f08eb1a0214e1673734be7303a53f501523fdd3adfd",
+      "loc": 68,
+      "bytes": 4645,
+      "sha256": "6512f2b18da0c0d3cae7375c02018fdcc40dcbe83c45337c801d14ebbb0632f7",
       "path": ".agents/skills/NK-Scribe/SKILL.md",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "NK-Security-Auditor": {
       "name": "NK-Security-Auditor",
@@ -530,9 +534,9 @@
       "domain_name": "AUDIT_DAST_AND_RCA",
       "sector": "AUDIT_DAST_AND_RCA",
       "version": "3.0.0-STE100-Unified",
-      "description": "Sistema unificato di audit TAS v4.0 Neuro-Simbolico SAST L1/L2/L3 e Chain-of-Verification in sola lettura (v3.0.0-STE100-Unified).",
+      "description": "Playbook di audit TAS v4.0 Neuro-Simbolico SAST L1/L2/L3 e Chain-of-Verification in sola lettura (v3.0.0-STE100-Unified).",
       "thinking_level": "HIGH",
-      "role_identity": "Unified Threat & SAST Auditor L1/L2/L3 (100% Strict Read-Only)",
+      "role_identity": "Neuro-Symbolic SAST Playbook Auditor L1/L2/L3 (100% Strict Read-Only)",
       "tools": [
         "view_file",
         "run_command",
@@ -545,10 +549,10 @@
         "resources/tas_l3_fullstack_system_audit.md"
       ],
       "loc": 68,
-      "bytes": 4936,
-      "sha256": "ff29556f6cc0c992e94fc5760622e7cc7ca4442fa8e744b2e83b7a380fd832b1",
+      "bytes": 5011,
+      "sha256": "acaec8019278bf658eb61e228423b5574c86322563593537eb530ab8721e24ea",
       "path": ".agents/skills/NK-Security-Auditor/SKILL.md",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "NK-Session-Controller": {
       "name": "NK-Session-Controller",
@@ -573,9 +577,9 @@
         "resources/prompt_templates.md",
         "resources/saturation_thresholds.yaml"
       ],
-      "loc": 95,
-      "bytes": 7356,
-      "sha256": "210b3317eda6aa8c4ac7bf679e5f142748843dc796e482cacf2a5aa168c6c0a4",
+      "loc": 96,
+      "bytes": 8005,
+      "sha256": "b9d515f2f149e0ec7b1ba301ac672c64567a096fff89f92d33be164fea46a74c",
       "path": ".agents/skills/NK-Session-Controller/SKILL.md",
       "source_layer": "staging"
     },
@@ -587,18 +591,18 @@
       "version": "3.0.0-STE100-Unified",
       "description": "Verificatore topologico DAG di Kahn e rilevatore di drift SHA-256 in modalità 100% sola lettura (v3.0.0-STE100-Unified).",
       "thinking_level": "HIGH",
-      "role_identity": "Read-Only Topological DAG Verifier & SHA-256 Drift Detector (L1)",
+      "role_identity": "Read-Only O(1) Registry, Preflight & Topological DAG Verifier Playbook (L1)",
       "tools": [
         "view_file",
         "run_command",
         "send_message"
       ],
       "auxiliary_links": [],
-      "loc": 54,
-      "bytes": 3139,
-      "sha256": "ffe20ab81b867bc0c32adae38655f372ad6c6c5473cdefbbe1ef036c859c12eb",
+      "loc": 56,
+      "bytes": 3556,
+      "sha256": "b0e55b42d7d0ef994c7b53b9cb2cd67ebbb112612fd128bf7df829cdc35c2d3e",
       "path": ".agents/skills/NK-State-Router/SKILL.md",
-      "source_layer": "staging"
+      "source_layer": "production"
     }
   },
   "scripts_index": {
@@ -612,11 +616,11 @@
         "--stage-dir",
         "--target"
       ],
-      "loc": 1165,
-      "bytes": 46933,
-      "sha256": "9c99de2d5c9393bb407f18c887bfc0557e6c4782e235d7e5fb1a9d434c9d08e8",
+      "loc": 1174,
+      "bytes": 47323,
+      "sha256": "275202442b88716dcf51490fa36a424704c11b520bbdc2f333e9c38af670c62a",
       "path": "scripts/ast_guard_validator.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "ast_repo_mapper.py": {
       "name": "ast_repo_mapper.py",
@@ -637,7 +641,7 @@
       "bytes": 64159,
       "sha256": "35b0d3415f718113a5c8d9ff03be46ba44e317bbcf489df6d83eefbd306d7207",
       "path": "scripts/ast_repo_mapper.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "async_heartbeat_signaler.py": {
       "name": "async_heartbeat_signaler.py",
@@ -657,7 +661,7 @@
       "bytes": 7727,
       "sha256": "eb12de020c2f55c5eb563ae4cecbe96af389ef8e079b0be069e1033f9aad7ed8",
       "path": "scripts/async_heartbeat_signaler.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "auto_heal_pipeline.py": {
       "name": "auto_heal_pipeline.py",
@@ -675,7 +679,7 @@
       "bytes": 17003,
       "sha256": "8026ea63092ddb50878655f069f77baef50cab943ca5f11be1f87122ee614e1f",
       "path": "scripts/auto_heal_pipeline.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "dast_sandbox_runner.py": {
       "name": "dast_sandbox_runner.py",
@@ -691,7 +695,7 @@
       "bytes": 25776,
       "sha256": "515d365208e39af528fede8cc8c597462c39414056edfa26695dd21419774e00",
       "path": "scripts/dast_sandbox_runner.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "deterministic_api_cache.py": {
       "name": "deterministic_api_cache.py",
@@ -708,7 +712,7 @@
       "bytes": 10373,
       "sha256": "504dd3f749eb1ca85969970751556cd1328c880712f686ad7ff725da96f23f42",
       "path": "scripts/deterministic_api_cache.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "env_capability_probe.py": {
       "name": "env_capability_probe.py",
@@ -724,7 +728,7 @@
       "bytes": 10560,
       "sha256": "cee0957e4c689c78fdf58aa3718fac2d0c13627e406138099a0c85a2b2939e31",
       "path": "scripts/env_capability_probe.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "external_project_scaffolder.py": {
       "name": "external_project_scaffolder.py",
@@ -739,7 +743,7 @@
       "bytes": 8145,
       "sha256": "81ac179d6b8b67c83ea1defc328d9109f0c0749bbd1a1d733a226f9d1a947883",
       "path": "scripts/external_project_scaffolder.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "healing_snapshot_rollback.py": {
       "name": "healing_snapshot_rollback.py",
@@ -755,7 +759,7 @@
       "bytes": 13484,
       "sha256": "61d5efcb7818d8be27de3a72a9f9bae8b3cc803a50df2b9096025613b03c32eb",
       "path": "scripts/healing_snapshot_rollback.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "invisible_healing_loop.py": {
       "name": "invisible_healing_loop.py",
@@ -773,7 +777,7 @@
       "bytes": 14772,
       "sha256": "f78599ed86acca5fccdb86428b6297afd5d3d9e592a59cbbe865cfd86e93a6ae",
       "path": "scripts/invisible_healing_loop.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "memory_3tier_engine.py": {
       "name": "memory_3tier_engine.py",
@@ -798,7 +802,7 @@
       "bytes": 30888,
       "sha256": "f32b65c8db2a005a38b2c052ea442d68e70877d367ddcac1580c08c3b1774a84",
       "path": "scripts/memory_3tier_engine.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "micro_hud_renderer.py": {
       "name": "micro_hud_renderer.py",
@@ -817,7 +821,7 @@
       "bytes": 13017,
       "sha256": "2e4ca26b51903ef7f00bd564d55856b5c79ce49aace4098410768c6201959fac",
       "path": "scripts/micro_hud_renderer.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "nk_active_runtime_sentinel.py": {
       "name": "nk_active_runtime_sentinel.py",
@@ -831,10 +835,10 @@
         "--transcript"
       ],
       "loc": 141,
-      "bytes": 4175,
-      "sha256": "9b4532271bd82dccd91ee145127832d8820ea63bbb3e1acf27f1c0ae7dc655b0",
+      "bytes": 4180,
+      "sha256": "a32eb2abef767f0cdbdcedd71d4262d2f40b57a945df74a183c12b2ba3bb1b27",
       "path": "scripts/nk_active_runtime_sentinel.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "nk_auto_inning.py": {
       "name": "nk_auto_inning.py",
@@ -852,7 +856,7 @@
       "bytes": 3230,
       "sha256": "04228bcf05a2346ed4f8fce19ccb4f2c887ea8b4930d5fb9038185d8aa5c7851",
       "path": "scripts/nk_auto_inning.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "nk_compliance_checker.py": {
       "name": "nk_compliance_checker.py",
@@ -864,11 +868,11 @@
         "--min-score",
         "--transcript"
       ],
-      "loc": 551,
-      "bytes": 20951,
-      "sha256": "d0aca0502bd8a77256c5f9b0ae22134c5fe1aac8f00d46486ffc32af579ce76e",
+      "loc": 561,
+      "bytes": 21450,
+      "sha256": "c959ddf0b93b9a3c20195553f01a6e6948bf9fb45fc0e857db2ac8fcdb7863f7",
       "path": "scripts/nk_compliance_checker.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "nk_context_sentry.py": {
       "name": "nk_context_sentry.py",
@@ -885,7 +889,7 @@
       "bytes": 14352,
       "sha256": "2079bc63f5d7ba2d2157584f05cbdc7057dd88f85fdf399f40c20418073c3625",
       "path": "scripts/nk_context_sentry.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "nk_registry_indexer.py": {
       "name": "nk_registry_indexer.py",
@@ -901,9 +905,9 @@
         "--sync",
         "--verify"
       ],
-      "loc": 1396,
-      "bytes": 54364,
-      "sha256": "5c3833f8b41b827bfc0212bfc38624a79d28fb15111f457e2fe175719ed229d7",
+      "loc": 1618,
+      "bytes": 64598,
+      "sha256": "5a0d3e9078372721a77f2d46495c98465d4923f9f4ab3dee163c8e0dbb10260b",
       "path": "scripts/nk_registry_indexer.py",
       "source_layer": "staging"
     },
@@ -920,7 +924,7 @@
       "bytes": 24552,
       "sha256": "671fb5c960b555e8e9909ed58ff7a1d5993e07bdff01562951d2f956cf21f9a1",
       "path": "scripts/nk_session_bootstrap.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "nk_session_handoff.py": {
       "name": "nk_session_handoff.py",
@@ -937,7 +941,7 @@
       "bytes": 5120,
       "sha256": "1055fede72d78623d53b76377af5f6de53a76f4228c09db3d5df949bed87bc71",
       "path": "scripts/nk_session_handoff.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "nk_swarm_messenger.py": {
       "name": "nk_swarm_messenger.py",
@@ -954,7 +958,7 @@
       "bytes": 2740,
       "sha256": "bcde0726690bb0a4364f503893b3ce560dbdc5596155b26135805b5c5e1420e7",
       "path": "scripts/nk_swarm_messenger.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "oracle_evaluator_l3.py": {
       "name": "oracle_evaluator_l3.py",
@@ -970,7 +974,7 @@
       "bytes": 13848,
       "sha256": "2234bd46e8e56278ab7641df4811b8dd8ccb0d1c033faa6f85138a96411e9d45",
       "path": "scripts/oracle_evaluator_l3.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "platform_runner.py": {
       "name": "platform_runner.py",
@@ -987,7 +991,7 @@
       "bytes": 7072,
       "sha256": "80313464c8a0a98f6099f5ba63052fa61837071e5c35f3fec23574e8f0cfe3c9",
       "path": "scripts/platform_runner.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "preflight_health_check.py": {
       "name": "preflight_health_check.py",
@@ -1002,7 +1006,7 @@
       "bytes": 18905,
       "sha256": "d0861442e840491ed4cc09c39564abe32a8eacaae42dbdd525914fcac59f8c67",
       "path": "scripts/preflight_health_check.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "quality_baseline_manager.py": {
       "name": "quality_baseline_manager.py",
@@ -1022,7 +1026,7 @@
       "bytes": 14121,
       "sha256": "8923d50a39b30964ead10cb2fe394c03fbc258fd57dac77625e9f78f0d1fcad5",
       "path": "scripts/quality_baseline_manager.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "rsi_convergence_engine.py": {
       "name": "rsi_convergence_engine.py",
@@ -1038,11 +1042,11 @@
         "--verify",
         "--vibe-check"
       ],
-      "loc": 1343,
-      "bytes": 52178,
-      "sha256": "99cd4b1d4d8cb19eb4adb79f240061f3b2925aab59dc9d72a169a9db44a5e488",
+      "loc": 1372,
+      "bytes": 53217,
+      "sha256": "bbd476548286713a7396853c36dfdfaf55366cd10518698a028510d2b6cd9f90",
       "path": "scripts/rsi_convergence_engine.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "safe_cleanup_dev_servers.py": {
       "name": "safe_cleanup_dev_servers.py",
@@ -1058,7 +1062,7 @@
       "bytes": 7524,
       "sha256": "aed1388e3fda68586f3dd7022356ea511a46324858602346a207454cca64b9b0",
       "path": "scripts/safe_cleanup_dev_servers.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "sbfl_engine.py": {
       "name": "sbfl_engine.py",
@@ -1073,7 +1077,7 @@
       "bytes": 17538,
       "sha256": "56f8c7e2249baa0bd918eec34f3904411e095bbb562e6d66d6bf0c8993ae58e0",
       "path": "scripts/sbfl_engine.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "sbfl_pytest_bridge.py": {
       "name": "sbfl_pytest_bridge.py",
@@ -1090,7 +1094,7 @@
       "bytes": 15819,
       "sha256": "0ff0a6c3b252ced1f02c46b7b0deca50f98a34fb1738ecf0d90781fe60680379",
       "path": "scripts/sbfl_pytest_bridge.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "schemas/dual_ledgers.py": {
       "name": "schemas/dual_ledgers.py",
@@ -1102,7 +1106,7 @@
       "bytes": 15253,
       "sha256": "9154623e74df03a3fd9374ded545fdbbfc4b333ae89b2cec9a44b54f120784d9",
       "path": "scripts/schemas/dual_ledgers.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "schemas/nk_ipc_contracts.py": {
       "name": "schemas/nk_ipc_contracts.py",
@@ -1114,7 +1118,7 @@
       "bytes": 8445,
       "sha256": "7f5fdbf583cfc3c42d6d3bcce50589485ac135cafbafa96f41cd23fadfe88eb3",
       "path": "scripts/schemas/nk_ipc_contracts.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "vibe_sprint_router.py": {
       "name": "vibe_sprint_router.py",
@@ -1126,12 +1130,14 @@
         "--discovery-check",
         "--files",
         "--json",
+        "--mode",
         "--prompt",
+        "--task",
         "--test"
       ],
-      "loc": 544,
-      "bytes": 19690,
-      "sha256": "10405a03651853f9cd9e8e02608f31a9e74e479fee19c74c990098adcbc7b294",
+      "loc": 652,
+      "bytes": 23979,
+      "sha256": "09609641bdb1538d634abc65d58489e64251572202f776b89d59ac4428297f90",
       "path": "scripts/vibe_sprint_router.py",
       "source_layer": "staging"
     },
@@ -1152,6 +1158,78 @@
       "bytes": 31462,
       "sha256": "a0a30838d4b2d9c3cef0cedb20e0f351b96c58fae01dcb4fad4b804a07ae9566",
       "path": "scripts/win32_2pc_engine.py",
+      "source_layer": "production"
+    }
+  },
+  "native_agents_index": {
+    "NK-Builder-Agent": {
+      "name": "NK-Builder-Agent",
+      "description": "Sub-Agente nativo DOM-03 per sviluppo Python asincrono, Full-Stack/Frontend UI e forgiatura Playbook in .staging/ (v3.0.0-STE100-Unified).",
+      "domain_id": "DOM-03",
+      "domain_name": "BUILD_AND_HEAL",
+      "enable_write_tools": true,
+      "enable_subagent_tools": false,
+      "enable_mcp_tools": false,
+      "loc": 33,
+      "bytes": 2163,
+      "sha256": "1cc8a86b377160aea7aafb7123497d8668b0de39ba1ae7bf5d9cdfe27d13663a",
+      "path": ".agents/agents/NK-Builder-Agent/agent.md",
+      "source_layer": "staging"
+    },
+    "NK-RSI-Auditor": {
+      "name": "NK-RSI-Auditor",
+      "description": "Sub-Agente Critic ed Evaluator in sola lettura per i 6 Gate, convergenza RSI, registro O(1) e DAG di Kahn (v3.0.0-STE100-Unified).",
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "enable_write_tools": false,
+      "enable_subagent_tools": false,
+      "enable_mcp_tools": false,
+      "loc": 33,
+      "bytes": 2060,
+      "sha256": "1d605e3cfd065b5575f6a7dbf447270b09497164f1c704c99d4318d2f48ca296",
+      "path": ".agents/agents/NK-RSI-Auditor/agent.md",
+      "source_layer": "staging"
+    },
+    "NK-Scribe-Agent": {
+      "name": "NK-Scribe-Agent",
+      "description": "Sub-Agente nativo DOM-05 per sincronizzazione documentale SSOT, Repo-Map AST, Quality Baseline e Memoria Episodica 3-Tier (v3.0.0-STE100-Unified).",
+      "domain_id": "DOM-05",
+      "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
+      "enable_write_tools": true,
+      "enable_subagent_tools": false,
+      "enable_mcp_tools": false,
+      "loc": 33,
+      "bytes": 2008,
+      "sha256": "5b015d539a535a2158ddf63b5638b1609a373561284256c54fd1427421664a71",
+      "path": ".agents/agents/NK-Scribe-Agent/agent.md",
+      "source_layer": "staging"
+    },
+    "NK-Security-DAST-Auditor": {
+      "name": "NK-Security-DAST-Auditor",
+      "description": "Sub-Agente nativo DOM-04 in sola lettura per audit SAST L1/L2/L3, stress test DAST, Browser E2E MCP e diagnosi SBFL (v3.0.0-STE100-Unified).",
+      "domain_id": "DOM-04",
+      "domain_name": "AUDIT_DAST_AND_RCA",
+      "enable_write_tools": false,
+      "enable_subagent_tools": false,
+      "enable_mcp_tools": true,
+      "loc": 33,
+      "bytes": 2084,
+      "sha256": "dc4118cc29ceb7a333a59e2971ef4a2385602d2d80acc8843a36856abca4bb59",
+      "path": ".agents/agents/NK-Security-DAST-Auditor/agent.md",
+      "source_layer": "staging"
+    },
+    "NK-Specifier-Agent": {
+      "name": "NK-Specifier-Agent",
+      "description": "Sub-Agente nativo DOM-02 per ideazione, specifica UX/UI, architettura backend e allineamento Tetralogia 4/4 (v3.0.0-STE100-Unified).",
+      "domain_id": "DOM-02",
+      "domain_name": "IDEATION_AND_ARCH",
+      "enable_write_tools": true,
+      "enable_subagent_tools": false,
+      "enable_mcp_tools": true,
+      "loc": 33,
+      "bytes": 2206,
+      "sha256": "475038bcb707ed41a264e395d654aa47c2476c6b9f5f2de7890c1697a6797548",
+      "path": ".agents/agents/NK-Specifier-Agent/agent.md",
       "source_layer": "staging"
     }
   },

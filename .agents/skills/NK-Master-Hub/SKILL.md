@@ -13,10 +13,10 @@ sector: "GOV_AND_ROUTING"
 <strict_boundaries>
 1. SOVEREIGNTY_HIERARCHY [RULE-01.7]: `NK-Master-Hub` opera come Sovrano Infrastrutturale L3. Gestisce i lock Win32, il DAG di Kahn e il commit atomico tramite `scripts/win32_2pc_engine.py`. Promuove i file da `.staging/` alla cartella del progetto esterno secondo `[RULE-PROJECT-ISOLATION]`.
 2. RESEARCH-FIRST DIRECTIVE [RULE-02.4]: Esegui una ricerca web preventiva per validare pattern architetturali complessi.
-3. ANTI-POLLING DIRECTIVE [RULE-REACTIVE-SILENCE]: Usa il modello reattivo asincrono e cedi il turno dopo l'avvio dei task.
+3. ANTI-POLLING DIRECTIVE [RULE-REACTIVE-SILENCE]: Usa il modello reattivo asincrono e cedi il turno dopo l'avvio dei task. Imposta il watchdog `schedule(DurationSeconds=180, TimerCondition="any")` quando attendi sub-agenti asincroni e sostituisci i worker oltre `100` step. Formatta i messaggi IPC sotto `1.800` caratteri con `scripts/nk_swarm_messenger.py`.
 4. SHUTDOWN BEFORE EDIT [RULE-01.3]: Ferma i processi demone con `manage_task(Action="kill", TaskId="<id>")` prima del commit atomico.
 5. MACRO-FASE 3 & 4 (2PC Commit & Teardown) [RULE-01.1]: Esegui il commit 2PC con `scripts/win32_2pc_engine.py`. Aggiorna la memoria con `scripts/memory_3tier_engine.py` e verifica il ratchet con `scripts/quality_baseline_manager.py`. Delega la sincronizzazione documentale a `NK-Scribe` e rimuovi le sandbox in `%TEMP%\nk_sandbox_*`.
-6. FAST-STAT BOOTSTRAP GATE [RULE-00.5]: All'avvio dell'Hub esegui solo `scripts/nk_session_bootstrap.py` in modalità Fast-Stat (<120ms). Usa `scripts/preflight_health_check.py` solo durante manutenzioni diagnostiche esplicite secondo `[RULE-02.3.1]`.
+6. FAST-STAT BOOTSTRAP GATE [RULE-00.5]: All'avvio dell'Hub esegui solo `scripts/nk_session_bootstrap.py` in modalità Fast-Stat (<120ms). Usa `scripts/preflight_health_check.py` solo durante manutenzioni diagnostiche esplicite secondo `[RULE-02.3.1]`. Interroga il registro in O(1) con `scripts/nk_registry_indexer.py --lookup` secondo `[RULE-01.14]`.
 7. ASD-STE100 LANGUAGE MANDATE [RULE-STE100]: Scrivi frasi attive di massimo 20 parole con una sola istruzione per frase.
 </strict_boundaries>
 
@@ -80,10 +80,10 @@ Seleziona un nodo operativo o descrivi il progetto da avviare:
 </details>
 
 <details>
-<summary><b>[5] 🔄 NK-Delta-Architect</b> : <i>Grounded Post-Release Worker e Delta Execution</i></summary>
+<summary><b>[5] 🔄 NK-Delta-Architect</b> : <i>Full-Stack, Frontend UI e Delta Execution</i></summary>
 
 > [!NOTE]
-> - **Scopo:** Esegue il Two-Stage Grounding sulla Tetralogia Sovrana 4/4 e applica patch chirurgiche in `.staging/`.
+> - **Scopo:** Sviluppa interfacce Full-Stack e Frontend UI (`TypeScript`, `React`, `Tailwind`, `generative_ui`) e applica patch chirurgiche in `.staging/`.
 > - **Output:** Worker Execution Receipt v3.0 e modifiche isolate in `.staging/`.
 </details>
 
@@ -104,11 +104,11 @@ Seleziona un nodo operativo o descrivi il progetto da avviare:
 </details>
 
 <details>
-<summary><b>[8] ⚡ NK-Dynamic-Sandbox-StressTester</b> : <i>Real DAST Concurrency e Sandbox Stress Engine</i></summary>
+<summary><b>[8] ⚡ NK-Dynamic-Sandbox-StressTester</b> : <i>Real DAST e Browser E2E MCP Engine</i></summary>
 
 > [!NOTE]
-> - **Scopo:** Esegue stress test dinamici DAST in `%TEMP%\nk_sandbox_<uuid>\` tramite `scripts/dast_sandbox_runner.py`.
-> - **Output:** `DAST_Report_[target]_[TIMESTAMP].md` con metriche di concorrenza reale.
+> - **Scopo:** Esegue stress test DAST (`scripts/dast_sandbox_runner.py`) e verifiche Browser E2E via MCP (`chrome-devtools-mcp`, `puppeteer`).
+> - **Output:** `DAST_Report_[target]_[TIMESTAMP].md` con metriche di concorrenza e audit E2E.
 </details>
 
 <details>
@@ -156,15 +156,19 @@ Seleziona un nodo operativo o descrivi il progetto da avviare:
 
 > [!NOTE]
 > - **Scopo:** Coordina l'Auto-Brief Swarm FSM a 5 turni, il motore RSI (`scripts/rsi_convergence_engine.py`) e la Cold Review.
-> - **Output:** Orchestrazione Mode A/B/C e convergenza matematica $\Delta_k = 0$.
+> - **Output:** Orchestrazione Mode A/B/C/D e convergenza matematica $\Delta_k = 0$.
 </details>
 
 > [!TIP]
 > **💡 Come utilizzare al meglio l'ambiente NK:**
-> - **Selezione Rapida (Facoltativa):** Digita il numero corrispondente **`[0]`..`[14]`** per consultare o attivare direttamente un singolo nodo specialistico.
+> - **Selezione Rapida (Modalità Diretta):** Digita il numero corrispondente **`[0]`..`[14]`** per consultare o attivare direttamente un singolo nodo specialistico.
 > - **Modalità Goal-Driven (Consigliata):** Descrivi in linguaggio naturale cosa desideri realizzare. `NK-Session-Controller` e `NK-Master-Hub` coordinano automaticamente i sub-agenti in background fino al completamento verificato.
 
 Coordina i Builder in `.staging/` ed esegui il commit atomico sicuro tramite `scripts/win32_2pc_engine.py`.
+Delega ai 5 Sub-Agenti Nativi in `.agents/agents/`: `NK-Specifier-Agent`, `NK-Builder-Agent`, `NK-Security-DAST-Auditor`, `NK-RSI-Auditor` e `NK-Scribe-Agent`.
+Attiva il Fast-Bypass in `Mode C` (`<= 150` LOC) per task rapidi in `.staging/`.
+Risolvi i domini con `scripts/nk_registry_indexer.py --lookup` e formatta i messaggi con `scripts/nk_swarm_messenger.py`.
+Inietta `<env_capsule>` nei prompt con `python -m pytest`, zero `view_file` alla cieca e zero `python -c` complessi.
 
 ## 🔄 Protocollo Tensor-RSI (`<rsi_micro_loop>`)
 - **Configurazione:** Livello `L2` (`Gatekeeper` per `CODE_RSI`, `SPEC_RSI`, `UI_UX_RSI`, `STE100_RSI`, `VIBE_SPRINT_MICRO_RSI`) con cap `1` (Gate 2PC).

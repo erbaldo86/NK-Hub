@@ -46,7 +46,7 @@
     },
     "active_mode": {
       "type": "string",
-      "enum": ["MODE_A_SOVEREIGN", "MODE_B_FAST_TRACK", "MODE_C_VIBE_SPRINT"]
+      "enum": ["MODE_A_SOVEREIGN", "MODE_B_FAST_TRACK", "MODE_C_VIBE_SPRINT", "MODE_D_DISCOVERY"]
     },
     "milestone_anchor_id": {
       "type": "string"
@@ -88,9 +88,10 @@
             "NONE",
             "GATE_1_SCOPE",
             "GATE_2_CODE_GROUNDING",
-            "GATE_2BIS_BRIEF_GROUNDING",
-            "GATE_3_PRESERVATION",
-            "GATE_4_TRUTH_AND_RSI",
+            "GATE_3_BRIEF_GROUNDING",
+            "GATE_4_PRESERVATION",
+            "GATE_5_TRUTH_DAST",
+            "GATE_6_RSI_CONVERGENCE",
             "ALL_PASSED"
           ]
         }

@@ -1,23 +1,23 @@
 {
-  "_version": "3.3.0-GT68-Pareto-Zero-Padding",
+  "_version": "4.0.0-Native-Swarm-Playbooks",
   "project": "NK_Project",
   "baseline_date": "2026-08-20T22:45:00.000000",
-  "last_updated": "2026-10-17T12:35:00.000000",
+  "last_updated": "2026-10-18T12:14:00.000000",
   "metrics": {
     "skills_audited": {
       "value": 16,
       "direction": "higher_is_better"
     },
     "total_golden_tests": {
-      "value": 74,
+      "value": 86,
       "direction": "higher_is_better"
     },
     "unit_tests_total": {
-      "value": 74,
+      "value": 86,
       "direction": "higher_is_better"
     },
     "unit_tests_passed": {
-      "value": 74,
+      "value": 86,
       "direction": "higher_is_better"
     },
     "unit_tests_pass_pct": {
@@ -191,6 +191,20 @@
         "total_golden_tests": 74,
         "unit_tests_total": 74,
         "unit_tests_passed": 74,
+        "unit_tests_pass_pct": 100.0,
+        "pass_rate_pct": 100.0,
+        "pass_rate_percent": 100.0,
+        "stress_test_concurrency_pass": 4,
+        "rsi_convergence_score": 100.0,
+        "rsi_residual_delta": 0
+      }
+    },
+    {
+      "timestamp": "2026-10-18T12:14:00.000000",
+      "metrics": {
+        "total_golden_tests": 86,
+        "unit_tests_total": 86,
+        "unit_tests_passed": 86,
         "unit_tests_pass_pct": 100.0,
         "pass_rate_pct": 100.0,
         "pass_rate_percent": 100.0,

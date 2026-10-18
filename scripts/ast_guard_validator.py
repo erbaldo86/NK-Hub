@@ -1045,9 +1045,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Deterministic AST Guard Validator")
     parser.add_argument(
         "target_path",
-        nargs="?",
+        nargs="*",
         default=None,
-        help="Percorso del file o directory Python da scansionare, oppure 'all'",
+        help="Percorso/i del file o directory Python da scansionare, oppure 'all'",
     )
     parser.add_argument(
         "--target",
@@ -1064,14 +1064,22 @@ def main() -> int:
     )
 
     args = parser.parse_args()
-    raw_target = args.target or args.target_path
+    raw_targets: List[str] = []
+    if args.target:
+        raw_targets.append(args.target)
+    if args.target_path:
+        if isinstance(args.target_path, list):
+            raw_targets.extend(str(x) for x in args.target_path if str(x).strip())
+        elif str(args.target_path).strip():
+            raw_targets.append(str(args.target_path).strip())
+
+    if not raw_targets:
+        raw_targets = ["all"]
+
     allowed_set = {
         s.strip() for s in args.allowed_mutations.split(",") if s.strip()
     }
     validator = ASTGuardValidator(allowed_mutations=allowed_set)
-
-    if not raw_target:
-        raw_target = "all"
 
     script_dir = Path(__file__).resolve().parent
     workspace_root = (
@@ -1081,17 +1089,18 @@ def main() -> int:
     )
 
     targets_to_scan: List[Path] = []
-    if raw_target.lower() == "all":
-        for candidate in ["scripts", "tests"]:
-            cand_path = workspace_root / candidate
-            if cand_path.exists():
-                targets_to_scan.append(cand_path)
-    else:
-        p = Path(raw_target)
-        if not p.exists():
-            print(f"[ERROR] Path does not exist: {p}")
-            return 1
-        targets_to_scan.append(p)
+    for raw_target in raw_targets:
+        if raw_target.lower() == "all":
+            for candidate in ["scripts", "tests"]:
+                cand_path = workspace_root / candidate
+                if cand_path.exists():
+                    targets_to_scan.append(cand_path)
+        else:
+            p = Path(raw_target)
+            if not p.exists():
+                print(f"[ERROR] Path does not exist: {p}")
+                return 1
+            targets_to_scan.append(p)
 
     py_files: List[Path] = []
     for t in targets_to_scan:

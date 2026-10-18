@@ -14,8 +14,9 @@
 
 ## 2. Sincronizzazione della Tetralogia e dei File Root
 1. Rigenera `nk_genome/repo_map.md` tramite `python scripts/ast_repo_mapper.py --snapshot-out nk_genome/repo_map.md` (`[RULE-01.13]`).
-2. Allinea `README.md` e `README.it.md` al numero reale di moduli (`30` logici, `33` file Python) e Golden Tests.
-3. Verifica il ratchet di qualità in `nk_tracking/quality_baseline.json` tramite `scripts/quality_baseline_manager.py` (`[RULE-01.10]`).
+2. Allinea `README.md` e `README.it.md` al numero reale di moduli (`30` logici, `33` file Python) e ai 68 Golden Tests (`[RULE-01.10]`).
+3. Verifica il ratchet dei 68 Golden Tests in `nk_tracking/quality_baseline.json` tramite `scripts/quality_baseline_manager.py check` (`[RULE-01.10]`).
+4. Verifica l'allineamento post-commit del registro O(1) tramite `python scripts/nk_registry_indexer.py --verify` (`[RULE-01.14]`).
 
 ## 3. Sequenza Git Sicura con Staging Esplicito (`U-52`)
 1. Esegui `git status --short` per ispezionare lo stato dell'albero di lavoro.

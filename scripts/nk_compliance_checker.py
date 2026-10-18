@@ -90,7 +90,7 @@ def _is_subagent_transcript(transcript_path: Path) -> bool:
                 data = json.loads(line)
                 content = str(data.get("content", "") or "")
                 if (
-                    data.get("step_index", 1) == 1
+                    data.get("step_index", 1) in (0, 1)
                     and "<SYSTEM_MESSAGE>" in content
                     and "sender=" in content
                 ):
@@ -128,6 +128,10 @@ def _is_production_code_write(target_file: str) -> bool:
     for marker in EXEMPT_WRITE_MARKERS:
         if marker in norm:
             return False
+    if norm.endswith((".md", ".txt", ".jsonl")) or any(
+        tok in norm for tok in ("benchmark_", "reports_and_briefs")
+    ):
+        return False
     return True
 
 
@@ -218,6 +222,7 @@ class NKComplianceChecker:
                 "message": f"Transcript file not found: {transcript_file}",
             }
 
+        is_subagent = _is_subagent_transcript(transcript_file)
         total_steps = 0
         total_tool_calls = 0
         polling_calls = 0
@@ -262,8 +267,12 @@ class NKComplianceChecker:
                     ):
                         healing_loop_executed = True
 
-                    # OPT-6 + OPT-12: rileva exit code != 0 esentando REFINING convergenti e audit esterni
-                    m_exit = _EXIT_CODE_RE.search(content_text)
+                    # OPT-6 + OPT-12 + OPT-VIBE-2: rileva exit code != 0 esentando view_file, REFINING e audit esterni
+                    m_exit = (
+                        None
+                        if "File Path: `file:///" in content_text
+                        else _EXIT_CODE_RE.search(content_text)
+                    )
                     if m_exit and m_exit.group(1) != "0":
                         err_kind = _is_exempt_diagnostic_nonzero(content_text)
                         if err_kind == "INTERMEDIATE_REFINING":
@@ -343,7 +352,7 @@ class NKComplianceChecker:
         sentry_res: Dict[str, Any] = {}
         if NKContextSentry is not None:
             inferred_profile = os.environ.get("NK_MODEL_PROFILE")
-            if not inferred_profile and bootstrap_executed:
+            if not inferred_profile and (bootstrap_executed or is_subagent):
                 inferred_profile = "argon"
             sentry = NKContextSentry(
                 workspace_root=self.workspace_root, profile=inferred_profile
@@ -402,19 +411,20 @@ class NKComplianceChecker:
                 f"Swarm hygiene violation: {swarm_violations} oversized inter-agent message(s) (>2000 chars) [-{swarm_penalty}]"
             )
 
-        # 4. Penalita Oggettiva DDI (GT-03 + OPT-6: step streak o call streak > 12 -> -20 punti)
+        # 4. Penalita Oggettiva DDI (GT-03 + OPT-6 + OPT-VIBE-2: esenta sub-agenti 2-Tier senza tool di delega)
         sentry_streak = int(sentry_res.get("max_consecutive_direct_audit", 0))
         max_consecutive_direct = max(sentry_streak, max_direct_tool_calls_streak)
-        if max_consecutive_direct > self.DDI_DIRECT_STREAK_LIMIT:
-            procedural_score -= 20
-            penalties.append(
-                f"Objective DDI violation: {max_consecutive_direct} consecutive direct tools without delegation (>{self.DDI_DIRECT_STREAK_LIMIT}) [-20]"
-            )
-        elif code_write_calls > 10 and subagents_invoked == 0:
-            procedural_score -= 25
-            penalties.append(
-                "Monolithic write pattern: >10 writes without subagent delegation (DDI violation) [-25]"
-            )
+        if not is_subagent:
+            if max_consecutive_direct > self.DDI_DIRECT_STREAK_LIMIT:
+                procedural_score -= 20
+                penalties.append(
+                    f"Objective DDI violation: {max_consecutive_direct} consecutive direct tools without delegation (>{self.DDI_DIRECT_STREAK_LIMIT}) [-20]"
+                )
+            elif code_write_calls > 10 and subagents_invoked == 0:
+                procedural_score -= 25
+                penalties.append(
+                    "Monolithic write pattern: >10 writes without subagent delegation (DDI violation) [-25]"
+                )
 
         # 5. Penalita Bypass Staging su scritture di codice (GT-08, U-18)
         if code_write_calls > 0 and not win32_2pc_executed:
@@ -423,9 +433,9 @@ class NKComplianceChecker:
                 "Staging bypass: writes performed without 2PC atomic commit [-20]"
             )
 
-        # 6. Penalita Omissione AST Guard (OPT-12: esenta scritture esenti delegate in 2-Tier)
+        # 6. Penalita Omissione AST Guard (OPT-12 + OPT-VIBE-2: esenta scritture esenti in 2-Tier)
         exempt_delegated_writes = code_write_calls == 0 and (
-            subagents_invoked > 0 or win32_2pc_executed
+            subagents_invoked > 0 or win32_2pc_executed or is_subagent
         )
         if write_calls > 0 and not ast_guard_executed and not exempt_delegated_writes:
             procedural_score -= 10

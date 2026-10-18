@@ -57,13 +57,19 @@
 * Nessun agente esegue cicli di polling con `manage_task(Action="status")` o `manage_subagents(Action="list")`.
 * L'agente esegue al massimo una sola verifica di stato all'avvio del task.
 * Dopo l'avvio asincrono, l'agente cede il turno o imposta `schedule(DurationSeconds=X, TimerCondition="<id>")`.
+* Quando attende sub-agenti asincroni, l'orchestratore attiva il watchdog `schedule(DurationSeconds=180, TimerCondition="any")` e cede il turno.
+* L'orchestratore sostituisce il sub-agente oltre il tetto di `100` step massimi.
 
 ### [RULE-01] UNIVERSAL_DDI_MANDATE (Topologia 2-Tier Hub-and-Spoke)
 * L'Agente Principale registra i worker con `define_subagent(enable_subagent_tools=False)` per imporre un singolo livello.
+* I 5 Sub-Agenti Nativi in `.agents/agents/` sono: `NK-Specifier-Agent`, `NK-Builder-Agent`, `NK-Security-DAST-Auditor`, `NK-RSI-Auditor` e `NK-Scribe-Agent`.
+* In `Mode C` (`<= 150` LOC), il Fast-Bypass consente l'esecuzione diretta in `.staging/` con `--vibe-check`.
 * Per scrivere codice, l'Agente Principale delega il lavoro a un Builder in `.staging/`.
 * Per gli audit profondi, l'Agente Principale delega la verifica agli Auditor in sola lettura.
 * Il Fast-Track consente fino a `12` chiamate dirette consecutive (`<= 8` letture da `800` righe e `<= 4` comandi).
 * Nessun agente esegue one-liner `python -c` multi-riga su PowerShell. L'agente salva ed esegue gli script diagnostici in `scratch/` o `%TEMP%\nk_diagnostics\`.
+* Ogni prompt di delega ai sub-agenti include obbligatoriamente il blocco `<env_capsule>`.
+* Il blocco `<env_capsule>` impone `python -m pytest` ed esclude `view_file` alla cieca o `python -c` complessi.
 
 ### [RULE-SWARM-HYGIENE] / [RULE-08] / [RULE-08.2] SWARM_MESSAGE_HYGIENE_MANDATE
 * Nessun sub-agente invia messaggi `send_message` di ritorno superiori a `1.800` caratteri netti (`2.000` MTU).

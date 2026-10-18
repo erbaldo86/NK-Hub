@@ -23,6 +23,10 @@
 ````markdown
 # 📦 [HANDOFF PROMPT FOR BUILDER : v3.0.0-STE100-UNIFIED]
 
+<env_capsule>
+Usa `python -m pytest` per i test. Vieta `view_file` esplorativi alla cieca e `python -c` multi-riga.
+</env_capsule>
+
 ### 🎯 BLOCCO 1: Obiettivo e Brief Anchor Capsule
 - **Task Operativo:** {{PROBLEM_DESCRIPTION}}
 - **Regressioni da Prevenire:** {{SIDE_EFFECT_PREVENTION}}

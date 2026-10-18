@@ -37,9 +37,9 @@ Componenti da testare:
 ## 3. RATCHET_LOOP_BUG_FIX (`[RULE-01.1]` & `[RULE-RSI]`)
 ```markdown
 **[DIRETTIVA ESECUTIVA: RATCHET LOOP BUG FIX IN STAGING]**
-1. **Macro-Fase 1 (Build & Stage):** Delega al Builder in `.staging/` la correzione chirurgica e l'auto-riparazione con `python scripts/auto_heal_pipeline.py --test-cmd "<pytest_cmd>" --target-file {{TARGET_FILE}}`.
-2. **Macro-Fase 2 (Cold Audit):** Invoca `NK-Oracle-Evaluator` per verificare la patch in `%TEMP%\nk_sandbox_<uuid>\` e controllare $\Delta_k = 0$ con `python scripts/rsi_convergence_engine.py --verify`.
-3. **Macro-Fase 3 (2PC Atomic Commit):** Dopo l'esito PASS (`exit_code: 0`), delega a `NK-Master-Hub` il commit atomico tramite `python scripts/win32_2pc_engine.py --promote-staging --milestone "{{MILESTONE_ANCHOR_ID}}"` e registra l'evento in `nk_tracking/anchor/session_anchor.jsonl`.
+1. **Macro-Fase 1 (Build & Stage):** Delega al Builder in `.staging/` la patch con `python scripts/auto_heal_pipeline.py --test-cmd "<pytest_cmd>" --target-file {{TARGET_FILE}}`.
+2. **Macro-Fase 2 (Cold Audit):** Invoca `NK-Oracle-Evaluator` e verifica $\Delta_k = 0$ con `python scripts/rsi_convergence_engine.py --verify`.
+3. **Macro-Fase 3 (2PC Atomic Commit):** Delega a `NK-Master-Hub` il commit `python scripts/win32_2pc_engine.py --promote-staging --milestone "{{MILESTONE_ANCHOR_ID}}"`. Registra quindi l'evento in `nk_tracking/anchor/session_anchor.jsonl`.
 
 File impattati:
 {{TARGET_FILE}}
@@ -65,7 +65,7 @@ Requisiti Dati:
 **[DIRETTIVA ESECUTIVA: MODE A SOVEREIGN ARCHITECTURAL CHANGE]**
 1. Aggiorna i 4 file della Tetralogia Sovrana (`concept_map.md`, `structural_tree.md`, `implementation_plan.md`, `repo_map.md`) in `nk_genome/`.
 2. Invia il prompt Template 8A al Builder operante in `.staging/`.
-3. Valida il risultato con `NK-Oracle-Evaluator`, `NK-Security-Auditor` e `python scripts/rsi_convergence_engine.py --verify` prima del commit `python scripts/win32_2pc_engine.py --promote-staging --milestone "{{MILESTONE_ANCHOR_ID}}"`.
+3. Valida il risultato con `NK-Oracle-Evaluator`, `NK-Security-Auditor` e `python scripts/rsi_convergence_engine.py --verify`. Esegui infine il commit con `python scripts/win32_2pc_engine.py --promote-staging --milestone "{{MILESTONE_ANCHOR_ID}}"`.
 
 Contesto architetturale:
 {{CONTEXT}}
@@ -102,6 +102,10 @@ Specifica completa in [`clean_handoff_protocol.md`](clean_handoff_protocol.md).
 ```markdown
 # 📦 [HANDOFF PROMPT FOR BUILDER : v3.0.0-STE100-UNIFIED]
 
+<env_capsule>
+Usa `python -m pytest` per i test. Vieta `view_file` esplorativi alla cieca e `python -c` multi-riga.
+</env_capsule>
+
 ### 🎯 BLOCCO 1: Obiettivo e Brief Anchor Capsule
 - **Task Operativo:** {{PROBLEM_DESCRIPTION}}
 - **Brief Anchor Capsule (<= 350 token):**
@@ -120,7 +124,7 @@ Specifica completa in [`clean_handoff_protocol.md`](clean_handoff_protocol.md).
 ### ⚙️ BLOCCO 4: Istruzioni Chirurgiche e Test
 1. **Pre-Edit Safety:** Ferma eventuali processi demone con `manage_task(Action="kill", TaskId="<id>")`.
 2. **Modifiche in `.staging/`:** {{SURGICAL_INSTRUCTIONS}} (Codifica UTF-8 senza BOM, standard `[RULE-STE100]`).
-3. **Verifica:** Esegui `python scripts/ast_guard_validator.py --stage-dir .staging`, `{{VERIFICATION_COMMAND}}` e `python scripts/rsi_convergence_engine.py --verify` (o `--vibe-check <target>` in Mode C), poi restituisci la **Worker Execution Receipt v3.0** (`< 1.800` caratteri).
+3. **Verifica:** Esegui `python scripts/ast_guard_validator.py --stage-dir .staging` e `python scripts/rsi_convergence_engine.py --verify` (o `--vibe-check`). Restituisci infine la **Worker Execution Receipt v3.0** (`< 1.800` caratteri).
 ```
 
 ### 8B. Checklist Cold Review (`CRITIC_REVIEW_CHECKLIST`)
@@ -152,5 +156,5 @@ Procedi con il task nei 4 Blocchi:
 <!-- ZERO-AMNESIA BOOTSTRAP CAPSULE v3.0 -->
 Assumi il ruolo di `[14] NK-Session-Controller` (Sovereign Critic & Supervisor) dell'Ecosistema Nexus Keystone (`v3.0.0-STE100-Unified`).
 Esegui `view_file` su `.agents/skills/NK-Session-Controller/SKILL.md`.
-Leggi `nk_tracking/handoff/next_session_prompt.md`, verifica il Milestone Anchor ID `{{MILESTONE_ANCHOR_ID}}` ed esegui la Cold Review sull'output del Builder.
+Leggi `nk_tracking/handoff/next_session_prompt.md` ed esegui la Cold Review per il Milestone `{{MILESTONE_ANCHOR_ID}}`.
 ```

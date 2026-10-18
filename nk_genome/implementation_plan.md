@@ -94,6 +94,29 @@ Ogni Builder deve rispettare le `14` guardie seguenti per mantenere il `100%` di
 
 ### WP8: Indice Tassonomico Modulare O(1) e Disaccoppiamento SSOT (`NK-MS-20261017-MODULAR-INDEX-v3.5.1-RSI2`)
 1. **Regola `[RULE-01.14]` (`.agents/AGENTS.md`):** Istituisci il registro modulare O(1) basato su `nk_genome/nk_registry_manifest.json` e `nk_genome/SKILL_INDEX.md`.
-2. **Indicizzatore AST (`scripts/nk_registry_indexer.py`):** Mappa i `5` domini `DOM-01..DOM-05`, le `16` skill e i `30` script con flag `--sync`, `--verify` e `--lookup`.
+2. **Indicizzatore AST (`scripts/nk_registry_indexer.py`):** Mappa `5` domini, `16` skill e `30` script con `--sync`, `--verify` e `--lookup`.
 3. **Disaccoppiamento SSOT (`preflight_health_check.py`, `vibe_sprint_router.py`):** Carica skill e domini direttamente dal manifesto JSON eliminando le liste hardcoded.
 4. **Dual-Schema Lifecycle (`.agents/hooks.json`):** Espone gli hook sia sotto la chiave `hooks` sia a livello root con `timeout` e `timeout_ms`.
+
+### WP9: Ottimizzazione Vibe-Coding Post-Stress-Test Bandi (`OPT-VIBE-1..5`)
+1. **`OPT-VIBE-1` (`rsi_convergence_engine.py`, `vibe_sprint_router.py`):** Rendi `--vibe-check` eseguibile senza argomenti (`< 500 ms`) e aggiungi `--task` e `--mode` nel router.
+2. **`OPT-VIBE-2` (`nk_compliance_checker.py`, `nk_active_runtime_sentinel.py`):** Riconosci `step_index in (0, 1)` nei sub-agenti, esenta DDI/AST su report e assegna `argon`.
+3. **`OPT-VIBE-3` (`AGENTS.md`, `NK-Session-Controller`, `NK-Master-Hub`):** Imponi `schedule` anti-deadlock dopo avvio sub-agenti e il cap di `100` step per sub-agente.
+4. **`OPT-VIBE-4` (`ast_guard_validator.py`, `NK-Python-Async-Builder`, `NK-Delta-Architect`):** Supporta target multipli in `ast_guard_validator.py` e documenta `--promote-staging --repo-root` sui progetti esterni.
+5. **`OPT-VIBE-5` (`NK-Session-Controller`, `NK-Master-Hub`):** Inietta `<env_capsule>` nei prompt sub-agenti (`python -m pytest`, divieto `view_file` esplorativo e timeout loop).
+
+### WP10: Fase 1 Bonifica, Validazione e Riconversione Playbook delle 16 Skill (`NK-MS-20261018-SKILL-PLAYBOOK-PHASE1-v3.6.0`)
+1. **`BUG-01` e `BUG-02` (`NK-Episodic-Memory-Engine`, `NK-Bug-Diagnostic-Engine`):** Correggi il percorso in `nk_tracking/memory_3tier/` e allinea gli alias `ARCH` (`02`) e `DEVX` (`03`).
+2. **`BUG-03` (`NK-Scribe`, `scribe_knowledge.md`, `verification_oracles.md`):** Sostituisci i riferimenti obsoleti a `100` Golden Tests con `68` Golden Tests (`[RULE-01.10]`).
+3. **`BUG-04` (`handoff_anchor_schema.md`, `NK-Session-Controller`):** Aggiorna lo schema JSON ai `6` Gate di Cold Review e aggiungi `MODE_D_DISCOVERY`.
+4. **`OVERLAP-01..04` (`DOM-01..DOM-05`):** Integra `nk_registry_indexer.py` e `nk_swarm_messenger.py` in `NK-Master-Hub` e specializza `NK-State-Router` sul controllo drift O(1).
+5. **`GAP-01` (`NK-Dynamic-Sandbox-StressTester`, `NK-Oracle-Evaluator`):** Integra il playbook di verifica E2E Browser, DOM e Lighthouse tramite `chrome-devtools-mcp` e `puppeteer`.
+6. **`GAP-02` (`NK-Delta-Architect`):** Riconverti la skill nel playbook Full-Stack, Frontend UI (`TypeScript`, `React`, `Tailwind`, `generative_ui`) e Surgical Refiner.
+7. **`GAP-03` (`NK-Ideator`, `NK-Backend-Architect`, `NK-Agent-Instruction-Forge`):** Integra `tavily-mcp`, `google-docs-mcp`, `firebase-mcp-server`, `env_capability_probe.py`, `external_project_scaffolder.py` e `nk_registry_indexer.py --sync`.
+
+### WP11: Fase 2 Architettura Sub-Agenti Nativi, Router O(1) e Stress Suite a 3 Livelli (`NK-MS-20261018-NATIVE-AGENTS-PHASE2-v3.7.0`)
+1. **5 Sub-Agenti Esecutori Nativi (`.agents/agents/*/agent.md`):** Crea `NK-Specifier-Agent`, `NK-Builder-Agent`, `NK-Security-DAST-Auditor` (`enable_write_tools: false`), `NK-Scribe-Agent` e aggiorna `NK-RSI-Auditor` (`enable_write_tools: false`).
+2. **Indice O(1) Dual-Layer (`scripts/nk_registry_indexer.py`):** Aggiungi `scan_native_agents()` e la chiave `native_agents_index` in `nk_registry_manifest.json` preservando `len(skills_index) == 16`. Verifica in `--verify` gli hash SHA-256 dei `5` `agent.md` e la guardia hardware `GT-14` (`enable_write_tools: false` sugli Auditor).
+3. **Router Nativo e Fast-Bypass (`scripts/vibe_sprint_router.py`):** Mappa ogni dominio/skill al rispettivo `native_subagent` e calcola `fast_bypass_eligible` per `Mode C` (`<= 150` LOC) preservando `primary_agent`.
+4. **Allineamento Governance (`.agents/AGENTS.md`, `NK-Master-Hub`, `NK-Session-Controller`):** Documenta i `5` Sub-Agenti Nativi in `.agents/agents/` e il Fast-Bypass `Mode C` rispettando il budget `< 24.000` byte.
+5. **Strategia di Stress-Test a 3 Livelli (`tests/test_phase2_3tier_stress_suite.py`):** Valida Livello 1 (Strutturale/Concorrenza 16-thread), Livello 2 (Flussi End-to-End Mode A/B/C/D e Rollback) e Livello 3 (Avversariale SAST/DAST, Boundary e Benchmark Prima/Dopo) con loop RSI fino a $\Delta_k = 0$.

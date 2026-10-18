@@ -6,7 +6,7 @@
 ---
 
 ## 1. Guardia Anti-Mocking (`[RULE-01.2]`)
-1. **Regola:** Il Builder non può mai inserire `unittest.mock.MagicMock`, `@patch`, `jest.fn()` o sovrascritture artificiali dello stato nei test o nel codice.
+1. **Regola:** Il Builder non può mai usare `unittest.mock.MagicMock`, `@patch`, `jest.fn()` o mock sintetici nel codice.
 2. **Verifica:** La scansione AST e l'ispezione del codice rigettano qualsiasi file che importi o istanzi oggetti mock sintetici.
 
 ## 2. Guardia Anti-Hardcoding
@@ -15,7 +15,7 @@
 
 ## 3. Guardia Anti-Oscillazione SHA-256 (`Guardia G3 RSI`)
 1. **Regola:** Ogni iterazione calcola l'hash SHA-256 combinato dei file in `.staging/`.
-2. **Verifica:** Se l'hash coincide con uno stato già visitato in `visited_hashes`, `scripts/rsi_convergence_engine.py` arresta il ciclo con stato `ABORTED_OSCILLATION`.
+2. **Verifica:** Se l'hash coincide con uno stato già visitato in `visited_hashes`, `scripts/rsi_convergence_engine.py` arresta il ciclo con `HALTED_CYCLE_DETECTED` (`GT-11`).
 
 ## 4. Guardia Anti-Mojibake e Integrità UTF-8 (`[RULE-08.1]`)
 1. **Regola:** Tutti i file sorgente e gli output devono usare la codifica `UTF-8` senza BOM.

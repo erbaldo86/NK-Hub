@@ -931,10 +931,25 @@ class RSIConvergenceEngine:
             }
 
         vibe_excluded = EXCLUDED_SCAN_DIRS - {".staging"}
-        files_to_check: List[Path] = (
-            [target]
-            if target.is_file()
-            else sorted(
+        if target.is_file():
+            files_to_check: List[Path] = [target]
+        elif (target == self.root or target == _workspace_root) and (
+            target / ".agents"
+        ).exists():
+            scan_root = (
+                target / ".staging" / ".agents"
+                if (target / ".staging" / ".agents").exists()
+                else target / ".agents"
+            )
+            files_to_check = sorted(
+                [
+                    p
+                    for p in scan_root.rglob("*")
+                    if p.is_file() and p.suffix in (".py", ".md")
+                ]
+            )
+        else:
+            files_to_check = sorted(
                 [
                     p
                     for p in target.rglob("*")
@@ -945,7 +960,6 @@ class RSIConvergenceEngine:
                     )
                 ]
             )
-        )
 
         for fpath in files_to_check:
             try:
@@ -1273,6 +1287,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     )
     parser.add_argument(
         "--vibe-check",
+        nargs="?",
+        const=".",
         type=str,
         default=None,
         help="Esegue il micro-loop Vibe Check (<500ms) sul file o directory target",
@@ -1309,7 +1325,20 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         vibe_profile = (
             args.profile if args.profile != "code_rsi" else "vibe_sprint_micro_rsi"
         )
-        vibe_res = engine.run_vibe_check(args.vibe_check, profile=vibe_profile)
+        if args.vibe_check == ".":
+            agents_cand = (
+                root_path / ".staging" / ".agents"
+                if (root_path / ".staging" / ".agents").exists()
+                else (
+                    root_path / ".agents"
+                    if (root_path / ".agents").exists()
+                    else root_path
+                )
+            )
+            vibe_target = str(agents_cand)
+        else:
+            vibe_target = args.vibe_check
+        vibe_res = engine.run_vibe_check(vibe_target, profile=vibe_profile)
         if args.json:
             print(json.dumps(vibe_res, indent=2))
         else:

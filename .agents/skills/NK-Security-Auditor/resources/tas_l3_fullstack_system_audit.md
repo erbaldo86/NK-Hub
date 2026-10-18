@@ -9,8 +9,8 @@
 ## 1. Fase A Deterministica (UI-API-DB, DAG Database e Sicurezza Web)
 
 1. **Rilevamento `Data-Contract Drift` tra UI, API e Database:**
-   * Verifica la coerenza dei nomi dei campi, dei tipi di dato e dei vincoli di obbligatorietà lungo l'intera catena `UI -> API -> DB`.
-   * Esegui `python scripts/oracle_evaluator_l3.py --expected <atteso> --actual <effettivo> --json` per validare la struttura DOM L3.
+   * Verifica la coerenza di campi, tipi e vincoli obbligatori lungo la catena `UI -> API -> DB`.
+   * Esegui `python scripts/oracle_evaluator_l3.py --expected <atteso> --actual <effettivo> --json` e ispeziona il DOM con `chrome-devtools-mcp` e `puppeteer`.
 2. **Invariante Topologico Database (`is_strict_dag_db`):**
    * Verifica che il grafo delle chiavi esterne (Foreign Key) del database formi un DAG rigoroso (`is_strict_dag_db == True`).
    * Rileva e blocca qualsiasi ciclo di dipendenza tra tabelle che possa causare deadlock in inserimento o cancellazione.

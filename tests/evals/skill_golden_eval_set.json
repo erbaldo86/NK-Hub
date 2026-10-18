@@ -38,7 +38,7 @@
       "rsi_level": "L1 + L2",
       "rsi_profile": "SPEC_RSI",
       "retry_caps": [1, 2, 3],
-      "required_tools": ["view_file", "write_to_file", "search_web", "send_message"],
+      "required_tools": ["view_file", "search_web", "send_message"],
       "forbidden_tools": ["invoke_subagent"],
       "required_substrings": ["ConfigDict(strict=True, extra=\"forbid\")", "SPEC_RSI", "<rsi_micro_loop>"]
     },
