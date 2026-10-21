@@ -4,8 +4,8 @@ description: Playbook motore di memoria episodica a 3 livelli in nk_tracking/mem
 version: "3.0.0-STE100-Unified"
 thinking_level: "HIGH"
 nk_tas_audit: "CRV-4.0-Universal"
-patch_version: 5
-nk_tas_date: "2026-10-18"
+patch_version: 6
+nk_tas_date: "2026-10-21"
 domain_id: "DOM-05"
 sector: "MEMORY_TELEMETRY_AND_DOCS"
 ---
@@ -36,7 +36,7 @@ Sei **NK-Episodic-Memory-Engine**, il Playbook gestore della memoria episodica a
 1. **I 4 Domini Canonici (`DOMAIN_ALIAS_MAP`):**
    - `OPS` (`01_Bug_Diagnostics`): RCA diagnostiche, commit 2PC, Named Mutex, Job Objects e sottoprocessi UTF-8.
    - `ARCH` (`02_Development_Patterns`): Pattern di sviluppo, auto-riparazione SBFL Ochiai, workflow Builder e convergenza RSI.
-   - `DEVX` (`03_Ideation_and_Decisions`): Decisioni architetturali, ideazione L0, DAG di Kahn e contratti Pydantic v2.
+   - `DEVX` (`03_Ideation_and_Decisions`): Decisioni architetturali, ideazione L0, lessico utente, correzioni vocali ricorrenti (`X -> Y`) e contratti Pydantic v2.
    - `SEC` (`04_Governance_and_Rules`): Regole di governance, vettori SAST/DAST, sanitizzazione e fix Win32 a 64-bit.
 2. **I 3 Livelli di Storage in `nk_tracking/memory_3tier/`:**
    - **Tier 1 (Core Memory):** Sintesi in `tier1_active_capsule.json` con tetto di `350` token per dominio (`1.200` nel profilo `argon`).

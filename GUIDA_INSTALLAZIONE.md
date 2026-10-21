@@ -1,4 +1,4 @@
-# Nexus Keystone Hub (`v3.5.2-Global-Filter-61-Skills` / `v3.0.0-STE100-Unified`)
+# Nexus Keystone Hub (`v4.1.0-Super-Meta-Prompt-Gate` / `v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified`)
 ## Guida di Installazione Rapida e Avvio per Google Antigravity
 
 > 🌍 **Lingua / Language:** **[🇮🇹 Guida Installazione (IT)](GUIDA_INSTALLAZIONE.md)** | **[🇮🇹 Manuale Completo (README.it.md)](README.it.md)** | **[🇬🇧 Full Manual (README.md)](README.md)**
@@ -24,7 +24,7 @@ Questa guida illustra la procedura di installazione e avvio di **Nexus Keystone 
    ├── nk_genome/               # Tetralogia 4/4, nk_registry_manifest.json, SKILL_INDEX.md e PATCH_NOTES.md
    ├── nk_tracking/             # Activity Anchor, telemetria RSI, memoria 3-Tier e baseline
    ├── scripts/                 # 31 Moduli Logici Core (34 file Python totali)
-   ├── tests/                   # Suite permanente di 74 Golden Tests Zero-Mock + evals/
+   ├── tests/                   # Suite permanente di 90 Golden e Stress Tests Zero-Mock + evals/
    ├── requirements.txt         # Dipendenze Python della piattaforma
    ├── README.md                # Manuale tecnico e tutorial completo (EN)
    ├── README.it.md             # Manuale tecnico e tutorial completo in ASD-STE100 (IT)
@@ -47,12 +47,12 @@ python -u scripts/preflight_health_check.py --check-only
 python -u scripts/rsi_convergence_engine.py --verify
 ```
 
-### Passo 4: Esecuzione dei 74 Golden Tests Zero-Mock
-Esegui la suite completa di `74` test permanenti Zero-Mock tramite `pytest`:
+### Passo 4: Esecuzione dei 90 Golden e Stress Tests Zero-Mock
+Esegui la suite completa di `90` test permanenti Zero-Mock tramite `pytest`:
 ```powershell
 python -u -m pytest tests/ -q
 ```
-> **Esito atteso:** `74 passed` in `~5.5 s` (`100.0% PASS`).
+> **Esito atteso:** `90 passed` in `~7.1 s` (`100.0% PASS`).
 
 ---
 

@@ -1,6 +1,6 @@
 {
-  "steps": 176,
-  "tokens": 112595,
+  "steps": 5,
+  "tokens": 1790,
   "dirty_files": false,
   "stash_patch": null,
   "baseline_tests": 86,

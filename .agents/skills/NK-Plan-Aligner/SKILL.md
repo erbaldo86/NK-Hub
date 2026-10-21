@@ -4,8 +4,8 @@ description: Certificatore Turno 4 per l'allineamento 1:1 della Tetralogia Sovra
 version: "3.0.0-STE100-Unified"
 thinking_level: "HIGH"
 nk_tas_audit: "CRV-4.0-Universal"
-patch_version: 4
-nk_tas_date: "2026-10-14"
+patch_version: 5
+nk_tas_date: "2026-10-21"
 domain_id: "DOM-01"
 sector: "GOV_AND_ROUTING"
 ---
@@ -44,6 +44,7 @@ Sei **NK-Plan-Aligner**, il playbook certificatore del **Turno 4 dell'Auto-Brief
 2. **Copertura Strutturale:** Verifica che ogni modulo elencato in `structural_tree.md` abbia il proprio piano d'azione in `implementation_plan.md`.
 3. **Conformità `[RULE-STE100]`:** Esegui `python scripts/rsi_convergence_engine.py --vibe-check` per verificare il limite di 20 parole per frase.
 4. **Controllo Isolamento (`[RULE-PROJECT-ISOLATION]`):** Verifica che nessun documento prescriva codice applicativo o progetti esterni dentro `NK-Hub`.
+5. **Tracciabilità Intent Brief (`[RULE-00.6]`):** Verifica che `implementation_plan.md` copra il `100%` dei requisiti `R1..Rn` dell'Intent Brief `IB-*` di Livello 0.
 
 ### 3. Emissione del Badge di Certificazione
 1. Quando l'allineamento è completo al 100%, certifica il badge ufficiale:

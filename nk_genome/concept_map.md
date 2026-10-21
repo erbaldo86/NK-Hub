@@ -34,6 +34,12 @@ L'architettura `v4.0.0-Native-Swarm-Playbooks` separa il Router O(1), i `5` Sub-
    * Il sistema integra i 9 comandi reali: `/plan`, `/goal`, `/compact`, `/grill-me`, `/teamwork-preview`, `/learn`, `/boost`, `/schedule`, `/browser`.
    * Il sistema rimuove tutti i comandi inesistenti (`/implementation`, `/start`, `/board`, `/novice`, `/expert`, `/playtest`).
    * Il comando nativo `/compact` e `scripts/nk_session_handoff.py` sostituiscono il vecchio handoff manuale a doppia chat.
+6. **Universal Meta-Prompt & Intent Brief Gate (`[RULE-00.6]`, `WP13-UNIFIED`):**
+   * Il Gate L0 intercetta ogni input utente ed è attivo di default (`ALWAYS-ON`) con opt-out utente.
+   * Il parser rimuove le disfluenze STT (`primaLa`), separa i sostantivi in `-zione` dai verbi e documenta le correzioni.
+   * Il contratto `MetaPromptGateContract` separa il Meta-Prompt concettuale (`R1..Rn`, `Fuori ambito`) dal piano tecnico `implementation_plan.md`.
+   * La macchina a `5` stati (`IDLE..BYPASSED`) applica TTL di `30` minuti, `5` esenzioni anti-loop e conferma 1-Click.
+   * Il sistema propaga `intent_hash_sha256` in `<env_capsule>`, verifica `R1..Rn` in `NK-Plan-Aligner` e preserva `16` skill.
 
 ---
 

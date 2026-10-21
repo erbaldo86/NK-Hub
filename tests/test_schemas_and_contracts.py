@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Suite di test unitari Zero-Mock per Contratti Pydantic v2 Strict Mode e Dual-Ledgers (v3.3.0).
+Suite di test unitari Zero-Mock per Contratti Pydantic v2 Strict Mode e Dual-Ledgers (v4.1.0).
 Modulo: tests/test_schemas_and_contracts.py.
-Valida strict mode, JsonValue, GoalFailureManifest, DAG SHA-256, lock PID e IPCPointerReturn.
+Valida strict mode, JsonValue, GoalFailureManifest, MetaPromptGateContract, DAG SHA-256 e IPCPointerReturn.
 """
 
 from __future__ import annotations
@@ -26,8 +26,13 @@ for _cand in (STAGING_SCRIPTS_DIR, SCRIPTS_DIR, WORKSPACE_ROOT):
     if _cand.exists() and str(_cand) not in sys.path:
         sys.path.insert(0, str(_cand))
 
+from schemas import MetaPromptGateContract as ExportedMetaPromptGateContract
 from schemas.dual_ledgers import ProgressLedger, TaskDAGNode, TaskLedger
-from schemas.nk_ipc_contracts import GoalFailureManifest, IPCPointerReturn
+from schemas.nk_ipc_contracts import (
+    GoalFailureManifest,
+    IPCPointerReturn,
+    MetaPromptGateContract,
+)
 
 
 class TestSchemasAndContracts(unittest.TestCase):
@@ -139,6 +144,45 @@ class TestSchemasAndContracts(unittest.TestCase):
             mime_type="application/json",
         )
         self.assertLess(len(ptr.model_dump_json()) / 3.5, 80)
+
+    def test_meta_prompt_gate_contract_strict_and_frozen(self):
+        """4. Valida MetaPromptGateContract in modalita strict, immutabilita e vincolo TTL >= 60."""
+        self.assertIs(MetaPromptGateContract, ExportedMetaPromptGateContract)
+        contract = MetaPromptGateContract(
+            brief_id="IB-20261021-ABC123",
+            fsm_state="AWAIT_CONFIRM",
+            gate_mode="CONFIRM",
+            enabled=True,
+            bypassed=False,
+            conceptual_mirror="Obiettivo rilevato su analisi architetturale.",
+            optimized_meta_prompt="[META-PROMPT L0] Esegui analisi read-only.",
+            requirements_r_ids=["R1: Analizzare architettura"],
+            voice_corrections_applied=["primaLa -> prima La"],
+            out_of_scope=["Modifica file produzione"],
+            recommended_mode="mode_d",
+            primary_agent="NK-Ideator",
+            native_subagent="NK-Specifier-Agent",
+            intent_hash_sha256="b" * 64,
+            ttl_seconds=1800,
+        )
+        self.assertEqual(contract.fsm_state, "AWAIT_CONFIRM")
+        self.assertEqual(contract.ttl_seconds, 1800)
+
+        with self.assertRaises(ValidationError):
+            MetaPromptGateContract(
+                conceptual_mirror="Test",
+                optimized_meta_prompt="Test",
+                ttl_seconds=30,
+            )
+
+        with self.assertRaises(ValidationError):
+            MetaPromptGateContract.model_validate(
+                {
+                    "conceptual_mirror": "Test",
+                    "optimized_meta_prompt": "Test",
+                    "unexpected_field": 123,
+                }
+            )
 
 
 if __name__ == "__main__":

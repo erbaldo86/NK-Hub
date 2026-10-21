@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Nexus Keystone v3.0.0-STE100-Unified
+Nexus Keystone v4.1.0-STE100-Unified
 Modulo: test_vibe_sprint_router.py
-Valida il calcolo reale della profondita' AST e il routing Mode A/B/C.
+Valida il calcolo reale della profondita AST, il routing Mode A/B/C/D e il Super Meta-Prompt Gate (WP13).
 """
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ VibeSprintRouter = router_mod.VibeSprintRouter
 
 
 def test_vibe_sprint_router_real_ast_max_depth_and_routing(tmp_path: Path) -> None:
-    """1. Verifica il calcolo reale di max_depth AST e la selezione della modalita'."""
+    """1. Verifica il calcolo reale di max_depth AST e la selezione della modalita."""
     router = VibeSprintRouter(workspace_root=tmp_path)
 
     simple_code = "def render_btn(label: str) -> str:\n    return f'<button>{label}</button>'\n"
@@ -79,3 +79,79 @@ def test_vibe_sprint_router_load_prewarmed_capsule_and_cli(tmp_path: Path) -> No
     spec = router.generate_inline_micro_spec("f.py", "Increment value", risk)
     assert "Tier-1 Capsule: Invariante Zero-Mock attivo" in spec
 
+
+def test_vibe_sprint_router_nominalization_word_boundary_fix() -> None:
+    """3. Verifica che sostantivi astratti come implementazione e valutazione non attivino falsi positivi."""
+    router = VibeSprintRouter()
+    prompt_disc = (
+        "Analizza lo stato dell'arte dell'implementazione attuale e fai una valutazione "
+        "architetturale di copertura"
+    )
+    assert router_mod._has_imperative_write_keyword(prompt_disc) is False
+    intent = router.classify_prompt_intent(prompt_disc)
+    assert intent["recommended_mode"] == "mode_d"
+    assert intent["is_discovery"] is True
+    assert intent["read_only"] is True
+    assert intent["primary_agent"] == "NK-Ideator"
+
+    prompt_write = "Implementa il nuovo contratto in .staging/ e modifica il router"
+    assert router_mod._has_imperative_write_keyword(prompt_write) is True
+    intent_w = router.classify_prompt_intent(prompt_write)
+    assert intent_w["is_discovery"] is False
+
+
+def test_vibe_sprint_router_stt_normalization_and_anti_loop_exemptions() -> None:
+    """4. Verifica la normalizzazione vocale STT su primaLa e le 5 esenzioni anti-loop."""
+    router = VibeSprintRouter()
+    stt = router.normalize_voice_stt_input(
+        "Modifica il file, anzi no analizza primaLa struttura di `myCamelVar` praticamente"
+    )
+    assert "prima La" in stt["cleaned_prompt"]
+    assert "`myCamelVar`" in stt["cleaned_prompt"]
+    assert any("primaLa -> prima La" in c for c in stt["voice_corrections_applied"])
+    assert len(stt["voice_corrections_applied"]) >= 2
+
+    # 1. Conferme brevi
+    assert router.is_gate_exempt("ok") is True
+    assert router.is_gate_exempt("Confermo!") is True
+    # 2. Trigger onboarding e nodi [0]..[14]
+    assert router.is_gate_exempt("avvia nk") is True
+    assert router.is_gate_exempt("[14]") is True
+    # 3. Proceed
+    assert router.is_gate_exempt("Proceed") is True
+    assert router.is_gate_exempt("premi proceed") is True
+    # 4. Delega sub-agenti con <env_capsule>
+    assert router.is_gate_exempt("<env_capsule>\nTEST_RUNNER: pytest\n</env_capsule>") is True
+    # 5. Comandi di bypass/toggle
+    assert router.is_gate_exempt("!diretto analizza il codice") is True
+    assert router.is_gate_exempt("disattiva prompt gate") is True
+    # Prompt ordinario non esente
+    assert router.is_gate_exempt("Progetta un nuovo modulo asincrono per il router") is False
+
+
+def test_vibe_sprint_router_meta_prompt_envelope_and_cli() -> None:
+    """5. Verifica build_meta_prompt_envelope e i flag CLI --meta-prompt-gate e --no-gate."""
+    router = VibeSprintRouter()
+    env = router.build_meta_prompt_envelope(
+        "Analizza primaLa struttura dell'implementazione; inoltre verifica la valutazione"
+    )
+    assert env["brief_id"].startswith("IB-")
+    assert env["fsm_state"] == "AWAIT_CONFIRM"
+    assert env["bypassed"] is False
+    assert env["recommended_mode"] == "mode_d"
+    assert len(env["intent_hash_sha256"]) == 64
+    assert len(env["requirements_r_ids"]) >= 2
+    assert env["requirements_r_ids"][0].startswith("R1:")
+
+    env_exempt = router.build_meta_prompt_envelope("ok")
+    assert env_exempt["fsm_state"] == "BYPASSED"
+    assert env_exempt["bypassed"] is True
+
+    rc1 = router_mod.main(
+        ["--meta-prompt-gate", "--prompt", "Analizza primaLa copertura", "--json"]
+    )
+    assert rc1 == 0
+    rc2 = router_mod.main(
+        ["--no-gate", "--prompt", "Analizza primaLa copertura", "--json"]
+    )
+    assert rc2 == 0

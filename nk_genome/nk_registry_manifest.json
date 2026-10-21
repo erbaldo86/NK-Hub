@@ -1,7 +1,7 @@
 {
   "version": "3.5.1-MODULAR-INDEX-RSI2",
   "milestone_anchor_id": "NK-MS-20261017-MODULAR-INDEX-v3.5.1-RSI2",
-  "generated_at": "2026-10-18T17:31:30Z",
+  "generated_at": "2026-10-21T18:21:44Z",
   "summary": {
     "total_domains": 5,
     "total_skills": 16,
@@ -378,10 +378,10 @@
       ],
       "auxiliary_links": [],
       "loc": 60,
-      "bytes": 3806,
-      "sha256": "ca3b2f614d256c6ee5be4ee96c8594a9e60a919b45ce15f1b069366ba9c8e0d9",
+      "bytes": 3850,
+      "sha256": "1fe23497214a341d173f391e66abd421a7e973ea2ff8549f7716549df28009d2",
       "path": ".agents/skills/NK-Episodic-Memory-Engine/SKILL.md",
-      "source_layer": "production"
+      "source_layer": "staging"
     },
     "NK-Ideator": {
       "name": "NK-Ideator",
@@ -472,11 +472,11 @@
         "send_message"
       ],
       "auxiliary_links": [],
-      "loc": 56,
-      "bytes": 3899,
-      "sha256": "33d5c1ba65452e26e10613d87b3be4af5e25e731db9993cf820cc37a175a3aea",
+      "loc": 57,
+      "bytes": 4067,
+      "sha256": "c42ef7c3de9a03412cdaf9ba585fd16fdcac7eab2b9903c5a1b371449286fbae",
       "path": ".agents/skills/NK-Plan-Aligner/SKILL.md",
-      "source_layer": "production"
+      "source_layer": "staging"
     },
     "NK-Python-Async-Builder": {
       "name": "NK-Python-Async-Builder",
@@ -577,11 +577,11 @@
         "resources/prompt_templates.md",
         "resources/saturation_thresholds.yaml"
       ],
-      "loc": 96,
-      "bytes": 8005,
-      "sha256": "b9d515f2f149e0ec7b1ba301ac672c64567a096fff89f92d33be164fea46a74c",
+      "loc": 98,
+      "bytes": 8341,
+      "sha256": "9a46c3e731e7a78cb3731e3764e8617fb9c5f9eec0d944040a5a129f0a710505",
       "path": ".agents/skills/NK-Session-Controller/SKILL.md",
-      "source_layer": "production"
+      "source_layer": "staging"
     },
     "NK-State-Router": {
       "name": "NK-State-Router",
@@ -696,7 +696,7 @@
       "bytes": 25818,
       "sha256": "7f87c1a03ac1ea648cbd69ea84c44e14aa25f68c3848cc50378c2886d24c550c",
       "path": "scripts/dast_sandbox_runner.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "deterministic_api_cache.py": {
       "name": "deterministic_api_cache.py",
@@ -921,9 +921,9 @@
         "--force-full",
         "--json"
       ],
-      "loc": 611,
-      "bytes": 25006,
-      "sha256": "bb0650f5497c4b2cbae14b3718c392ff89355d59e2c4099772588abde63fa693",
+      "loc": 628,
+      "bytes": 25751,
+      "sha256": "330da302a81b2df9cd50d00a4f0feddc91aba0ac155317d9bbfc37d5ec557346",
       "path": "scripts/nk_session_bootstrap.py",
       "source_layer": "staging"
     },
@@ -1113,33 +1113,35 @@
       "domain_name": "GOV_AND_ROUTING",
       "description": "Contratti IPC e schemi Pydantic v2 per Nexus Keystone v3.2.0-STE100-Unified.",
       "cli_flags": [],
-      "loc": 259,
-      "bytes": 8445,
-      "sha256": "7f5fdbf583cfc3c42d6d3bcce50589485ac135cafbafa96f41cd23fadfe88eb3",
+      "loc": 290,
+      "bytes": 9551,
+      "sha256": "0981d31b780f12a710dc730c4f93b550352030964b355d9be298af6f8dcb8104",
       "path": "scripts/schemas/nk_ipc_contracts.py",
-      "source_layer": "production"
+      "source_layer": "staging"
     },
     "vibe_sprint_router.py": {
       "name": "vibe_sprint_router.py",
       "domain_id": "DOM-01",
       "domain_name": "GOV_AND_ROUTING",
-      "description": "Motore di routing Mode A/B/C/D per Nexus Keystone v3.5.1.",
+      "description": "Motore di routing Mode A/B/C/D e Super Meta-Prompt Gate per Nexus Keystone v4.1.0.",
       "cli_flags": [
         "--capsule",
         "--classify-prompt",
         "--discovery-check",
         "--files",
         "--json",
+        "--meta-prompt-gate",
         "--mode",
+        "--no-gate",
         "--prompt",
         "--task",
         "--test"
       ],
-      "loc": 1050,
-      "bytes": 34882,
-      "sha256": "348c813f513538e1d1115ae025b4673fb3ed1d2743444f679d65a631cc4d56a2",
+      "loc": 1437,
+      "bytes": 47878,
+      "sha256": "d51e8c05c873269fa1768352787e96a450e83b1829bfe836492945f1d8ce13a6",
       "path": "scripts/vibe_sprint_router.py",
-      "source_layer": "production"
+      "source_layer": "staging"
     },
     "win32_2pc_engine.py": {
       "name": "win32_2pc_engine.py",

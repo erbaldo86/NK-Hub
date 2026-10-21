@@ -29,8 +29,8 @@
   functions: [reconfigure_streams, process_payload, main]
 
 ### 📦 Moduli Secondari (Riepilogo Compatto)
-- `scripts/*`: ast_repo_mapper.py, ast_guard_validator.py, rsi_convergence_engine.py, memory_3tier_engine.py, win32_2pc_engine.py, deterministic_api_cache.py, nk_context_sentry.py, nk_compliance_checker.py, nk_session_bootstrap.py, dast_sandbox_runner.py, invisible_healing_loop.py, healing_snapshot_rollback.py, sbfl_pytest_bridge.py, auto_heal_pipeline.py, vibe_sprint_router.py, async_heartbeat_signaler.py, external_project_scaffolder.py, preflight_health_check.py, nk_registry_indexer.py, platform_runner.py, env_capability_probe.py, nk_active_runtime_sentinel.py, quality_baseline_manager.py, safe_cleanup_dev_servers.py, nk_auto_inning.py, nk_session_handoff.py
-- `scripts/schemas/*`: dual_ledgers.py, nk_ipc_contracts.py
+- `scripts/*`: ast_repo_mapper.py, ast_guard_validator.py, rsi_convergence_engine.py, memory_3tier_engine.py, win32_2pc_engine.py, deterministic_api_cache.py, nk_context_sentry.py, nk_compliance_checker.py, nk_session_bootstrap.py, dast_sandbox_runner.py, invisible_healing_loop.py, vibe_sprint_router.py, healing_snapshot_rollback.py, sbfl_pytest_bridge.py, auto_heal_pipeline.py, async_heartbeat_signaler.py, external_project_scaffolder.py, preflight_health_check.py, nk_registry_indexer.py, platform_runner.py, env_capability_probe.py, nk_active_runtime_sentinel.py, quality_baseline_manager.py, safe_cleanup_dev_servers.py, nk_auto_inning.py, nk_session_handoff.py
+- `scripts/schemas/*`: nk_ipc_contracts.py, dual_ledgers.py, __init__.py
 - `tests/stress/*`: test_real_sandbox_stress.py
 - `nk_tracking/cockpit/*`: nk_cockpit.html
 - `tests/*`

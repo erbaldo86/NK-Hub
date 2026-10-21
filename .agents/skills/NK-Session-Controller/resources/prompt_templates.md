@@ -5,6 +5,25 @@
 
 ---
 
+## 0. META_PROMPT_INTENT_BRIEF (`[RULE-00.6]`)
+```markdown
+### 🧭 [LIVELLO 0: SUPER META-PROMPT & INTENT BRIEF GATE]
+- **Brief ID:** `{{BRIEF_ID}}` (`IB-AAAAMMGG-NNN`) | **Stato FSM:** `AWAIT_CONFIRM`
+- **Modalità Consigliata:** `{{RECOMMENDED_MODE}}` | **Skill:** `{{PRIMARY_AGENT}}` | **Sub-Agente:** `{{NATIVE_SUBAGENT}}`
+- **Intent Hash SHA-256:** `{{INTENT_HASH_SHA256}}`
+- **Specchio Concettuale:** {{CONCEPTUAL_MIRROR}}
+- **Meta-Prompt Ottimizzato:** {{OPTIMIZED_META_PROMPT}}
+- **Requisiti Tracciabili (`R1..Rn`):**
+  * `R1`: {{REQ_1}}
+  * `R2`: {{REQ_2}}
+- **Correzioni vocali recepite (`X -> Y`):** {{VOICE_CORRECTIONS_APPLIED}}
+- **Fuori ambito:** {{OUT_OF_SCOPE}}
+- **Ambiguità rilevate:** {{AMBIGUITIES}}
+- **Conferma 1-Click (`ask_question`):** Seleziona `1. Conferma ed esegui`, `2. Solo risposta diretta` oppure `3. Modifica intento`.
+```
+
+---
+
 ## 1. AUTO_BRIEF_SWARM_FSM_LOOP (`[RULE-03]`)
 ```markdown
 **[DIRETTIVA ESECUTIVA: RULE-03 AUTO-BRIEF SWARM FSM A 5 TURNI]**
@@ -104,6 +123,10 @@ Specifica completa in [`clean_handoff_protocol.md`](clean_handoff_protocol.md).
 
 <env_capsule>
 Usa `python -m pytest` per i test. Vieta `view_file` esplorativi alla cieca e `python -c` multi-riga.
+<intent_brief id="{{BRIEF_ID}}" sha256="{{INTENT_HASH_SHA256}}">
+  <requirements>{{REQUIREMENTS_R_IDS}}</requirements>
+  <out_of_scope>{{OUT_OF_SCOPE}}</out_of_scope>
+</intent_brief>
 </env_capsule>
 
 ### 🎯 BLOCCO 1: Obiettivo e Brief Anchor Capsule

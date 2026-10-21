@@ -1,10 +1,29 @@
 # NEXUS KEYSTONE OFFICIAL CHANGELOG E PATCH NOTES (SSOT)
 
 > **Single Source of Truth (SSOT):** `nk_genome/PATCH_NOTES.md`  
-> **Release Ufficiale:** `v4.0.0-Native-Swarm-Playbooks` (`v3.0.0-STE100-Unified`)  
-> **Milestone Anchor:** `NK-MS-20261018-NATIVE-AGENTS-V4.0`  
-> **Data Consolidamento:** `2026-10-18`  
-> **Stato Release:** `[NK-SUPER-BRIEF-STATUS: AUDITED_AND_CERTIFIED_v4.0.0_SOVEREIGN]`
+> **Release Ufficiale:** `v4.1.0-Super-Meta-Prompt-Gate` (`v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified`)  
+> **Milestone Anchor:** `NK-MS-20261021-SUPER-META-PROMPT-GATE-v4.1.0-RSI`  
+> **Data Consolidamento:** `2026-10-21`  
+> **Stato Release:** `[NK-SUPER-BRIEF-STATUS: AUDITED_AND_CERTIFIED_v4.1.0_SOVEREIGN]`
+
+---
+
+## 🛡️ Release v4.1.0-Super-Meta-Prompt-Gate (`WP13-UNIFIED` : Opus + Argon + Terza Parte) (`2026-10-21`)
+
+La release **`v4.1.0-Super-Meta-Prompt-Gate`** unifica i brief di **Opus**, **Argon** e l'**Arbitrato di Terza Parte** nel nuovo **Livello 0 (`[RULE-00.6]`)**.
+
+1. **Regola Costituzionale `[RULE-00.6]` e Conferma Vocale 1-Click (`AGENTS.md`, `prompt_templates.md`):**
+   - Attiva di default il Gate Meta-Prompt (`CONFIRM`) su ogni comando utente con conferma 1-Click tramite `ask_question`.
+   - Separa il **Livello 0 (Meta-Prompt e Intent Brief `IB-*`)** dal **Livello 1-4 (`implementation_plan.md` tecnico)**.
+   - Include nel Template `0` i requisiti `R1..Rn`, `Correzioni vocali recepite`, `Fuori ambito` e `intent_hash_sha256`.
+2. **Motore Morfologico STT, FSM Anti-Loop e Contratto IPC (`vibe_sprint_router.py`, `nk_ipc_contracts.py`):**
+   - Introduce `MetaPromptGateContract` (`strict=True, extra="forbid", frozen=True`) con `5` stati FSM e TTL `1.800` secondi.
+   - Ripara il falso positivo alla riga `626` di `vibe_sprint_router.py` escludendo i sostantivi astratti (`implementazione`, `valutazione`).
+   - Aggiunge `normalize_voice_stt_input()` per separare i token `CamelCase` fusi (`primaLa`) e `is_gate_exempt()` per `5` esenzioni.
+3. **Bootstrap Fast-Stat, Tracciabilità `R1..Rn` e Suite a 90 Test (`nk_session_bootstrap.py`, `tests/`):**
+   - Verifica `meta_prompt_gate_enabled: true` in `nk_session_bootstrap.py` (`< 25 ms`) e `session_tuning_params.json`.
+   - Impone la copertura `100%` di `R1..Rn` in `NK-Plan-Aligner` e l'indicizzazione lessicale `DEVX` in `NK-Episodic-Memory-Engine`.
+   - Espande la suite Zero-Mock a `90/90 PASS` (`100.0%`) preservando `16` skill, `32` script e `hooks.json` (`WP8.4`).
 
 ---
 

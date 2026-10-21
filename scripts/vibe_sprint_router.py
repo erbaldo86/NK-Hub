@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Motore di routing Mode A/B/C/D per Nexus Keystone v3.5.1.
+Motore di routing Mode A/B/C/D e Super Meta-Prompt Gate per Nexus Keystone v4.1.0.
 Calcola la reale profondita AST max_depth e applica la soglia <= 150 LOC per Mode C.
-Supporta Mode D e risolve il dominio e le skill granulari in O(1) tramite nk_registry_manifest.json.
+Supporta Mode D, normalizzazione vocale STT e risoluzione O(1) tramite nk_registry_manifest.json.
 """
 
 from __future__ import annotations
 
 import argparse
 import ast
+import hashlib
 import json
 import re
 import sys
+import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -28,6 +30,22 @@ _DEFAULT_WORKSPACE_ROOT = (
     if _SCRIPT_DIR.parent.name == ".staging"
     else _SCRIPT_DIR.parent
 )
+
+for _cand_path in (
+    _DEFAULT_WORKSPACE_ROOT / ".staging" / "scripts",
+    _DEFAULT_WORKSPACE_ROOT / "scripts",
+    _SCRIPT_DIR,
+):
+    if _cand_path.exists() and str(_cand_path) not in sys.path:
+        sys.path.insert(0, str(_cand_path))
+
+try:
+    from schemas.nk_ipc_contracts import MetaPromptGateContract
+except Exception:
+    try:
+        from scripts.schemas.nk_ipc_contracts import MetaPromptGateContract
+    except Exception:
+        MetaPromptGateContract = None  # type: ignore[assignment]
 
 MODE_D_KEYWORDS: Tuple[str, ...] = (
     "audit",
@@ -89,6 +107,12 @@ _WRITE_ACTION_KEYWORDS: Tuple[str, ...] = (
     "allinea",
     "progetta",
 )
+_NOMINALIZATION_SUFFIXES: Tuple[str, ...] = (
+    "zione",
+    "zioni",
+    "mento",
+    "menti",
+)
 _DOM04_TECHNICAL_AUDIT_KEYWORDS: Tuple[str, ...] = (
     "sast",
     "dast",
@@ -100,6 +124,46 @@ _DOM04_TECHNICAL_AUDIT_KEYWORDS: Tuple[str, ...] = (
     "cold review",
     "6 gate",
     "oracolo",
+)
+
+_SHORT_CONFIRMATIONS: Set[str] = {
+    "ok",
+    "si",
+    "sì",
+    "procedi",
+    "confermo",
+    "vai",
+    "proceed",
+    "premi proceed",
+}
+_ONBOARDING_TRIGGERS: Set[str] = {
+    "avvia ambiente nk",
+    "avvia nk hub",
+    "avvia nk",
+    "avvia hub",
+    "start nk",
+    "start hub",
+    "attiva nk",
+    "attiva ambiente nk",
+}
+_NODE_SELECTIONS: Set[str] = {f"[{i}]" for i in range(15)} | {
+    str(i) for i in range(15)
+}
+_BYPASS_AND_TOGGLE_MARKERS: Tuple[str, ...] = (
+    "!diretto",
+    "!raw",
+    "salta gate",
+    "disattiva prompt gate",
+    "attiva prompt gate",
+    "nk refiner",
+)
+_VOICE_CORRECTION_MARKERS: Tuple[str, ...] = (
+    "anzi no",
+    "o meglio",
+    "volevo dire",
+    "anzi",
+    "scusa",
+    "praticamente",
 )
 
 SKILL_ROUTING_RULES: Tuple[Tuple[str, str, str, str, Tuple[str, ...]], ...] = (
@@ -337,26 +401,75 @@ _ROUTER_MANIFEST_CACHE: Dict[str, Tuple[int, int, Dict[str, Any]]] = {}
 def _sanitize_tetralogia_filenames(text_low: str) -> str:
     """Protegge i nomi file della Tetralogia da falsi positivi di sottostringa."""
     sanitized = text_low
-    for fname in ("implementation_plan.md", "concept_map.md", "structural_tree.md", "repo_map.md"):
+    for fname in (
+        "implementation_plan.md",
+        "concept_map.md",
+        "structural_tree.md",
+        "repo_map.md",
+    ):
         sanitized = sanitized.replace(fname, " ")
     return sanitized
 
 
+def _has_imperative_write_keyword(clean_text: str) -> bool:
+    """Verifica la presenza di verbi imperativi di scrittura escludendo nominalizzazioni astratte."""
+    text_low = (clean_text or "").strip().lower()
+    if not text_low:
+        return False
+    if ".staging" in text_low:
+        return True
+    tokens = re.findall(r"[a-z0-9_àèéìòù]+", text_low)
+    for tok in tokens:
+        if tok.endswith(_NOMINALIZATION_SUFFIXES):
+            continue
+        for wkw in _WRITE_ACTION_KEYWORDS:
+            if wkw == ".staging":
+                continue
+            if tok == wkw or re.fullmatch(
+                rf"{re.escape(wkw)}(?:re|lo|la|li|le)?", tok
+            ):
+                return True
+    return False
+
+
+def _token_matches_keyword(
+    kw: str,
+    text_low: str,
+    tokens: Set[str],
+    min_sub_len: int = 4,
+) -> bool:
+    """Verifica il matching tra keyword e testo escludendo falsi positivi da nominalizzazioni."""
+    kw_low = kw.lower()
+    if " " in kw_low or "." in kw_low or "/" in kw_low or "-" in kw_low:
+        return kw_low in text_low
+    if kw_low in tokens:
+        return True
+    if len(kw_low) >= min_sub_len and kw_low in text_low:
+        kw_is_nominal = kw_low.endswith(_NOMINALIZATION_SUFFIXES)
+        for tok in tokens:
+            if not kw_is_nominal and tok.endswith(_NOMINALIZATION_SUFFIXES):
+                continue
+            if kw_low in tok:
+                return True
+    return False
+
+
 def _match_granular_skills(text_low: str) -> List[Tuple[str, str, str, str, List[str]]]:
     """Valuta le regole granulari di skill restituendo le corrispondenze ordinate per punteggio."""
-    tokens = set(re.findall(r"[a-z0-9_]+", text_low))
+    tokens = set(re.findall(r"[a-z0-9_àèéìòù]+", text_low))
     matches: List[Tuple[int, int, str, str, str, str, List[str]]] = []
 
-    for idx, (sk_name, dom_id, dom_name, subagent, kws) in enumerate(SKILL_ROUTING_RULES):
+    for idx, (sk_name, dom_id, dom_name, subagent, kws) in enumerate(
+        SKILL_ROUTING_RULES
+    ):
         hits: List[str] = []
         for kw in kws:
-            if " " in kw or "." in kw or "/" in kw or "-" in kw:
-                if kw in text_low:
-                    hits.append(kw)
-            elif kw in tokens or (len(kw) >= 5 and kw in text_low):
+            if _token_matches_keyword(kw, text_low, tokens, min_sub_len=5):
                 hits.append(kw)
         if hits:
-            matches.append((len(hits), -idx, sk_name, dom_id, dom_name, subagent, hits))
+            matches.append(
+                (len(hits), -idx, sk_name, dom_id, dom_name, subagent, hits)
+            )
 
     matches.sort(reverse=True)
     return [
@@ -438,7 +551,10 @@ class VibeSprintRouter:
         candidates = (
             self.staging_dir / "nk_genome" / "nk_registry_manifest.json",
             self.workspace_root / "nk_genome" / "nk_registry_manifest.json",
-            _DEFAULT_WORKSPACE_ROOT / ".staging" / "nk_genome" / "nk_registry_manifest.json",
+            _DEFAULT_WORKSPACE_ROOT
+            / ".staging"
+            / "nk_genome"
+            / "nk_registry_manifest.json",
             _DEFAULT_WORKSPACE_ROOT / "nk_genome" / "nk_registry_manifest.json",
         )
         for cand in candidates:
@@ -465,6 +581,191 @@ class VibeSprintRouter:
                     pass
         return {}
 
+    def normalize_voice_stt_input(self, raw_prompt: str) -> Dict[str, Any]:
+        """Normalizza il testo dettato a voce separando CamelCase fusi ed estraendo correzioni."""
+        text = (raw_prompt or "").strip()
+        if not text:
+            return {
+                "raw_prompt": raw_prompt or "",
+                "cleaned_prompt": "",
+                "voice_corrections_applied": [],
+                "camelcase_splits": [],
+                "bypass_requested": False,
+            }
+
+        code_spans: List[str] = []
+
+        def _stash_code(match: re.Match[str]) -> str:
+            idx = len(code_spans)
+            code_spans.append(match.group(0))
+            return f"__NK_CODE_{idx}__"
+
+        masked = re.sub(r"(`{1,3}[\s\S]*?`{1,3})", _stash_code, text)
+        voice_corrections: List[str] = []
+        camelcase_splits: List[str] = []
+        bypass_requested = False
+
+        for bp_marker in ("!diretto", "!raw", "salta gate"):
+            pat = re.compile(rf"(?i)(?:^|\s){re.escape(bp_marker)}(?=\s|$|[.,;!?])")
+            if pat.search(masked):
+                bypass_requested = True
+                masked = pat.sub(" ", masked).strip()
+
+        camel_pat = re.compile(r"([a-zàèéìòù]{2,})([A-Z][a-zàèéìòù]+)")
+
+        def _split_camel(match: re.Match[str]) -> str:
+            orig = match.group(0)
+            rep = f"{match.group(1)} {match.group(2)}"
+            camelcase_splits.append(f"{orig} -> {rep}")
+            voice_corrections.append(f"{orig} -> {rep}")
+            return rep
+
+        masked = camel_pat.sub(_split_camel, masked)
+
+        for marker in _VOICE_CORRECTION_MARKERS:
+            m_pat = re.compile(rf"(?i)\b{re.escape(marker)}\b")
+            if m_pat.search(masked):
+                if marker in ("anzi no", "o meglio", "volevo dire"):
+                    parts = m_pat.split(masked, maxsplit=1)
+                    if len(parts) == 2:
+                        before_part = parts[0].strip(" ,;:-")
+                        after_part = parts[1].strip(" ,;:-")
+                        if after_part:
+                            voice_corrections.append(
+                                f"{before_part or marker} -> {after_part}"
+                            )
+                            if len(after_part.split()) >= 2:
+                                masked = after_part
+                            else:
+                                masked = f"{before_part} {after_part}".strip()
+                else:
+                    voice_corrections.append(f"{marker} -> (rimosso filler vocale)")
+                    masked = m_pat.sub(" ", masked)
+
+        masked = re.sub(r"\s+", " ", masked).strip()
+        for idx, span in enumerate(code_spans):
+            masked = masked.replace(f"__NK_CODE_{idx}__", span)
+
+        return {
+            "raw_prompt": raw_prompt,
+            "cleaned_prompt": masked,
+            "voice_corrections_applied": voice_corrections,
+            "camelcase_splits": camelcase_splits,
+            "bypass_requested": bypass_requested,
+        }
+
+    def is_gate_exempt(self, raw_prompt: str) -> bool:
+        """Verifica le 5 esenzioni anti-loop per il Super Meta-Prompt Gate (RULE-00.6)."""
+        text = (raw_prompt or "").strip()
+        if not text:
+            return True
+        text_low = text.lower()
+        if "<env_capsule>" in text_low:
+            return True
+        for marker in _BYPASS_AND_TOGGLE_MARKERS:
+            if marker in text_low:
+                return True
+        norm = text_low.strip(" .!?;:\"'")
+        if norm in _SHORT_CONFIRMATIONS:
+            return True
+        if norm in _ONBOARDING_TRIGGERS:
+            return True
+        if norm in _NODE_SELECTIONS:
+            return True
+        return False
+
+    def build_meta_prompt_envelope(
+        self,
+        prompt: str,
+        gate_enabled: bool = True,
+        gate_mode: str = "CONFIRM",
+        files: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """Costruisce e valida il contratto MetaPromptGateContract di Livello 0."""
+        stt_info = self.normalize_voice_stt_input(prompt)
+        exempt = self.is_gate_exempt(prompt) or bool(stt_info.get("bypass_requested"))
+        cleaned_prompt = stt_info["cleaned_prompt"] or (prompt or "").strip()
+        intent = self.classify_prompt_intent(cleaned_prompt, files=files)
+
+        effective_mode = (gate_mode or "CONFIRM").strip().upper()
+        if effective_mode not in ("CONFIRM", "ECHO", "OFF"):
+            effective_mode = "CONFIRM"
+
+        bypassed = bool(exempt or (not gate_enabled) or effective_mode == "OFF")
+        if bypassed:
+            fsm_state = "BYPASSED"
+        elif effective_mode == "ECHO":
+            fsm_state = "CONFIRMED"
+        else:
+            fsm_state = "AWAIT_CONFIRM"
+
+        raw_clauses = [
+            c.strip(" .;")
+            for c in re.split(r"(?:[.;\n]+|\b(?:inoltre|poi)\b)", cleaned_prompt)
+            if c and len(c.strip(" .;")) >= 3
+        ]
+        if not raw_clauses:
+            raw_clauses = [cleaned_prompt or "Eseguire il task richiesto"]
+
+        requirements_r_ids = [
+            f"R{idx}: {clause}" for idx, clause in enumerate(raw_clauses[:6], start=1)
+        ]
+
+        rec_mode = str(intent.get("recommended_mode", "mode_c"))
+        primary_ag = str(intent.get("primary_agent", "NK-Python-Async-Builder"))
+        native_sub = str(intent.get("native_subagent", "NK-Builder-Agent"))
+
+        if rec_mode == "mode_d":
+            out_of_scope = [
+                "Qualsiasi modifica ai file del repository (esecuzione 100% Read-Only)",
+                "Esecuzione di commit transazionali 2PC",
+            ]
+        else:
+            out_of_scope = [
+                "Modifica diretta dei file di produzione fuori da .staging/",
+                "Uso di MagicMock o stub sintetici vietati da RULE-01.2",
+            ]
+
+        conceptual_mirror = (
+            f"Obiettivo: {cleaned_prompt[:140]} "
+            f"(Modalita: {rec_mode}, Skill: {primary_ag}, Sub-Agente: {native_sub})."
+        )
+        optimized_meta_prompt = (
+            f"[META-PROMPT L0 | Mode: {rec_mode} | Skill: {primary_ag}]\n"
+            f"Obiettivo strutturato: {cleaned_prompt}\n"
+            f"Requisiti: {'; '.join(requirements_r_ids)}"
+        )
+
+        hash_input = f"{optimized_meta_prompt}|{'|'.join(requirements_r_ids)}"
+        intent_hash = hashlib.sha256(hash_input.encode("utf-8")).hexdigest()
+        brief_id = f"IB-{time.strftime('%Y%m%d')}-{intent_hash[:6].upper()}"
+
+        payload: Dict[str, Any] = {
+            "brief_id": brief_id,
+            "fsm_state": fsm_state,
+            "gate_mode": effective_mode,
+            "enabled": bool(gate_enabled and effective_mode != "OFF"),
+            "bypassed": bypassed,
+            "conceptual_mirror": conceptual_mirror,
+            "optimized_meta_prompt": optimized_meta_prompt,
+            "requirements_r_ids": requirements_r_ids,
+            "voice_corrections_applied": list(
+                stt_info.get("voice_corrections_applied", [])
+            ),
+            "out_of_scope": out_of_scope,
+            "ambiguities": [],
+            "recommended_mode": rec_mode,
+            "primary_agent": primary_ag,
+            "native_subagent": native_sub,
+            "intent_hash_sha256": intent_hash,
+            "ttl_seconds": 1800,
+        }
+
+        if MetaPromptGateContract is not None:
+            validated = MetaPromptGateContract(**payload)
+            return validated.model_dump()
+        return payload
+
     def resolve_domain_from_manifest(self, prompt: str) -> Dict[str, Any]:
         """Risolve in O(1) il dominio funzionale DOM-01..DOM-05 e le skill interrogando il manifesto SSOT."""
         text_lower = (prompt or "").strip().lower()
@@ -476,7 +777,10 @@ class VibeSprintRouter:
 
         # 1. Riferimento esplicito a ID dominio nel prompt (es. DOM-04)
         for dom_id, dom_meta in domains.items():
-            if dom_id.lower() in text_lower or dom_meta.get("name", "").lower() in text_lower:
+            if (
+                dom_id.lower() in text_lower
+                or dom_meta.get("name", "").lower() in text_lower
+            ):
                 primary_sk = dom_meta.get("primary_skill", "NK-Master-Hub")
                 return {
                     "domain_id": dom_id,
@@ -540,10 +844,12 @@ class VibeSprintRouter:
                     "matched_triggers": [sc_name],
                 }
 
-        # 5. Punteggio keyword tramite domains e intent_dispatch_table (con protezione Tetralogia)
+        # 5. Punteggio keyword tramite domains e intent_dispatch_table (con protezione Tetralogia e nominalizzazioni)
         clean_text = _sanitize_tetralogia_filenames(text_lower)
         tokens = set(
-            "".join(ch if ch.isalnum() or ch == "_" else " " for ch in clean_text).split()
+            "".join(
+                ch if ch.isalnum() or ch == "_" else " " for ch in clean_text
+            ).split()
         )
         best_dom_id = ""
         best_score = 0
@@ -554,7 +860,7 @@ class VibeSprintRouter:
             hits = [
                 kw
                 for kw in kws
-                if kw.lower() in tokens or (len(kw) >= 4 and kw.lower() in clean_text)
+                if _token_matches_keyword(kw, clean_text, tokens, min_sub_len=4)
             ]
             if len(hits) > best_score:
                 best_score = len(hits)
@@ -576,7 +882,7 @@ class VibeSprintRouter:
             }
 
         for kw, entry in dispatch_table.items():
-            if kw in tokens or (len(kw) >= 4 and kw in clean_text):
+            if _token_matches_keyword(kw, clean_text, tokens, min_sub_len=4):
                 dom_id = entry.get("domain_id", "DOM-03")
                 primary_sk = entry.get("primary_agent", "NK-Python-Async-Builder")
                 return {
@@ -623,19 +929,20 @@ class VibeSprintRouter:
         matched = [kw for kw in self.DISCOVERY_KEYWORDS if kw in text_lower]
         domain_info = self.resolve_domain_from_manifest(prompt)
 
-        has_write_intent = any(
-            wkw in clean_text for wkw in _WRITE_ACTION_KEYWORDS
-        ) or ("allinea" in text_lower or "sincronizza" in text_lower or "forgia" in text_lower)
+        has_write_intent = _has_imperative_write_keyword(
+            clean_text
+        ) or _has_imperative_write_keyword(text_lower)
 
-        is_dom04_tech_audit = (
-            domain_info["domain_id"] == "DOM-04"
-            and any(tkw in text_lower for tkw in _DOM04_TECHNICAL_AUDIT_KEYWORDS)
+        is_dom04_tech_audit = domain_info["domain_id"] == "DOM-04" and any(
+            tkw in text_lower for tkw in _DOM04_TECHNICAL_AUDIT_KEYWORDS
         )
 
         if matched and not has_code_files and not has_write_intent:
             if is_dom04_tech_audit:
                 primary_ag = domain_info.get("primary_skill", "NK-Security-Auditor")
-                native_sub = domain_info.get("native_subagent", "NK-Security-DAST-Auditor")
+                native_sub = domain_info.get(
+                    "native_subagent", "NK-Security-DAST-Auditor"
+                )
                 matched_sk = domain_info.get("matched_skills", [primary_ag])
                 dom_id = domain_info["domain_id"]
                 dom_name = domain_info["domain_name"]
@@ -643,7 +950,11 @@ class VibeSprintRouter:
                 primary_ag = "NK-Ideator"
                 native_sub = "NK-Specifier-Agent"
                 matched_sk = ["NK-Ideator"]
-                dom_id = "DOM-02" if domain_info["domain_id"] == "DOM-03" else domain_info["domain_id"]
+                dom_id = (
+                    "DOM-02"
+                    if domain_info["domain_id"] == "DOM-03"
+                    else domain_info["domain_id"]
+                )
                 dom_name = (
                     "IDEATION_AND_ARCH"
                     if dom_id == "DOM-02"
@@ -853,8 +1164,14 @@ class VibeSprintRouter:
         candidates = (
             self.staging_dir / "nk_tracking" / "memory" / "tier1_active_capsule.json",
             self.workspace_root / "nk_tracking" / "memory" / "tier1_active_capsule.json",
-            self.staging_dir / "nk_tracking" / "memory_3tier" / "tier1_active_capsule.json",
-            self.workspace_root / "nk_tracking" / "memory_3tier" / "tier1_active_capsule.json",
+            self.staging_dir
+            / "nk_tracking"
+            / "memory_3tier"
+            / "tier1_active_capsule.json",
+            self.workspace_root
+            / "nk_tracking"
+            / "memory_3tier"
+            / "tier1_active_capsule.json",
         )
         for cand in candidates:
             if cand.exists():
@@ -892,6 +1209,41 @@ def classify_prompt_intent(
     return router.classify_prompt_intent(prompt=prompt, files=files)
 
 
+def normalize_voice_stt_input(
+    raw_prompt: str,
+    workspace_root: Optional[Path] = None,
+) -> Dict[str, Any]:
+    """Funzione helper di modulo per normalizzare l'input vocale STT."""
+    router = VibeSprintRouter(workspace_root=workspace_root)
+    return router.normalize_voice_stt_input(raw_prompt=raw_prompt)
+
+
+def is_gate_exempt(
+    raw_prompt: str,
+    workspace_root: Optional[Path] = None,
+) -> bool:
+    """Funzione helper di modulo per verificare le 5 esenzioni anti-loop."""
+    router = VibeSprintRouter(workspace_root=workspace_root)
+    return router.is_gate_exempt(raw_prompt=raw_prompt)
+
+
+def build_meta_prompt_envelope(
+    prompt: str,
+    gate_enabled: bool = True,
+    gate_mode: str = "CONFIRM",
+    files: Optional[List[str]] = None,
+    workspace_root: Optional[Path] = None,
+) -> Dict[str, Any]:
+    """Funzione helper di modulo per costruire il contratto MetaPromptGateContract."""
+    router = VibeSprintRouter(workspace_root=workspace_root)
+    return router.build_meta_prompt_envelope(
+        prompt=prompt,
+        gate_enabled=gate_enabled,
+        gate_mode=gate_mode,
+        files=files,
+    )
+
+
 def load_prewarmed_capsule(workspace_root: Optional[Path] = None) -> Dict[str, Any]:
     """Funzione helper di modulo per caricare la capsula Tier-1 pre-riscaldata."""
     router = VibeSprintRouter(workspace_root=workspace_root)
@@ -899,7 +1251,7 @@ def load_prewarmed_capsule(workspace_root: Optional[Path] = None) -> Dict[str, A
 
 
 def run_test() -> int:
-    """Esegue l'autotest rapido del router Mode C e Mode D."""
+    """Esegue l'autotest rapido del router Mode C, Mode D e Meta-Prompt Gate."""
     router = VibeSprintRouter()
     code_sample = '''
 def calculate_vat(amount: float, rate: float = 0.22) -> float:
@@ -920,7 +1272,14 @@ def calculate_vat(amount: float, rate: float = 0.22) -> float:
     disc = router.classify_prompt_intent("Esegui audit e benchmark copertura bandi")
     assert disc["recommended_mode"] == "mode_d"
     assert "domain_id" in disc
-    print(f"VibeSprintRouter test PASS: Risk {res['risk_score']} | Depth {res['max_depth']}")
+    env = router.build_meta_prompt_envelope(
+        "Analizza primaLa struttura e l'implementazione attuale"
+    )
+    assert env["fsm_state"] == "AWAIT_CONFIRM"
+    assert len(env["intent_hash_sha256"]) == 64
+    print(
+        f"VibeSprintRouter test PASS: Risk {res['risk_score']} | Depth {res['max_depth']}"
+    )
     return 0
 
 
@@ -948,6 +1307,16 @@ def main(argv: Optional[List[str]] = None) -> int:
         const="__USE_PROMPT__",
         default=None,
         help="Classifica l'intento del prompt e restituisce modalita, dominio e sub-agente",
+    )
+    parser.add_argument(
+        "--meta-prompt-gate",
+        action="store_true",
+        help="Costruisce e valida il contratto MetaPromptGateContract per il prompt fornito",
+    )
+    parser.add_argument(
+        "--no-gate",
+        action="store_true",
+        help="Disabilita o bypassa il Meta-Prompt Gate per l'invocazione corrente",
     )
     parser.add_argument(
         "--mode",
@@ -990,6 +1359,24 @@ def main(argv: Optional[List[str]] = None) -> int:
         effective_prompt = str(args.classify_prompt)
 
     router = VibeSprintRouter()
+
+    if args.meta_prompt_gate or args.no_gate:
+        envelope = router.build_meta_prompt_envelope(
+            effective_prompt,
+            gate_enabled=not args.no_gate,
+            gate_mode="OFF" if args.no_gate else "CONFIRM",
+            files=args.files,
+        )
+        if args.json:
+            print(json.dumps(envelope, indent=2, ensure_ascii=False))
+        else:
+            print(
+                f"[META-PROMPT-GATE] Brief: {envelope['brief_id']} | "
+                f"State: {envelope['fsm_state']} | Mode: {envelope['recommended_mode']} | "
+                f"Agent: {envelope['primary_agent']} | SHA256: {envelope['intent_hash_sha256'][:12]}"
+            )
+        return 0
+
     if args.files:
         results: List[Dict[str, Any]] = []
         for file_arg in args.files:

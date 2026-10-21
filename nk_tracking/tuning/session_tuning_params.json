@@ -1,5 +1,7 @@
 {
   "steps": 1,
   "compliance_score": 100,
-  "ratchet_verified": true
+  "ratchet_verified": true,
+  "meta_prompt_gate_enabled": true,
+  "meta_prompt_gate_mode": "CONFIRM"
 }

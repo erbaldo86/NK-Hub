@@ -230,9 +230,9 @@ G:/Il mio Drive/Antigravity/
 | 25 | `safe_cleanup_dev_servers.py` | Usa `psutil.net_connections()` e termina solo processi dev con `cwd()` o `cmdline()` nel workspace target (`U-13`). | Nessuna | `test_safe_cleanup_dev_servers.py` |
 | 26 | `sbfl_engine.py` | Mantiene `OchiaiDiagnosticPayload.estimate_token_count() < 80` e aggiunge l'interfaccia CLI `__main__`. | Nessuna | `test_sbfl_engine.py` |
 | 27 | `sbfl_pytest_bridge.py` | Collega `sbfl_engine.py`, supporta spazi nei path Windows e garantisce `loc.suspiciousness == 1.0` (`U-19`). | **`GT-07`** (`< 320` char) | `test_auto_heal_pipeline.py` |
-| 28 | `vibe_sprint_router.py` | Calcola la vera profondità AST `max_depth`, supporta `Mode D` (`--prompt`) e allinea la soglia Mode C a `<= 150` LOC (`U-10`). | Nessuna | `test_vibe_sprint_router.py` |
+| 28 | `vibe_sprint_router.py` | Calcola `max_depth` AST, supporta `Mode D`, il Gate L0 (`--meta-prompt-gate`), FSM anti-loop e parser STT (`WP13`). | Nessuna | `test_vibe_sprint_router.py` |
 | 29 | `win32_2pc_engine.py` | Dichiara `argtypes`/`restype` a 64-bit su `CreateMutexW`/`MoveFileExW`, usa `MOVEFILE_COPY_ALLOWED`, verifica `age > 10s` in `recover()`. | Nessuna | `test_win32_2pc.py` |
-| 30 | `schemas/dual_ledgers.py` + `nk_ipc_contracts.py` | Dichiara `c_void_p` su `OpenProcess`/`CloseHandle` e tratta `ERROR_ACCESS_DENIED (5)` come processo vivo (`U-25`). Aggiunge `RSISessionReport`. | Nessuna | `test_schemas_and_contracts.py` |
+| 30 | `schemas/dual_ledgers.py` + `nk_ipc_contracts.py` | Dichiara `c_void_p` su `OpenProcess`/`CloseHandle`, aggiunge `RSISessionReport` e `MetaPromptGateContract` con `R1..Rn` e SHA-256 (`WP13`). | Nessuna | `test_schemas_and_contracts.py` |
 
 ---
 

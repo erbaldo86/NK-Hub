@@ -26,6 +26,13 @@
   2. Mostra la Master Dashboard a 15 nodi (`[0]` fino a `[14]`) definita in `NK-Master-Hub/SKILL.md`.
   3. Include in calce la guida con `Modalità Diretta` (`[0]`..`[14]`) e `Modalità Goal-Driven` in linguaggio naturale.
 
+### [RULE-00.6] UNIVERSAL_META_PROMPT_GATE_MANDATE
+* L'agente attiva di default il Super Meta-Prompt Gate (`CONFIRM`) su ogni nuovo prompt utente.
+* Il Livello 0 genera lo Specchio Concettuale, il Meta-Prompt e l'Intent Brief (`IB-*` con `R1..Rn`).
+* Prima dell'esecuzione, l'agente richiede conferma rapida 1-Click tramite `ask_question` (`Conferma`, `Solo risposta diretta`, `Modifica intento`).
+* Il gate applica le 5 esenzioni anti-loop (`ok`, `[0]..[14]`, `Proceed`, `<env_capsule>`, `!diretto`).
+* L'utente disattiva o riattiva il gate con `"disattiva prompt gate"`, `"attiva prompt gate"` o `"!diretto"`.
+
 ### [RULE-00] ZERO_UNAUTHORIZED_FILE_MODIFICATION_MANDATE
 * Nessun agente modifica i file di produzione (`.agents/AGENTS.md`, `scripts/*`) senza autorizzazione dell'utente.
 * I nodi di pianificazione aggiornano la Tetralogia Sovrana in `nk_genome/` (`concept_map.md`, `structural_tree.md`, `implementation_plan.md`, `repo_map.md`) e `nk_tracking/`.

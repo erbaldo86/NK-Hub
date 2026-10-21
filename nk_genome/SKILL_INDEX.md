@@ -33,15 +33,15 @@ La tabella seguente elenca ogni skill con il relativo dominio e hash SHA-256.
 | `NK-Bug-Diagnostic-Engine` | `DOM-04` | `HIGH` | `2` | `50` | `1b3bb0b8a47c` |
 | `NK-Delta-Architect` | `DOM-03` | `HIGH` | `1` | `80` | `6f5f86e44ef0` |
 | `NK-Dynamic-Sandbox-StressTester` | `DOM-04` | `HIGH` | `0` | `65` | `bc36ac0a3c41` |
-| `NK-Episodic-Memory-Engine` | `DOM-05` | `HIGH` | `0` | `60` | `ca3b2f614d25` |
+| `NK-Episodic-Memory-Engine` | `DOM-05` | `HIGH` | `0` | `60` | `1fe23497214a` |
 | `NK-Ideator` | `DOM-02` | `HIGH` | `1` | `60` | `02f5b2c2ba22` |
 | `NK-Master-Hub` | `DOM-01` | `HIGH` | `0` | `176` | `26459e2e3557` |
 | `NK-Oracle-Evaluator` | `DOM-04` | `HIGH` | `2` | `58` | `414c99318d80` |
-| `NK-Plan-Aligner` | `DOM-01` | `HIGH` | `0` | `56` | `33d5c1ba6545` |
+| `NK-Plan-Aligner` | `DOM-01` | `HIGH` | `0` | `57` | `c42ef7c3de9a` |
 | `NK-Python-Async-Builder` | `DOM-03` | `HIGH` | `0` | `58` | `19f1fbcce2b4` |
 | `NK-Scribe` | `DOM-05` | `HIGH` | `2` | `68` | `6512f2b18da0` |
 | `NK-Security-Auditor` | `DOM-04` | `HIGH` | `4` | `68` | `acaec8019278` |
-| `NK-Session-Controller` | `DOM-01` | `HIGH` | `4` | `96` | `b9d515f2f149` |
+| `NK-Session-Controller` | `DOM-01` | `HIGH` | `4` | `98` | `9a46c3e731e7` |
 | `NK-State-Router` | `DOM-01` | `HIGH` | `0` | `56` | `ccd64f0dd9ee` |
 
 ## 3. Registro degli Script Core, Schemi e Flag CLI
@@ -67,7 +67,7 @@ La tabella seguente mappa ogni modulo Python ai flag CLI verificati via AST.
 | `nk_compliance_checker.py` | `DOM-05` | `--json`, `--min-score`, `--transcript` | `561` | `c959ddf0b93b` |
 | `nk_context_sentry.py` | `DOM-05` | `--json`, `--profile`, `--transcript`, `--verbose` | `356` | `2079bc63f5d7` |
 | `nk_registry_indexer.py` | `DOM-01` | `--apply-global-filter`, `--json`, `--lookup`, `--root`, `--stage-dir`, `--sync`, `--verify` | `1966` | `e73e14b580d2` |
-| `nk_session_bootstrap.py` | `DOM-01` | `--force-full`, `--json` | `611` | `bb0650f5497c` |
+| `nk_session_bootstrap.py` | `DOM-01` | `--force-full`, `--json` | `628` | `330da302a81b` |
 | `nk_session_handoff.py` | `DOM-01` | `--generate-prompt`, `--output-dir`, `--transcript` | `160` | `1055fede72d7` |
 | `nk_swarm_messenger.py` | `DOM-01` | `--payload`, `--payload-file`, `--recipient`, `--sender` | `97` | `bcde0726690b` |
 | `oracle_evaluator_l3.py` | `DOM-04` | `--actual`, `--expected`, `--json` | `404` | `2481dc94adc2` |
@@ -79,8 +79,8 @@ La tabella seguente mappa ogni modulo Python ai flag CLI verificati via AST.
 | `sbfl_engine.py` | `DOM-04` | `--json`, `--records-file` | `545` | `56f8c7e2249b` |
 | `sbfl_pytest_bridge.py` | `DOM-04` | `--cwd`, `--json`, `--target-file`, `--test-cmd` | `426` | `0ff0a6c3b252` |
 | `schemas/dual_ledgers.py` | `DOM-01` | `nessuno` | `445` | `9154623e74df` |
-| `schemas/nk_ipc_contracts.py` | `DOM-01` | `nessuno` | `259` | `7f5fdbf583cf` |
-| `vibe_sprint_router.py` | `DOM-01` | `--capsule`, `--classify-prompt`, `--discovery-check`, `--files`, `--json`, `--mode`, `--prompt`, `--task`, `--test` | `1050` | `348c813f5135` |
+| `schemas/nk_ipc_contracts.py` | `DOM-01` | `nessuno` | `290` | `0981d31b780f` |
+| `vibe_sprint_router.py` | `DOM-01` | `--capsule`, `--classify-prompt`, `--discovery-check`, `--files`, `--json`, `--meta-prompt-gate`, `--mode`, `--no-gate`, `--prompt`, `--task`, `--test` | `1437` | `d51e8c05c873` |
 | `win32_2pc_engine.py` | `DOM-01` | `--git-sync`, `--milestone`, `--promote-staging`, `--repo-root`, `--staging-dir`, `--verify-baseline` | `919` | `a0a30838d4b2` |
 
 ## 4. Profilo di Igiene del Contesto Globale

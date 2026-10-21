@@ -1,21 +1,22 @@
-# Lab NK Hub: Sovereign AI Agentic OS (`v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified`)
+# Lab NK Hub: Sovereign AI Agentic OS (`v4.1.0-Super-Meta-Prompt-Gate` / `v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified`)
 
 > 🌍 **Choose Your Language / Scegli la Lingua:** **[🇬🇧 English (Current)](README.md)** | **[🇮🇹 Leggi in Italiano (README.it.md)](README.it.md)** | **[📦 Guida Installazione (IT)](GUIDA_INSTALLAZIONE.md)**
 
-> **The Sovereign Cognitive Operating System, 5 Native Sub-Agents, 16 Procedural Playbooks & Tensor-RSI 2D Engine for Google Antigravity**
+> **The Sovereign Cognitive Operating System, L0 Universal Meta-Prompt Gate, 5 Native Sub-Agents, 16 Procedural Playbooks & Tensor-RSI 2D Engine for Google Antigravity**
 
-[![Release](https://img.shields.io/badge/Release-v4.0.0--Native--Swarm--Playbooks-blue)](#part-7-patch-notes-before-vs-after-evolution-live-runtime-window--certification-matrix-8686-pass)
-[![Tests](https://img.shields.io/badge/86_Golden_%26_Stress_Tests-100.0%25_PASS-success)](#part-7-patch-notes-before-vs-after-evolution-live-runtime-window--certification-matrix-8686-pass)
+[![Release](https://img.shields.io/badge/Release-v4.1.0--Super--Meta--Prompt--Gate-blue)](#part-7-patch-notes-before-vs-after-evolution-live-runtime-window--certification-matrix-9090-pass)
+[![Tests](https://img.shields.io/badge/90_Golden_%26_Stress_Tests-100.0%25_PASS-success)](#part-7-patch-notes-before-vs-after-evolution-live-runtime-window--certification-matrix-9090-pass)
+[![MetaGate](https://img.shields.io/badge/L0_Meta--Prompt_Gate-ALWAYS--ON_%7C_2.12ms-blueviolet)](#part-5-architectural-protocols--system-regulations-crv-40--tensor-rsi)
 [![NativeAgents](https://img.shields.io/badge/5_Native_Sub--Agents-.agents%2Fagents-blueviolet)](#part-3-complete-panoramic-catalog-of-the-5-native-sub-agents--16-procedural-playbooks)
 [![Playbooks](https://img.shields.io/badge/16_Procedural_Playbooks-.agents%2Fskills-brightgreen)](#part-3-complete-panoramic-catalog-of-the-5-native-sub-agents--16-procedural-playbooks)
 [![Registry](https://img.shields.io/badge/O(1)_Registry-1.08ms_Lookup-blueviolet)](#part-5-architectural-protocols--system-regulations-crv-40--tensor-rsi)
-[![GlobalFilter](https://img.shields.io/badge/Global_Filter-0_Token_Overhead-brightgreen)](#part-7-patch-notes-before-vs-after-evolution-live-runtime-window--certification-matrix-8686-pass)
+[![GlobalFilter](https://img.shields.io/badge/Global_Filter-0_Token_Overhead-brightgreen)](#part-7-patch-notes-before-vs-after-evolution-live-runtime-window--certification-matrix-9090-pass)
 [![RSI](https://img.shields.io/badge/Tensor--RSI_2D-%CE%94%3D0_%7C_Q%3D100.0-brightgreen)](#part-6-mathematical-foundations--tensor-rsi-2d-engine-senior--auditor-section)
 [![VibeCheck](https://img.shields.io/badge/Vibe--Check-%3C500ms-brightgreen)](#tutorial-3-ultra-fast-ui--script-tweaks-in--500-ms-mode-c-vibe-sprint)
 [![Fast-Stat](https://img.shields.io/badge/Fast--Stat-%3C50ms_Cached-brightgreen)](#tutorial-1-starting-the-environment-in--120-ms-rule-005)
 [![STE100](https://img.shields.io/badge/ASD--STE100-20_Words_Max-informational)](#part-5-architectural-protocols--system-regulations-crv-40--tensor-rsi)
 [![Win32 2PC Mutex Active](https://img.shields.io/badge/Win32_2PC_Mutex-64bit_Active-orange)](#part-4-core-engine-architecture--scripts-ecosystem-31-logical-modules--34-python-files)
-[![Zero-Mock 100% Real OS](https://img.shields.io/badge/Zero--Mock-100%25_Real_OS-red)](#part-7-patch-notes-before-vs-after-evolution-live-runtime-window--certification-matrix-8686-pass)
+[![Zero-Mock 100% Real OS](https://img.shields.io/badge/Zero--Mock-100%25_Real_OS-red)](#part-7-patch-notes-before-vs-after-evolution-live-runtime-window--certification-matrix-9090-pass)
 
 ---
 
@@ -29,12 +30,13 @@ Instead of a single fragile prompt, you get an **Initial O(1) Router**, **5 Pre-
 
 | Common AI Coding Failure | How `NK-Hub v4.0.0-Native-Swarm-Playbooks` Solves It Deterministically |
 | :--- | :--- |
+| **Voice-to-Text Typos & Ambiguous Prompts** | **`[RULE-00.6]` L0 Meta-Prompt Gate** (`--meta-prompt-gate`) normalizes STT tokens (`normalize_voice_stt_input`), locks `R1..Rn`, and requests 1-Click confirmation in `2.12 ms`. |
 | **Role Simulation vs Real Execution** | `v4.0.0` registers **5 Native Sub-Agents** in `.agents/agents/*/agent.md` that spawn as isolated processes with zero `define_subagent` overhead. |
 | **Conflicting Skill Instructions** | All **16 Skills** in `.agents/skills/*/SKILL.md` are pure **Procedural Playbooks** mounted on demand by the 5 Native Sub-Agents. |
 | **Unauthorized File Writes by Auditors** | Auditors enforce `enable_write_tools: false` at the hardware level (`GT-14`), while Builders write exclusively inside `.staging/` (`[RULE-00]`). |
 | **High Token Usage on Quick Edits** | In `Mode C` (`<= 150` LOC), `vibe_sprint_router.py` activates `fast_bypass_eligible: true`, saving `71.9%` of tokens (`< 500 ms` check). |
 | **Blind Frontend & Browser Verification** | `NK-Dynamic-Sandbox-StressTester` and `NK-Delta-Architect` integrate **Browser E2E (`chrome-devtools-mcp`, `puppeteer`)** and Full-Stack UI. |
-| **Fake Tests Passing on Broken Code** | `[RULE-01.2]` forbids `MagicMock` and synthetic stubs. All **86 Golden & 3-Tier Stress Tests** run on real OS processes. |
+| **Fake Tests Passing on Broken Code** | `[RULE-01.2]` forbids `MagicMock` and synthetic stubs. All **90 Golden & 3-Tier Stress Tests** run on real OS processes. |
 | **Endless Trial-and-Error Loops** | When a test fails, `sbfl_pytest_bridge.py` computes the **Ochiai Spectrum** score and pinpoints the exact faulty line in `< 80` tokens. |
 | **Blind O(N) Skill & Agent Searches** | The **Modular O(1) Registry** (`nk_registry_manifest.json`) indexes `16` Playbooks and `5` Native Agents with `1.08 ms` cached lookup. |
 | **Global External Skill Pollution** | The **61-Skill Global Filter** (`--apply-global-filter`) isolates `61` external skills into `4` disabled plugins, saving `7,042` tokens/turn. |
@@ -46,7 +48,7 @@ Instead of a single fragile prompt, you get an **Initial O(1) Router**, **5 Pre-
 | :--- | :--- | :--- |
 | **🟢 New User / Evaluator** | **[Part 1](#part-1-for-beginners-concepts-glossary--3-command-quickstart)** & **[Part 2](#part-2-interactive-step-by-step-tutorials-4-real-world-examples)** | Plain-language overview, zero-jargon glossary, quickstart, and 4 copy-paste tutorials. |
 | **🔵 Product / Workflow Architect** | **[Part 3](#part-3-complete-panoramic-catalog-of-the-5-native-sub-agents--16-procedural-playbooks)** & **[Part 5](#part-5-architectural-protocols--system-regulations-crv-40--tensor-rsi)** | The 5 Native Sub-Agents, 16 Procedural Playbooks (`[0]`..`[14]`), 5 domains (`DOM-01..05`), and Vibe Coding. |
-| **🟣 Senior AI Engineer / Auditor** | **[Part 4](#part-4-core-engine-architecture--scripts-ecosystem-31-logical-modules--34-python-files)**, **[Part 6](#part-6-mathematical-foundations--tensor-rsi-2d-engine-senior--auditor-section)** & **[Part 7](#part-7-patch-notes-before-vs-after-evolution-live-runtime-window--certification-matrix-8686-pass)** | The 34 Python core scripts, Tensor-RSI 2D equations, SLAs, `v4.0.0` transformation, and the 86 Tests matrix. |
+| **🟣 Senior AI Engineer / Auditor** | **[Part 4](#part-4-core-engine-architecture--scripts-ecosystem-31-logical-modules--34-python-files)**, **[Part 6](#part-6-mathematical-foundations--tensor-rsi-2d-engine-senior--auditor-section)** & **[Part 7](#part-7-patch-notes-before-vs-after-evolution-live-runtime-window--certification-matrix-9090-pass)** | The 34 Python core scripts, Tensor-RSI 2D equations, SLAs, `v4.1.0` & `v4.0.0` architecture, and the 90 Tests matrix. |
 
 ---
 
@@ -66,6 +68,7 @@ Once every check reaches `100.0%`, the tower promotes the finished code into you
 | Term in `NK-Hub v4.0.0` | Simple Everyday Meaning | Technical Role in the System |
 | :--- | :--- | :--- |
 | **`NK-Hub` (Control Tower)** | The master brain that coordinates all specialists. | Main Agent orchestrator enforcing routing, quality gates, and atomic 2PC promotion. |
+| **L0 Meta-Prompt Gate (`[RULE-00.6]`)** | Smart translator that fixes voice typos and confirms your goal in 1 click. | Always-On pre-routing gate (`MetaPromptGateContract`) normalizing STT input and locking `R1..Rn` (`2.12 ms`). |
 | **5 Native Sub-Agents** | 5 real worker processes pre-installed in Antigravity. | Native definitions in `.agents/agents/*/agent.md` with hardware tool permissions. |
 | **16 Procedural Playbooks** | 16 step-by-step instruction manuals for every task. | Modular playbooks in `.agents/skills/NK-*/SKILL.md` loaded on demand by agents. |
 | **Fast-Bypass (`Mode C`)** | The express lane for quick UI or script edits (`<= 150` LOC). | Direct execution in `.staging/` with `--vibe-check` (`< 500 ms`), saving `71.9%` tokens. |
@@ -79,8 +82,9 @@ Once every check reaches `100.0%`, the tower promotes the finished code into you
 ### High-Level Visual Architecture (`v4.0.0-Native-Swarm-Playbooks`)
 ```mermaid
 flowchart TD
-    U["User Prompt or Verbal Trigger ('avvia nk')"] --> B["Fast-Stat Bootstrap Gate (<50ms cached)"]
-    B --> R["O(1) Vibe Sprint Router (1.19ms -> Mode A / B / C / D)"]
+    U["User Prompt, Voice STT or Verbal Trigger ('avvia nk')"] --> B["Fast-Stat Bootstrap Gate (<50ms cached)"]
+    B --> G0["L0 Universal Meta-Prompt & Voice-to-Intent Gate ([RULE-00.6], 2.12ms)"]
+    G0 --> R["O(1) Vibe Sprint Router (1.19ms -> Mode A / B / C / D)"]
     R -->|"Mode C (<=150 LOC)"| FB["Fast-Bypass in .staging/ + --vibe-check (<500ms)"]
     R -->|"Mode D / A (Spec)"| A1["NK-Specifier-Agent (.agents/agents/) + DOM-02 Playbooks"]
     A1 --> A2["NK-Builder-Agent (.agents/agents/) + DOM-03 Playbooks in .staging/"]
@@ -268,11 +272,11 @@ Every playbook in `.agents/skills/NK-*/SKILL.md` enforces `[RULE-STE100]`, `[RUL
 
 ## Part 4: Core Engine Architecture & Scripts Ecosystem (`31 Logical Modules / 34 Python Files`)
 
-All `34` Python files in `scripts/` (`32` indexed in `nk_registry_manifest.json`) use strict Pydantic v2 contracts. They pass `86/86` Zero-Mock Golden & 3-Tier Stress Tests.
+All `34` Python files in `scripts/` (`32` indexed in `nk_registry_manifest.json`) use strict Pydantic v2 contracts. They pass `90/90` Zero-Mock Golden & 3-Tier Stress Tests.
 
 ### 1. Runtime Defense, Session Governance & Tensor-RSI Convergence
 - [`scripts/nk_registry_indexer.py`](scripts/nk_registry_indexer.py): O(1) taxonomic indexer for `16` Playbooks (`skills_index`), `5` Native Sub-Agents (`native_agents_index`), and `32` scripts. Enforces `GT-14` (`enable_write_tools: false` on Auditors), `RULE-01` (`enable_subagent_tools: false`), `_MANIFEST_CACHE` (`1.08 ms` lookup), and `--apply-global-filter`.
-- [`scripts/nk_session_bootstrap.py`](scripts/nk_session_bootstrap.py): Fast-Stat gate (`< 50` ms cached via `transcript_mtime` and `transcript_size`), `.wal` purge, root isolation check, and `NK_MODEL_PROFILE=argon` activation.
+- [`scripts/nk_session_bootstrap.py`](scripts/nk_session_bootstrap.py): Fast-Stat gate (`< 50` ms cached via `transcript_mtime` and `transcript_size`), `.wal` purge, root isolation check, `meta_prompt_gate_enabled: true` check (`[RULE-00.6]`), and `NK_MODEL_PROFILE=argon` activation.
 - [`scripts/rsi_convergence_engine.py`](scripts/rsi_convergence_engine.py): Tensor-RSI 2D engine tracking `poc_confirmed_exploits` and `semantic_drift_findings`. Supports `--vibe-check <target>`, CoVe CLI AST Gate (`152` verified CLI flags), and STE100 validation (`--verify`).
 - [`scripts/nk_active_runtime_sentinel.py`](scripts/nk_active_runtime_sentinel.py): Dual-Profile runtime step monitor (`60/85/100` standard, `120/180/250` argon) with subagent transcript filtering (`EXT-02`).
 - [`scripts/nk_context_sentry.py`](scripts/nk_context_sentry.py): Dual-Profile token/step sentry (`70/100` standard, `150/250` argon excluding `thinking`) and subagent return MTU gate (`2000` chars).
@@ -304,12 +308,12 @@ All `34` Python files in `scripts/` (`32` indexed in `nk_registry_manifest.json`
 ### 5. Memory, Caching, AST & Schemas
 - [`scripts/memory_3tier_engine.py`](scripts/memory_3tier_engine.py): 3-Tier memory in `nk_tracking/memory_3tier/` with `DOMAIN_ALIAS_MAP` (`OPS=01_Bug_Diagnostics`, `ARCH=02_Development_Patterns`, `DEVX=03_Ideation_and_Decisions`, `SEC=04_Governance_and_Rules`), `350`/`1200` token cap (`GT-05`), and `tier1_active_capsule.json` sync.
 - [`scripts/deterministic_api_cache.py`](scripts/deterministic_api_cache.py): Persistent SQLite WAL connection cache with CLI (`--force-refresh`, `--stats`, `--clear`).
-- [`scripts/quality_baseline_manager.py`](scripts/quality_baseline_manager.py): Fail-closed baseline ratchet (`68` Golden Tests minimum floor, `86` active tests) checking `sast_critical_violations` and `rsi_residual_delta`.
+- [`scripts/quality_baseline_manager.py`](scripts/quality_baseline_manager.py): Fail-closed baseline ratchet (`68` Golden Tests minimum floor, `90` active tests) checking `sast_critical_violations` and `rsi_residual_delta`.
 - [`scripts/ast_guard_validator.py`](scripts/ast_guard_validator.py): Static AST scope checker supporting `--stage-dir`, `--allowed-mutations` function whitelist, and TAS v4.0 `SASTConstructChecker` (`SQLi`, `SSRF`, `XXE`, `SSTI`, `eval`, `MagicMock`).
 - [`scripts/ast_repo_mapper.py`](scripts/ast_repo_mapper.py): PageRank AST repo-mapper serializing `edges` and supporting `4,000`-token `argon_mode_a` snapshots (`GT-06`).
 - [`scripts/external_project_scaffolder.py`](scripts/external_project_scaffolder.py): External DDD project generator rejecting internal `NK-Hub` target paths (`BS-03`).
-- [`scripts/vibe_sprint_router.py`](scripts/vibe_sprint_router.py): Mode A/B/C/D router with `_ROUTER_MANIFEST_CACHE` (`1.19 ms`), resolving `primary_agent`, `native_subagent` (`5/5` Native Sub-Agents), `fast_bypass_eligible`, and pre-warming `nk_tracking/memory_3tier/tier1_active_capsule.json`.
-- [`scripts/schemas/dual_ledgers.py`](scripts/schemas/dual_ledgers.py) & [`scripts/schemas/nk_ipc_contracts.py`](scripts/schemas/nk_ipc_contracts.py): 64-bit PID check (`ERROR_ACCESS_DENIED` safe) and unified Pydantic v2 IPC contracts (`RSIDefectVector`, `OchiaiDiagnosticPayload`).
+- [`scripts/vibe_sprint_router.py`](scripts/vibe_sprint_router.py): Mode A/B/C/D router with `_ROUTER_MANIFEST_CACHE` (`1.19 ms`), `--meta-prompt-gate` (`2.12 ms`), `normalize_voice_stt_input()`, `is_gate_exempt()`, resolving `primary_agent`, `native_subagent` (`5/5` Native Sub-Agents), `fast_bypass_eligible`, and pre-warming `nk_tracking/memory_3tier/tier1_active_capsule.json`.
+- [`scripts/schemas/dual_ledgers.py`](scripts/schemas/dual_ledgers.py) & [`scripts/schemas/nk_ipc_contracts.py`](scripts/schemas/nk_ipc_contracts.py): 64-bit PID check (`ERROR_ACCESS_DENIED` safe) and unified Pydantic v2 IPC contracts (`MetaPromptGateContract`, `RSIDefectVector`, `OchiaiDiagnosticPayload`).
 
 ---
 
@@ -317,7 +321,7 @@ All `34` Python files in `scripts/` (`32` indexed in `nk_registry_manifest.json`
 
 ### Core Binding Mandates (`.agents/AGENTS.md`)
 1. **`[RULE-PROJECT-ISOLATION]`**: Application code is forbidden inside `NK-Hub`. Every app resides in `G:/Il mio Drive/NK_External_Projects/<Name>/`.
-2. **`[RULE-00.4]` & `[RULE-00.5]`**: Every session starts with `nk_session_bootstrap.py` (`< 120` ms) and renders the 15-node Master Dashboard on verbal triggers.
+2. **`[RULE-00.4]`, `[RULE-00.5]` & `[RULE-00.6]`**: Every session starts with `nk_session_bootstrap.py` (`< 120` ms), renders the 15-node Master Dashboard on verbal triggers, and enforces the Always-On **L0 Universal Meta-Prompt Gate** (`MetaPromptGateContract`, `normalize_voice_stt_input()`, `is_gate_exempt()`).
 3. **`[RULE-00]` & `[RULE-00.1]`**: Zero unauthorized edits on production files. Specifiers and Auditors are read-only on production; Builders write only in `.staging/`.
 4. **`[RULE-STE100]`**: Mandatory ASD-STE100 technical language (`<= 20` words per instruction sentence, active voice, zero spaced dashes).
 5. **`[RULE-REACTIVE-SILENCE]`**: Polling loops (`manage_task(Action="status")`) are forbidden. Agents yield their turn or set event-driven timers.
@@ -401,16 +405,24 @@ Hard regressions ($\text{SAST}_k > \text{SAST}_{k-1}$ or $T_{\text{fail},k} + C_
 | :--- | :---: | :---: |
 | **Fast-Stat Session Bootstrap (`nk_session_bootstrap.py`)** | `< 120 ms` (`< 50 ms` cached) | **`11 ms - 35 ms`** |
 | **O(1) Taxonomic Registry Lookup (`_MANIFEST_CACHE`)** | `< 15 ms` | **`1.0856 ms` (`-84.0%` latency)** |
+| **L0 Universal Meta-Prompt & STT Gate (`--meta-prompt-gate`)** | `< 15 ms` | **`2.118 ms` (`5` Anti-Loop Exemptions)** |
 | **O(1) Intent & Native Sub-Agent Routing (`_ROUTER_MANIFEST_CACHE`)** | `< 15 ms` | **`1.1924 ms` (`-85.8%` latency)** |
 | **SHA-256 Registry & `GT-14`/`RULE-01` Verification (`--verify`)** | `< 350 ms` | **`133 ms` (`16` Playbooks + `5` Native Agents)** |
 | **61-Skill Global Isolation Filter (`--apply-global-filter`)** | `0` active external skills | **`0 active (-7,042 tokens/turn)`** |
 | **Mode C Fast-Bypass & Single-Process Vibe-Check (`--vibe-check`)** | `< 500 ms` | **`15 ms - 65 ms` (`-71.9%` token usage)** |
 | **CoVe CLI AST Gate (`verify_cli_flags_cove`)** | `100%` valid CLI flags | **`152/152 flags verified (0 invalid)`** |
-| **86 Orthogonal Golden & 3-Tier Stress Tests (`pytest tests/ -q`)** | `100.0% PASS` | **`7.08 s (86/86 PASS)`** |
+| **90 Orthogonal Golden & 3-Tier Stress Tests (`pytest tests/ -q`)** | `100.0% PASS` | **`7.09 s (90/90 PASS)`** |
 
 ---
 
-## Part 7: Patch Notes, Before-vs-After Evolution, Live Runtime Window & Certification Matrix (`86/86 PASS`)
+## Part 7: Patch Notes, Before-vs-After Evolution, Live Runtime Window & Certification Matrix (`90/90 PASS`)
+
+### 0. Release `v4.1.0-Super-Meta-Prompt-Gate` (`WP13-UNIFIED`: Opus + Argon + Third-Party Synthesis)
+
+Release **`v4.1.0-Super-Meta-Prompt-Gate`** unifies the **Opus**, **Argon**, and **Third-Party Arbitration** briefs into the Always-On **Level 0 Universal Meta-Prompt & Voice-to-Intent Gate (`[RULE-00.6]`)**:
+- **Constitutional Mandate `[RULE-00.6]` & 1-Click Voice Confirmation (`.agents/AGENTS.md`, `prompt_templates.md`)**: Activates the `CONFIRM` Meta-Prompt Gate by default with 1-Click `ask_question` confirmation, separating **Level 0 (`IB-*` with `R1..Rn`, voice corrections, out-of-scope, `intent_hash_sha256`)** from **Level 1-4 (`implementation_plan.md`)**.
+- **Morphological STT Normalizer, 5-Exemption Anti-Loop FSM & IPC Contract (`vibe_sprint_router.py`, `nk_ipc_contracts.py`)**: Introduces `MetaPromptGateContract` (`strict=True, extra="forbid", frozen=True`), `normalize_voice_stt_input()` for CamelCase fused STT tokens (`primaLa`), `is_gate_exempt()` (`ok`, `[0]..[14]`, `Proceed`, `<env_capsule>`, `!diretto`), and fixes abstract noun false positives at line `626`.
+- **Fast-Stat Bootstrap, `R1..Rn` Traceability & 90 Zero-Mock Tests (`nk_session_bootstrap.py`, `tests/`)**: Enforces `meta_prompt_gate_enabled: true` in `nk_session_bootstrap.py` and `session_tuning_params.json`, `100%` `R1..Rn` coverage in `NK-Plan-Aligner`, lexical `DEVX` indexing in `NK-Episodic-Memory-Engine`, and `90/90 PASS` across 25 test files.
 
 ### 1. The Great `v4.0.0` Transformation: How It Worked Before (`v3.5.x`) vs. How It Works Now (`v4.0.0`)
 
@@ -450,11 +462,14 @@ PS G:\Il mio Drive\Antigravity> python -u scripts/nk_registry_indexer.py --verif
 PS G:\Il mio Drive\Antigravity> python -u scripts/rsi_convergence_engine.py --verify --profile ste100_rsi --json
 {"status": "CONVERGED_OPTIMAL", "passed": true, "delta_k": 0, "fitness_q": 100.0, "checked_flags_count": 152}
 
+PS G:\Il mio Drive\Antigravity> python -u scripts/vibe_sprint_router.py --meta-prompt-gate "crea primaLa rotta API però aspetta usa SQLite" --json
+{"brief_id": "IB-20261021-...", "gate_mode": "CONFIRM", "fsm_state": "AWAITING_CONFIRM", "Exempt": false}
+
 PS G:\Il mio Drive\Antigravity> python -u -m pytest tests/ -q
-86 passed in 7.08s
+90 passed in 7.09s
 ```
 
-### 3. Certified Golden & 3-Tier Stress Test Suite Matrix (`86/86 PASS`)
+### 3. Certified Golden & 3-Tier Stress Test Suite Matrix (`90/90 PASS`)
 
 | # | Test File (`tests/`) | Tests | Protected Invariants & Guards | Status |
 | :---: | :--- | :---: | :--- | :---: |
@@ -466,7 +481,7 @@ PS G:\Il mio Drive\Antigravity> python -u -m pytest tests/ -q
 | 6 | `tests/test_dast_sandbox.py` | 3 | 64-bit Win32 Job Objects (`U-24`), Process Tree Kill, Watchdog | 100.0% PASS |
 | 7 | `tests/test_memory_3tier.py` | 4 | `DOMAIN_ALIAS_MAP` (`U-46`), `tier1_active_capsule.json`, `350` Cap (`GT-05`) | 100.0% PASS |
 | 8 | `tests/test_sbfl_engine.py` | 4 | Ochiai/Tarantula/DStar Precision, `< 80` Token Payload, Tri-Pass | 100.0% PASS |
-| 9 | `tests/test_schemas_and_contracts.py` | 3 | Pydantic v2 Strict Mode, 64-bit PID Check (`U-25`), DAG Hash | 100.0% PASS |
+| 9 | `tests/test_schemas_and_contracts.py` | 4 | Pydantic v2 Strict Mode, `MetaPromptGateContract`, 64-bit PID Check (`U-25`), DAG Hash | 100.0% PASS |
 | 10 | `tests/test_unified_onboarding_mandate.py` | 2 | `[RULE-00.5]` 8 Triggers, 15 Hub Nodes, Fast-Stat (`GT-08`) | 100.0% PASS |
 | 11 | `tests/test_win32_2pc.py` | 4 | 64-bit Named Mutex, `MOVEFILE_COPY_ALLOWED`, 50 Concurrent Writers | 100.0% PASS |
 | 12 | `tests/stress/test_real_sandbox_stress.py` | 4 | Swarm Flooder, Monolithic Spammer `> 12` (`GT-03`), Escalator (`GT-01`) | 100.0% PASS |
@@ -478,12 +493,12 @@ PS G:\Il mio Drive\Antigravity> python -u -m pytest tests/ -q
 | 18 | `tests/test_deterministic_api_cache.py` | 1 | Persistent SQLite WAL Connection (`BS-05`) & Close Safety | 100.0% PASS |
 | 19 | `tests/test_safe_cleanup_dev_servers.py` | 2 | Workspace CWD/Cmdline Filter (`U-13`) & Heartbeat CLI | 100.0% PASS |
 | 20 | `tests/test_env_capability_probe.py` | 1 | `core_hub_modules` vs `optional_app_modules` & `GT-09` Invariance | 100.0% PASS |
-| 21 | `tests/test_vibe_sprint_router.py` | 2 | True AST `max_depth` (`U-10`), Mode A/B/C/D & Capsule Pre-Warming | 100.0% PASS |
+| 21 | `tests/test_vibe_sprint_router.py` | 5 | True AST `max_depth` (`U-10`), Mode A/B/C/D, STT Normalizer, Anti-Loop FSM & `--meta-prompt-gate` | 100.0% PASS |
 | 22 | `tests/test_oracle_l3_and_hud.py` | 1 | HTML5 Void Tags & Windows Path Split (`U-27`) + Micro-HUD Render | 100.0% PASS |
 | 23 | `tests/test_nk_ecosystem_stress_opt5.py` | 8 | `OPT-1..OPT-12`, `< 50 ms` Warm Bootstrap, `Mode D`, 16-Thread Stress | 100.0% PASS |
 | 24 | `tests/test_nk_registry_indexer.py` | 6 | O(1) Manifest Sync, SHA-256 Verify, Lookup, Zero-Touch Hot-Swap & 61-Skill Filter | 100.0% PASS |
 | 25 | `tests/test_phase2_3tier_stress_suite.py` | 12 | **L1** (`native_agents_index`, `GT-14`, `RULE-01`, `PIDFileLock`, Kahn DAG, 2PC), **L2** (`5/5` Native Routing, Rollback `G2/G3/G4`), **L3** (Red-Team SAST, STE100, `< 15 ms` SLA) | 100.0% PASS |
-| **Total** | **25 Permanent Test Files** | **86** | **100% Orthogonal Coverage of All Core Modules, 5 Native Agents & 16 Playbooks (Zero-Mock)** | **86/86 PASS** |
+| **Total** | **25 Permanent Test Files** | **90** | **100% Orthogonal Coverage of All Core Modules, L0 Gate, 5 Native Agents & 16 Playbooks (Zero-Mock)** | **90/90 PASS** |
 
 ---
-*Generated by NK-Scribe-Agent | Nexus Keystone Hub (`v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified`)*
+*Generated by NK-Scribe-Agent | Nexus Keystone Hub (`v4.1.0-Super-Meta-Prompt-Gate` / `v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified`)*

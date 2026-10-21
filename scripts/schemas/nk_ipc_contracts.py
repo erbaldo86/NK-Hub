@@ -10,6 +10,37 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 ExecutionModeLiteral = Literal["mode_a", "mode_b", "mode_c", "mode_d", "verify"]
+MetaPromptFSMStateLiteral = Literal[
+    "IDLE",
+    "REFINE",
+    "AWAIT_CONFIRM",
+    "CONFIRMED",
+    "BYPASSED",
+]
+MetaPromptGateModeLiteral = Literal["CONFIRM", "ECHO", "OFF"]
+
+
+class MetaPromptGateContract(BaseModel):
+    """Contratto IPC per il Livello 0 del Super Meta-Prompt Gate (WP13)."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    brief_id: str = "IB-DEFAULT"
+    fsm_state: MetaPromptFSMStateLiteral = "REFINE"
+    gate_mode: MetaPromptGateModeLiteral = "CONFIRM"
+    enabled: bool = True
+    bypassed: bool = False
+    conceptual_mirror: str
+    optimized_meta_prompt: str
+    requirements_r_ids: List[str] = Field(default_factory=list)
+    voice_corrections_applied: List[str] = Field(default_factory=list)
+    out_of_scope: List[str] = Field(default_factory=list)
+    ambiguities: List[str] = Field(default_factory=list)
+    recommended_mode: ExecutionModeLiteral = "mode_c"
+    primary_agent: str = "NK-Python-Async-Builder"
+    native_subagent: str = "NK-Builder-Agent"
+    intent_hash_sha256: str = ""
+    ttl_seconds: int = Field(default=1800, ge=60)
 
 
 class IPCPointerReturn(BaseModel):

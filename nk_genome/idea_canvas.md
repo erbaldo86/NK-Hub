@@ -25,18 +25,19 @@
 - **Rischi Infrastrutturali:** Il Named Mutex Win32 a 64-bit previene race condition e lock `[WinError 32]` durante il commit.
 
 ## 4. Registro Pivot
-- **Data e ID Pivot:** `2026-10-15` (`PIVOT-TENSOR-RSI-v3.1.0`).
-- **Causa Tecnica del Blocco:** Le skill documentali e architetturali senza pytest subivano il blocco del `60%` sulla fitness $Q(S_k)$.
-- **Rettifica Adottata:** `RSIProfileRegistry` separa `CODE_RSI`, `VIBE_SPRINT_MICRO_RSI`, `SPEC_RSI`, `UI_UX_RSI` e `STE100_RSI`.
+- **Data e ID Pivot:** `2026-10-15` (`PIVOT-TENSOR-RSI-v3.1.0`) e `2026-10-21` (`PIVOT-SUPER-META-PROMPT-GATE-v4.1.0`).
+- **Causa Tecnica del Blocco:** Le skill documentali subivano penalità fitness e il parlato STT generava falsi positivi e drift.
+- **Rettifica Adottata:** `[RULE-00.6]` unisce la tracciabilità `R1..Rn` e FSM di Opus con il motore Zero-Bloat di Argon.
+- **Arbitrato Terza Parte:** Integra conferma 1-Click `ask_question`, firma `intent_hash_sha256`, parser morfologico STT e protezione `WP8.4`.
 
 ## 5. Matrice SCAMPER
 - **S (Substitute):** Sostituisci il parsing manuale `sys.argv` con `argparse` retrocompatibile in `quality_baseline_manager.py` (`GT-13`).
-- **C (Combine):** Combina `AutoHealPipeline` con `RSIConvergenceEngine.run_convergence_loop()` per l'auto-riparazione in `.staging/`.
+- **C (Combine):** Combina `VibeSprintRouter` con il normalizzatore vocale L0 (`MetaPromptGateContract`) attivo di default su ogni input.
 - **A (Adapt):** Adatta il recall RRF ibrido con espansione query e persistenza su disco in `tier1_active_capsule.json`.
 - **M (Modify):** Modifica `verify_ste100_compliance()` impostando `max_sentence_words = 20` e saltando il frontmatter YAML `---`.
 - **P (Put to another use):** Riutilizza l'AST di `scripts/*.py` per verificare i flag CLI documentati nei `SKILL.md` (`EXT-07`).
-- **E (Eliminate):** Elimina i modelli duplicati in `nk_ipc_contracts.py`, i file `.bak_*` e i relitti legacy.
-- **R (Reverse):** Inverti il controllo baseline eseguendo il pre-check del Ratchet prima dell'acquisizione del lock 2PC.
+- **E (Eliminate):** Elimina le collisioni di sottostringa nel parlato (`implementazione` vs `implementa`) dentro `vibe_sprint_router.py`.
+- **R (Reverse):** Inverti il flusso iniziale ponendo la conferma del Meta-Prompt concettuale prima dell'eventuale `implementation_plan.md`.
 
 ## 6. Decisione di Handoff verso L3
 - **Stato Canvas:** `APPROVED`

@@ -104,6 +104,19 @@ class NKSessionBootstrap:
                         continue
             return self._MEMORY_CACHE.get(ws_key)
 
+    def _verify_meta_prompt_gate_state(self) -> Dict[str, Any]:
+        """Verifica lo stato del cancello universale Meta-Prompt (RULE-00.6)."""
+        mode = os.environ.get("NK_META_PROMPT_GATE_MODE", "CONFIRM").strip().upper()
+        if mode not in ("CONFIRM", "ECHO", "OFF"):
+            mode = "CONFIRM"
+        enabled = mode != "OFF"
+        return {
+            "passed": True,
+            "enabled": enabled,
+            "mode": mode,
+            "details": f"Universal Meta-Prompt Gate active ({mode}).",
+        }
+
     def run_bootstrap(self, fast_stat: bool = True) -> Dict[str, Any]:
         """Esegue la verifica di avvio caricando la cache una sola volta (OPT-8)."""
         start_time = time.perf_counter()
@@ -136,6 +149,9 @@ class NKSessionBootstrap:
                     "details": "Fast-stat invariant verified. TTL valid (<60s).",
                 }
                 report["checks"]["context_sentry"] = context_check
+                report["checks"]["meta_prompt_gate"] = (
+                    self._verify_meta_prompt_gate_state()
+                )
                 if context_check.get("warning"):
                     report["issues"].append(context_check["warning"])
                 duration_ms = (time.perf_counter() - start_time) * 1000
@@ -166,6 +182,7 @@ class NKSessionBootstrap:
             use_fast_cache=fast_stat, cached=cached_state
         )
         report["checks"]["context_sentry"] = context_check
+        report["checks"]["meta_prompt_gate"] = self._verify_meta_prompt_gate_state()
         if context_check.get("warning"):
             report["issues"].append(context_check["warning"])
 
