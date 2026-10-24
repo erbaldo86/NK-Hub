@@ -19,7 +19,7 @@ import time
 import uuid
 import zlib
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 try:
     from schemas.nk_ipc_contracts import (
@@ -684,6 +684,84 @@ def win32_atomic_replace(
         )
 
 
+def validate_staging_json_files(
+    staging_dir: Union[str, Path],
+    staging_files: Optional[List[Path]] = None,
+) -> Tuple[bool, List[str]]:
+    """Valida la sintassi JSON e l'assenza del carattere U+FFFD in tutti i file .json di staging."""
+    stg_root = Path(staging_dir).resolve()
+    candidates = (
+        staging_files
+        if staging_files is not None
+        else [p for p in stg_root.rglob("*.json") if p.is_file()]
+    )
+    errors: List[str] = []
+    for fpath in candidates:
+        if fpath.suffix.lower() != ".json":
+            continue
+        try:
+            raw_bytes = fpath.read_bytes()
+            text = raw_bytes.decode("utf-8")
+        except UnicodeDecodeError as ude:
+            errors.append(f"{fpath.name}: codifica UTF-8 invalida ({ude})")
+            continue
+        except Exception as exc:
+            errors.append(f"{fpath.name}: errore lettura file ({exc})")
+            continue
+
+        if "\ufffd" in text:
+            errors.append(
+                f"{fpath.name}: rilevato carattere di sostituzione U+FFFD vietato"
+            )
+        try:
+            json.loads(text)
+        except Exception as exc:
+            errors.append(f"{fpath.name}: sintassi JSON invalida ({exc})")
+
+    return len(errors) == 0, errors
+
+
+def _cleanup_promoted_staging(
+    staging_dir: Path,
+    promoted_files: List[Path],
+    deleted_manifest: Optional[Path] = None,
+) -> None:
+    """Rimuove i file promossi da .staging/ e ripristina il file sentinella .gitkeep."""
+    for stg_file in promoted_files:
+        try:
+            if stg_file.exists() and stg_file.name != ".gitkeep":
+                stg_file.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+    if deleted_manifest is not None and deleted_manifest.exists():
+        try:
+            deleted_manifest.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+    # Rimuove le sottocartelle vuote dal basso verso l'alto
+    all_dirs = sorted(
+        (d for d in staging_dir.rglob("*") if d.is_dir()),
+        key=lambda p: len(p.parts),
+        reverse=True,
+    )
+    for d in all_dirs:
+        try:
+            if d.exists() and not any(d.iterdir()):
+                d.rmdir()
+        except OSError:
+            pass
+
+    gitkeep = staging_dir / ".gitkeep"
+    if not gitkeep.exists():
+        try:
+            staging_dir.mkdir(parents=True, exist_ok=True)
+            gitkeep.write_text("", encoding="utf-8")
+        except OSError:
+            pass
+
+
 def record_session_anchor_commit(
     repo_root: Union[str, Path],
     milestone_id: str,
@@ -716,6 +794,7 @@ def promote_staging_to_production(
     subdirs: Optional[List[str]] = None,
     git_sync: bool = False,
     verify_baseline: bool = False,
+    cleanup_staging: bool = True,
 ) -> Dict[str, Any]:
     """Promuove in modo atomico i file modificati da .staging/ alla produzione."""
     if repo_root:
@@ -732,30 +811,60 @@ def promote_staging_to_production(
     if not staging_dir.exists():
         raise FileNotFoundError(f"Staging directory does not exist: {staging_dir}")
 
-    if verify_baseline:
-        prod_bl = root / "nk_tracking" / "quality_baseline.json"
-        stg_bl = staging_dir / "nk_tracking" / "quality_baseline.json"
-        if prod_bl.exists() and stg_bl.exists():
-            try:
-                from quality_baseline_manager import check_baseline_compliance
+    # 1. Validazione pre-commit su tutti i file .json in staging (incluso .deleted_files.json)
+    all_stg_json = [p for p in staging_dir.rglob("*.json") if p.is_file()]
+    json_ok, json_errors = validate_staging_json_files(staging_dir, all_stg_json)
+    if not json_ok:
+        raise TwoPhaseCommitError(
+            f"Validazione JSON pre-commit fallita in staging: {json_errors}"
+        )
 
+    # 2. Verifica quality_baseline.json (SP-WS0 Fix riga 738: mai saltare in silenzio)
+    if verify_baseline:
+        dst_bl = root / "nk_tracking" / "quality_baseline.json"
+        stg_bl = staging_dir / "nk_tracking" / "quality_baseline.json"
+        if not dst_bl.exists() and not stg_bl.exists():
+            raise TwoPhaseCommitError(
+                f"File quality_baseline.json mancante sia in produzione ({dst_bl}) sia in staging ({stg_bl})."
+            )
+        try:
+            from quality_baseline_manager import check_baseline_compliance
+
+            if stg_bl.exists() and dst_bl.exists():
                 stg_data = json.loads(stg_bl.read_text(encoding="utf-8"))
                 raw_metrics = stg_data.get("metrics", {})
                 candidate_metrics = {
                     k: (v.get("value") if isinstance(v, dict) else v)
                     for k, v in raw_metrics.items()
                 }
-                res_bl = check_baseline_compliance(str(prod_bl), candidate_metrics)
+                res_bl = check_baseline_compliance(str(dst_bl), candidate_metrics)
                 if res_bl.get("verdict") != "PASS":
                     raise TwoPhaseCommitError(
                         f"Regressione rilevata nel quality_baseline di staging: {res_bl.get('regressions')}"
                     )
-            except TwoPhaseCommitError:
-                raise
-            except Exception as exc:
-                raise TwoPhaseCommitError(
-                    f"Errore durante la verifica del baseline: {exc}"
-                ) from exc
+            else:
+                active_bl = dst_bl if dst_bl.exists() else stg_bl
+                bl_data = json.loads(active_bl.read_text(encoding="utf-8"))
+                raw_metrics = bl_data.get("metrics", {})
+                if not isinstance(raw_metrics, dict) or not raw_metrics:
+                    raise TwoPhaseCommitError(
+                        f"Metriche assenti o invalide nel quality_baseline: {active_bl}"
+                    )
+                candidate_metrics = {
+                    k: (v.get("value") if isinstance(v, dict) else v)
+                    for k, v in raw_metrics.items()
+                }
+                res_bl = check_baseline_compliance(str(active_bl), candidate_metrics)
+                if res_bl.get("verdict") != "PASS":
+                    raise TwoPhaseCommitError(
+                        f"Regressione rilevata nel quality_baseline: {res_bl.get('regressions')}"
+                    )
+        except TwoPhaseCommitError:
+            raise
+        except Exception as exc:
+            raise TwoPhaseCommitError(
+                f"Errore durante la verifica del baseline: {exc}"
+            ) from exc
 
     if subdirs:
         target_subdirs = subdirs
@@ -769,13 +878,29 @@ def promote_staging_to_production(
 
     committed: List[Dict[str, Any]] = []
     unchanged: List[str] = []
+    deleted: List[str] = []
     failed: List[Dict[str, Any]] = []
+
+    deleted_manifest = staging_dir / ".deleted_files.json"
+    deleted_rel_paths: List[str] = []
+    if deleted_manifest.exists() and deleted_manifest.is_file():
+        raw_del = json.loads(deleted_manifest.read_text(encoding="utf-8"))
+        if isinstance(raw_del, list):
+            deleted_rel_paths = [str(x) for x in raw_del if str(x).strip()]
+        elif isinstance(raw_del, dict) and isinstance(raw_del.get("deleted_files"), list):
+            deleted_rel_paths = [
+                str(x) for x in raw_del["deleted_files"] if str(x).strip()
+            ]
+        else:
+            raise TwoPhaseCommitError(
+                "Formato invalido per .deleted_files.json: attesa lista o chiave 'deleted_files'."
+            )
 
     staging_files: List[Path] = []
     for top_file in sorted(staging_dir.iterdir()):
         if (
             top_file.is_file()
-            and top_file.name != ".gitkeep"
+            and top_file.name not in (".gitkeep", ".deleted_files.json")
             and "__pycache__" not in top_file.parts
         ):
             staging_files.append(top_file)
@@ -788,7 +913,10 @@ def promote_staging_to_production(
         for stg_file in sorted(stg_sub.rglob("*")):
             if not stg_file.is_file():
                 continue
-            if "__pycache__" in stg_file.parts or stg_file.name == ".gitkeep":
+            if (
+                "__pycache__" in stg_file.parts
+                or stg_file.name in (".gitkeep", ".deleted_files.json")
+            ):
                 continue
             staging_files.append(stg_file)
 
@@ -828,6 +956,26 @@ def promote_staging_to_production(
             f"2PC Promotion aborted: {len(failed)} files failed: {failed}"
         )
 
+    # 3. Propaga eventuali cancellazioni dichiarate in .deleted_files.json
+    for rel_del in deleted_rel_paths:
+        del_target = (root / rel_del).resolve()
+        if root not in del_target.parents:
+            raise TwoPhaseCommitError(
+                f"Percorso di cancellazione fuori dalla root del repository: {rel_del}"
+            )
+        if del_target.exists() and del_target.is_file():
+            with Win32NamedMutex(del_target, timeout_ms=5000):
+                del_target.unlink(missing_ok=True)
+            deleted.append(str(del_target.relative_to(root)))
+
+    # 4. Pulisce .staging/ rimuovendo i file promossi e preservando .gitkeep
+    if cleanup_staging:
+        _cleanup_promoted_staging(
+            staging_dir=staging_dir,
+            promoted_files=staging_files,
+            deleted_manifest=deleted_manifest if deleted_manifest.exists() else None,
+        )
+
     if milestone:
         record_session_anchor_commit(root, milestone, committed)
 
@@ -848,9 +996,11 @@ def promote_staging_to_production(
 
     return {
         "status": "SUCCESS",
+        "passed": True,
         "milestone": milestone,
         "committed_files": committed,
         "unchanged_files": unchanged,
+        "deleted_files": deleted,
         "git_sync": git_sync,
     }
 
@@ -893,6 +1043,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         action="store_true",
         help="Verifica l'assenza di regressioni sul baseline prima del commit",
     )
+    parser.add_argument(
+        "--keep-staging",
+        action="store_true",
+        help="Mantiene i file in .staging dopo la promozione",
+    )
 
     args = parser.parse_args(argv)
 
@@ -904,6 +1059,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                 staging_dirname=args.staging_dir,
                 git_sync=args.git_sync,
                 verify_baseline=args.verify_baseline,
+                cleanup_staging=not bool(args.keep_staging),
             )
             print(json.dumps(res, indent=2))
             return 0

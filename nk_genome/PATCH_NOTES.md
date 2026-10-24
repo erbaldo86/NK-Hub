@@ -1,10 +1,29 @@
 # NEXUS KEYSTONE OFFICIAL CHANGELOG E PATCH NOTES (SSOT)
 
 > **Single Source of Truth (SSOT):** `nk_genome/PATCH_NOTES.md`  
-> **Release Ufficiale:** `v4.1.0-Super-Meta-Prompt-Gate` (`v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified`)  
-> **Milestone Anchor:** `NK-MS-20261021-SUPER-META-PROMPT-GATE-v4.1.0-RSI`  
-> **Data Consolidamento:** `2026-10-21`  
-> **Stato Release:** `[NK-SUPER-BRIEF-STATUS: AUDITED_AND_CERTIFIED_v4.1.0_SOVEREIGN]`
+> **Release Ufficiale:** `v4.3.0-Super-Plan-Triad-RSI` (`v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified`)  
+> **Milestone Anchor:** `NK-MS-20261024-SUPER-PLAN-TRIAD-v6.0.0-RSI`  
+> **Data Consolidamento:** `2026-10-24`  
+> **Stato Release:** `[NK-SUPER-BRIEF-STATUS: AUDITED_AND_CERTIFIED_v4.3.0_SOVEREIGN]`
+
+---
+
+## 🛡️ Release v4.3.0-Super-Plan-Triad-RSI (`SP-WS0..SP-WS13` : Super Implementation Plan v6.0-Unified-Triad-RSI) (`2026-10-24`)
+
+La release **`v4.3.0-Super-Plan-Triad-RSI`** unifica i workstream `SP-WS0..SP-WS13` del **Super Implementation Plan v6.0-Unified-Triad-RSI**.
+
+1. **Runtime Hook Gate e Dual-Schema Lifecycle (`scripts/nk_hook_gate.py`, `.agents/hooks.json`):**
+   - Introduce il gate stdlib con sottocomandi `probe`, `write-gate`, `fasttrack`, `integrity` SHA-256 e `stop-check` sotto `50 ms`.
+   - Blocca con `decision: deny` la sovrascrittura dei checkpoint in `nk_tracking/` e le modifiche distruttive a `PATCH_NOTES.md`.
+   - Preserva il dual-schema in `.agents/hooks.json` su `SessionStart`, `PreToolUse`, `PostToolUse` e `Stop` con timeout entro `15` secondi.
+2. **Strumenti Forensi, Oracle-Lock SHA-256 e Linter Prompt (`scripts/nk_transcript_tools.py`, `Template 11`):**
+   - Implementa `locate` senza fallback cieco `st_mtime` (exit `2` `UNMEASURED`), `compliance`, `evidence`, `oracle-lock` e `lint-prompt`.
+   - Valida con `lint-prompt` i prompt generati dall'IA bloccando gli anti-pattern `AP-1..AP-7` più `AP-2b` (`[RULE-00.7]`).
+   - Congela e verifica gli hash SHA-256 della ground truth in `nk_tracking/oracle_lock.json` prima della fase Build (`[RULE-ORACLE-LOCK]`).
+3. **Riparazione Bootstrap, Pre-Flight Schema Grounding e Suite a 98 Test (`scripts/`, `tests/test_super_plan_v6_triad.py`):**
+   - Ripara `nk_session_bootstrap.py`, `nk_context_sentry.py` e `nk_active_runtime_sentinel.py` eliminando il falso allarme `RED (523 steps)`.
+   - Aggiunge `validate_pydantic_catalog_records()` e `--output-json` in `ast_guard_validator.py` più la penalità `external_unstage_writes` in `nk_compliance_checker.py`.
+   - Espande la suite permanente Zero-Mock a `98/98 PASS` (`100.0%`) su `26` file di test con $\Delta_k = 0$.
 
 ---
 

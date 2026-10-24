@@ -49,9 +49,11 @@ VibeSprintRouter = router_mod.VibeSprintRouter
 PreflightHealthChecker = preflight_mod.PreflightHealthChecker
 
 
-def test_nk_registry_indexer_sync_generates_manifest_and_skill_index() -> None:
-    """1. Verifica che --sync generi nk_registry_manifest.json e SKILL_INDEX.md completi."""
-    stage_dir = _workspace_root / ".staging"
+def test_nk_registry_indexer_sync_generates_manifest_and_skill_index(
+    tmp_path: Path,
+) -> None:
+    """1. Verifica che --sync generi nk_registry_manifest.json e SKILL_INDEX.md senza sporcare .staging/."""
+    stage_dir = tmp_path / ".staging"
     rc = indexer_mod.main(["--sync", "--stage-dir", str(stage_dir)])
     assert rc == 0
 
@@ -59,6 +61,25 @@ def test_nk_registry_indexer_sync_generates_manifest_and_skill_index() -> None:
     skill_index_path = stage_dir / "nk_genome" / "SKILL_INDEX.md"
     assert manifest_path.exists()
     assert skill_index_path.exists()
+
+    # Verifica G3-02: sync senza --sync-staging non scrive nel .staging di produzione
+    prod_stg_manifest = (
+        _workspace_root / ".staging" / "nk_genome" / "nk_registry_manifest.json"
+    )
+    existed_before = prod_stg_manifest.exists()
+    mtime_before = (
+        prod_stg_manifest.stat().st_mtime_ns if existed_before else None
+    )
+    no_stg_indexer = NKRegistryIndexer(
+        workspace_root=_workspace_root, stage_dir=_workspace_root / ".staging"
+    )
+    res_no_stg = no_stg_indexer.sync(sync_staging=False)
+    assert res_no_stg["passed"] is True
+    assert res_no_stg["sync_staging"] is False
+    if not existed_before:
+        assert not prod_stg_manifest.exists()
+    else:
+        assert prod_stg_manifest.stat().st_mtime_ns == mtime_before
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     for key in (
@@ -97,11 +118,11 @@ def test_nk_registry_indexer_sync_generates_manifest_and_skill_index() -> None:
 
 
 def test_nk_registry_indexer_verify_detects_clean_and_drift(tmp_path: Path) -> None:
-    """2. Verifica che --verify certifichi l'integrita SHA-256 (<30 ms) e rilevi drift."""
+    """2. Verifica che --verify certifichi l'integrita SHA-256 (<30 ms), drift e dual-resolver genome/."""
     indexer = NKRegistryIndexer(
-        workspace_root=_workspace_root, stage_dir=_workspace_root / ".staging"
+        workspace_root=_workspace_root, stage_dir=tmp_path / ".staging_verify"
     )
-    indexer.sync()
+    indexer.sync(sync_staging=True)
     verify_res = indexer.verify()
     assert verify_res["passed"] is True
     assert verify_res["status"] == "VALID"
@@ -139,11 +160,23 @@ def test_nk_registry_indexer_verify_detects_clean_and_drift(tmp_path: Path) -> N
     assert drift_res["status"] == "DRIFT_DETECTED"
     assert any("nk_registry_indexer.py" in issue for issue in drift_res["issues"])
 
+    # Verifica dual-resolver Tetralogia con cartella legacy genome/
+    legacy_ws = tmp_path / "legacy_ext_ws"
+    (legacy_ws / "genome").mkdir(parents=True, exist_ok=True)
+    (legacy_ws / "genome" / "concept_map.md").write_text("# Concept\n", encoding="utf-8")
+    leg_indexer = NKRegistryIndexer(
+        workspace_root=legacy_ws, stage_dir=legacy_ws / ".staging"
+    )
+    tetra = leg_indexer.resolve_tetralogy_files()
+    assert tetra["is_legacy_genome"] is True
+    assert tetra["warning"] is not None
+    assert tetra["files"]["concept_map.md"] is not None
 
-def test_nk_registry_indexer_lookup_o1_latency_under_50ms() -> None:
+
+def test_nk_registry_indexer_lookup_o1_latency_under_50ms(tmp_path: Path) -> None:
     """3. Verifica che --lookup risolva dominio, skill, script e intento in meno di 50 ms."""
     indexer = NKRegistryIndexer(
-        workspace_root=_workspace_root, stage_dir=_workspace_root / ".staging"
+        workspace_root=_workspace_root, stage_dir=tmp_path / ".staging_lookup"
     )
 
     t0 = time.perf_counter()
@@ -365,4 +398,3 @@ def test_global_skill_filter_and_hygiene_isolation(tmp_path: Path) -> None:
     assert after_hygiene["external_skills_count"] == 0
     assert after_hygiene["total_flat_skills"] == 16
     assert after_hygiene["context_pollution_detected"] is False
-

@@ -1,5 +1,5 @@
 {
-  "_version": "4.0.0-Native-Swarm-Playbooks",
+  "_version": "4.3.0-Super-Plan-Triad-RSI",
   "project": "NK_Project",
   "baseline_date": "2026-08-20T22:45:00.000000",
   "last_updated": "2026-10-18T19:35:00.000000",
@@ -9,15 +9,15 @@
       "direction": "higher_is_better"
     },
     "total_golden_tests": {
-      "value": 86,
+      "value": 98,
       "direction": "higher_is_better"
     },
     "unit_tests_total": {
-      "value": 86,
+      "value": 98,
       "direction": "higher_is_better"
     },
     "unit_tests_passed": {
-      "value": 86,
+      "value": 98,
       "direction": "higher_is_better"
     },
     "unit_tests_pass_pct": {

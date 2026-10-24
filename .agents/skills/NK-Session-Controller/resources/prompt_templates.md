@@ -32,7 +32,7 @@ Applica la sequenza concatenata a 5 turni:
 2. **Turno 2 (Attack & Stress Swarm):** Invoca via `invoke_subagent` i sub-agenti auditor in parallelo e attendi in IDLE.
 3. **Turno 3 (Refine & Solution Architecture):** Risolvi i conflitti e aggiorna la Tetralogia Sovrana 4/4 in `nk_genome/`.
 4. **Turno 4 (1:1 Plan Alignment):** Invoca `NK-Plan-Aligner` per certificare l'allineamento 4/4 ed emettere il badge `🛡️ [NK-BRIEF-STATUS: AUDITED_AND_OPTIMIZED 🟢]`.
-5. **Turno 5 (Final Handoff):** Compila il prompt Template 8A e avvia l'esecuzione del Builder in `.staging/`.
+5. **Turno 5 (Final Handoff):** Compila il prompt Template 8A o Template 11 e avvia l'esecuzione del Builder in `.staging/`.
 
 Contesto operativo:
 {{CONTEXT}}
@@ -57,8 +57,8 @@ Componenti da testare:
 ```markdown
 **[DIRETTIVA ESECUTIVA: RATCHET LOOP BUG FIX IN STAGING]**
 1. **Macro-Fase 1 (Build & Stage):** Delega al Builder in `.staging/` la patch con `python scripts/auto_heal_pipeline.py --test-cmd "<pytest_cmd>" --target-file {{TARGET_FILE}}`.
-2. **Macro-Fase 2 (Cold Audit):** Invoca `NK-Oracle-Evaluator` e verifica $\Delta_k = 0$ con `python scripts/rsi_convergence_engine.py --verify`.
-3. **Macro-Fase 3 (2PC Atomic Commit):** Delega a `NK-Master-Hub` il commit `python scripts/win32_2pc_engine.py --promote-staging --milestone "{{MILESTONE_ANCHOR_ID}}"`. Registra quindi l'evento in `nk_tracking/anchor/session_anchor.jsonl`.
+2. **Macro-Fase 2 (Cold Audit):** Invoca `NK-Oracle-Evaluator` e verifica $\Delta_k = 0$ con `python scripts/rsi_convergence_engine.py --verify --root "<PROJECT_ROOT>"`.
+3. **Macro-Fase 3 (2PC Atomic Commit):** Delega a `NK-Master-Hub` il commit `python scripts/win32_2pc_engine.py --promote-staging --repo-root "<PROJECT_ROOT>" --milestone "{{MILESTONE_ANCHOR_ID}}"`. Registra quindi l'evento in `nk_tracking/anchor/session_anchor.jsonl`.
 
 File impattati:
 {{TARGET_FILE}}
@@ -83,8 +83,8 @@ Requisiti Dati:
 ```markdown
 **[DIRETTIVA ESECUTIVA: MODE A SOVEREIGN ARCHITECTURAL CHANGE]**
 1. Aggiorna i 4 file della Tetralogia Sovrana (`concept_map.md`, `structural_tree.md`, `implementation_plan.md`, `repo_map.md`) in `nk_genome/`.
-2. Invia il prompt Template 8A al Builder operante in `.staging/`.
-3. Valida il risultato con `NK-Oracle-Evaluator`, `NK-Security-Auditor` e `python scripts/rsi_convergence_engine.py --verify`. Esegui infine il commit con `python scripts/win32_2pc_engine.py --promote-staging --milestone "{{MILESTONE_ANCHOR_ID}}"`.
+2. Invia il prompt Template 8A o Template 11 al Builder operante in `.staging/`.
+3. Valida il risultato con `NK-Oracle-Evaluator`, `NK-Security-Auditor` e `python scripts/rsi_convergence_engine.py --verify --root "<PROJECT_ROOT>"`. Esegui infine il commit con `python scripts/win32_2pc_engine.py --promote-staging --repo-root "<PROJECT_ROOT>" --milestone "{{MILESTONE_ANCHOR_ID}}"`.
 
 Contesto architetturale:
 {{CONTEXT}}
@@ -147,7 +147,7 @@ Usa `python -m pytest` per i test. Vieta `view_file` esplorativi alla cieca e `p
 ### ⚙️ BLOCCO 4: Istruzioni Chirurgiche e Test
 1. **Pre-Edit Safety:** Ferma eventuali processi demone con `manage_task(Action="kill", TaskId="<id>")`.
 2. **Modifiche in `.staging/`:** {{SURGICAL_INSTRUCTIONS}} (Codifica UTF-8 senza BOM, standard `[RULE-STE100]`).
-3. **Verifica:** Esegui `python scripts/ast_guard_validator.py --stage-dir .staging` e `python scripts/rsi_convergence_engine.py --verify` (o `--vibe-check`). Restituisci infine la **Worker Execution Receipt v3.0** (`< 1.800` caratteri).
+3. **Verifica:** Esegui `python scripts/ast_guard_validator.py --stage-dir .staging` e `python scripts/rsi_convergence_engine.py --verify --root "<PROJECT_ROOT>"` (o `--vibe-check`). Restituisci infine la **Worker Execution Receipt v3.0** (`< 1.800` caratteri).
 ```
 
 ### 8B. Checklist Cold Review (`CRITIC_REVIEW_CHECKLIST`)
@@ -157,7 +157,7 @@ Usa `python -m pytest` per i test. Vieta `view_file` esplorativi alla cieca e `p
 3. **Gate 3 (Brief Grounding):** `view_file` eseguito su `nk_genome/implementation_plan.md`?
 4. **Gate 4 (Preservation):** Firme pubbliche, tipi e commenti preservati?
 5. **Gate 5 (Truth/DAST):** Test pytest e `dast_sandbox_runner.py` superati con `exit_code: 0`?
-6. **Gate 6 (RSI Convergence):** `python scripts/rsi_convergence_engine.py --verify` con $\Delta_k = 0$ e $Q(S_k) = 100.0$?
+6. **Gate 6 (RSI Convergence):** `python scripts/rsi_convergence_engine.py --verify --root "<PROJECT_ROOT>"` con $\Delta_k = 0$ e $Q(S_k) = 100.0$?
 ```
 
 ---
@@ -180,4 +180,38 @@ Procedi con il task nei 4 Blocchi:
 Assumi il ruolo di `[14] NK-Session-Controller` (Sovereign Critic & Supervisor) dell'Ecosistema Nexus Keystone (`v3.0.0-STE100-Unified`).
 Esegui `view_file` su `.agents/skills/NK-Session-Controller/SKILL.md`.
 Leggi `nk_tracking/handoff/next_session_prompt.md` ed esegui la Cold Review per il Milestone `{{MILESTONE_ANCHOR_ID}}`.
+```
+
+---
+
+## 11. SOVEREIGN_SWARM_TASK_PROMPT (Template 11 `v6.0` `[RULE-00.7]`)
+Usa questo template per compilare ogni prompt operativo multi-fase generato da NK o da `nk_session_handoff.py`.
+```markdown
+# 🏛️ [SOVEREIGN SWARM TASK PROMPT : TEMPLATE 11 v6.0]
+
+Orchestra lo Swarm 2-Tier (`[RULE-01]`) sul progetto `<PROJECT_ROOT>` per il Milestone `{{MILESTONE_ANCHOR_ID}}`.
+Non usare mai `!diretto` per saltare lo staging o la delega ai sub-agenti.
+
+### PASSO 0: Bootstrap, Cleanup e Mounting Worker (`[RULE-00.4]`, `[RULE-00.6]`, `[RULE-01.3]`)
+1. Esegui `python scripts/nk_session_bootstrap.py` e ferma i server orfani con `python scripts/safe_cleanup_dev_servers.py`.
+2. Salva l'Intent Brief in `nk_tracking/reports_and_briefs/IB-{{BRIEF_ID}}.md` e presenta la conferma con `ask_question`.
+3. Registra il Builder con `define_subagent(EnableWriteTools=True, EnableSubagentTools=False)` prima della Fase Build.
+
+### FASE 1: Discovery e Audit Empirico in Sola Lettura (`Mode D`)
+1. Partiziona i batch oltre 8 query web su sub-agenti `research` paralleli tramite `invoke_subagent` con `<env_capsule>`.
+2. Delega a `NK-Security-DAST-Auditor` e `NK-RSI-Auditor` la misura onesta dello stato reale (`Measure-First`).
+3. Congela gli hash della ground truth in `<PROJECT_ROOT>/nk_tracking/oracle_lock.json` (`[RULE-ORACLE-LOCK]`).
+4. `STOP_GATE`: mostra i gap reali misurati tramite `ask_question` prima di avviare la Fase 2.
+
+### FASE 2: Remediation Chirurgica in `.staging/` (`Mode B` / `Mode A`)
+1. Delega tramite `invoke_subagent` al Builder (`EnableWriteTools=True`) le modifiche esclusivamente in `<PROJECT_ROOT>/.staging/`.
+2. Imponi la lettura preventiva del modello Pydantic target (`[RULE-02.5]`) e la validazione `model_validate()` in memoria.
+3. Valida il codice staged con `python scripts/ast_guard_validator.py --stage-dir "<PROJECT_ROOT>/.staging"`.
+
+### FASE 3: Verifica Indipendente, Commit 2PC e Scribe (`[RULE-01.1]`)
+1. Delega a `NK-RSI-Auditor` la verifica dei test congelati e la convergenza matematica reale:
+   `python scripts/rsi_convergence_engine.py --verify --root "<PROJECT_ROOT>" --benchmark-suite "<PROJECT_ROOT>/tests"`
+2. Solo su esito `PASS` reale con `exit code 0`, promuovi atomicamente i file staged:
+   `python scripts/win32_2pc_engine.py --promote-staging --repo-root "<PROJECT_ROOT>" --milestone "{{MILESTONE_ANCHOR_ID}}"`
+3. Delega a `NK-Scribe-Agent` l'aggiornamento in prepend di `PATCH_NOTES.md` e la rigenerazione di `repo_map.md`.
 ```

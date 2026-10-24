@@ -3,6 +3,7 @@
 """
 Validatore statico AST deterministico per Nexus Keystone v3.0.0.
 Modulo: ast_guard_validator.py.
+@domain_id: DOM-04
 Implementa la correzione U-20 (function_depth in SignatureCollector e confronto con produzione).
 
 Funzionalita principali:
@@ -10,6 +11,7 @@ Funzionalita principali:
 2. Verifica l'invariante di conservazione delle firme di funzioni e metodi.
 3. Verifica l'integrita dello scope escludendo le variabili locali da defined_globals (U-20).
 4. Supporta PEP 634 Pattern Matching, PEP 695 Type Parameters, comprehension e operatore walrus.
+5. Espone Pre-Flight Schema Grounding in RAM per cataloghi Pydantic v2 ([RULE-02.5]).
 """
 
 from __future__ import annotations
@@ -803,6 +805,31 @@ class SASTConstructChecker(ast.NodeVisitor):
         self.generic_visit(node)
 
 
+def validate_pydantic_catalog_records(
+    records: List[Dict[str, Any]], model_cls: Any
+) -> Dict[str, Any]:
+    """Valida in RAM una lista di record di catalogo contro un modello Pydantic ([RULE-02.5])."""
+    errors: List[Dict[str, Any]] = []
+    valid_count = 0
+    validate_fn = getattr(model_cls, "model_validate", None)
+    for idx, rec in enumerate(records):
+        try:
+            if callable(validate_fn):
+                validate_fn(rec)
+            else:
+                model_cls(**rec)
+            valid_count += 1
+        except Exception as exc:
+            errors.append({"index": idx, "error": str(exc)})
+    return {
+        "passed": len(errors) == 0,
+        "total_records": len(records),
+        "valid_records": valid_count,
+        "invalid_records": len(errors),
+        "errors": errors,
+    }
+
+
 class ASTGuardValidator:
     """Validatore principale che coordina purezza sintattica, firme e integrita scope."""
 
@@ -817,6 +844,13 @@ class ASTGuardValidator:
             }
         else:
             self.allowed_mutations = set()
+
+    @classmethod
+    def validate_pydantic_catalog_records(
+        cls, records: List[Dict[str, Any]], model_cls: Any
+    ) -> Dict[str, Any]:
+        """Delega il Pre-Flight Schema Grounding in RAM su una collezione di record."""
+        return validate_pydantic_catalog_records(records, model_cls)
 
     @classmethod
     def check_sast_constructs(cls, code: str) -> List[GuardViolation]:
@@ -1080,6 +1114,12 @@ def main() -> int:
         action="store_true",
         help="Stampa il report in JSON",
     )
+    parser.add_argument(
+        "--output-json",
+        type=str,
+        default=None,
+        help="Salva il report JSON sul percorso specificato per Tensor-RSI",
+    )
 
     args = parser.parse_args()
     raw_targets: List[str] = []
@@ -1118,16 +1158,18 @@ def main() -> int:
             if not p.exists():
                 if p.name == ".staging" or raw_target.rstrip("/\\").endswith(".staging"):
                     continue
+                err_payload = {
+                    "passed": False,
+                    "files_scanned": 0,
+                    "total_violations": 1,
+                    "sast_critical": 1,
+                }
+                if args.output_json:
+                    out_p = Path(args.output_json)
+                    out_p.parent.mkdir(parents=True, exist_ok=True)
+                    out_p.write_text(json.dumps(err_payload, indent=2), encoding="utf-8")
                 if args.json:
-                    print(
-                        json.dumps(
-                            {
-                                "passed": False,
-                                "files_scanned": 0,
-                                "total_violations": 1,
-                            }
-                        )
-                    )
+                    print(json.dumps(err_payload))
                 else:
                     print(f"[ERROR] Path does not exist: {p}")
                 return 1
@@ -1145,6 +1187,7 @@ def main() -> int:
     py_files = sorted(list(dict.fromkeys(py_files)))
 
     total_violations = 0
+    total_sast_violations = 0
     if not args.json:
         print("================================================================================")
         print(f"AST GUARD VALIDATOR: Scanning {len(py_files)} files across targets")
@@ -1174,6 +1217,7 @@ def main() -> int:
             allowed_mutations=validator.allowed_mutations,
             target_file=py_file.name,
         )
+        total_sast_violations += int(report.metrics.get("sast_violations_count", 0))
         rel_path = py_file.as_posix()
         if not report.is_valid:
             if not args.json:
@@ -1190,16 +1234,19 @@ def main() -> int:
             if not args.json:
                 print(f"[PASS] {rel_path} (Symbols: {report.post_symbol_count})")
 
+    json_payload = {
+        "passed": total_violations == 0,
+        "files_scanned": len(py_files),
+        "total_violations": total_violations,
+        "sast_critical": total_sast_violations,
+    }
+    if args.output_json:
+        out_p = Path(args.output_json)
+        out_p.parent.mkdir(parents=True, exist_ok=True)
+        out_p.write_text(json.dumps(json_payload, indent=2), encoding="utf-8")
+
     if args.json:
-        print(
-            json.dumps(
-                {
-                    "passed": total_violations == 0,
-                    "files_scanned": len(py_files),
-                    "total_violations": total_violations,
-                }
-            )
-        )
+        print(json.dumps(json_payload))
         return 0 if total_violations == 0 else 1
 
     print("================================================================================")

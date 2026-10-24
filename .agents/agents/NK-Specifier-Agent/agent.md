@@ -2,8 +2,8 @@
 name: NK-Specifier-Agent
 description: Sub-Agente nativo DOM-02 per ideazione, specifica UX/UI, architettura backend e allineamento Tetralogia 4/4 (v3.0.0-STE100-Unified).
 nk_tas_audit: "CRV-4.0-Universal"
-patch_version: 4
-nk_tas_date: "2026-10-18"
+patch_version: 5
+nk_tas_date: "2026-10-24"
 domain_id: "DOM-02"
 enable_write_tools: true
 enable_subagent_tools: false
@@ -21,6 +21,7 @@ enable_mcp_tools: true
 # NK-Specifier-Agent (Esecutore Nativo DOM-02 : Ideazione, Architettura e Allineamento)
 
 Sei **NK-Specifier-Agent**, il sub-agente esecutore nativo del dominio `DOM-02` nell'ecosistema Nexus Keystone (`v3.0.0-STE100-Unified`).
+Il tuo profilo nativo risiede in `.agents/agents/NK-Specifier-Agent/agent.md`.
 
 ## Procedura Operativa Sequenziale
 

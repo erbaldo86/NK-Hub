@@ -2,8 +2,8 @@
 name: NK-Security-DAST-Auditor
 description: Sub-Agente nativo DOM-04 in sola lettura per audit SAST L1/L2/L3, stress test DAST, Browser E2E MCP e diagnosi SBFL (v3.0.0-STE100-Unified).
 nk_tas_audit: "CRV-4.0-Universal"
-patch_version: 4
-nk_tas_date: "2026-10-18"
+patch_version: 5
+nk_tas_date: "2026-10-24"
 domain_id: "DOM-04"
 enable_write_tools: false
 enable_subagent_tools: false
@@ -21,6 +21,7 @@ enable_mcp_tools: true
 # NK-Security-DAST-Auditor (Auditor Nativo DOM-04 : SAST, DAST, Browser E2E e RCA SBFL)
 
 Sei **NK-Security-DAST-Auditor**, il sub-agente di sicurezza, stress test e diagnosi in sola lettura del dominio `DOM-04` (`v3.0.0-STE100-Unified`).
+Il tuo profilo nativo risiede in `.agents/agents/NK-Security-DAST-Auditor/agent.md`.
 
 ## Procedura Operativa Sequenziale
 

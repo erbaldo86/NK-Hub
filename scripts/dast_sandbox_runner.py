@@ -700,15 +700,273 @@ class DASTSandboxRunner:
                 return
 
 
-def main() -> int:
+def run_staging_shadow_verification(
+    repo_root: Path | str,
+    staging_dir: Optional[Path | str] = None,
+    timeout_sec: float = 120.0,
+    run_pytest: bool = True,
+    run_ast_guard: bool = True,
+) -> Dict[str, Any]:
+    """Copia il progetto in Shadow Sandbox, sovrappone .staging/ ed esegue AST Guard e pytest."""
+    t0 = time.perf_counter()
+    root = Path(repo_root).resolve()
+    if not root.exists():
+        return {
+            "status": "FAIL",
+            "passed": False,
+            "repo_root": str(root),
+            "error": f"Root directory non trovata: {root}",
+            "duration_sec": 0.0,
+        }
+
+    stg = (
+        Path(staging_dir).resolve()
+        if staging_dir is not None
+        else (root / ".staging").resolve()
+    )
+    essential_dirs = (
+        "scripts",
+        "tests",
+        ".agents",
+        "nk_genome",
+        "genome",
+        "nk_tracking",
+        "src",
+        "src_app",
+        "app",
+    )
+    allowed_root_exts = {
+        ".py",
+        ".md",
+        ".json",
+        ".ini",
+        ".toml",
+        ".cfg",
+        ".txt",
+        ".yaml",
+        ".yml",
+    }
+    ignore_fn = shutil.ignore_patterns(
+        "__pycache__",
+        "*.pyc",
+        "*.pyo",
+        ".pytest_cache",
+        ".git",
+        ".venv",
+        "venv",
+        "node_modules",
+        ".wal",
+    )
+
+    overlay_files: List[str] = []
+    deleted_applied: List[str] = []
+    ast_guard_res: Dict[str, Any] = {"executed": False, "passed": True}
+    pytest_res: Dict[str, Any] = {"executed": False, "passed": True}
+    sb_id = ""
+    sb_dir_str = ""
+
+    with ShadowSandbox() as sb:
+        sb_id = sb.sandbox_id
+        sb_dir_str = str(sb.sandbox_dir)
+
+        for dname in essential_dirs:
+            src_d = root / dname
+            if src_d.exists() and src_d.is_dir():
+                shutil.copytree(
+                    src_d,
+                    sb.sandbox_dir / dname,
+                    dirs_exist_ok=True,
+                    ignore=ignore_fn,
+                )
+
+        for item in root.iterdir():
+            if (
+                item.is_file()
+                and item.suffix.lower() in allowed_root_exts
+                and item.stat().st_size <= 10 * 1024 * 1024
+            ):
+                shutil.copy2(item, sb.sandbox_dir / item.name)
+
+        if stg.exists() and stg.is_dir():
+            for stg_file in sorted(stg.rglob("*")):
+                if not stg_file.is_file():
+                    continue
+                if (
+                    "__pycache__" in stg_file.parts
+                    or stg_file.name in (".gitkeep", ".deleted_files.json")
+                ):
+                    continue
+                rel = stg_file.relative_to(stg)
+                dst_file = sb.sandbox_dir / rel
+                dst_file.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(stg_file, dst_file)
+                overlay_files.append(rel.as_posix())
+
+            del_manifest = stg / ".deleted_files.json"
+            if del_manifest.exists() and del_manifest.is_file():
+                try:
+                    raw_del = json.loads(del_manifest.read_text(encoding="utf-8"))
+                    del_list = (
+                        raw_del
+                        if isinstance(raw_del, list)
+                        else raw_del.get("deleted_files", [])
+                        if isinstance(raw_del, dict)
+                        else []
+                    )
+                    for rel_del in del_list:
+                        cand_del = (sb.sandbox_dir / str(rel_del)).resolve()
+                        if (
+                            sb.sandbox_dir in cand_del.parents
+                            and cand_del.exists()
+                            and cand_del.is_file()
+                        ):
+                            cand_del.unlink(missing_ok=True)
+                            deleted_applied.append(str(rel_del))
+                except Exception:
+                    pass
+
+        env = os.environ.copy()
+        env["PYTHONUTF8"] = "1"
+        env["PYTHONIOENCODING"] = "utf-8"
+        env["PYTHONDONTWRITEBYTECODE"] = "1"
+        env["PYTHONPATH"] = str(sb.sandbox_dir)
+
+        if run_ast_guard:
+            hub_ast_guard = Path(__file__).resolve().parent / "ast_guard_validator.py"
+            sb_ast_guard = sb.sandbox_dir / "scripts" / "ast_guard_validator.py"
+            guard_script = sb_ast_guard if sb_ast_guard.exists() else hub_ast_guard
+
+            code_targets = [
+                sb.sandbox_dir / d
+                for d in ("scripts", "src", "src_app", "app")
+                if (sb.sandbox_dir / d).exists()
+            ]
+            target_for_guard = code_targets[0] if code_targets else sb.sandbox_dir
+            if guard_script.exists():
+                try:
+                    proc_ast = subprocess.run(
+                        [
+                            sys.executable,
+                            str(guard_script),
+                            "--target",
+                            str(target_for_guard),
+                        ],
+                        cwd=str(sb.sandbox_dir),
+                        env=env,
+                        capture_output=True,
+                        text=True,
+                        encoding="utf-8",
+                        errors="replace",
+                        timeout=min(timeout_sec, 60.0),
+                    )
+                    ast_guard_res = {
+                        "executed": True,
+                        "passed": proc_ast.returncode == 0,
+                        "exit_code": proc_ast.returncode,
+                        "stdout": proc_ast.stdout[-1500:],
+                        "stderr": proc_ast.stderr[-1000:],
+                    }
+                except Exception as exc:
+                    ast_guard_res = {
+                        "executed": True,
+                        "passed": False,
+                        "exit_code": -1,
+                        "error": str(exc),
+                    }
+
+        tests_dir = sb.sandbox_dir / "tests"
+        if run_pytest and tests_dir.exists() and any(tests_dir.rglob("test_*.py")):
+            try:
+                proc_pt = subprocess.run(
+                    [sys.executable, "-m", "pytest", "tests", "-q", "--tb=short"],
+                    cwd=str(sb.sandbox_dir),
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    timeout=timeout_sec,
+                )
+                pytest_res = {
+                    "executed": True,
+                    "passed": proc_pt.returncode == 0,
+                    "exit_code": proc_pt.returncode,
+                    "stdout": proc_pt.stdout[-2000:],
+                    "stderr": proc_pt.stderr[-1000:],
+                }
+            except Exception as exc:
+                pytest_res = {
+                    "executed": True,
+                    "passed": False,
+                    "exit_code": -1,
+                    "error": str(exc),
+                }
+
+    sandbox_cleaned = not Path(sb_dir_str).exists()
+    overall_passed = (
+        bool(ast_guard_res.get("passed", True))
+        and bool(pytest_res.get("passed", True))
+        and sandbox_cleaned
+    )
+    return {
+        "status": "PASS" if overall_passed else "FAIL",
+        "passed": overall_passed,
+        "sandbox_id": sb_id,
+        "sandbox_dir": sb_dir_str,
+        "sandbox_cleaned": sandbox_cleaned,
+        "repo_root": str(root),
+        "staging_dir": str(stg),
+        "overlay_files_count": len(overlay_files),
+        "overlay_files": overlay_files,
+        "deleted_files": deleted_applied,
+        "ast_guard": ast_guard_res,
+        "pytest": pytest_res,
+        "duration_sec": round(time.perf_counter() - t0, 4),
+    }
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
     """Interfaccia CLI per l'esecuzione isolata in Shadow Sandbox."""
     parser = argparse.ArgumentParser(
         description="Nexus Keystone DAST Shadow Sandbox Runner",
     )
-    parser.add_argument("--script", type=str, help="Percorso dello script Python da eseguire")
-    parser.add_argument("--timeout", type=float, default=10.0, help="Timeout in secondi")
+    parser.add_argument(
+        "--script", type=str, help="Percorso dello script Python da eseguire"
+    )
+    parser.add_argument(
+        "--overlay-staging",
+        type=str,
+        default=None,
+        help="Percorso radice su cui eseguire la Shadow Run sovrapponendo .staging/",
+    )
+    parser.add_argument(
+        "--staging-dir",
+        type=str,
+        default=None,
+        help="Percorso opzionale alla cartella .staging/ per --overlay-staging",
+    )
+    parser.add_argument(
+        "--timeout", type=float, default=10.0, help="Timeout in secondi"
+    )
     parser.add_argument("--json", action="store_true", help="Stampa il report in JSON")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+
+    if args.overlay_staging:
+        shadow_timeout = max(float(args.timeout), 60.0)
+        res = run_staging_shadow_verification(
+            repo_root=Path(args.overlay_staging),
+            staging_dir=Path(args.staging_dir) if args.staging_dir else None,
+            timeout_sec=shadow_timeout,
+        )
+        if args.json:
+            print(json.dumps(res, indent=2, ensure_ascii=False))
+        else:
+            print(
+                f"[DAST-OVERLAY-STAGING] Status: {res['status']} | "
+                f"Overlay Files: {res.get('overlay_files_count', 0)} | "
+                f"Cleaned: {res.get('sandbox_cleaned', False)} ({res.get('duration_sec', 0.0)} s)"
+            )
+        return 0 if res.get("passed") else 1
 
     if not args.script:
         parser.print_help()

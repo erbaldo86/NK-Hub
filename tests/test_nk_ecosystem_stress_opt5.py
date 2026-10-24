@@ -68,6 +68,18 @@ def _in_process_benchmark_runner(
 ) -> Dict[str, Any]:
     """Esegue un modulo di test benchmark in-process per azzerare l'overhead subprocess."""
     suite_path = Path(benchmark_suite).resolve()
+    if suite_path.is_dir():
+        test_files = sorted(suite_path.rglob("test_*.py"))
+        if not test_files:
+            return {
+                "passed": False,
+                "tests_failed": 1,
+                "tests_passed": 0,
+                "tests_total": 1,
+                "suite_path": str(suite_path),
+                "details": "Nessun file test_*.py trovato",
+            }
+        suite_path = test_files[0]
     if not suite_path.exists():
         return {
             "passed": False,
@@ -160,12 +172,21 @@ def test_opt2_rsi_profile_propagation_in_verify_and_cli(
         encoding="utf-8",
     )
 
+    ext_tests_dir = tmp_path / "tests"
+    ext_tests_dir.mkdir(parents=True, exist_ok=True)
+    ext_test_ok = ext_tests_dir / "test_ext_ok.py"
+    ext_test_ok.write_text(
+        "def test_ext_ok() -> None:\n    assert 1 + 1 == 2\n",
+        encoding="utf-8",
+    )
+
     telemetry_file = tmp_path / "nk_tracking" / "rsi_telemetry.jsonl"
     engine = RSIConvergenceEngine(root=tmp_path, telemetry_path=telemetry_file)
     engine.run_benchmark_suite = _in_process_benchmark_runner  # type: ignore[method-assign]
 
     res_code = engine.verify_ecosystem(profile="code_rsi")
     assert res_code["passed"] is True and res_code["delta_k"] == 0
+    assert "sast_and_mojibake" in res_code["measured_components"]
 
     res_ste = engine.verify_ecosystem(profile="ste100_rsi")
     assert res_ste["passed"] is False and res_ste["delta_k"] > 0
@@ -175,6 +196,7 @@ def test_opt2_rsi_profile_propagation_in_verify_and_cli(
     )
     cli_payload = json.loads(capsys.readouterr().out)
     assert rc_cli == 0 and cli_payload["profile"] == "code_rsi"
+    assert cli_payload["scope"] == str(tmp_path)
 
     tests_dir = tmp_path / "bench_tests"
     tests_dir.mkdir(parents=True, exist_ok=True)

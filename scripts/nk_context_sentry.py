@@ -9,7 +9,7 @@ Funzionalita principali:
 1. Valuta lo stato del contesto con architettura Dual-Profile (standard vs argon).
 2. Mantiene le soglie predefinite 70/100 step (80k/120k token) per il profilo standard (GT-01).
 3. Attiva le soglie 150/250 step (250k/500k token senza thinking) per il profilo argon.
-4. Traccia SWARM_MSG_MSS_CAP = 1800 (MSS) e SWARM_MSG_HARD_CAP = 2000 (MTU) sui sub-agenti (OPT-7).
+4. Rileva actual_context_tokens (WARN >= 150k, RED >= 200k prima della compattazione a 273k).
 """
 
 from __future__ import annotations
@@ -43,6 +43,9 @@ except ImportError:
 
 SWARM_MSG_MSS_CAP: int = 1800
 SWARM_MSG_HARD_CAP: int = 2000
+ARGON_ACTUAL_WARN_TOKENS: int = 150_000
+ARGON_ACTUAL_RED_TOKENS: int = 200_000
+PLATFORM_COMPACTION_TOKEN_LIMIT: int = 273_000
 
 
 class NKContextSentry:
@@ -52,6 +55,8 @@ class NKContextSentry:
     RED_STEP_THRESHOLD = 100
     ARGON_GREEN_STEP_THRESHOLD = 150
     ARGON_RED_STEP_THRESHOLD = 250
+    ARGON_ACTUAL_WARN_TOKENS = ARGON_ACTUAL_WARN_TOKENS
+    ARGON_ACTUAL_RED_TOKENS = ARGON_ACTUAL_RED_TOKENS
     SWARM_MSG_MSS_CAP = SWARM_MSG_MSS_CAP
     SWARM_MSG_HARD_CAP = SWARM_MSG_HARD_CAP
 
@@ -91,13 +96,41 @@ class NKContextSentry:
         tail = traceback_text[-tail_chars:].strip()
         return f"{head}\n\n[... TRUNCATED BY NK-CONTEXT-SENTRY HEAD-TAIL FALLBACK ...]\n\n{tail}"
 
+    @staticmethod
+    def _extract_actual_tokens_from_record(data: Dict[str, Any]) -> Optional[int]:
+        """Estrae actual_context_tokens dai metadati di uno step del transcript se presente."""
+        for key in (
+            "actual_context_tokens",
+            "context_tokens",
+            "prompt_tokens",
+            "input_tokens",
+        ):
+            val = data.get(key)
+            if isinstance(val, int) and val > 0:
+                return val
+        for sub_key in ("metadata", "usage", "token_usage", "context_window"):
+            sub = data.get(sub_key)
+            if isinstance(sub, dict):
+                for key in (
+                    "actual_context_tokens",
+                    "context_tokens",
+                    "prompt_tokens",
+                    "input_tokens",
+                    "total_tokens",
+                ):
+                    val = sub.get(key)
+                    if isinstance(val, int) and val > 0:
+                        return val
+        return None
+
     def get_traffic_light_status(
         self,
         step_count: int,
         estimated_tokens: int,
         profile: Optional[str] = None,
+        actual_context_tokens: Optional[int] = None,
     ) -> Dict[str, Any]:
-        """Calcola lo stato semaforico in base a step, token e profilo attivo."""
+        """Calcola lo stato semaforico in base a step, token stimati, token reali e profilo."""
         active_profile = (profile or self.profile or "standard").lower().strip()
         if active_profile == "argon":
             green_steps = self.ARGON_GREEN_STEP_THRESHOLD
@@ -124,13 +157,35 @@ class NKContextSentry:
                 "Critical saturation (503 risk): Execute /compact or nk_session_handoff.py."
             )
 
-        return {
+        if (
+            active_profile == "argon"
+            and actual_context_tokens is not None
+            and actual_context_tokens > 0
+        ):
+            if actual_context_tokens >= self.ARGON_ACTUAL_RED_TOKENS:
+                status = "RED"
+                recommendation = (
+                    "Critical saturation (503 risk): Execute /compact or nk_session_handoff.py."
+                )
+            elif (
+                actual_context_tokens >= self.ARGON_ACTUAL_WARN_TOKENS
+                and status != "RED"
+            ):
+                status = "WARN"
+                recommendation = (
+                    "Warning: Context saturation nearing threshold. Delegate heavy tasks to subagents."
+                )
+
+        result: Dict[str, Any] = {
             "status": status,
             "step_count": step_count,
             "estimated_tokens": estimated_tokens,
             "profile": active_profile,
             "recommendation": recommendation,
         }
+        if actual_context_tokens is not None:
+            result["actual_context_tokens"] = actual_context_tokens
+        return result
 
     @staticmethod
     def is_background_task_message(data: Dict[str, Any], content: str) -> bool:
@@ -162,7 +217,10 @@ class NKContextSentry:
         return self.analyze_transcript(transcript_path)
 
     def analyze_transcript(
-        self, transcript_path: Path, profile: Optional[str] = None
+        self,
+        transcript_path: Path,
+        profile: Optional[str] = None,
+        actual_context_tokens: Optional[int] = None,
     ) -> Dict[str, Any]:
         """Analizza transcript.jsonl e calcola metriche di contesto e conformita."""
         transcript_path = Path(transcript_path).resolve()
@@ -178,6 +236,7 @@ class NKContextSentry:
 
         steps_count = 0
         total_chars = 0
+        detected_actual_tokens: Optional[int] = actual_context_tokens
         chars_by_source: Dict[str, int] = {}
         tool_counts: Dict[str, int] = {}
         swarm_hygiene_violations: List[Dict[str, Any]] = []
@@ -199,6 +258,10 @@ class NKContextSentry:
                 source = data.get("source", "UNKNOWN")
                 content = data.get("content", "") or ""
                 thinking = data.get("thinking", "") or ""
+
+                rec_actual = self._extract_actual_tokens_from_record(data)
+                if rec_actual is not None:
+                    detected_actual_tokens = rec_actual
 
                 # Nel profilo argon escludiamo len(thinking) dal conteggio token attivo
                 if active_profile == "argon":
@@ -282,15 +345,19 @@ class NKContextSentry:
 
         estimated_tokens = max(1, total_chars // 4) if total_chars > 0 else 0
         health = self.get_traffic_light_status(
-            steps_count, estimated_tokens, profile=active_profile
+            steps_count,
+            estimated_tokens,
+            profile=active_profile,
+            actual_context_tokens=detected_actual_tokens,
         )
 
-        return {
+        report: Dict[str, Any] = {
             "status": health["status"],
             "profile": active_profile,
             "step_count": steps_count,
             "total_chars": total_chars,
             "estimated_tokens": estimated_tokens,
+            "actual_context_tokens": detected_actual_tokens,
             "recommendation": health["recommendation"],
             "chars_by_source": chars_by_source,
             "tool_counts": tool_counts,
@@ -301,9 +368,10 @@ class NKContextSentry:
             "swarm_hygiene_violations_count": len(swarm_hygiene_violations),
             "swarm_hygiene_violations": swarm_hygiene_violations[:5],
         }
+        return report
 
 
-def main() -> int:
+def main(argv: Optional[List[str]] = None) -> int:
     """Punto di ingresso CLI per la sentinella del contesto Nexus Keystone."""
     reconfigure_streams()
     parser = argparse.ArgumentParser(
@@ -319,22 +387,35 @@ def main() -> int:
         help="Profilo soglie: standard o argon",
     )
     parser.add_argument(
+        "--actual-context-tokens",
+        type=int,
+        default=None,
+        help="Token di contesto reali osservati per la soglia anti-compattazione",
+    )
+    parser.add_argument(
         "--json", action="store_true", help="Stampa il risultato in formato JSON"
     )
     parser.add_argument(
         "--verbose", action="store_true", help="Mostra i dettagli completi"
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     sentry = NKContextSentry(profile=args.profile)
-    res = sentry.analyze_transcript(Path(args.transcript), profile=args.profile)
+    res = sentry.analyze_transcript(
+        Path(args.transcript),
+        profile=args.profile,
+        actual_context_tokens=args.actual_context_tokens,
+    )
 
     if args.json:
         print(json.dumps(res, indent=2))
     else:
-        status_sym = {"GREEN": "🟢", "YELLOW": "🟡", "RED": "🔴"}.get(
-            res.get("status"), "⚪"
-        )
+        status_sym = {
+            "GREEN": "🟢",
+            "YELLOW": "🟡",
+            "WARN": "🟡",
+            "RED": "🔴",
+        }.get(res.get("status"), "⚪")
         print(
             f"{status_sym} [NK-CONTEXT-SENTRY] Status: {res.get('status')} | "
             f"Steps: {res.get('step_count')} | Est Tokens: {res.get('estimated_tokens'):,}"
@@ -349,7 +430,7 @@ def main() -> int:
                 f"  - Swarm hygiene violations: {res.get('swarm_hygiene_violations_count')}"
             )
 
-    return 0 if res.get("status") in ("GREEN", "YELLOW") else 1
+    return 0 if res.get("status") in ("GREEN", "YELLOW", "WARN") else 1
 
 
 if __name__ == "__main__":

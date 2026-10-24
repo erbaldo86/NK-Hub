@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Motore di routing Mode A/B/C/D e Super Meta-Prompt Gate per Nexus Keystone v4.1.0.
+Motore di routing Mode A/B/C/D e Super Meta-Prompt Gate per Nexus Keystone v4.2.0.
 Calcola la reale profondita AST max_depth e applica la soglia <= 150 LOC per Mode C.
-Supporta Mode D, normalizzazione vocale STT e risoluzione O(1) tramite nk_registry_manifest.json.
+Supporta Mode D, confinamento L0_GATE_ONLY per !diretto, diff escalation e linter AP-1..AP-7.
 """
 
 from __future__ import annotations
@@ -76,6 +76,18 @@ DOMAIN_TO_NATIVE_SUBAGENT: Dict[str, str] = {
     "DOM-04": "NK-Security-DAST-Auditor",
     "DOM-05": "NK-Scribe-Agent",
 }
+
+_READ_ONLY_ROLES: Tuple[str, ...] = (
+    "NK-Oracle-Evaluator",
+    "NK-Security-DAST-Auditor",
+    "NK-Security-Auditor",
+    "NK-RSI-Auditor",
+    "NK-Specifier-Agent",
+)
+_ORCHESTRATOR_ROLES: Tuple[str, ...] = (
+    "NK-Master-Hub",
+    "NK-Session-Controller",
+)
 
 _RSI_AUDITOR_SKILLS = frozenset(
     {"NK-Oracle-Evaluator", "NK-State-Router", "NK-Plan-Aligner"}
@@ -432,6 +444,161 @@ def _has_imperative_write_keyword(clean_text: str) -> bool:
     return False
 
 
+def _detect_prompt_role_conflicts(prompt_text: str) -> List[str]:
+    """Rileva conflitti di ruolo tra nodi Read-Only, Orchestratori e richieste di scrittura."""
+    conflicts: List[str] = []
+    if not prompt_text:
+        return conflicts
+    has_ro = [r for r in _READ_ONLY_ROLES if r.lower() in prompt_text.lower()]
+    has_write = _has_imperative_write_keyword(prompt_text) or bool(
+        re.search(
+            r"(applica(?:re)? la soluzione|crea un test|salva tutti i risultati|src_app/)",
+            prompt_text,
+            re.IGNORECASE,
+        )
+    )
+    single_opera = re.search(r"Opera come\s+([^\n\.]+)", prompt_text, re.IGNORECASE)
+    if single_opera:
+        roles_str = single_opera.group(1)
+        ro_in_opera = any(r in roles_str for r in _READ_ONLY_ROLES)
+        orch_in_opera = any(r in roles_str for r in _ORCHESTRATOR_ROLES)
+        if (ro_in_opera and orch_in_opera) or (ro_in_opera and has_write):
+            conflicts.append(
+                f"Role collapse detected in 'Opera come {roles_str}' with write instructions."
+            )
+    elif has_ro and has_write and "invoke_subagent" not in prompt_text:
+        conflicts.append(
+            f"Read-Only role ({', '.join(has_ro)}) combined with write intent without subagent delegation."
+        )
+    return conflicts
+
+
+def lint_nk_prompt(prompt_text: str) -> Dict[str, Any]:
+    """Analizza un prompt generato per l'ambiente NK e rileva gli anti-pattern AP-1..AP-7."""
+    violations: List[Dict[str, str]] = []
+    text = prompt_text or ""
+
+    has_diretto = bool(re.search(r"(!diretto|\bProceed\b)", text, re.IGNORECASE))
+    writes_code_or_data = bool(
+        re.search(
+            r"(applica(?:re)? la soluzione|modifica|crea un test|salva tutti i risultati|aggiorna README|src_app/|tests/)",
+            text,
+            re.IGNORECASE,
+        )
+    )
+    phase_count = len(re.findall(r"\b(?:FASE|PHASE)\s+\d+\b", text, re.IGNORECASE))
+
+    # AP-1: Bypass del Meta-Prompt Gate (!diretto) su prompt lunghi (>1500 char), multi-fase o con scritture
+    if has_diretto and (len(text) > 1500 or phase_count > 1 or writes_code_or_data):
+        violations.append(
+            {
+                "id": "AP-1",
+                "severity": "CRITICA",
+                "msg": "Uso di '!diretto' su prompt complesso (>1500 char, multi-fase o con scritture): bypassa [RULE-00.6].",
+            }
+        )
+
+    # AP-2: Collasso dei Ruoli ("Opera come X, Y e Z") o assenza di delega 2-Tier (invoke_subagent)
+    single_agent_opera = re.search(r"Opera come\s+([^\n\.]+)", text, re.IGNORECASE)
+    if single_agent_opera:
+        roles_str = single_agent_opera.group(1)
+        has_ro = any(r in roles_str for r in _READ_ONLY_ROLES)
+        has_orch = any(r in roles_str for r in _ORCHESTRATOR_ROLES)
+        if (has_ro and has_orch) or (has_ro and writes_code_or_data):
+            violations.append(
+                {
+                    "id": "AP-2",
+                    "severity": "CRITICA",
+                    "msg": f"Collasso dei ruoli incompatibili in una singola istanza ('Opera come {roles_str}') con task di scrittura: viola [RULE-01] e [RULE-00.1].",
+                }
+            )
+    if (phase_count >= 2 or len(text) > 2500) and "invoke_subagent" not in text:
+        violations.append(
+            {
+                "id": "AP-2",
+                "severity": "ALTA",
+                "msg": "Prompt multi-fase privo di direttive di delega 2-Tier ('invoke_subagent' / '<env_capsule>').",
+            }
+        )
+
+    # AP-3: Iniezione di path di produzione diretti senza .staging/ e senza win32_2pc_engine.py
+    if writes_code_or_data:
+        if ".staging" not in text or "win32_2pc_engine.py" not in text:
+            violations.append(
+                {
+                    "id": "AP-3",
+                    "severity": "CRITICA",
+                    "msg": "Prescrizione di modifiche a codice/dati/test senza isolamento '.staging/' e commit 'win32_2pc_engine.py --promote-staging --repo-root': viola [RULE-00].",
+                }
+            )
+
+    # AP-4: Loop di Goodhart ("finché ... 100% PASS") nello stesso turno
+    if re.search(r"finch[eé]\s+.*100%\s*PASS", text, re.IGNORECASE):
+        violations.append(
+            {
+                "id": "AP-4",
+                "severity": "CRITICA",
+                "msg": "Loop condizionato 'finche 100% PASS' nello stesso turno: induce data poisoning e indebolimento degli oracoli (Legge di Goodhart).",
+            }
+        )
+
+    # AP-5: Comando rsi_convergence_engine.py --verify privo di --root <project>
+    for m in re.finditer(r"rsi_convergence_engine\.py\s+([^\n`]+)", text):
+        args_segment = m.group(1)
+        if "--verify" in args_segment and "--root" not in args_segment:
+            violations.append(
+                {
+                    "id": "AP-5",
+                    "severity": "CRITICA",
+                    "msg": "Comando 'rsi_convergence_engine.py --verify' privo di '--root <project_root>': produce falso 100/100 sintetico.",
+                }
+            )
+
+    # AP-6: Sovraccarico monolitico di contesto (>= 3 fasi in 1 turno senza stop gate)
+    if phase_count >= 3 and "STOP_GATE" not in text and "ask_question" not in text:
+        violations.append(
+            {
+                "id": "AP-6",
+                "severity": "ALTA",
+                "msg": f"Sovraccarico monolitico ({phase_count} macro-fasi in 1 turno senza STOP_GATE intermedio): causa context compaction e perdita di stato.",
+            }
+        )
+
+    # AP-7: Prescrizione ridondante dual-tool senza sharding o server senza safe_cleanup_dev_servers.py
+    if (
+        "search_web" in text
+        and "tavily" in text
+        and "SIA la ricerca web normale" in text
+    ):
+        violations.append(
+            {
+                "id": "AP-7",
+                "severity": "ALTA",
+                "msg": "Prescrizione ridondante 'SIA search_web SIA tavily' sullo stesso set di query senza sharding su sub-agenti.",
+            }
+        )
+    if (
+        re.search(r"avviando il server", text, re.IGNORECASE)
+        and "safe_cleanup_dev_servers.py" not in text
+    ):
+        violations.append(
+            {
+                "id": "AP-7",
+                "severity": "MEDIA",
+                "msg": "Istruzione di avvio server priva di protocollo di guardia 'safe_cleanup_dev_servers.py' ([RULE-01.3]).",
+            }
+        )
+
+    return {
+        "valid": len(violations) == 0,
+        "violation_count": len(violations),
+        "violations": violations,
+        "write_tools_mounted": (
+            "EnableWriteTools=True" in text or "enable_write_tools=True" in text
+        ),
+    }
+
+
 def _token_matches_keyword(
     kw: str,
     text_low: str,
@@ -537,6 +704,7 @@ class VibeSprintRouter:
     """Valuta il rischio strutturale AST e seleziona la modalita operativa (Mode A, B, C o D)."""
 
     MODE_C_MAX_LOC: int = 150
+    MODE_C_MAX_PROMPT_CHARS: int = 400
     DISCOVERY_KEYWORDS: Tuple[str, ...] = MODE_D_KEYWORDS
 
     def __init__(self, workspace_root: Optional[Path] = None) -> None:
@@ -686,6 +854,7 @@ class VibeSprintRouter:
         exempt = self.is_gate_exempt(prompt) or bool(stt_info.get("bypass_requested"))
         cleaned_prompt = stt_info["cleaned_prompt"] or (prompt or "").strip()
         intent = self.classify_prompt_intent(cleaned_prompt, files=files)
+        role_conflicts = _detect_prompt_role_conflicts(prompt or "")
 
         effective_mode = (gate_mode or "CONFIRM").strip().upper()
         if effective_mode not in ("CONFIRM", "ECHO", "OFF"):
@@ -726,12 +895,18 @@ class VibeSprintRouter:
                 "Uso di MagicMock o stub sintetici vietati da RULE-01.2",
             ]
 
+        if bypassed:
+            out_of_scope.append(
+                "Bypass L0_GATE_ONLY: topologia 2-Tier (max 12 tool diretti) e .staging/ + 2PC restano obbligatori"
+            )
+
         conceptual_mirror = (
             f"Obiettivo: {cleaned_prompt[:140]} "
             f"(Modalita: {rec_mode}, Skill: {primary_ag}, Sub-Agente: {native_sub})."
         )
+        scope_tag = " | BypassScope: L0_GATE_ONLY" if bypassed else ""
         optimized_meta_prompt = (
-            f"[META-PROMPT L0 | Mode: {rec_mode} | Skill: {primary_ag}]\n"
+            f"[META-PROMPT L0 | Mode: {rec_mode} | Skill: {primary_ag}{scope_tag}]\n"
             f"Obiettivo strutturato: {cleaned_prompt}\n"
             f"Requisiti: {'; '.join(requirements_r_ids)}"
         )
@@ -753,7 +928,7 @@ class VibeSprintRouter:
                 stt_info.get("voice_corrections_applied", [])
             ),
             "out_of_scope": out_of_scope,
-            "ambiguities": [],
+            "ambiguities": list(role_conflicts),
             "recommended_mode": rec_mode,
             "primary_agent": primary_ag,
             "native_subagent": native_sub,
@@ -763,8 +938,15 @@ class VibeSprintRouter:
 
         if MetaPromptGateContract is not None:
             validated = MetaPromptGateContract(**payload)
-            return validated.model_dump()
-        return payload
+            result = validated.model_dump()
+        else:
+            result = dict(payload)
+
+        result["bypass_scope"] = "L0_GATE_ONLY" if bypassed else "NONE"
+        result["topology_2tier_mandatory"] = True
+        result["staging_2pc_mandatory"] = rec_mode != "mode_d"
+        result["max_direct_tools"] = 12
+        return result
 
     def resolve_domain_from_manifest(self, prompt: str) -> Dict[str, Any]:
         """Risolve in O(1) il dominio funzionale DOM-01..DOM-05 e le skill interrogando il manifesto SSOT."""
@@ -917,13 +1099,56 @@ class VibeSprintRouter:
             "matched_triggers": [],
         }
 
+    def _estimate_changed_loc(
+        self,
+        files: Optional[List[str]] = None,
+        changed_lines: Optional[int] = None,
+    ) -> int:
+        """Stima le righe modificate dal parametro changed_lines o dal diff in staging."""
+        if changed_lines is not None:
+            return max(0, int(changed_lines))
+        if not files:
+            return 0
+        total_loc = 0
+        for file_arg in files:
+            p = Path(file_arg)
+            if not p.is_absolute():
+                staged_p = self.staging_dir / file_arg
+                prod_p = self.workspace_root / file_arg
+                if staged_p.exists() and staged_p.is_file():
+                    s_lines = staged_p.read_text(
+                        encoding="utf-8", errors="replace"
+                    ).splitlines()
+                    if prod_p.exists() and prod_p.is_file():
+                        p_lines = prod_p.read_text(
+                            encoding="utf-8", errors="replace"
+                        ).splitlines()
+                        total_loc += abs(len(s_lines) - len(p_lines))
+                    else:
+                        total_loc += len(s_lines)
+                continue
+            if p.exists() and p.is_file():
+                try:
+                    p.resolve().relative_to(self.workspace_root)
+                    if ".staging" in p.parts:
+                        total_loc += len(
+                            p.read_text(encoding="utf-8", errors="replace").splitlines()
+                        )
+                except ValueError:
+                    total_loc += len(
+                        p.read_text(encoding="utf-8", errors="replace").splitlines()
+                    )
+        return total_loc
+
     def classify_prompt_intent(
         self,
         prompt: str,
         files: Optional[List[str]] = None,
+        changed_lines: Optional[int] = None,
     ) -> Dict[str, Any]:
         """Classifica il prompt, attiva Mode D su discovery pura e risolve skill e sub-agente."""
-        text_lower = (prompt or "").strip().lower()
+        raw_text = (prompt or "").strip()
+        text_lower = raw_text.lower()
         clean_text = _sanitize_tetralogia_filenames(text_lower)
         has_code_files = bool(files and len(files) > 0)
         matched = [kw for kw in self.DISCOVERY_KEYWORDS if kw in text_lower]
@@ -933,11 +1158,24 @@ class VibeSprintRouter:
             clean_text
         ) or _has_imperative_write_keyword(text_lower)
 
+        phase_count = len(
+            re.findall(r"\b(?:FASE|PHASE)\s+\d+\b", raw_text, re.IGNORECASE)
+        )
+        prompt_len = len(raw_text)
+        role_conflicts = _detect_prompt_role_conflicts(raw_text)
+        total_loc = self._estimate_changed_loc(files=files, changed_lines=changed_lines)
+
         is_dom04_tech_audit = domain_info["domain_id"] == "DOM-04" and any(
             tkw in text_lower for tkw in _DOM04_TECHNICAL_AUDIT_KEYWORDS
         )
 
-        if matched and not has_code_files and not has_write_intent:
+        if (
+            matched
+            and not has_code_files
+            and not has_write_intent
+            and phase_count < 2
+            and (changed_lines is None or changed_lines == 0)
+        ):
             if is_dom04_tech_audit:
                 primary_ag = domain_info.get("primary_skill", "NK-Security-Auditor")
                 native_sub = domain_info.get(
@@ -972,6 +1210,8 @@ class VibeSprintRouter:
                 "matched_skills": matched_sk,
                 "native_subagent": native_sub,
                 "fast_bypass_eligible": False,
+                "changed_lines": total_loc,
+                "role_conflicts": role_conflicts,
                 "domain_id": dom_id,
                 "domain_name": dom_name,
                 "tools_allowed": [
@@ -999,27 +1239,43 @@ class VibeSprintRouter:
             ),
         )
 
-        if any(
-            k in text_lower
-            for k in (
-                "allinea 1:1",
-                "turno 4",
-                "auto-brief",
-                "cold review",
-                "6 gate",
-                "oracolo",
-                "multi-file",
-                "multifile",
+        if (
+            phase_count >= 2
+            or prompt_len > 1500
+            or any(
+                k in text_lower
+                for k in (
+                    "allinea 1:1",
+                    "turno 4",
+                    "auto-brief",
+                    "cold review",
+                    "6 gate",
+                    "oracolo",
+                    "multi-file",
+                    "multifile",
+                )
             )
         ):
             rec_mode = "mode_a"
-        elif any(
-            k in text_lower
-            for k in ("sbfl", "ochiai", "causa radice", "rca", "falsi bug")
+        elif (
+            total_loc > self.MODE_C_MAX_LOC
+            or prompt_len > self.MODE_C_MAX_PROMPT_CHARS
+            or any(
+                k in text_lower
+                for k in ("sbfl", "ochiai", "causa radice", "rca", "falsi bug")
+            )
         ):
             rec_mode = "mode_b"
         else:
             rec_mode = "mode_c"
+
+        fast_bypass_eligible = bool(
+            rec_mode == "mode_c"
+            and total_loc <= self.MODE_C_MAX_LOC
+            and prompt_len <= self.MODE_C_MAX_PROMPT_CHARS
+            and phase_count < 2
+            and not role_conflicts
+        )
 
         return {
             "recommended_mode": rec_mode,
@@ -1031,13 +1287,33 @@ class VibeSprintRouter:
             "primary_agent": primary_ag,
             "matched_skills": matched_sk,
             "native_subagent": native_sub,
-            "fast_bypass_eligible": rec_mode == "mode_c",
+            "fast_bypass_eligible": fast_bypass_eligible,
+            "changed_lines": total_loc,
+            "role_conflicts": role_conflicts,
             "domain_id": domain_info["domain_id"],
             "domain_name": domain_info["domain_name"],
             "tools_allowed": [],
             "prompt": prompt,
-            "reason": "Standard implementation or file modification routing.",
+            "reason": (
+                f"Escalated to {rec_mode} (changed_lines={total_loc}, phases={phase_count})."
+                if rec_mode != "mode_c"
+                else "Standard implementation or file modification routing."
+            ),
         }
+
+    def validate_generated_prompt(self, file_or_text: str) -> Dict[str, Any]:
+        """Valida un prompt generato (da file o testo) contro gli anti-pattern AP-1..AP-7."""
+        raw_arg = (file_or_text or "").strip()
+        text = raw_arg
+        if raw_arg and len(raw_arg) < 512 and "\n" not in raw_arg:
+            cand = Path(raw_arg)
+            if not cand.is_absolute():
+                cand_ws = self.workspace_root / raw_arg
+                if cand_ws.exists() and cand_ws.is_file():
+                    cand = cand_ws
+            if cand.exists() and cand.is_file():
+                text = cand.read_text(encoding="utf-8", errors="replace")
+        return lint_nk_prompt(text)
 
     def compute_ast_risk_score(
         self,
@@ -1203,10 +1479,13 @@ def classify_prompt_intent(
     prompt: str,
     files: Optional[List[str]] = None,
     workspace_root: Optional[Path] = None,
+    changed_lines: Optional[int] = None,
 ) -> Dict[str, Any]:
     """Funzione helper di modulo per classificare l'intento del prompt (Mode D vs A/B/C)."""
     router = VibeSprintRouter(workspace_root=workspace_root)
-    return router.classify_prompt_intent(prompt=prompt, files=files)
+    return router.classify_prompt_intent(
+        prompt=prompt, files=files, changed_lines=changed_lines
+    )
 
 
 def normalize_voice_stt_input(
@@ -1242,6 +1521,15 @@ def build_meta_prompt_envelope(
         gate_mode=gate_mode,
         files=files,
     )
+
+
+def validate_generated_prompt(
+    file_or_text: str,
+    workspace_root: Optional[Path] = None,
+) -> Dict[str, Any]:
+    """Funzione helper di modulo per validare un prompt contro gli anti-pattern AP-1..AP-7."""
+    router = VibeSprintRouter(workspace_root=workspace_root)
+    return router.validate_generated_prompt(file_or_text=file_or_text)
 
 
 def load_prewarmed_capsule(workspace_root: Optional[Path] = None) -> Dict[str, Any]:
@@ -1331,6 +1619,18 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="Elenco dei file sorgente da valutare per il routing",
     )
     parser.add_argument(
+        "--changed-lines",
+        type=int,
+        default=None,
+        help="Numero di righe modificate nel diff staged per escalation Mode C -> Mode B",
+    )
+    parser.add_argument(
+        "--validate-generated-prompt",
+        type=str,
+        default=None,
+        help="Valida un prompt generato (file o testo) contro gli anti-pattern AP-1..AP-7",
+    )
+    parser.add_argument(
         "--discovery-check",
         action="store_true",
         help="Valuta l'intento del prompt per attivare Mode D Read-Only Discovery",
@@ -1350,6 +1650,21 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.test:
         return run_test()
 
+    router = VibeSprintRouter()
+
+    if args.validate_generated_prompt is not None:
+        lint_res = router.validate_generated_prompt(args.validate_generated_prompt)
+        if args.json:
+            print(json.dumps(lint_res, indent=2, ensure_ascii=False))
+        else:
+            status_str = "PASS" if lint_res["valid"] else "FAIL"
+            print(
+                f"[NK-PROMPT-LINTER] Status: {status_str} | Violations: {lint_res['violation_count']}"
+            )
+            for v in lint_res["violations"]:
+                print(f"  - [{v['id']}] ({v['severity']}): {v['msg']}")
+        return 0 if lint_res["valid"] else 1
+
     effective_prompt = args.prompt
     if (
         args.classify_prompt is not None
@@ -1357,8 +1672,6 @@ def main(argv: Optional[List[str]] = None) -> int:
         and args.prompt == "Vibe Sprint Change"
     ):
         effective_prompt = str(args.classify_prompt)
-
-    router = VibeSprintRouter()
 
     if args.meta_prompt_gate or args.no_gate:
         envelope = router.build_meta_prompt_envelope(
@@ -1373,6 +1686,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             print(
                 f"[META-PROMPT-GATE] Brief: {envelope['brief_id']} | "
                 f"State: {envelope['fsm_state']} | Mode: {envelope['recommended_mode']} | "
+                f"Scope: {envelope.get('bypass_scope', 'NONE')} | "
                 f"Agent: {envelope['primary_agent']} | SHA256: {envelope['intent_hash_sha256'][:12]}"
             )
         return 0
@@ -1388,6 +1702,17 @@ def main(argv: Optional[List[str]] = None) -> int:
                 info = router.compute_ast_risk_score(code, p.name)
             else:
                 info = router.compute_ast_risk_score("", p.name)
+            if (
+                args.changed_lines is not None
+                and args.changed_lines > router.MODE_C_MAX_LOC
+                and info["recommended_mode"] == "mode_c"
+            ):
+                info["recommended_mode"] = "mode_b"
+                info["mode_eligible"] = False
+                info["fast_bypass_eligible"] = False
+                info["reason"] = (
+                    f"Escalated from Mode C to Mode B due to changed_lines={args.changed_lines} > 150"
+                )
             info["file"] = str(file_arg)
             info["micro_spec"] = router.generate_inline_micro_spec(
                 str(file_arg),
@@ -1405,10 +1730,13 @@ def main(argv: Optional[List[str]] = None) -> int:
                 print(item["micro_spec"])
         return 0
 
-    intent = router.classify_prompt_intent(effective_prompt, files=args.files)
+    intent = router.classify_prompt_intent(
+        effective_prompt, files=args.files, changed_lines=args.changed_lines
+    )
     prompt_explicit = (
         args.classify_prompt is not None
         or args.discovery_check
+        or args.changed_lines is not None
         or effective_prompt != "Vibe Sprint Change"
     )
     if prompt_explicit or intent["is_discovery"]:

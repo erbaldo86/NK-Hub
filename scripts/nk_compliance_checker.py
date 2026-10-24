@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Verificatore di conformita e scorecard duale per Nexus Keystone v3.2.0.
+Verificatore di conformita e scorecard duale per Nexus Keystone v6.0.0.
 Modulo: nk_compliance_checker.py.
-Implementa le regole [RULE-00.4], [RULE-REACTIVE-SILENCE] e [RULE-01] con OPT-6 e OPT-12.
+@domain_id: DOM-05
+Implementa le regole [RULE-00.4], [RULE-REACTIVE-SILENCE] e [RULE-01] con OPT-6, OPT-12 e SP-WS6.
 Rispetta le guardie GT-03, GT-08, GT-10 e le correzioni U-15 e U-18.
 """
 
@@ -135,6 +136,41 @@ def _is_production_code_write(target_file: str) -> bool:
     return True
 
 
+def _is_external_unstage_write(target_or_cmd: str, is_command: bool = False) -> bool:
+    """Rileva scritture dirette verso NK_External_Projects fuori da .staging/ (SP-WS2, SP-WS6)."""
+    if not target_or_cmd:
+        return False
+    norm = target_or_cmd.replace("\\", "/").lower()
+    if "nk_external_projects/" not in norm:
+        return False
+    if ".staging/" in norm or "/.staging" in norm or "win32_2pc_engine.py" in norm:
+        return False
+    if not is_command:
+        return True
+    readonly_tokens = (
+        "pytest",
+        "rsi_convergence_engine.py",
+        "ast_guard_validator.py",
+        "external_project_scaffolder.py --retrofit",
+        "nk_transcript_tools.py",
+    )
+    if any(tok in norm for tok in readonly_tokens):
+        return False
+    write_indicators = (
+        "src_app/",
+        "tests/",
+        "checkpoint_",
+        "patch_notes.md",
+        "update_",
+        "migrate_",
+        "set-content",
+        "out-file",
+        "copy-item",
+        "remove-item",
+    )
+    return any(ind in norm for ind in write_indicators)
+
+
 def _is_exempt_diagnostic_nonzero(content_text: str) -> str:
     """Classifica gli exit code != 0 di audit esterni o cicli intermedi REFINING (OPT-12)."""
     if (
@@ -230,6 +266,7 @@ class NKComplianceChecker:
         subagents_polled = 0
         write_calls = 0
         code_write_calls = 0
+        external_unstage_writes = 0
         error_steps = 0
         command_error_steps = 0
         refining_vibe_steps = 0
@@ -311,12 +348,23 @@ class NKComplianceChecker:
                                 subagents_polled += 1
                         elif tname == "invoke_subagent":
                             subagents_invoked += 1
-                        elif tname in ("write_to_file", "replace_file_content"):
+                        elif tname in (
+                            "write_to_file",
+                            "write_file",
+                            "replace_file_content",
+                            "edit_file",
+                        ):
                             write_calls += 1
                             target_f = str(
-                                args.get("TargetFile") or args.get("file") or ""
+                                args.get("TargetFile")
+                                or args.get("Path")
+                                or args.get("file")
+                                or ""
                             )
-                            if _is_production_code_write(target_f):
+                            if _is_external_unstage_write(target_f, is_command=False):
+                                external_unstage_writes += 1
+                                code_write_calls += 1
+                            elif _is_production_code_write(target_f):
                                 code_write_calls += 1
                         elif tname == "run_command":
                             cmd = str(args.get("CommandLine", ""))
@@ -332,6 +380,8 @@ class NKComplianceChecker:
                                 win32_2pc_executed = True
                             if "nk_session_bootstrap.py" in cmd:
                                 bootstrap_executed = True
+                            if _is_external_unstage_write(cmd, is_command=True):
+                                external_unstage_writes += 1
 
                     source_val = str(data.get("source") or data.get("type") or "")
                     if step_has_delegation or (
@@ -447,6 +497,12 @@ class NKComplianceChecker:
         operational_score = (
             max(0, 100 - (error_steps * 10)) if error_steps > 0 else 100
         )
+        if external_unstage_writes > 0 and not win32_2pc_executed:
+            ext_penalty = min(40, external_unstage_writes * 10)
+            operational_score = max(0, operational_score - ext_penalty)
+            penalties.append(
+                f"External project unstaged writes: {external_unstage_writes} direct write(s) to NK_External_Projects outside .staging/ [-{ext_penalty}]"
+            )
         rsi_convergence_score = self._read_rsi_convergence_score(transcript_file)
 
         composite_score = round(
@@ -470,6 +526,7 @@ class NKComplianceChecker:
                 "subagents_invoked": subagents_invoked,
                 "write_calls": write_calls,
                 "code_write_calls": code_write_calls,
+                "external_unstage_writes": external_unstage_writes,
                 "ast_guard_executed": ast_guard_executed,
                 "healing_loop_executed": healing_loop_executed,
                 "win32_2pc_executed": win32_2pc_executed,

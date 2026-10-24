@@ -1,8 +1,8 @@
-# NK Genome: Concept Map e Master Brief (`v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified`)
+# NK Genome: Concept Map e Master Brief (`v4.3.0-Super-Plan-Triad-RSI` / `v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified`)
 
 > **Badge di Certificazione:** 🛡️ [NK-BRIEF-STATUS: AUDITED_AND_OPTIMIZED 🟢] | [RSI-CONVERGENCE: CONVERGED_OPTIMAL (Δ=0, Q=100.0) 🟢]  
-> **Milestone Anchor ID:** `NK-MS-20261018-COLD-TRIAL-v4.0.0-RSI` (`NK-MS-20261018-NATIVE-AGENTS-V4.0`)  
-> **Versione Target:** `v4.0.0-Native-Swarm-Playbooks` (`v3.0.0-STE100-Unified` Compatible)  
+> **Milestone Anchor ID:** `NK-MS-20261024-SUPER-PLAN-TRIAD-v6.0.0-RSI` (`NK-MS-20261018-COLD-TRIAL-v4.0.0-RSI`)  
+> **Versione Target:** `v4.3.0-Super-Plan-Triad-RSI` (`v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified` Compatible)  
 > **Standard Linguistico:** ASD-STE100 Italiano Tecnico (`[RULE-STE100]`)  
 > **Stato Produzione:** 100% Sola Lettura (`[RULE-00]`)
 
@@ -10,7 +10,7 @@
 
 ## 1. Visione Concettuale e Simbiosi con Gemini 4 Argon (High)
 
-L'architettura `v4.0.0-Native-Swarm-Playbooks` separa il Router O(1), i `5` Sub-Agenti Nativi e i `16` Playbook Procedurali (`[RULE-01]`). Il sistema trasforma Nexus Keystone in una piattaforma di miglioramento ricorsivo continuo (`[RULE-RSI]`). Questa architettura opera con **Gemini 4 Argon (High)** e protegge gli `86` Golden e Stress Tests tramite `GT-01..GT-14`.
+L'architettura `v4.3.0-Super-Plan-Triad-RSI` separa il Router O(1), i `5` Sub-Agenti Nativi e i `16` Playbook Procedurali (`[RULE-01]`). Il sistema trasforma Nexus Keystone in una piattaforma di miglioramento ricorsivo continuo (`[RULE-RSI]`). Questa architettura opera con **Gemini 4 Argon (High)** e protegge i `98` Golden e Stress Tests tramite `GT-01..GT-14`.
 
 1. **Direttiva Linguistica Universale (`[RULE-STE100]`):**
    * Tutto l'ecosistema adotta lo standard **ASD-STE100 Italiano Tecnico**.
@@ -40,6 +40,16 @@ L'architettura `v4.0.0-Native-Swarm-Playbooks` separa il Router O(1), i `5` Sub-
    * Il contratto `MetaPromptGateContract` separa il Meta-Prompt concettuale (`R1..Rn`, `Fuori ambito`) dal piano tecnico `implementation_plan.md`.
    * La macchina a `5` stati (`IDLE..BYPASSED`) applica TTL di `30` minuti, `5` esenzioni anti-loop e conferma 1-Click.
    * Il sistema propaga `intent_hash_sha256` in `<env_capsule>`, verifica `R1..Rn` in `NK-Plan-Aligner` e preserva `16` skill.
+7. **Hardening Post-Audit Forense `Bandi` (`WP14`, `NK-MS-20261022-BANDI-FORENSIC-HARDENING-v4.2.0-RSI`):**
+   * Il `Template 11` e `vibe_sprint_router.py` generano e validano prompt multi-fase nativi per lo sciame 2-Tier.
+   * Il tag `!diretto` salta solo il Gate L0 (`bypass_scope: "L0_GATE_ONLY"`) senza mai disattivare `[RULE-00]` o `[RULE-01]`.
+   * Lo script `nk_session_bootstrap.py` impone `PYTHONUTF8=1`, valida il TTL cache e conta esattamente le righe del transcript attivo.
+   * Il motore `rsi_convergence_engine.py` ispeziona i progetti esterni con `--root`, rileva `\ufffd` e registra sempre `rsi_telemetry.jsonl`.
+8. **Super Implementation Plan v6.0-Unified-Triad-RSI (`WP15`, `NK-MS-20261024-SUPER-PLAN-TRIAD-v6.0.0-RSI`):**
+   * Lo script `scripts/nk_hook_gate.py` presidia gli hook runtime con `write-gate`, `fasttrack`, `integrity` SHA-256 e `stop-check`.
+   * Lo script `scripts/nk_transcript_tools.py` esegue `locate` senza fallback `st_mtime`, `compliance`, `evidence`, `oracle-lock` e `lint-prompt`.
+   * Il validatore `ast_guard_validator.py` espone `validate_pydantic_catalog_records()` per il Pre-Flight Schema Grounding dei modelli Pydantic v2.
+   * La suite permanente raggiunge `98/98 PASS` includendo `tests/test_super_plan_v6_triad.py` con zero regressioni sulle guardie `GT-01..GT-14`.
 
 ---
 

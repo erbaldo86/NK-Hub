@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Generatore della capsula di handoff per Nexus Keystone v3.0.0-STE100-Unified.
-Legge dinamicamente unit_tests_total da quality_baseline.json e chiude i file in modo sicuro.
+Generatore della capsula di handoff e compilatore Template 11 per Nexus Keystone v4.2.0.
+Legge dinamicamente unit_tests_total da quality_baseline.json, persiste IB-<id>.md e compila prompt 2-Tier.
 """
 
 from __future__ import annotations
@@ -13,6 +13,10 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import List, Optional
+
+os.environ["PYTHONUTF8"] = "1"
+os.environ["PYTHONIOENCODING"] = "utf-8"
 
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -31,14 +35,17 @@ _workspace_root = (
 
 
 def _discover_default_transcript() -> str:
-    """Individua il trascritto principale attivo nella cartella brain utente."""
+    """Individua il trascritto principale attivo nella cartella brain utente entro 1800s."""
     brain_dir = Path.home() / ".gemini" / "antigravity" / "brain"
     if not brain_dir.exists():
         return ""
+    now = time.time()
     candidates = []
     for p in brain_dir.glob("*/.system_generated/logs/transcript.jsonl"):
         try:
-            candidates.append((p.stat().st_mtime, str(p)))
+            mtime = p.stat().st_mtime
+            if (now - mtime) <= 1800.0:
+                candidates.append((mtime, str(p)))
         except OSError:
             pass
     if not candidates:
@@ -47,9 +54,12 @@ def _discover_default_transcript() -> str:
     return candidates[0][1]
 
 
-def _read_baseline_tests_count() -> int:
+def _read_baseline_tests_count(root_dir: Optional[Path] = None) -> int:
     """Legge il numero totale di Golden Tests da quality_baseline.json."""
+    base = root_dir or _workspace_root
     for cand in (
+        base / ".staging" / "nk_tracking" / "quality_baseline.json",
+        base / "nk_tracking" / "quality_baseline.json",
         _workspace_root / ".staging" / "nk_tracking" / "quality_baseline.json",
         _workspace_root / "nk_tracking" / "quality_baseline.json",
     ):
@@ -57,19 +67,86 @@ def _read_baseline_tests_count() -> int:
             try:
                 data = json.loads(cand.read_text(encoding="utf-8"))
                 metrics = data.get("metrics", {})
-                raw_total = metrics.get("unit_tests_total", 100)
+                raw_total = metrics.get("unit_tests_total", 87)
                 if isinstance(raw_total, dict):
-                    return int(raw_total.get("value", 100))
+                    return int(raw_total.get("value", 87))
                 return int(raw_total)
             except Exception:
                 pass
-    return 100
+    return 87
 
 
-def main() -> int:
-    """Genera i metadati di handoff e il prompt per la sessione successiva."""
+def persist_intent_brief(
+    brief_id: str,
+    prompt_text: str,
+    project_root: str = "",
+) -> Path:
+    """Salva l'Intent Brief integrale in nk_tracking/reports_and_briefs/IB-<id>.md."""
+    clean_id = (brief_id or f"IB-{time.strftime('%Y%m%d')}-AUTO").strip()
+    if not clean_id.startswith("IB-"):
+        clean_id = f"IB-{clean_id}"
+
+    target_root = _workspace_root
+    if project_root:
+        cand_root = Path(project_root)
+        if cand_root.exists() and cand_root.is_dir():
+            target_root = cand_root.resolve()
+
+    reports_dir = target_root / "nk_tracking" / "reports_and_briefs"
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    ib_file = reports_dir / f"{clean_id}.md"
+
+    effective_proj = (project_root or str(_workspace_root)).replace("\\", "/")
+    content = (
+        f"# Intent Brief Persistito: `{clean_id}`\n\n"
+        f"- **Brief ID:** `{clean_id}`\n"
+        f"- **Timestamp UTC:** `{int(time.time())}`\n"
+        f"- **Project Root:** `{effective_proj}`\n\n"
+        f"## Prompt Integrale e Vincoli Operativi\n\n"
+        f"```text\n{prompt_text.strip()}\n```\n"
+    )
+    ib_file.write_text(content, encoding="utf-8")
+    return ib_file
+
+
+def compile_template_11_prompt(
+    project_root: str = "",
+    milestone_id: str = "Auto-Saved Milestone",
+    capsule: str = "",
+) -> str:
+    """Compila un prompt strutturato conforme al Template 11 (SOVEREIGN_SWARM_TASK_PROMPT)."""
+    proj_norm = (project_root or str(_workspace_root)).replace("\\", "/")
+    return (
+        "# Turnkey Hand-off Prompt (Template 11: SOVEREIGN_SWARM_TASK_PROMPT)\n\n"
+        "Usa `/compact` o riprendi dal seguente stato salvato:\n\n"
+        f"Orchestra lo Swarm 2-Tier ([RULE-01]) sul progetto `{proj_norm}` per il Milestone `{milestone_id}`.\n\n"
+        "### PASSO 0: Bootstrap, Cleanup e Intent Brief ([RULE-00.4], [RULE-00.6], [RULE-01.3])\n"
+        "1. Esegui `python scripts/nk_session_bootstrap.py` e ferma eventuali server orfani con `python scripts/safe_cleanup_dev_servers.py`.\n"
+        "2. Leggi l'Intent Brief salvato in `nk_tracking/reports_and_briefs/IB-*.md` e `nk_genome/implementation_plan.md`.\n"
+        "3. Registra il Builder operativo con `define_subagent(EnableWriteTools=True, EnableSubagentTools=False)` prima della Fase Build.\n\n"
+        "### FASE 1: Discovery e Audit in Sola Lettura (Mode D)\n"
+        "- Delega tramite `invoke_subagent` (con blocco `<env_capsule>`) a `NK-RSI-Auditor` e `NK-Security-DAST-Auditor` la verifica dello stato reale.\n"
+        "- Per batch superiori a 8 query web, partiziona il carico su sub-agenti `research` paralleli.\n"
+        f"- Congela l'oracolo di test con `python scripts/nk_transcript_tools.py oracle-lock create --root \"{proj_norm}\"` (`[RULE-ORACLE-LOCK]`).\n"
+        "- `STOP_GATE`: presenta i gap reali misurati (`Measure-First`) tramite `ask_question` prima di iniziare le modifiche.\n\n"
+        "### FASE 2: Build Chirurgico in `.staging/` (Mode B/A)\n"
+        f"- Delega tramite `invoke_subagent` al Builder registrato (`EnableWriteTools=True`) la scrittura esclusivamente in `{proj_norm}/.staging/`.\n"
+        "- Esegui il Two-Stage Grounding (`[RULE-02.5]`) leggendo il modello Pydantic target prima di ogni modifica ai dati.\n"
+        f"- Valida il codice staged con `python scripts/ast_guard_validator.py --stage-dir \"{proj_norm}/.staging\"`.\n\n"
+        "### FASE 3: Verifica Indipendente, Commit 2PC e Scribe\n"
+        "- Delega a `NK-RSI-Auditor` la verifica indipendente dei test reali e la convergenza matematica:\n"
+        f"  `python scripts/rsi_convergence_engine.py --verify --root \"{proj_norm}\" --benchmark-suite \"{proj_norm}/tests\"`\n"
+        "- Solo su esito `PASS` reale, esegui la promozione atomica:\n"
+        f"  `python scripts/win32_2pc_engine.py --promote-staging --repo-root \"{proj_norm}\"`\n"
+        "- Delega infine a `NK-Scribe-Agent` l'aggiornamento di `PATCH_NOTES.md` (solo prepend) e `repo_map.md`.\n\n"
+        f"Capsule info: {capsule}\n"
+    )
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    """Genera i metadati di handoff e il prompt Template 11 per la sessione successiva."""
     parser = argparse.ArgumentParser(
-        description="Nexus Keystone Session Handoff Generator"
+        description="Nexus Keystone Session Handoff & Template 11 Prompt Compiler"
     )
     parser.add_argument(
         "--transcript",
@@ -84,11 +161,45 @@ def main() -> int:
         help="Directory di destinazione per gli artefatti di handoff",
     )
     parser.add_argument(
+        "--project-root",
+        required=False,
+        default=None,
+        help="Percorso radice del progetto esterno o workspace corrente",
+    )
+    parser.add_argument(
         "--generate-prompt",
         action="store_true",
-        help="Genera anche il file next_session_prompt.md",
+        help="Genera il file next_session_prompt.md conforme al Template 11",
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "--compile-task-prompt",
+        action="store_true",
+        help="Compila e valida un prompt operativo multi-fase secondo il Template 11",
+    )
+    parser.add_argument(
+        "--persist-brief-id",
+        required=False,
+        default=None,
+        help="ID dell'Intent Brief da salvare in nk_tracking/reports_and_briefs/IB-<id>.md",
+    )
+    parser.add_argument(
+        "--prompt-text",
+        required=False,
+        default="",
+        help="Testo del prompt o dell'Intent Brief da persistere",
+    )
+    args = parser.parse_args(argv)
+
+    effective_root = (
+        Path(args.project_root).resolve() if args.project_root else _workspace_root
+    )
+
+    if args.persist_brief_id:
+        persist_intent_brief(
+            brief_id=args.persist_brief_id,
+            prompt_text=args.prompt_text or "Intent Brief salvato da CLI.",
+            project_root=str(effective_root),
+        )
 
     transcript_path = args.transcript or _discover_default_transcript()
     output_dir = args.output_dir or str(_workspace_root / "nk_tracking" / "handoff")
@@ -97,7 +208,7 @@ def main() -> int:
     steps = 0
     total_chars = 0
     if transcript_path and os.path.exists(transcript_path):
-        with open(transcript_path, "r", encoding="utf-8") as f:
+        with open(transcript_path, "r", encoding="utf-8", errors="replace") as f:
             lines = f.readlines()
             steps = len(lines)
             capsule = "".join(lines[-10:])
@@ -107,6 +218,7 @@ def main() -> int:
     capsule = capsule[:3000]
 
     dirty_files = False
+    project_dirty_files = False
     stash_patch = None
     try:
         status_out = subprocess.check_output(
@@ -131,14 +243,29 @@ def main() -> int:
     except Exception:
         pass
 
-    baseline_tests = _read_baseline_tests_count()
+    if effective_root != _workspace_root and effective_root.exists():
+        try:
+            proj_status = subprocess.check_output(
+                ["git", "status", "--porcelain"],
+                cwd=str(effective_root),
+                universal_newlines=True,
+                stderr=subprocess.DEVNULL,
+            )
+            project_dirty_files = bool(proj_status.strip())
+        except Exception:
+            pass
+
+    baseline_tests = _read_baseline_tests_count(effective_root)
     metadata = {
         "steps": steps,
         "tokens": tokens,
         "dirty_files": dirty_files,
+        "project_root": str(effective_root),
+        "project_dirty_files": project_dirty_files,
         "stash_patch": stash_patch,
         "baseline_tests": baseline_tests,
         "milestone": "Auto-Saved Milestone",
+        "unverified_claims": [],
     }
 
     os.makedirs(output_dir, exist_ok=True)
@@ -146,12 +273,15 @@ def main() -> int:
     with open(latest_file, "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)
 
-    if args.generate_prompt:
+    if args.generate_prompt or args.compile_task_prompt:
         prompt_file = os.path.join(output_dir, "next_session_prompt.md")
+        compiled_prompt = compile_template_11_prompt(
+            project_root=str(effective_root),
+            milestone_id=metadata["milestone"],
+            capsule=capsule,
+        )
         with open(prompt_file, "w", encoding="utf-8") as f:
-            f.write("# Turnkey Hand-off Prompt\n\n")
-            f.write("Usa `/compact` o riprendi dal seguente stato salvato:\n\n")
-            f.write(f"Capsule info: {capsule}\n")
+            f.write(compiled_prompt)
 
     return 0
 

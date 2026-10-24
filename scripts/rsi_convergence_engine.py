@@ -135,6 +135,14 @@ class RSIDefectVector(BaseModel):
         ge=0,
         description="Drift contrattuali o topologici L2/L3 confermati",
     )
+    measured_components: List[str] = Field(
+        default_factory=list,
+        description="Componenti di verifica effettivamente misurati",
+    )
+    unmeasured_components: List[str] = Field(
+        default_factory=list,
+        description="Componenti non misurati nella sessione corrente",
+    )
 
     def effective_totals(self) -> Tuple[int, int]:
         """Restituisce la coppia (tests_passed, tests_total) normalizzata."""
@@ -419,6 +427,35 @@ def _is_excluded_rel_path(path: Path, base_root: Path) -> bool:
     except ValueError:
         rel_parts = path.parts
     return any(part in EXCLUDED_SCAN_DIRS for part in rel_parts)
+
+
+def _extract_sast_report_count(sast_report_path: Optional[Path | str]) -> int:
+    """Estrae il conteggio di violazioni SAST critiche da un report JSON esterno."""
+    if not sast_report_path:
+        return 0
+    rpath = Path(sast_report_path)
+    if not rpath.exists() or not rpath.is_file():
+        return 0
+    try:
+        data = json.loads(rpath.read_text(encoding="utf-8", errors="replace"))
+        if isinstance(data, dict):
+            for key in (
+                "sast_critical",
+                "sast_violations_count",
+                "critical_count",
+                "total_sast_violations",
+            ):
+                if key in data and isinstance(data[key], int):
+                    return max(0, int(data[key]))
+            metrics = data.get("metrics")
+            if isinstance(metrics, dict) and "sast_violations_count" in metrics:
+                return max(0, int(metrics["sast_violations_count"]))
+            violations = data.get("violations")
+            if isinstance(violations, list):
+                return len(violations)
+    except Exception:
+        pass
+    return 0
 
 
 class RSIConvergenceEngine:
@@ -920,17 +957,36 @@ class RSIConvergenceEngine:
             "invalid_flags": invalid_flags,
         }
 
+    def evaluate_stage_directory(
+        self,
+        stage_dir: Optional[Path | str] = None,
+        profile: str = "code_rsi",
+        sast_report: Optional[Path | str] = None,
+    ) -> Dict[str, Any]:
+        """Valuta i file in .staging/ rilevando SAST via ASTGuardValidator e caratteri U+FFFD."""
+        target = (
+            Path(stage_dir).resolve()
+            if stage_dir is not None
+            else (self.workspace_root / ".staging").resolve()
+        )
+        return self.run_vibe_check(
+            target_path=target,
+            profile=profile,
+            sast_report=sast_report,
+        )
+
     def run_vibe_check(
         self,
         target_path: Path | str,
         profile: str = "vibe_sprint_micro_rsi",
+        sast_report: Optional[Path | str] = None,
     ) -> Dict[str, Any]:
         """Esegue il micro-loop Vibe Check in-memory in meno di 500 ms (EXT-05)."""
         t0 = time.perf_counter()
         target = Path(target_path).resolve()
         active_profile = RSIProfileRegistry.get(profile).name
         violations: List[str] = []
-        sast_count = 0
+        sast_count = _extract_sast_report_count(sast_report)
         contract_count = 0
         drift_count = 0
 
@@ -963,7 +1019,7 @@ class RSIConvergenceEngine:
                     p
                     for p in s_root.rglob("*")
                     if p.is_file()
-                    and p.suffix in (".py", ".md")
+                    and p.suffix in (".py", ".md", ".json")
                     and not any(
                         part in vibe_excluded for part in p.relative_to(s_root).parts
                     )
@@ -975,7 +1031,7 @@ class RSIConvergenceEngine:
                     p
                     for p in target.rglob("*")
                     if p.is_file()
-                    and p.suffix in (".py", ".md")
+                    and p.suffix in (".py", ".md", ".json")
                     and not any(
                         part in vibe_excluded for part in p.relative_to(target).parts
                     )
@@ -989,6 +1045,12 @@ class RSIConvergenceEngine:
                 contract_count += 1
                 violations.append(f"{fpath.name}: Errore lettura file ({exc})")
                 continue
+
+            if "\ufffd" in text:
+                contract_count += 1
+                violations.append(
+                    f"{fpath.name}: Rilevato carattere di sostituzione U+FFFD vietato."
+                )
 
             if fpath.suffix == ".py":
                 if ASTGuardValidator is not None:
@@ -1013,6 +1075,12 @@ class RSIConvergenceEngine:
                     drift_count += ste["violations_count"]
                     for sv in ste["violations"][:3]:
                         violations.append(f"{fpath.name}: {sv}")
+            elif fpath.suffix == ".json":
+                try:
+                    json.loads(text)
+                except Exception as exc:
+                    contract_count += 1
+                    violations.append(f"{fpath.name}: JSON invalido ({exc})")
 
         defects = RSIDefectVector(
             sast_critical=sast_count,
@@ -1021,6 +1089,8 @@ class RSIConvergenceEngine:
             tests_total=100,
             contract_violations=contract_count,
             doc_drift=drift_count,
+            measured_components=["sast_ast_guard", "mojibake_utf8", "ste100_markdown"],
+            unmeasured_components=["benchmark_suite"],
         )
         d_k = compute_delta(defects, profile=active_profile)
         q_k = compute_fitness(defects, delta_k=d_k, profile=active_profile)
@@ -1035,6 +1105,8 @@ class RSIConvergenceEngine:
             "delta_0": d_k,
             "delta_k": d_k,
             "fitness_q": q_k,
+            "measured_components": defects.measured_components,
+            "unmeasured_components": defects.unmeasured_components,
             "elapsed_ms": elapsed_ms,
             "violations": violations,
         }
@@ -1106,12 +1178,89 @@ class RSIConvergenceEngine:
                 "details": f"Errore esecuzione benchmark suite: {exc}",
             }
 
+    def _scan_sast_and_mojibake(
+        self,
+        root: Path,
+        sast_report: Optional[Path | str] = None,
+    ) -> Dict[str, Any]:
+        """Scansiona i file .py, .md e .json del target per violazioni SAST e caratteri U+FFFD."""
+        sast_count = _extract_sast_report_count(sast_report)
+        sast_issues: List[str] = []
+        mojibake_files: List[str] = []
+        invalid_json_files: List[str] = []
+
+        is_hub_root = root.resolve() == _workspace_root.resolve()
+        if is_hub_root:
+            scan_roots = [
+                root / d
+                for d in ("scripts", ".agents", "nk_genome")
+                if (root / d).exists()
+            ]
+            candidate_files: List[Path] = [
+                p
+                for p in root.iterdir()
+                if p.is_file() and p.suffix in (".py", ".md", ".json")
+            ]
+            for s_root in scan_roots:
+                candidate_files.extend(
+                    p
+                    for p in s_root.rglob("*")
+                    if p.is_file()
+                    and p.suffix in (".py", ".md", ".json")
+                    and not _is_excluded_rel_path(p, root)
+                )
+        else:
+            candidate_files = [
+                p
+                for p in root.rglob("*")
+                if p.is_file()
+                and p.suffix in (".py", ".md", ".json")
+                and not _is_excluded_rel_path(p, root)
+            ]
+
+        for fpath in sorted(list(dict.fromkeys(candidate_files))):
+            try:
+                text = fpath.read_text(encoding="utf-8", errors="replace")
+            except Exception:
+                continue
+
+            if "\ufffd" in text:
+                mojibake_files.append(fpath.name)
+
+            if fpath.suffix == ".json":
+                try:
+                    json.loads(text)
+                except Exception as exc:
+                    invalid_json_files.append(f"{fpath.name}: {exc}")
+            elif fpath.suffix == ".py" and not fpath.name.startswith("test_"):
+                if ASTGuardValidator is not None:
+                    v_list = ASTGuardValidator.check_sast_constructs(text)
+                    if v_list:
+                        sast_count += len(v_list)
+                        for v in v_list[:3]:
+                            sast_issues.append(f"{fpath.name}: {v.message}")
+
+        return {
+            "passed": sast_count == 0
+            and len(mojibake_files) == 0
+            and len(invalid_json_files) == 0,
+            "sast_critical": sast_count,
+            "sast_issues": sast_issues,
+            "mojibake_count": len(mojibake_files),
+            "mojibake_files": mojibake_files,
+            "invalid_json_count": len(invalid_json_files),
+            "invalid_json_files": invalid_json_files,
+        }
+
     def verify_ecosystem(
         self,
         root_dir: Optional[Path] = None,
         run_pytest: bool = False,
         profile: str = "code_rsi",
         benchmark_suite: Optional[str] = None,
+        sast_report: Optional[Path | str] = None,
+        strict_verify: bool = False,
+        persist_telemetry: bool = False,
     ) -> Dict[str, Any]:
         """Esegue la verifica completa Guardia G6 sull'ecosistema o directory target."""
         if isinstance(root_dir, bool):
@@ -1124,6 +1273,13 @@ class RSIConvergenceEngine:
         canonical_profile = RSIProfileRegistry.get(profile).name
         violations: List[str] = []
         checks: Dict[str, Any] = {}
+        measured_components: List[str] = [
+            "skills_and_markdown",
+            "cli_flags_cove",
+            "telemetry_chain",
+            "sast_and_mojibake",
+        ]
+        unmeasured_components: List[str] = []
 
         # 1. Verifica integrita AGENTS.md e budget di byte
         agents_md = self._resolve_candidate(root, ".agents/AGENTS.md")
@@ -1132,6 +1288,7 @@ class RSIConvergenceEngine:
         )
 
         if agents_md.exists():
+            measured_components.insert(0, "agents_md")
             agents_bytes = agents_md.stat().st_size
             crash_bytes = (
                 anti_crash_md.stat().st_size if anti_crash_md.exists() else 0
@@ -1252,41 +1409,96 @@ class RSIConvergenceEngine:
             "details": chain_msg,
         }
 
-        # 5. Esegue eventuale suite di benchmark funzionale o pytest se richiesto
+        # 5. Verifica SAST e caratteri U+FFFD (SP-WS3)
+        sast_mojibake = self._scan_sast_and_mojibake(root, sast_report=sast_report)
+        checks["sast_and_mojibake"] = sast_mojibake
+        if sast_mojibake["sast_issues"]:
+            violations.extend(sast_mojibake["sast_issues"])
+        if sast_mojibake["mojibake_files"]:
+            violations.extend(
+                f"{fname}: rilevato carattere di sostituzione U+FFFD vietato."
+                for fname in sast_mojibake["mojibake_files"]
+            )
+        if sast_mojibake["invalid_json_files"]:
+            violations.extend(
+                f"JSON invalido: {jerr}"
+                for jerr in sast_mojibake["invalid_json_files"]
+            )
+
+        # 6. Esegue eventuale suite di benchmark funzionale o pytest se richiesto
         bench_failed = 0
         bench_passed = 100
         bench_total = 100
-        if benchmark_suite or should_run_pytest:
-            target_suite = benchmark_suite if benchmark_suite else str(root / "tests")
+        auto_tests_dir = root / "tests"
+        has_auto_tests = auto_tests_dir.exists() and any(
+            auto_tests_dir.rglob("test_*.py")
+        )
+        if benchmark_suite or should_run_pytest or (strict_verify and has_auto_tests):
+            target_suite = benchmark_suite if benchmark_suite else str(auto_tests_dir)
             bench_res = self.run_benchmark_suite(target_suite, root_dir=root)
             checks["benchmark_suite"] = bench_res
+            measured_components.append("benchmark_suite")
             bench_failed = int(bench_res["tests_failed"])
             bench_passed = int(bench_res["tests_passed"])
             bench_total = int(bench_res["tests_total"])
             if not bench_res["passed"]:
                 violations.append(bench_res["details"])
+        else:
+            unmeasured_components.append("benchmark_suite")
+            if strict_verify:
+                violations.append(
+                    f"Nessuna suite di test misurata in modalita --strict-verify per '{root}'."
+                )
 
         defects = RSIDefectVector(
+            sast_critical=int(sast_mojibake["sast_critical"]),
             tests_failed=bench_failed,
             tests_passed=bench_passed,
             tests_total=bench_total,
             contract_violations=len(broken_links)
             + len(cove_res["invalid_flags"])
+            + int(sast_mojibake["mojibake_count"])
+            + int(sast_mojibake["invalid_json_count"])
             + (0 if chain_ok else 1),
             doc_drift=len(ste100_issues),
+            measured_components=measured_components,
+            unmeasured_components=unmeasured_components,
         )
         delta_k = self.compute_delta(defects, profile=canonical_profile)
         fitness_q = self.compute_fitness(
             defects, delta_k=delta_k, profile=canonical_profile
         )
-        passed = len(violations) == 0 and delta_k == 0
+
+        if strict_verify and "benchmark_suite" in unmeasured_components:
+            status_str = "UNMEASURED"
+            passed = False
+        else:
+            passed = len(violations) == 0 and delta_k == 0
+            status_str = "CONVERGED_OPTIMAL" if passed else "REFINING"
+
+        if persist_telemetry:
+            rec = RSIIterationRecord(
+                session_id=f"VERIFY-{int(time.time())}",
+                iteration=0,
+                mode="mode_a",
+                defects=defects,
+                delta_k=delta_k,
+                fitness_q=fitness_q,
+                state_hash=hashlib.sha256(str(root).encode("utf-8")).hexdigest(),
+                verdict=status_str,
+                rolled_back=False,
+            )
+            self.append_telemetry_record(rec)
 
         return {
-            "status": "CONVERGED_OPTIMAL" if passed else "REFINING",
+            "status": status_str,
             "passed": passed,
+            "scope": str(root),
             "profile": canonical_profile,
             "delta_k": delta_k,
             "fitness_q": fitness_q,
+            "measured_components": measured_components,
+            "unmeasured_components": unmeasured_components,
             "checks": checks,
             "violations": violations,
         }
@@ -1302,6 +1514,22 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "--verify",
         action="store_true",
         help="Esegue la verifica completa Guardia G6 sull'ecosistema",
+    )
+    parser.add_argument(
+        "--strict-verify",
+        action="store_true",
+        help="Richiede una suite di test misurata e restituisce UNMEASURED se assente",
+    )
+    parser.add_argument(
+        "--sast-report",
+        type=str,
+        default=None,
+        help="Percorso opzionale a un report JSON SAST da integrare in Delta_k",
+    )
+    parser.add_argument(
+        "--persist-telemetry",
+        action="store_true",
+        help="Salva il record di verifica in nk_tracking/rsi_telemetry.jsonl",
     )
     parser.add_argument(
         "--vibe-check",
@@ -1356,7 +1584,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             vibe_target = str(agents_cand)
         else:
             vibe_target = args.vibe_check
-        vibe_res = engine.run_vibe_check(vibe_target, profile=vibe_profile)
+        vibe_res = engine.run_vibe_check(
+            vibe_target,
+            profile=vibe_profile,
+            sast_report=args.sast_report,
+        )
         if args.json:
             print(json.dumps(vibe_res, indent=2))
         else:
@@ -1373,16 +1605,21 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         run_pytest=False,
         profile=args.profile,
         benchmark_suite=args.benchmark_suite,
+        sast_report=args.sast_report,
+        strict_verify=bool(args.strict_verify),
+        persist_telemetry=bool(args.persist_telemetry),
     )
-    if args.json or not args.verify:
+    if args.json or (not args.verify and not args.strict_verify):
         print(json.dumps(res, indent=2))
     else:
         sym = "🟢" if res["passed"] else "🔴"
         print(
-            f"{sym} [RSI-VERIFY] Stato: {res['status']} | Profilo: {res['profile']} | Delta: {res['delta_k']} | Q: {res['fitness_q']}"
+            f"{sym} [RSI-VERIFY] Stato: {res['status']} | SCOPE: {root_path} | Profilo: {res['profile']} | Delta: {res['delta_k']} | Q: {res['fitness_q']}"
         )
         for v in res["violations"]:
             print(f"  - {v}")
+    if res["status"] == "UNMEASURED":
+        return 2
     return 0 if res["passed"] else 1
 
 

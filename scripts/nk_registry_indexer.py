@@ -491,6 +491,13 @@ _INDEXER_SKILL_RULES: Tuple[Tuple[str, str, str, str, Tuple[str, ...]], ...] = (
     ),
 )
 
+TETRALOGY_FILENAMES: Tuple[str, ...] = (
+    "concept_map.md",
+    "structural_tree.md",
+    "implementation_plan.md",
+    "repo_map.md",
+)
+
 
 class NKRegistryIndexer:
     """Indicizzatore deterministico O(1) per skill, script, sub-agenti nativi e domini di Nexus Keystone."""
@@ -510,6 +517,7 @@ class NKRegistryIndexer:
             if workspace_root is not None
             else _DEFAULT_WORKSPACE_ROOT
         )
+        self._explicit_stage_dir = stage_dir is not None
         if stage_dir is not None:
             s_path = Path(stage_dir)
             self.stage_dir = (
@@ -537,6 +545,51 @@ class NKRegistryIndexer:
     _HASH_CACHE: Dict[Tuple[str, int, int], str] = {}
     _META_CACHE: Dict[Tuple[str, int, int], Dict[str, Any]] = {}
     _MANIFEST_CACHE: Dict[Tuple[str, int, int], Dict[str, Any]] = {}
+
+    def resolve_genome_dir(
+        self, root: Optional[Path] = None
+    ) -> Tuple[Path, bool]:
+        """Risolve la cartella genome preferendo nk_genome/ rispetto al fallback legacy genome/."""
+        base = Path(root).resolve() if root is not None else self.workspace_root
+        preferred = base / "nk_genome"
+        legacy = base / "genome"
+        if preferred.exists() and preferred.is_dir():
+            return preferred, False
+        if legacy.exists() and legacy.is_dir():
+            return legacy, True
+        return preferred, False
+
+    def resolve_tetralogy_files(
+        self, root: Optional[Path] = None
+    ) -> Dict[str, Any]:
+        """Risolve i quattro documenti della Tetralogia supportando nk_genome/ e genome/ legacy."""
+        base = Path(root).resolve() if root is not None else self.workspace_root
+        genome_dir, is_legacy = self.resolve_genome_dir(base)
+        files_map: Dict[str, Optional[str]] = {}
+        missing: List[str] = []
+        for fname in TETRALOGY_FILENAMES:
+            cand_pref = base / "nk_genome" / fname
+            cand_leg = base / "genome" / fname
+            if cand_pref.exists():
+                files_map[fname] = str(cand_pref)
+            elif cand_leg.exists():
+                files_map[fname] = str(cand_leg)
+                is_legacy = True
+            else:
+                files_map[fname] = None
+                missing.append(fname)
+        warning_msg = (
+            f"Rilevata cartella legacy genome/ in '{base}'; migra verso nk_genome/."
+            if is_legacy
+            else None
+        )
+        return {
+            "genome_dir": str(genome_dir),
+            "is_legacy_genome": is_legacy,
+            "warning": warning_msg,
+            "files": files_map,
+            "missing_files": missing,
+        }
 
     @staticmethod
     def _compute_sha256(file_path: Path) -> str:
@@ -1387,50 +1440,96 @@ class NKRegistryIndexer:
         )
         return "\n".join(lines)
 
-    def sync(self) -> Dict[str, Any]:
-        """Genera nk_registry_manifest.json e SKILL_INDEX.md nella directory di staging."""
+    def sync(self, sync_staging: bool = False) -> Dict[str, Any]:
+        """Genera nk_registry_manifest.json e SKILL_INDEX.md preservando la pulizia di .staging/."""
         t0 = time.perf_counter()
         manifest = self.build_manifest()
+        root_genome, is_legacy = self.resolve_genome_dir(self.workspace_root)
+        root_manifest_path = root_genome / "nk_registry_manifest.json"
+
+        # Preserva generated_at se il manifesto su disco e semanticamente identico
+        if root_manifest_path.exists():
+            try:
+                existing_data = json.loads(
+                    root_manifest_path.read_text(encoding="utf-8")
+                )
+                if isinstance(existing_data, dict):
+                    curr_cmp = {
+                        k: v for k, v in manifest.items() if k != "generated_at"
+                    }
+                    exist_cmp = {
+                        k: v for k, v in existing_data.items() if k != "generated_at"
+                    }
+                    if curr_cmp == exist_cmp and "generated_at" in existing_data:
+                        manifest["generated_at"] = existing_data["generated_at"]
+            except Exception:
+                pass
+
         md_content = self.render_skill_index_markdown(manifest)
-
-        target_genome_dir = self.stage_dir / "nk_genome"
-        target_genome_dir.mkdir(parents=True, exist_ok=True)
-
-        manifest_path = target_genome_dir / "nk_registry_manifest.json"
-        skill_index_path = target_genome_dir / "SKILL_INDEX.md"
-
         manifest_json = json.dumps(manifest, indent=2, ensure_ascii=False) + "\n"
-        manifest_path.write_text(manifest_json, encoding="utf-8")
-        skill_index_path.write_text(md_content, encoding="utf-8")
-        NKRegistryIndexer._MANIFEST_CACHE.pop(str(manifest_path), None)
-        NKRegistryIndexer._MANIFEST_CACHE.clear()
 
-        if self.workspace_root != _DEFAULT_WORKSPACE_ROOT:
-            root_genome = self.workspace_root / "nk_genome"
+        default_prod_staging = (_DEFAULT_WORKSPACE_ROOT / ".staging").resolve()
+        is_prod_staging = self.stage_dir.resolve() == default_prod_staging
+        write_to_staging = bool(sync_staging) or (
+            self._explicit_stage_dir and not is_prod_staging
+        )
+
+        primary_manifest_path = root_manifest_path
+        primary_skill_index_path = root_genome / "SKILL_INDEX.md"
+
+        if write_to_staging:
+            target_genome_dir = self.stage_dir / "nk_genome"
+            target_genome_dir.mkdir(parents=True, exist_ok=True)
+            stg_manifest_path = target_genome_dir / "nk_registry_manifest.json"
+            stg_skill_index_path = target_genome_dir / "SKILL_INDEX.md"
+            stg_manifest_path.write_text(manifest_json, encoding="utf-8")
+            stg_skill_index_path.write_text(md_content, encoding="utf-8")
+            primary_manifest_path = stg_manifest_path
+            primary_skill_index_path = stg_skill_index_path
+
+        if self.workspace_root != _DEFAULT_WORKSPACE_ROOT or not write_to_staging:
             root_genome.mkdir(parents=True, exist_ok=True)
-            root_manifest_path = root_genome / "nk_registry_manifest.json"
-            root_manifest_path.write_text(
-                manifest_json, encoding="utf-8"
-            )
-            (root_genome / "SKILL_INDEX.md").write_text(md_content, encoding="utf-8")
-            NKRegistryIndexer._MANIFEST_CACHE.pop(str(root_manifest_path), None)
+            if (
+                not root_manifest_path.exists()
+                or root_manifest_path.read_text(encoding="utf-8", errors="replace")
+                != manifest_json
+            ):
+                root_manifest_path.write_text(manifest_json, encoding="utf-8")
+            root_skill_idx = root_genome / "SKILL_INDEX.md"
+            if (
+                not root_skill_idx.exists()
+                or root_skill_idx.read_text(encoding="utf-8", errors="replace")
+                != md_content
+            ):
+                root_skill_idx.write_text(md_content, encoding="utf-8")
 
+        NKRegistryIndexer._MANIFEST_CACHE.clear()
+        tetralogy_info = self.resolve_tetralogy_files(self.workspace_root)
         elapsed_ms = round((time.perf_counter() - t0) * 1000.0, 2)
         return {
             "status": "SYNCED",
             "passed": True,
-            "manifest_path": str(manifest_path),
-            "skill_index_path": str(skill_index_path),
+            "sync_staging": bool(write_to_staging),
+            "manifest_path": str(primary_manifest_path),
+            "skill_index_path": str(primary_skill_index_path),
+            "genome_dir": str(root_genome),
+            "is_legacy_genome": is_legacy,
+            "legacy_warning": tetralogy_info["warning"],
             "summary": manifest["summary"],
             "global_hygiene_profile": manifest["global_hygiene_profile"],
             "elapsed_ms": elapsed_ms,
         }
 
+    def sync_registry(self, sync_staging: bool = False) -> Dict[str, Any]:
+        """Alias esplicito di sync con controllo del flag sync_staging."""
+        return self.sync(sync_staging=sync_staging)
+
     def load_manifest(self) -> Optional[Dict[str, Any]]:
-        """Carica nk_registry_manifest.json dando priorita a .staging/nk_genome/."""
+        """Carica nk_registry_manifest.json supportando staging, nk_genome/ e genome/ legacy."""
         candidates = (
             self.stage_dir / "nk_genome" / "nk_registry_manifest.json",
             self.workspace_root / "nk_genome" / "nk_registry_manifest.json",
+            self.workspace_root / "genome" / "nk_registry_manifest.json",
         )
         for cand in candidates:
             if cand.exists() and cand.is_file():
@@ -1451,10 +1550,14 @@ class NKRegistryIndexer:
         """Verifica gli hash SHA-256 su disco e le guardie GT-14 e RULE-01 in meno di 30 ms."""
         t0 = time.perf_counter()
         manifest = self.load_manifest()
+        tetralogy_info = self.resolve_tetralogy_files(self.workspace_root)
         if manifest is None:
             return {
                 "status": "MISSING_MANIFEST",
                 "passed": False,
+                "genome_dir": tetralogy_info["genome_dir"],
+                "is_legacy_genome": tetralogy_info["is_legacy_genome"],
+                "legacy_warning": tetralogy_info["warning"],
                 "issues": ["nk_registry_manifest.json non trovato in staging o root."],
                 "elapsed_ms": round((time.perf_counter() - t0) * 1000.0, 2),
             }
@@ -1566,9 +1669,16 @@ class NKRegistryIndexer:
                 )
 
         passed = len(issues) == 0
+        warnings: List[str] = []
+        if tetralogy_info["warning"]:
+            warnings.append(str(tetralogy_info["warning"]))
         return {
             "status": "VALID" if passed else "DRIFT_DETECTED",
             "passed": passed,
+            "genome_dir": tetralogy_info["genome_dir"],
+            "is_legacy_genome": tetralogy_info["is_legacy_genome"],
+            "legacy_warning": tetralogy_info["warning"],
+            "warnings": warnings,
             "total_domains": len(domains),
             "total_skills": len(manifest_skills),
             "total_scripts": len(manifest_scripts),
@@ -1861,7 +1971,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument(
         "--sync",
         action="store_true",
-        help="Genera nk_registry_manifest.json e SKILL_INDEX.md in staging",
+        help="Genera nk_registry_manifest.json e SKILL_INDEX.md",
+    )
+    parser.add_argument(
+        "--sync-staging",
+        action="store_true",
+        help="Sincronizza esplicitamente nk_registry_manifest.json anche in .staging/nk_genome/",
     )
     parser.add_argument(
         "--verify",
@@ -1904,7 +2019,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     if args.apply_global_filter:
         flt = indexer.apply_global_filter()
-        res = indexer.sync()
+        res = indexer.sync(sync_staging=bool(args.sync_staging))
         res["global_filter"] = flt
         if args.json:
             print(json.dumps(res, indent=2, ensure_ascii=False))
@@ -1917,8 +2032,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             )
         return 0
 
-    if args.sync:
-        res = indexer.sync()
+    if args.sync or args.sync_staging:
+        res = indexer.sync(sync_staging=bool(args.sync_staging))
         if args.json:
             print(json.dumps(res, indent=2, ensure_ascii=False))
         else:
@@ -1957,7 +2072,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             )
         return 0 if res["found"] else 1
 
-    res = indexer.sync()
+    res = indexer.sync(sync_staging=False)
     print(json.dumps(res, indent=2, ensure_ascii=False))
     return 0
 

@@ -2,8 +2,8 @@
 name: NK-RSI-Auditor
 description: Sub-Agente Critic ed Evaluator in sola lettura per i 6 Gate, convergenza RSI, registro O(1) e DAG di Kahn (v3.0.0-STE100-Unified).
 nk_tas_audit: "CRV-4.0-Universal"
-patch_version: 4
-nk_tas_date: "2026-10-18"
+patch_version: 5
+nk_tas_date: "2026-10-24"
 domain_id: "DOM-04"
 enable_write_tools: false
 enable_subagent_tools: false
@@ -21,6 +21,7 @@ enable_mcp_tools: false
 # NK-RSI-Auditor (Critic Swarm, Oracle Evaluator 6-Gate e Verificatore O(1))
 
 Sei **NK-RSI-Auditor**, il sub-agente di verifica deterministica in sola lettura del dominio `DOM-04` (`[RULE-RSI]`).
+Il tuo profilo nativo risiede in `.agents/agents/NK-RSI-Auditor/agent.md`.
 
 ## Procedura Operativa Sequenziale
 

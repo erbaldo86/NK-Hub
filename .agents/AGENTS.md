@@ -31,7 +31,13 @@
 * Il Livello 0 genera lo Specchio Concettuale, il Meta-Prompt e l'Intent Brief (`IB-*` con `R1..Rn`).
 * Prima dell'esecuzione, l'agente richiede conferma rapida 1-Click tramite `ask_question` (`Conferma`, `Solo risposta diretta`, `Modifica intento`).
 * Il gate applica le 5 esenzioni anti-loop (`ok`, `[0]..[14]`, `Proceed`, `<env_capsule>`, `!diretto`).
+* Il comando `!diretto` salta solo la conferma `ask_question` del Gate L0 (`L0_GATE_ONLY`).
+* Anche con `!diretto` restano obbligatori la classificazione del Mode, lo staging e la topologia 2-Tier.
 * L'utente disattiva o riattiva il gate con `"disattiva prompt gate"`, `"attiva prompt gate"` o `"!diretto"`.
+
+### [RULE-00.7] OUTBOUND_TASK_PROMPT_COMPILATION_MANDATE
+* Ogni prompt operativo generato da un agente NK segue obbligatoriamente il `Template 11`.
+* L'agente valida il prompt generato con `scripts/nk_transcript_tools.py lint-prompt` prima della consegna all'utente.
 
 ### [RULE-00] ZERO_UNAUTHORIZED_FILE_MODIFICATION_MANDATE
 * Nessun agente modifica i file di produzione (`.agents/AGENTS.md`, `scripts/*`) senza autorizzazione dell'utente.
@@ -69,6 +75,7 @@
 
 ### [RULE-01] UNIVERSAL_DDI_MANDATE (Topologia 2-Tier Hub-and-Spoke)
 * L'Agente Principale registra i worker con `define_subagent(enable_subagent_tools=False)` per imporre un singolo livello.
+* Per i Builder, l'orchestratore registra il worker con `define_subagent(EnableWriteTools=True, EnableSubagentTools=False)`.
 * I 5 Sub-Agenti Nativi in `.agents/agents/` sono: `NK-Specifier-Agent`, `NK-Builder-Agent`, `NK-Security-DAST-Auditor`, `NK-RSI-Auditor` e `NK-Scribe-Agent`.
 * In `Mode C` (`<= 150` LOC), il Fast-Bypass consente l'esecuzione diretta in `.staging/` con `--vibe-check`.
 * Per scrivere codice, l'Agente Principale delega il lavoro a un Builder in `.staging/`.
@@ -77,6 +84,18 @@
 * Nessun agente esegue one-liner `python -c` multi-riga su PowerShell. L'agente salva ed esegue gli script diagnostici in `scratch/` o `%TEMP%\nk_diagnostics\`.
 * Ogni prompt di delega ai sub-agenti include obbligatoriamente il blocco `<env_capsule>`.
 * Il blocco `<env_capsule>` impone `python -m pytest` ed esclude `view_file` alla cieca o `python -c` complessi.
+
+### [RULE-EVIDENCE] VERIFIED_EXECUTION_EVIDENCE_MANDATE
+* Ogni certificazione `PASS` o `CONVERGED_OPTIMAL` richiede un comando reale con `exit code 0` nello stesso turno.
+* Qualsiasi esito `pass:false` osservato blocca la certificazione fino a una nuova verifica positiva reale.
+
+### [RULE-DATA-PROVENANCE] EMPIRICAL_DATA_PROVENANCE_MANDATE
+* Ogni record di dominio aggiunto o modificato richiede `source_url` reale ed `evidence_quote` estratta dalla fonte.
+* Nessun agente inventa date di scadenza o inserisce record sintetici per superare i benchmark.
+
+### [RULE-ORACLE-LOCK] IMMUTABLE_ORACLE_LOCK_MANDATE
+* Prima della fase Build, l'Auditor congela gli hash SHA-256 dei test in `nk_tracking/oracle_lock.json`.
+* Nessun Builder modifica la ground truth o i test congelati per forzare il superamento.
 
 ### [RULE-SWARM-HYGIENE] / [RULE-08] / [RULE-08.2] SWARM_MESSAGE_HYGIENE_MANDATE
 * Nessun sub-agente invia messaggi `send_message` di ritorno superiori a `1.800` caratteri netti (`2.000` MTU).
@@ -159,7 +178,7 @@
 * Tutti i prompt interni usano percorsi assoluti con slash standard e zero comandi slash non supportati.
 
 ### [RULE-02.8] CONTEXT_COMPACTION_AND_HANDOFF_MANDATE
-* Alla soglia di guardia (`70` step standard o `150` step argon), l'agente raccomanda `/compact` ed esegue `scripts/nk_session_handoff.py`.
+* Alla soglia di guardia (`70` step standard, `150` step argon o `200.000` token reali), l'agente raccomanda `/compact` ed esegue `scripts/nk_session_handoff.py`.
 
 ### [RULE-03] AUTO_BRIEF_SWARM_FSM_A_5_TURNI
 * I 5 turni sono: Turno 1 (Draft Synthesis), Turno 2 (Attack Swarm), Turno 3 (Refine Architecture), Turno 4 (1:1 Plan Alignment) e Turno 5 (Final Handoff).

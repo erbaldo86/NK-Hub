@@ -1,4 +1,4 @@
-# Lab NK Hub: Sistema Operativo Agentico Sovrano (`v4.1.0-Super-Meta-Prompt-Gate` / `v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified`)
+# Lab NK Hub: Sistema Operativo Agentico Sovrano (`v4.3.0-Super-Plan-Triad-RSI` / `v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified`)
 
 > 🌍 **Scegli la Lingua / Choose Your Language:** **[🇮🇹 Italiano (Attuale)](README.it.md)** | **[🇬🇧 Read in English (README.md)](README.md)** | **[📦 Guida Installazione Rapida](GUIDA_INSTALLAZIONE.md)**
 
@@ -489,7 +489,7 @@ PS G:\Il mio Drive\Antigravity> python -u -m pytest tests/ -q
 | 23 | `tests/test_nk_ecosystem_stress_opt5.py` | 8 | `OPT-1..OPT-12`, Bootstrap `< 50 ms`, `Mode D` e Stress a 16 Thread | 100.0% PASS |
 | 24 | `tests/test_nk_registry_indexer.py` | 6 | Indice O(1), Verify SHA-256, Lookup, Hot-Swap Zero-Touch e Filtro 61 Skill | 100.0% PASS |
 | 25 | `tests/test_phase2_3tier_stress_suite.py` | 12 | **L1** (`native_agents_index`, `GT-14`, `RULE-01`, `PIDFileLock`, DAG di Kahn, 2PC), **L2** (`5/5` Routing Nativi, Rollback `G2/G3/G4`), **L3** (Red-Team SAST, STE100, SLA `< 15 ms`) | 100.0% PASS |
-| **Totale** | **25 File di Test Permanenti** | **90** | **Copertura Ortogonale 100% dei Moduli Core, Gate L0, 5 Sub-Agenti Nativi e 16 Playbook (Zero-Mock)** | **90/90 PASS** |
+| **Totale** | **26 File di Test Permanenti (`+ test_super_plan_v6_triad.py`)** | **98** | **Copertura Ortogonale 100% dei Moduli Core, Gate L0, 5 Sub-Agenti Nativi e 16 Playbook (Zero-Mock)** | **98/98 PASS** |
 
 ---
 *Generato da NK-Scribe-Agent | Nexus Keystone Hub (`v4.1.0-Super-Meta-Prompt-Gate` / `v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified`)*

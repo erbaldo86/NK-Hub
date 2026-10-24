@@ -1,8 +1,8 @@
-# NK Genome: Implementation Plan (`v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified`)
+# NK Genome: Implementation Plan (`v4.3.0-Super-Plan-Triad-RSI` / `v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified`)
 
 > **Badge di Certificazione:** 🛡️ `[NK-BRIEF-STATUS: AUDITED_AND_CONVERGED 🟢]` | `[RSI-CONVERGENCE: CONVERGED_OPTIMAL (Δ=0, Q=100.0) 🟢]`  
-> **Milestone Anchor ID:** `NK-MS-20261018-COLD-TRIAL-v4.0.0-RSI`  
-> **Versione Target:** `v4.0.0-Native-Swarm-Playbooks` (`v3.0.0-STE100-Unified` Compatible)  
+> **Milestone Anchor ID:** `NK-MS-20261024-SUPER-PLAN-TRIAD-v6.0.0-RSI`  
+> **Versione Target:** `v4.3.0-Super-Plan-Triad-RSI` (`v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified` Compatible)  
 > **Standard Linguistico:** ASD-STE100 Italiano Tecnico (`[RULE-STE100]`, frasi `<= 20` parole)  
 > **Modalità Esecutiva:** Protocollo CRV 4.0 in `.staging/` con promozione atomica Win32 2PC (`[RULE-00]`)
 
@@ -10,9 +10,9 @@
 
 ## 1. Sintesi di Convergenza RSI ($\Delta_k = 0$, $Q(S_k) = 100.0$)
 
-Questo piano esecutivo coordina l'evoluzione di Nexus Keystone fino alla release **`v4.0.0-Native-Swarm-Playbooks`**.
+Questo piano esecutivo coordina l'evoluzione di Nexus Keystone fino alla release **`v4.3.0-Super-Plan-Triad-RSI`**.
 Il piano integra l'architettura **Tensor-RSI 2D**, i `5` Sub-Agenti Nativi e i `16` Playbook Procedurali.
-Tutte le modifiche preservano il `100%` di successo sugli `86` Golden e Stress Tests certificati.
+Tutte le modifiche preservano il `100%` di successo sui `98` Golden e Stress Tests certificati.
 
 * **Iterazione 1 ($k=1$):** Verifica empirica sul codice reale e sintesi preliminare ($\Delta_1 = 17$, $Q(S_1) = 83.8095$).
 * **Iterazione 2 ($k=2$):** Audit avversariale di `NK-RSI-Auditor` su link, guardie `GT-01..GT-14` e soglia `20` parole.
@@ -132,3 +132,22 @@ Ogni Builder deve rispettare le `14` guardie seguenti per mantenere il `100%` di
 3. **Separazione Contrattuale e Tracciabilità `R1..Rn` (`NK-Session-Controller`, `NK-Plan-Aligner`, `prompt_templates.md`):** Separa il **Livello 0 (Meta-Prompt e Intent Brief `IB-*`)** dal **Livello 1-4 (`implementation_plan.md` tecnico)**. Includi nel Template `0` i requisiti `R1..Rn`, `Correzioni vocali recepite (X -> Y)`, `Fuori ambito` e `Ambiguità`. Verifica in `NK-Plan-Aligner` la copertura `100%` degli ID `R1..Rn` e propaga `<intent_brief>` con `intent_hash_sha256` in `<env_capsule>`.
 4. **Motore Morfologico STT e Contratto IPC (`vibe_sprint_router.py`, `nk_ipc_contracts.py`):** Aggiungi `MetaPromptGateContract` (`strict=True, extra="forbid"`), `build_meta_prompt_envelope()` e i flag `--meta-prompt-gate` / `--no-gate`. Ripara il matching word-boundary, separa i sostantivi in `-zione`/`-mento` dai verbi imperativi e dividi i token CamelCase fusi (`primaLa`).
 5. **Apprendimento Lessicale `DEVX`, Calibrazione L3 e Golden Tests (`NK-Episodic-Memory-Engine`, `tests/`):** Indicizza le correzioni vocali ricorrenti dell'utente nel dominio `DEVX` e monitora la metrica First-Pass Acceptance (`>= 80%`). Valida `WP13` con test Zero-Mock su `test_vibe_sprint_router.py` e `test_schemas_and_contracts.py` fino a $\Delta_k = 0$ e $Q(S_k) = 100.0$.
+
+### WP14: Hardening Post-Audit Forense `Bandi` (`NK-MS-20261022-BANDI-FORENSIC-HARDENING-v4.2.0-RSI`)
+0. **Forgia Prompt NK-Native e Mounting Tool Sub-Agenti (`nk_session_handoff.py`, `prompt_templates.md`, `vibe_sprint_router.py`, `AGENTS.md`):** Aggiungi il `Template 11 (NK_NATIVE_SWARM_TASK_PROMPT)` e il flag `--compile-task-prompt` in `nk_session_handoff.py`. Vieta nei prompt generati dall'IA la fusione di ruoli incompatibili, i verbi imperativi monolitici e l'uso di `[0]..[14] !diretto` su task multi-fase. Registra i worker operativi con `define_subagent(EnableWriteTools=True)` per garantire la disponibilità di `write_file`, `edit_file` e `run_command` (assenti in `4e222282`).
+1. **Confinamento Scope `!diretto` e Guardrail Anti-Monolito (`vibe_sprint_router.py`, `AGENTS.md`, `NK-Session-Controller`):** Limita l'esenzione `!diretto` al solo Passo 0 (`bypass_scope: "L0_GATE_ONLY"`). Mantieni obbligatori `[RULE-00]` (`.staging/` e 2PC) e `[RULE-01]` (`max_direct_tools: 12` e delega sub-agenti). Imposta `fast_bypass_eligible = False` quando `files` è vuoto o supera `150` LOC.
+2. **Enforcer Staging e Ricevuta 2PC sui Progetti Esterni (`win32_2pc_engine.py`, `nk_compliance_checker.py`):** Imponi che ogni modifica a `G:/Il mio Drive/NK_External_Projects/<Nome>/` transiti in `.staging/` prima del commit 2PC. Penalizza in `nk_compliance_checker.py` gli script CLI che sovrascrivono snapshot o manifesti fuori da `.staging/`.
+3. **Riparazione Context Sentry Cross-Sessione e UTF-8 Gate (`nk_session_bootstrap.py`, `nk_context_sentry.py`):** Attiva `STATE_CACHE_TTL_SECONDS` e ordina `_find_recent_transcript` per `transcript.jsonl` `st_mtime` anziché per directory `st_mtime`. Sostituisci `_fast_tail_estimate` con conteggio esatto chunked ed esporta `PYTHONUTF8=1` e `PYTHONIOENCODING=utf-8` all'avvio.
+4. **Potenziamento Motore Tensor-RSI Multi-Root e Zero-Mojibake (`rsi_convergence_engine.py`):** Richiedi `--root` esplicito sui progetti esterni, esegui i test reali in `--verify` e persisti sempre `rsi_telemetry.jsonl`. Rileva i caratteri `\ufffd` (`U+FFFD`) nei file `.py`, `.json` e `.md` incrementando `contract_violations`.
+5. **Pre-Flight Schema Grounding e Two-Stage Gate (`ast_guard_validator.py`, `NK-Python-Async-Builder`):** Vieta la generazione di script di migrazione dati senza lettura preventiva del modello Pydantic target (`[RULE-02.5]`). Aggiungi un validatore JSON-to-Pydantic in `.staging/` prima dell'esecuzione dei batch su catalogo.
+6. **Delega Parallela Web Search e Gestione Daemon Uvicorn (`NK-Ideator`, `safe_cleanup_dev_servers.py`):** Partiziona i batch `> 10` query Web/Tavily su sub-agenti `research` paralleli per evitare il blocco `output.txt`. Esegui `safe_cleanup_dev_servers.py` prima di ogni avvio Uvicorn e usa `IsDaemon=true` sui server persistenti.
+7. **Guardia Anti-Overfitting Dati e Chiusura Loop Browser E2E (`NK-Oracle-Evaluator`, `NK-Dynamic-Sandbox-StressTester`):** Vieta l'iniezione di record sintetici multi-regione cuciti sulle query di test e i boost lessicali nominali. Rendi bloccanti nel Gate 5 tutti gli errori console e di accessibilità DOM (`<input>` senza `<label>`) rilevati via `chrome-devtools-mcp`.
+
+### WP15: Super Implementation Plan v6.0-Unified-Triad-RSI (`NK-MS-20261024-SUPER-PLAN-TRIAD-v6.0.0-RSI`)
+1. **Runtime Hook Gate (`scripts/nk_hook_gate.py`, `.agents/hooks.json`):** Crea il gate stdlib con sottocomandi `probe`, `write-gate`, `fasttrack`, `integrity` e `stop-check` mantenendo il dual-schema in `hooks.json`.
+2. **Strumenti Forensi e Linter Prompt (`scripts/nk_transcript_tools.py`):** Implementa `locate` senza fallback `st_mtime`, `compliance`, `evidence`, `oracle-lock` SHA-256 e `lint-prompt` (`AP-1..AP-7` più `AP-2b`).
+3. **Riparazione Bootstrap e Sentinelle (`nk_session_bootstrap.py`, `nk_context_sentry.py`, `nk_active_runtime_sentinel.py`):** Filtra per `workspace_root`, conta solo i turni `USER_EXPLICIT` o `PLANNER_RESPONSE` ed elimina il falso `RED (523 steps)`.
+4. **Hardening Router, 2PC e Baseline (`vibe_sprint_router.py`, `win32_2pc_engine.py`, `quality_baseline_manager.py`):** Confina `!diretto` a `L0_GATE_ONLY`, accetta target esterni in `--promote-staging` e gestisce `--root` su `quality_baseline.json`.
+5. **Pre-Flight Schema Grounding e Compliance (`ast_guard_validator.py`, `nk_compliance_checker.py`, `rsi_convergence_engine.py`):** Aggiunge `validate_pydantic_catalog_records()`, `--output-json`, la metrica `external_unstage_writes` e il controllo `oracle_lock.json` in `--verify`.
+6. **Allineamento Costituzionale e Suite a 98 Test (`.agents/AGENTS.md`, `SKILL.md`, `tests/test_super_plan_v6_triad.py`):** Aggiunge `[RULE-00.7]`, `[RULE-EVIDENCE]`, `[RULE-DATA-PROVENANCE]` e `[RULE-ORACLE-LOCK]` certificando `98/98 PASS` con $\Delta_k = 0$.
+
