@@ -1,14 +1,14 @@
-# NK Genome: Structural Tree Master (`v4.3.0-Super-Plan-Triad-RSI` / `v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified`)
+# NK Genome: Structural Tree Master (`v4.4.0-STE100-Unified` / `v4.3.0-Super-Plan-Triad-RSI` / `v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified`)
 
 > **Badge di Certificazione:** 🛡️ [NK-BRIEF-STATUS: AUDITED_AND_OPTIMIZED 🟢] | [RSI-CONVERGENCE: CONVERGED_OPTIMAL (Δ=0, Q=100.0) 🟢]  
-> **Milestone Anchor ID:** `NK-MS-20261024-SUPER-PLAN-TRIAD-v6.0.0-RSI` (`NK-MS-20261018-COLD-TRIAL-v4.0.0-RSI`)  
-> **Versione Target:** `v4.3.0-Super-Plan-Triad-RSI` (`v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified` Compatible)  
+> **Milestone Anchor ID:** `NK-MS-20261024-TRIAD-EPISTEMIC-v4.4.0-RSI` (`NK-MS-20261018-COLD-TRIAL-v4.0.0-RSI`)  
+> **Versione Target:** `v4.4.0-STE100-Unified` (`v4.3.0-Super-Plan-Triad-RSI` / `v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified` Compatible)  
 > **Standard Linguistico:** ASD-STE100 Italiano Tecnico (`[RULE-STE100]`)  
 > **Stato Produzione:** 100% Sola Lettura (`[RULE-00]`)
 
 ---
 
-## 1. Albero Strutturale Canonico del Repository `NK-Hub` (`v4.3.0-Super-Plan-Triad-RSI`)
+## 1. Albero Strutturale Canonico del Repository `NK-Hub` (`v4.4.0-STE100-Unified`)
 
 L'albero seguente rappresenta la struttura release bonificata di `NK-Hub`. Le cartelle di progetti esterni risiedono in `G:/Il mio Drive/NK_External_Projects/` (`BS-03`). La cartella duplicata `nk_tracking/episodic_memory/`, i file `.bak_*` e i report `v1.9..v3.5` sono stati rimossi. I `5` Sub-Agenti Nativi e i `16` Playbook con `16` file ausiliari sono indicizzati in `nk_genome/nk_registry_manifest.json`.
 
@@ -153,7 +153,7 @@ G:/Il mio Drive/Antigravity/
 │       ├── __init__.py                              # [34] Esportazione Schemi
 │       ├── dual_ledgers.py                          # [35] TaskLedger e ProgressLedger (fix ctypes 64-bit e ERROR_ACCESS_DENIED U-25)
 │       └── nk_ipc_contracts.py                      # [36] Contratti IPC Strict (IPCPointerReturn, GoalFailureManifest, RSISessionReport)
-├── tests/                                           # Suite Consolidata Zero-Mock v4.3.0 (98 Golden e Stress Tests, 100.0% PASS)
+├── tests/                                           # Suite Consolidata Zero-Mock v4.4.0 (108 Golden e Stress Tests in 33 file, 100.0% PASS)
 │   ├── __init__.py
 │   ├── conftest.py                                  # Fixtures Pytest aggiornate a v4.0.0
 │   ├── evals/
@@ -177,7 +177,7 @@ G:/Il mio Drive/Antigravity/
 │   ├── test_external_scaffolder.py                  # [Validazione isolamento progetti esterni]
 │   ├── test_platform_runner.py                      # [Validazione sottoprocessi UTF-8 e tree-kill]
 │   ├── test_deterministic_api_cache.py              # [Validazione SQLite WAL persistente]
-│   ├── test_safe_cleanup_dev_servers.py             # [Validazione pulizia dev server per CWD]
+│   ├── test_safe_cleanup_dev_servers.py             # [Validazione pulizia dev server per CWD e --ports]
 │   ├── test_env_capability_probe.py                 # [Protetto da GT-09]
 │   ├── test_vibe_sprint_router.py                   # [Validazione Mode A/B/C/D e AST depth]
 │   ├── test_oracle_l3_and_hud.py                    # [Validazione DOM L3 void tag, nodi misti e HUD]
@@ -185,10 +185,11 @@ G:/Il mio Drive/Antigravity/
 │   ├── test_nk_registry_indexer.py                  # [Validazione Indice Modulare O(1) e Filtro 61 Skill]
 │   ├── test_phase2_3tier_stress_suite.py            # [Stress suite a 3 livelli L1/L2/L3 per i 5 Sub-Agenti Nativi]
 │   ├── test_super_plan_v6_triad.py                  # [Validazione Super Plan v6.0: nk_hook_gate, nk_transcript_tools, lint-prompt]
+│   ├── test_triad_epistemic_governance_v44.py       # [Validazione v4.4.0: Anti-Goodhart 100x, SAST-GAMING-D01..04, report-conflict, AP-8/9]
 │   └── stress/
 │       ├── __init__.py
 │       └── test_real_sandbox_stress.py              # [Protetto da GT-01 e GT-03]
-├── README.md                                        # Documentazione Master EN (allineata a v4.3.0 e 98 Golden e Stress Tests)
+├── README.md                                        # Documentazione Master EN (allineata a v4.4.0 e 108 Golden e Stress Tests)
 ├── README.it.md                                     # Documentazione Master IT (allineata 1:1 a README.md in ASD-STE100)
 ├── PATCH_NOTES.md                                   # Mirror Root del Changelog SSOT
 ├── GUIDA_INSTALLAZIONE.md                           # Guida Setup aggiornata a v3.0.0-STE100-Unified
@@ -206,11 +207,11 @@ G:/Il mio Drive/Antigravity/
 
 | # | Modulo Core (`scripts/`) | Intervento Chirurgico in `v3.4.0` (`v3.1.0-Tensor-RSI`) | Guardia di Compatibilità | File di Test (`tests/`) |
 | :---: | :--- | :--- | :---: | :--- |
-| 1 | `ast_guard_validator.py` | Aggiunge `self.function_depth` (`U-20`), `--stage-dir`, `--allowed-mutations` e `SASTConstructChecker`. | Nessuna | `test_ast_guard_validator.py` |
+| 1 | `ast_guard_validator.py` | Aggiunge `self.function_depth` (`U-20`), `--stage-dir`, `--allowed-mutations` e `SASTConstructChecker`. Blocca `PYTEST_CURRENT_TEST`, `currentframe` e `f_globals` (`WP16`). | Nessuna | `test_ast_guard_validator.py` |
 | 2 | `ast_repo_mapper.py` | Salva e ricarica `edges` in `%TEMP%\nk_diagnostics\repo_map_cache.json`. Risolve archi cross-modulo e ordina PageRank per modulo (`U-21`). Esclude progetti esterni. | **`GT-06`** (`0/256/512/1024`) | `test_ast_repo_mapper.py` |
 | 3 | `async_heartbeat_signaler.py` | Rimuove `self.last_beat_time = now` dal ramo `else:` di `_run_loop()` (`U-22`). Mappa i nomi dei thread in `dump_diagnostics()`. | Nessuna | `test_rsi_convergence_engine.py` |
 | 4 | `auto_heal_pipeline.py` | Evita snapshot inutili dopo l'ultimo tentativo fallito. Integra il calcolo RSI in `AutoHealSessionReport`. | Nessuna | `test_auto_heal_pipeline.py` |
-| 5 | `dast_sandbox_runner.py` | Dichiara `argtypes`/`restype` a 64-bit su `kernel32` (`U-24`). Controlla `INVALID_HANDLE_VALUE` e preserva `command[2:]`. Aggiunge CLI `__main__`. | Nessuna | `test_dast_sandbox.py` |
+| 5 | `dast_sandbox_runner.py` | Dichiara `argtypes`/`restype` a 64-bit su `kernel32` (`U-24`). Controlla `INVALID_HANDLE_VALUE` e preserva `command[2:]`. Copia `data/` e `benchmark_empirico_v7/` (`WP16`). | Nessuna | `test_dast_sandbox.py` |
 | 6 | `deterministic_api_cache.py` | Usa una connessione SQLite WAL persistente per istanza ed elimina `_get_connection()` morto (`BS-05`). | Nessuna | `test_deterministic_api_cache.py` |
 | 7 | `env_capability_probe.py` | Chiama `reconfigure_streams()` e separa `core_hub_modules` da `optional_app_modules` (`BS-04`, `U-56`). | **`GT-09`** (`total_probed`) | `test_env_capability_probe.py` |
 | 8 | `external_project_scaffolder.py` | Rifiuta qualsiasi `target_dir` interno a `NK-Hub` (`BS-03`). Crea la Tetralogia `nk_genome/` nel progetto esterno. | Nessuna | `test_external_scaffolder.py` |
@@ -222,14 +223,14 @@ G:/Il mio Drive/Antigravity/
 | 14 | `nk_auto_inning.py` | Passa `["--transcript", args.transcript, "--json"]` a `nk_compliance_checker.py` e legge il vero `composite_score` (`U-14`). | Nessuna | `test_active_sentinel_suite.py` |
 | 15 | `nk_compliance_checker.py` | Filtra i sub-agenti in `find_active_transcript()`. Esclude `brain/`, `scratch/`, `nk_genome/`, `nk_tracking/`, `%TEMP%` da `code_write_calls`. | **`GT-03`**, **`GT-08`**, **`GT-10`** | `test_super_brief_upgrades.py` + `stress` |
 | 16 | `nk_context_sentry.py` | Esclude `len(thinking)` in profilo `argon` (`150/250` step). Penalizza `send_message > 2000` solo sui ritorni dai sub-agenti (`U-02`). | **`GT-01`**, **`GT-04`** | `test_context_sentry.py` + `stress` |
-| 17 | `nk_session_bootstrap.py` | Pulisce `.wal/*.wal`, controlla `src/` su cache hit (`< 50 ms`), imposta `NK_MODEL_PROFILE=argon`, `PYTHONUTF8=1` e corregge il conteggio step (`WP14`). | Nessuna | `test_unified_onboarding_mandate.py` |
+| 17 | `nk_session_bootstrap.py` | Pulisce `.wal/*.wal`, controlla `src/` su cache hit (`< 50 ms`) e imposta `NK_MODEL_PROFILE=argon` (`WP14`). Supporta `--project-root` sui progetti esterni (`WP16`). | Nessuna | `test_unified_onboarding_mandate.py` |
 | 18 | `nk_session_handoff.py` | Legge `unit_tests_total` da `quality_baseline.json` (`68` Golden Tests) e usa context manager UTF-8 (`U-49`). | Nessuna | `test_active_sentinel_suite.py` |
 | 19 | `nk_swarm_messenger.py` | Mantiene il taglio a `1.800` char (MSS), include `sender`/`recipient` e chiama `reconfigure_streams()`. | **`GT-04`** (`< 1800` char) | `test_active_sentinel_suite.py` |
 | 20 | `oracle_evaluator_l3.py` | Ignora i void tag HTML5 nello stack DOM, gestisce nodi misti e corregge lo split `:` sui path Windows (`U-27`). | Nessuna | `test_oracle_l3_and_hud.py` |
 | 21 | `platform_runner.py` | Inietta il flag `-u` anche quando il comando Python è passato come stringa (`BS-04`). | Nessuna | `test_platform_runner.py` |
 | 22 | `preflight_health_check.py` | Restituisce `FAIL` (`exit 1`) se restano errori dopo `auto_fix=True` (`BS-01`). Aggiunge `--check-only` e valida `session_anchor.jsonl`. | Nessuna | `test_preflight_health_check.py` |
 | 23 | `quality_baseline_manager.py` | Fallisce in modo sicuro su JSON corrotto senza sovrascrivere il file (`BS-02`). Allinea il Ratchet a `68` Golden Tests (`v3.4.0`). | **`GT-13`** | `test_quality_baseline_manager.py` |
-| 24 | `rsi_convergence_engine.py` | Calcola $\Delta_k$ e $Q(S_k)$ includendo `poc_confirmed_exploits` e `semantic_drift_findings`, applica `G1..G6` e `--verify`. | **`GT-11`**, **`GT-12`** | `test_rsi_convergence_engine.py` |
+| 24 | `rsi_convergence_engine.py` | Calcola $\Delta_k$ e $Q(S_k)$ includendo `poc_confirmed_exploits` e `semantic_drift_findings`, applica `G1..G6` e `--verify`. Deduplica `PATCH_NOTES.md` (`WP16`). | **`GT-11`**, **`GT-12`** | `test_rsi_convergence_engine.py` |
 | 25 | `safe_cleanup_dev_servers.py` | Usa `psutil.net_connections()` e termina solo processi dev con `cwd()` o `cmdline()` nel workspace target (`U-13`). | Nessuna | `test_safe_cleanup_dev_servers.py` |
 | 26 | `sbfl_engine.py` | Mantiene `OchiaiDiagnosticPayload.estimate_token_count() < 80` e aggiunge l'interfaccia CLI `__main__`. | Nessuna | `test_sbfl_engine.py` |
 | 27 | `sbfl_pytest_bridge.py` | Collega `sbfl_engine.py`, supporta spazi nei path Windows e garantisce `loc.suspiciousness == 1.0` (`U-19`). | **`GT-07`** (`< 320` char) | `test_auto_heal_pipeline.py` |
@@ -237,7 +238,7 @@ G:/Il mio Drive/Antigravity/
 | 29 | `win32_2pc_engine.py` | Dichiara `argtypes`/`restype` a 64-bit su `CreateMutexW`/`MoveFileExW`, usa `MOVEFILE_COPY_ALLOWED`, verifica `age > 10s` in `recover()`. | Nessuna | `test_win32_2pc.py` |
 | 30 | `schemas/dual_ledgers.py` + `nk_ipc_contracts.py` | Dichiara `c_void_p` su `OpenProcess`/`CloseHandle`, aggiunge `RSISessionReport` e `MetaPromptGateContract` con `R1..Rn` e SHA-256 (`WP13`). | Nessuna | `test_schemas_and_contracts.py` |
 | 31 | `nk_hook_gate.py` | Implementa il gate runtime stdlib con `probe`, `write-gate`, `fasttrack`, `integrity` e `stop-check` (`WP15`). | Nessuna | `test_super_plan_v6_triad.py` |
-| 32 | `nk_transcript_tools.py` | Implementa `locate`, `compliance`, `evidence`, `oracle-lock` SHA-256 e `lint-prompt` contro `AP-1..AP-7` (`WP15`). | Nessuna | `test_super_plan_v6_triad.py` |
+| 32 | `nk_transcript_tools.py` | Implementa `locate`, `compliance`, `evidence`, `oracle-lock` SHA-256 e `lint-prompt` (`WP15`). Onora `--conversation-id` e rileva `AP-8`/`AP-9` (`WP16`). | Nessuna | `test_super_plan_v6_triad.py` |
 
 ---
 

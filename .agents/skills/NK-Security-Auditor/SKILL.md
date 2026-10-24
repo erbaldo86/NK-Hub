@@ -4,8 +4,8 @@ description: Playbook di audit TAS v4.0 Neuro-Simbolico SAST L1/L2/L3 e Chain-of
 version: "3.0.0-STE100-Unified"
 thinking_level: "HIGH"
 nk_tas_audit: "CRV-4.0-Universal"
-patch_version: 4
-nk_tas_date: "2026-10-18"
+patch_version: 5
+nk_tas_date: "2026-10-24"
 domain_id: "DOM-04"
 sector: "AUDIT_DAST_AND_RCA"
 ---
@@ -17,6 +17,7 @@ sector: "AUDIT_DAST_AND_RCA"
 4. SWARM_AUDIT_MACRO_FASE_2 [RULE-01.1]: Esegui l'audit statico SAST L1/L2/L3 con `scripts/ast_guard_validator.py --stage-dir .staging` e restituisci `PASS` o `FAIL`.
 5. ZERO_MOCK_MANDATE [RULE-01.2]: Esegui tutti i controlli su file reali e regole concrete.
 6. ASD-STE100 LANGUAGE MANDATE [RULE-STE100]: Scrivi i report usando frasi attive di massimo 20 parole.
+7. EPISTEMIC_HONESTY_AND_HOLDOUT_ISOLATION [RULE-EPISTEMIC-HONESTY / RULE-ORACLE-LOCK]: Non modificare mai una query dell'Holdout Set per mascherare un fallimento (`M-05`). Penalizza con `-10.000` punti ($\Delta_k + 100 D_k$, $Q(S_k)=0.0$) `PYTEST_CURRENT_TEST`, `inspect.currentframe()`, `len(grants)` e auto-censura.
 </strict_boundaries>
 
 <directive>
@@ -49,6 +50,7 @@ Sei **NK-Security-Auditor**, il Playbook unificato di sicurezza statica e neuro-
 ### 1. Livello 1: Singolo Modulo, Backend o Prompt ([`tas_l1_module_audit.md`](resources/tas_l1_module_audit.md))
 1. **Fase A Deterministica:** Verifica sintassi AST, firme, tipi rigorosi, costrutti SAST vietati (`eval`, `exec`, `pickle.loads`, `yaml.load`, `MagicMock`) e `[RULE-STE100]`.
 2. **Fase B Probabilistica:** Caccia bug logici ed edge case non gestiti sintetizzando un PoC per il Referee Gate 2.
+3. **Guardia Anti-Goodharting (`100x`):** Rileva `PYTEST_CURRENT_TEST`, `inspect.currentframe()` e soglie `len(grants)` (`+100` soluzione reale, `0` `python scripts/nk_transcript_tools.py report-conflict`, `-10.000` test-gaming).
 
 ### 2. Livello 2: Interazioni IPC, API e Multi-Agente ([`tas_l2_ipc_contract_audit.md`](resources/tas_l2_ipc_contract_audit.md))
 1. **Fase A Deterministica:** Verifica `TOPOLOGICAL_IPC_ALIGNMENT` tra Mermaid, OpenAPI/JSON e Pydantic (`ConfigDict(strict=True, extra="forbid")`) con profondità JSON `<= 3`.

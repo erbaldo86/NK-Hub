@@ -1,7 +1,7 @@
 {
   "version": "3.5.1-MODULAR-INDEX-RSI2",
   "milestone_anchor_id": "NK-MS-20261017-MODULAR-INDEX-v3.5.1-RSI2",
-  "generated_at": "2026-10-24T01:44:25Z",
+  "generated_at": "2026-10-24T13:21:46Z",
   "summary": {
     "total_domains": 5,
     "total_skills": 16,
@@ -336,9 +336,9 @@
       "auxiliary_links": [
         "resources/delta_brief_template.md"
       ],
-      "loc": 80,
-      "bytes": 5193,
-      "sha256": "6f5f86e44ef08aca730768d87cbe43b512d9c2a8a92e089b726ce2064e24dd7c",
+      "loc": 82,
+      "bytes": 5762,
+      "sha256": "a00369255fc0c1770292509f34108808dd7f233134aec2ff8b271ceb26ef6314",
       "path": ".agents/skills/NK-Delta-Architect/SKILL.md",
       "source_layer": "production"
     },
@@ -429,9 +429,9 @@
         "send_message"
       ],
       "auxiliary_links": [],
-      "loc": 176,
-      "bytes": 9469,
-      "sha256": "26459e2e3557037df811730520c62f866c50d9627be850bd669e30b4f917a7ac",
+      "loc": 181,
+      "bytes": 10382,
+      "sha256": "8baa09bd3c1b29a8b7fe46f8d64204086330f3e1d519a31cd51e92d48f6cf8ab",
       "path": ".agents/skills/NK-Master-Hub/SKILL.md",
       "source_layer": "production"
     },
@@ -453,9 +453,9 @@
         "references/anti_pattern_guards.md",
         "references/verification_oracles.md"
       ],
-      "loc": 58,
-      "bytes": 3860,
-      "sha256": "414c99318d80614e519d863f30e27dc310c3adeb3fd94f5e6d2b67cd6ecb08b1",
+      "loc": 61,
+      "bytes": 4458,
+      "sha256": "331d7c04293484c886cc0799573522611375b3689fdad1f4f30824c83b2fc98b",
       "path": ".agents/skills/NK-Oracle-Evaluator/SKILL.md",
       "source_layer": "production"
     },
@@ -498,9 +498,9 @@
         "send_message"
       ],
       "auxiliary_links": [],
-      "loc": 58,
-      "bytes": 4309,
-      "sha256": "19f1fbcce2b4d0663f916a1a6e9d2cc74716fac707eeffbbe360f862a953e9e0",
+      "loc": 60,
+      "bytes": 4878,
+      "sha256": "3c644404293e87e240219a9e89c95e6a2cd16b4e73626b19a0c2a785e114c1fb",
       "path": ".agents/skills/NK-Python-Async-Builder/SKILL.md",
       "source_layer": "production"
     },
@@ -550,9 +550,9 @@
         "resources/tas_l2_ipc_contract_audit.md",
         "resources/tas_l3_fullstack_system_audit.md"
       ],
-      "loc": 68,
-      "bytes": 5011,
-      "sha256": "acaec8019278bf658eb61e228423b5574c86322563593537eb530ab8721e24ea",
+      "loc": 70,
+      "bytes": 5560,
+      "sha256": "6a6573e10b87e3044ebf7876bc7c55a95fd0567b02e662322f529c5fea4aa2cb",
       "path": ".agents/skills/NK-Security-Auditor/SKILL.md",
       "source_layer": "production"
     },
@@ -579,11 +579,11 @@
         "resources/prompt_templates.md",
         "resources/saturation_thresholds.yaml"
       ],
-      "loc": 98,
-      "bytes": 8413,
-      "sha256": "6547bc2b2f93f191890210911d51dd2989adbaa921f234c9d6ba76d8171e8d18",
+      "loc": 100,
+      "bytes": 9532,
+      "sha256": "8a6536ed519ed56ddb6e4a3397b74c4ed72a3e46d5b372d71ecddad2eb9f6945",
       "path": ".agents/skills/NK-Session-Controller/SKILL.md",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "NK-State-Router": {
       "name": "NK-State-Router",
@@ -620,11 +620,11 @@
         "--stage-dir",
         "--target"
       ],
-      "loc": 1268,
-      "bytes": 51017,
-      "sha256": "3ee4169d580346296a1550458346eafe583d972d4f15afe2c0d45d9cfb50c2e2",
+      "loc": 1523,
+      "bytes": 61573,
+      "sha256": "c9e5067e5d4398a2f600728cb3eb96521b5666ae62eea8924af8341bfbba108b",
       "path": "scripts/ast_guard_validator.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "ast_repo_mapper.py": {
       "name": "ast_repo_mapper.py",
@@ -697,11 +697,11 @@
         "--staging-dir",
         "--timeout"
       ],
-      "loc": 1012,
-      "bytes": 34821,
-      "sha256": "187bed22fdc36d515aaa1b10c0231230545320f352d0803f7fbc4a4509bb04d8",
+      "loc": 1131,
+      "bytes": 39409,
+      "sha256": "e41a8cf95b7d2c84f05fe6bdc6d533bef3a9560c28482ab6c1a707a24613ced4",
       "path": "scripts/dast_sandbox_runner.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "deterministic_api_cache.py": {
       "name": "deterministic_api_cache.py",
@@ -753,7 +753,7 @@
       "bytes": 11606,
       "sha256": "4401d22cacd225984c5027ac67f46fa286bb56348366a535869988719b4bd30a",
       "path": "scripts/external_project_scaffolder.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "healing_snapshot_rollback.py": {
       "name": "healing_snapshot_rollback.py",
@@ -882,7 +882,7 @@
       "bytes": 23688,
       "sha256": "6133d94ca10e8dd647644c312d37a966d005d260debe679d5bb2afcb24b1f90b",
       "path": "scripts/nk_compliance_checker.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "nk_context_sentry.py": {
       "name": "nk_context_sentry.py",
@@ -900,7 +900,7 @@
       "bytes": 17411,
       "sha256": "acadbad7c32578cb67430edfcaa7ff8d4f79cca5107b42b1d5821e4601ccfc84",
       "path": "scripts/nk_context_sentry.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "nk_hook_gate.py": {
       "name": "nk_hook_gate.py",
@@ -918,11 +918,11 @@
         "--strict-external",
         "--target"
       ],
-      "loc": 311,
-      "bytes": 12445,
-      "sha256": "52ba790c903e47bdb6040d5cc685eb8bcda3365f49a759edbf8223137a3a862a",
+      "loc": 313,
+      "bytes": 12481,
+      "sha256": "afb1a058563d4c0d439a664dd68b8d4854d5ddcd1c3904b2a313f83185664e4f",
       "path": "scripts/nk_hook_gate.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "nk_registry_indexer.py": {
       "name": "nk_registry_indexer.py",
@@ -943,7 +943,7 @@
       "bytes": 79915,
       "sha256": "01300f881969a9aefc0c7043a871d396cce0dc486e79b70c4d3277001c858923",
       "path": "scripts/nk_registry_indexer.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "nk_session_bootstrap.py": {
       "name": "nk_session_bootstrap.py",
@@ -958,11 +958,11 @@
         "--project-root",
         "--transcript"
       ],
-      "loc": 840,
-      "bytes": 33574,
-      "sha256": "a36be0174e458933ffe834c4f9f5415d5c3e2f469281f1197c783cb2df671d1d",
+      "loc": 882,
+      "bytes": 35192,
+      "sha256": "f972f65515871a9858375c3fc1d122a83fc70cd9f7853ce5f08689a851f0de6a",
       "path": "scripts/nk_session_bootstrap.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "nk_session_handoff.py": {
       "name": "nk_session_handoff.py",
@@ -978,11 +978,11 @@
         "--prompt-text",
         "--transcript"
       ],
-      "loc": 290,
-      "bytes": 11406,
-      "sha256": "8806c9c90cdc916b703193d145fdf4668487b26a9971e699e84c4af815573767",
+      "loc": 337,
+      "bytes": 13477,
+      "sha256": "b23002123d3180615bce26d3414c763fb074b20739bb2efa46a97c2bea1d182a",
       "path": "scripts/nk_session_handoff.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "nk_swarm_messenger.py": {
       "name": "nk_swarm_messenger.py",
@@ -1012,15 +1012,20 @@
         "--file",
         "--lock-file",
         "--message",
+        "--output",
+        "--reason",
+        "--root",
         "--target",
+        "--test-a",
+        "--test-b",
         "--text",
         "--transcript"
       ],
-      "loc": 300,
-      "bytes": 15041,
-      "sha256": "a907f56bed8de16a705a7b214f7bf0c9362a69bc16cf5c81fccce1de3962760c",
+      "loc": 471,
+      "bytes": 21470,
+      "sha256": "4bba62d76b45f9dd52a98986c505ac38e28cf310471fda26c58f5dc6d897dab9",
       "path": "scripts/nk_transcript_tools.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "oracle_evaluator_l3.py": {
       "name": "oracle_evaluator_l3.py",
@@ -1106,11 +1111,11 @@
         "--verify",
         "--vibe-check"
       ],
-      "loc": 1627,
-      "bytes": 63403,
-      "sha256": "cde2e50a9876335ea046108dd34bbda4569d0fe0a91bc39bd7fe3fb760764219",
+      "loc": 1693,
+      "bytes": 66526,
+      "sha256": "e7cff1df89a78859907155755498dc0f79e7a089dab592ac7b7da8cce6784cd0",
       "path": "scripts/rsi_convergence_engine.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "safe_cleanup_dev_servers.py": {
       "name": "safe_cleanup_dev_servers.py",
@@ -1120,11 +1125,12 @@
       "cli_flags": [
         "--dry-run",
         "--json",
+        "--ports",
         "--workspace-root"
       ],
-      "loc": 247,
-      "bytes": 7524,
-      "sha256": "aed1388e3fda68586f3dd7022356ea511a46324858602346a207454cca64b9b0",
+      "loc": 334,
+      "bytes": 10561,
+      "sha256": "b37cc2dc0f981fadc69f6099cf8d98012c94427ff706926aafdb171bb7d5cad6",
       "path": "scripts/safe_cleanup_dev_servers.py",
       "source_layer": "production"
     },
@@ -1204,11 +1210,11 @@
         "--test",
         "--validate-generated-prompt"
       ],
-      "loc": 1765,
-      "bytes": 61379,
-      "sha256": "fb73b155f7e0d299eaf6e0d904d8c1a1b94fabc4e46ed791ceac2d8e65beffeb",
+      "loc": 1820,
+      "bytes": 64083,
+      "sha256": "b21fa8a7da94610934ba07838070fd01ecc0145c4a8ac0e28724af62a4378510",
       "path": "scripts/vibe_sprint_router.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "win32_2pc_engine.py": {
       "name": "win32_2pc_engine.py",
@@ -1224,11 +1230,11 @@
         "--staging-dir",
         "--verify-baseline"
       ],
-      "loc": 1075,
-      "bytes": 37605,
-      "sha256": "5647a36c2752cc7379fff4be1ef73a8e46a65d76ef31860939dd817fc3f9d4c2",
+      "loc": 1168,
+      "bytes": 41395,
+      "sha256": "1566671505b58a5c19b67fe9310e647bca6ae1fdfa1bf1f8b9ed4b0eb9e95c1b",
       "path": "scripts/win32_2pc_engine.py",
-      "source_layer": "staging"
+      "source_layer": "production"
     }
   },
   "native_agents_index": {
@@ -1240,11 +1246,11 @@
       "enable_write_tools": true,
       "enable_subagent_tools": false,
       "enable_mcp_tools": false,
-      "loc": 34,
-      "bytes": 2285,
-      "sha256": "0a87832a24cdb3e640ec5203d838279e3fc96fb51f82413dd3e1739be849c091",
+      "loc": 37,
+      "bytes": 2934,
+      "sha256": "c7f0c21d58871a49d4f36c920dc7c1c01db11de9b1a7e6c002ba00c6f41cff0f",
       "path": ".agents/agents/NK-Builder-Agent/agent.md",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "NK-RSI-Auditor": {
       "name": "NK-RSI-Auditor",
@@ -1254,11 +1260,11 @@
       "enable_write_tools": false,
       "enable_subagent_tools": false,
       "enable_mcp_tools": false,
-      "loc": 34,
-      "bytes": 2135,
-      "sha256": "22cd2a7b4285cf345867d9f5cbbe07aa3c544c16a6b3b126c12a1429286c298b",
+      "loc": 37,
+      "bytes": 2829,
+      "sha256": "2427804269c685a7675ea4a5df9c85aa43cdc372a96f53fe215b997dbb9f92c8",
       "path": ".agents/agents/NK-RSI-Auditor/agent.md",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "NK-Scribe-Agent": {
       "name": "NK-Scribe-Agent",
@@ -1268,11 +1274,11 @@
       "enable_write_tools": true,
       "enable_subagent_tools": false,
       "enable_mcp_tools": false,
-      "loc": 34,
-      "bytes": 2137,
-      "sha256": "ae25349d43ea86236a2ef05527383181cbfd1ea9ed566698f12c62de4502af26",
+      "loc": 36,
+      "bytes": 2581,
+      "sha256": "06b7fec8d7664d56b25b04a5fb206772f66df024dbf783d19ad5fcc417a663a2",
       "path": ".agents/agents/NK-Scribe-Agent/agent.md",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "NK-Security-DAST-Auditor": {
       "name": "NK-Security-DAST-Auditor",
@@ -1282,11 +1288,11 @@
       "enable_write_tools": false,
       "enable_subagent_tools": false,
       "enable_mcp_tools": true,
-      "loc": 34,
-      "bytes": 2191,
-      "sha256": "1fed9f2efd90f8d1696f3bd20ab894376068d1d24e37d8e0ba1fafb72a711730",
+      "loc": 37,
+      "bytes": 2852,
+      "sha256": "d520ac71756d7b5f6e4399eff9f13bfb26ad84e41ac455d5ad290d15fd6fbd00",
       "path": ".agents/agents/NK-Security-DAST-Auditor/agent.md",
-      "source_layer": "staging"
+      "source_layer": "production"
     },
     "NK-Specifier-Agent": {
       "name": "NK-Specifier-Agent",
@@ -1296,11 +1302,11 @@
       "enable_write_tools": true,
       "enable_subagent_tools": false,
       "enable_mcp_tools": true,
-      "loc": 34,
-      "bytes": 2285,
-      "sha256": "ccd045cd23aee7d2ee02de66a2949cfa99569da72cfd5eae3f6829e27af5fc9b",
+      "loc": 36,
+      "bytes": 2683,
+      "sha256": "2aa5fafec4f8f8d87b297bf9d1caf9bc15104696cfe8df6c204c72bbe649d6b0",
       "path": ".agents/agents/NK-Specifier-Agent/agent.md",
-      "source_layer": "staging"
+      "source_layer": "production"
     }
   },
   "intent_dispatch_table": {

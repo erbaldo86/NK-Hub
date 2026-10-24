@@ -55,7 +55,7 @@ def _discover_default_transcript() -> str:
 
 
 def _read_baseline_tests_count(root_dir: Optional[Path] = None) -> int:
-    """Legge il numero totale di Golden Tests da quality_baseline.json."""
+    """Legge il numero totale di Golden Tests da quality_baseline.json con supporto Dual-Schema."""
     base = root_dir or _workspace_root
     for cand in (
         base / ".staging" / "nk_tracking" / "quality_baseline.json",
@@ -66,14 +66,59 @@ def _read_baseline_tests_count(root_dir: Optional[Path] = None) -> int:
         if cand.exists():
             try:
                 data = json.loads(cand.read_text(encoding="utf-8"))
-                metrics = data.get("metrics", {})
-                raw_total = metrics.get("unit_tests_total", 87)
-                if isinstance(raw_total, dict):
-                    return int(raw_total.get("value", 87))
-                return int(raw_total)
+                metrics = (
+                    data.get("metrics", {})
+                    if isinstance(data.get("metrics"), dict)
+                    else {}
+                )
+                for m_key in ("unit_tests_total", "total_golden_tests"):
+                    if m_key in metrics:
+                        raw_total = metrics[m_key]
+                        if isinstance(raw_total, dict):
+                            return int(raw_total.get("value", 87))
+                        return int(raw_total)
+                for flat_key in (
+                    "total_tests",
+                    "golden_tests_count",
+                    "unit_tests_total",
+                    "passed_tests",
+                ):
+                    if data.get(flat_key) is not None:
+                        return int(data[flat_key])
             except Exception:
                 pass
     return 87
+
+
+def _read_baseline_pass_rate(root_dir: Optional[Path] = None) -> float:
+    """Estrae il pass rate da quality_baseline.json supportando sia metrics sia campi flat."""
+    base = root_dir or _workspace_root
+    for cand in (
+        base / ".staging" / "nk_tracking" / "quality_baseline.json",
+        base / "nk_tracking" / "quality_baseline.json",
+        _workspace_root / ".staging" / "nk_tracking" / "quality_baseline.json",
+        _workspace_root / "nk_tracking" / "quality_baseline.json",
+    ):
+        if cand.exists():
+            try:
+                data = json.loads(cand.read_text(encoding="utf-8"))
+                metrics = (
+                    data.get("metrics", {})
+                    if isinstance(data.get("metrics"), dict)
+                    else {}
+                )
+                raw_pct = metrics.get("unit_tests_pass_pct")
+                if isinstance(raw_pct, dict) and "value" in raw_pct:
+                    return float(raw_pct["value"])
+                if isinstance(raw_pct, (int, float)):
+                    return float(raw_pct)
+                if data.get("pass_rate_pct") is not None:
+                    return float(data["pass_rate_pct"])
+                if data.get("pass_rate") is not None:
+                    return float(data["pass_rate"])
+            except Exception:
+                pass
+    return 100.0
 
 
 def persist_intent_brief(
@@ -256,6 +301,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             pass
 
     baseline_tests = _read_baseline_tests_count(effective_root)
+    baseline_pass_rate = _read_baseline_pass_rate(effective_root)
     metadata = {
         "steps": steps,
         "tokens": tokens,
@@ -264,6 +310,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         "project_dirty_files": project_dirty_files,
         "stash_patch": stash_patch,
         "baseline_tests": baseline_tests,
+        "baseline_pass_rate_pct": baseline_pass_rate,
         "milestone": "Auto-Saved Milestone",
         "unverified_claims": [],
     }

@@ -1,8 +1,8 @@
-# NK Genome: Concept Map e Master Brief (`v4.3.0-Super-Plan-Triad-RSI` / `v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified`)
+# NK Genome: Concept Map e Master Brief (`v4.4.0-STE100-Unified` / `v4.3.0-Super-Plan-Triad-RSI` / `v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified`)
 
 > **Badge di Certificazione:** 🛡️ [NK-BRIEF-STATUS: AUDITED_AND_OPTIMIZED 🟢] | [RSI-CONVERGENCE: CONVERGED_OPTIMAL (Δ=0, Q=100.0) 🟢]  
-> **Milestone Anchor ID:** `NK-MS-20261024-SUPER-PLAN-TRIAD-v6.0.0-RSI` (`NK-MS-20261018-COLD-TRIAL-v4.0.0-RSI`)  
-> **Versione Target:** `v4.3.0-Super-Plan-Triad-RSI` (`v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified` Compatible)  
+> **Milestone Anchor ID:** `NK-MS-20261024-TRIAD-EPISTEMIC-v4.4.0-RSI` (`NK-MS-20261018-COLD-TRIAL-v4.0.0-RSI`)  
+> **Versione Target:** `v4.4.0-STE100-Unified` (`v4.3.0-Super-Plan-Triad-RSI` / `v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified` Compatible)  
 > **Standard Linguistico:** ASD-STE100 Italiano Tecnico (`[RULE-STE100]`)  
 > **Stato Produzione:** 100% Sola Lettura (`[RULE-00]`)
 
@@ -10,7 +10,7 @@
 
 ## 1. Visione Concettuale e Simbiosi con Gemini 4 Argon (High)
 
-L'architettura `v4.3.0-Super-Plan-Triad-RSI` separa il Router O(1), i `5` Sub-Agenti Nativi e i `16` Playbook Procedurali (`[RULE-01]`). Il sistema trasforma Nexus Keystone in una piattaforma di miglioramento ricorsivo continuo (`[RULE-RSI]`). Questa architettura opera con **Gemini 4 Argon (High)** e protegge i `98` Golden e Stress Tests tramite `GT-01..GT-14`.
+L'architettura `v4.4.0-STE100-Unified` separa il Router O(1), i `5` Sub-Agenti Nativi e i `16` Playbook Procedurali (`[RULE-01]`). Il sistema trasforma Nexus Keystone in una piattaforma di miglioramento ricorsivo continuo (`[RULE-RSI]`). Questa architettura opera con **Gemini 4 Argon (High)** e protegge i `108` Golden e Stress Tests tramite `GT-01..GT-14`.
 
 1. **Direttiva Linguistica Universale (`[RULE-STE100]`):**
    * Tutto l'ecosistema adotta lo standard **ASD-STE100 Italiano Tecnico**.
@@ -50,6 +50,11 @@ L'architettura `v4.3.0-Super-Plan-Triad-RSI` separa il Router O(1), i `5` Sub-Ag
    * Lo script `scripts/nk_transcript_tools.py` esegue `locate` senza fallback `st_mtime`, `compliance`, `evidence`, `oracle-lock` e `lint-prompt`.
    * Il validatore `ast_guard_validator.py` espone `validate_pydantic_catalog_records()` per il Pre-Flight Schema Grounding dei modelli Pydantic v2.
    * La suite permanente raggiunge `98/98 PASS` includendo `tests/test_super_plan_v6_triad.py` con zero regressioni sulle guardie `GT-01..GT-14`.
+9. **Anti-Goodharting SAST, Holdout Isolation e Multi-Level Stress Hardening (`WP16`, `NK-MS-20261024-ANTI-GOODHART-STRESS-v4.4.0-RSI`, `v4.4.0-Anti-Goodhart-Stress-RSI`):**
+   * Il validatore `ast_guard_validator.py` blocca `PYTEST_CURRENT_TEST`, `inspect.currentframe`, `sys._getframe`, `f_back`, `f_globals` e `f_locals` in `src_app/`.
+   * Lo script `nk_session_bootstrap.py` supporta `--project-root` sui progetti esterni in `NK_External_Projects` consentendo `src_app/`.
+   * Lo strumento `nk_transcript_tools.py` onora `--conversation-id`, esenta `oracle-lock` e rileva polling, cap `100` step e `AP-8`/`AP-9`.
+   * Il runner `dast_sandbox_runner.py` copia `data/` e `benchmark_empirico_v7/`, mentre `rsi_convergence_engine.py` deduplica la scansione di `PATCH_NOTES.md`.
 
 ---
 

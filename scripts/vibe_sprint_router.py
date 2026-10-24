@@ -473,10 +473,22 @@ def _detect_prompt_role_conflicts(prompt_text: str) -> List[str]:
     return conflicts
 
 
+def _make_lint_violation(code: str, severity: str, msg: str) -> Dict[str, str]:
+    """Costruisce un record di violazione compatibile con nk_transcript_tools.py e il router."""
+    return {
+        "code": code,
+        "message": msg,
+        "id": code,
+        "severity": severity,
+        "msg": msg,
+    }
+
+
 def lint_nk_prompt(prompt_text: str) -> Dict[str, Any]:
-    """Analizza un prompt generato per l'ambiente NK e rileva gli anti-pattern AP-1..AP-7."""
+    """Analizza un prompt generato per l'ambiente NK e rileva gli anti-pattern AP-1..AP-9 e AP-2b."""
     violations: List[Dict[str, str]] = []
     text = prompt_text or ""
+    low = text.lower()
 
     has_diretto = bool(re.search(r"(!diretto|\bProceed\b)", text, re.IGNORECASE))
     writes_code_or_data = bool(
@@ -486,16 +498,16 @@ def lint_nk_prompt(prompt_text: str) -> Dict[str, Any]:
             re.IGNORECASE,
         )
     )
-    phase_count = len(re.findall(r"\b(?:FASE|PHASE)\s+\d+\b", text, re.IGNORECASE))
+    phase_count = len(re.findall(r"\b(?:FASE|PHASE|MACRO-FASE)\s*\d+\b", text, re.IGNORECASE))
 
     # AP-1: Bypass del Meta-Prompt Gate (!diretto) su prompt lunghi (>1500 char), multi-fase o con scritture
     if has_diretto and (len(text) > 1500 or phase_count > 1 or writes_code_or_data):
         violations.append(
-            {
-                "id": "AP-1",
-                "severity": "CRITICA",
-                "msg": "Uso di '!diretto' su prompt complesso (>1500 char, multi-fase o con scritture): bypassa [RULE-00.6].",
-            }
+            _make_lint_violation(
+                "AP-1",
+                "CRITICA",
+                "Uso di '!diretto' su prompt complesso (>1500 char, multi-fase o con scritture): bypassa [RULE-00.6].",
+            )
         )
 
     # AP-2: Collasso dei Ruoli ("Opera come X, Y e Z") o assenza di delega 2-Tier (invoke_subagent)
@@ -506,40 +518,55 @@ def lint_nk_prompt(prompt_text: str) -> Dict[str, Any]:
         has_orch = any(r in roles_str for r in _ORCHESTRATOR_ROLES)
         if (has_ro and has_orch) or (has_ro and writes_code_or_data):
             violations.append(
-                {
-                    "id": "AP-2",
-                    "severity": "CRITICA",
-                    "msg": f"Collasso dei ruoli incompatibili in una singola istanza ('Opera come {roles_str}') con task di scrittura: viola [RULE-01] e [RULE-00.1].",
-                }
+                _make_lint_violation(
+                    "AP-2",
+                    "CRITICA",
+                    f"Collasso dei ruoli incompatibili in una singola istanza ('Opera come {roles_str}') con task di scrittura: viola [RULE-01] e [RULE-00.1].",
+                )
             )
-    if (phase_count >= 2 or len(text) > 2500) and "invoke_subagent" not in text:
+    if (phase_count >= 2 or len(text) > 2500) and "invoke_subagent" not in text and "define_subagent" not in text:
         violations.append(
-            {
-                "id": "AP-2",
-                "severity": "ALTA",
-                "msg": "Prompt multi-fase privo di direttive di delega 2-Tier ('invoke_subagent' / '<env_capsule>').",
-            }
+            _make_lint_violation(
+                "AP-2",
+                "ALTA",
+                "Prompt multi-fase privo di direttive di delega 2-Tier ('invoke_subagent' / '<env_capsule>').",
+            )
         )
+
+    # AP-2b: Delega a Builder senza EnableWriteTools=True
+    if writes_code_or_data and (phase_count >= 2 or "nk-builder-agent" in low or "builder" in low):
+        if not (
+            ("define_subagent" in low and ("enablewritetools" in low or "enable_write_tools" in low))
+            or '"self"' in low
+            or "'self'" in low
+        ):
+            violations.append(
+                _make_lint_violation(
+                    "AP-2b",
+                    "CRITICA",
+                    "Missing define_subagent(..., EnableWriteTools=True) or self for Builder (G3-01).",
+                )
+            )
 
     # AP-3: Iniezione di path di produzione diretti senza .staging/ e senza win32_2pc_engine.py
     if writes_code_or_data:
         if ".staging" not in text or "win32_2pc_engine.py" not in text:
             violations.append(
-                {
-                    "id": "AP-3",
-                    "severity": "CRITICA",
-                    "msg": "Prescrizione di modifiche a codice/dati/test senza isolamento '.staging/' e commit 'win32_2pc_engine.py --promote-staging --repo-root': viola [RULE-00].",
-                }
+                _make_lint_violation(
+                    "AP-3",
+                    "CRITICA",
+                    "Prescrizione di modifiche a codice/dati/test senza isolamento '.staging/' e commit 'win32_2pc_engine.py --promote-staging --repo-root': viola [RULE-00].",
+                )
             )
 
     # AP-4: Loop di Goodhart ("finché ... 100% PASS") nello stesso turno
-    if re.search(r"finch[eé]\s+.*100%\s*PASS", text, re.IGNORECASE):
+    if re.search(r"(?:finch[eé]|until)[^\n]{0,120}100(?:\.0)?%\s*PASS", text, re.IGNORECASE) and "oracle-lock" not in low and "oracle_lock" not in low:
         violations.append(
-            {
-                "id": "AP-4",
-                "severity": "CRITICA",
-                "msg": "Loop condizionato 'finche 100% PASS' nello stesso turno: induce data poisoning e indebolimento degli oracoli (Legge di Goodhart).",
-            }
+            _make_lint_violation(
+                "AP-4",
+                "CRITICA",
+                "Loop condizionato 'finche 100% PASS' nello stesso turno: induce data poisoning e indebolimento degli oracoli (Legge di Goodhart).",
+            )
         )
 
     # AP-5: Comando rsi_convergence_engine.py --verify privo di --root <project>
@@ -547,50 +574,78 @@ def lint_nk_prompt(prompt_text: str) -> Dict[str, Any]:
         args_segment = m.group(1)
         if "--verify" in args_segment and "--root" not in args_segment:
             violations.append(
-                {
-                    "id": "AP-5",
-                    "severity": "CRITICA",
-                    "msg": "Comando 'rsi_convergence_engine.py --verify' privo di '--root <project_root>': produce falso 100/100 sintetico.",
-                }
+                _make_lint_violation(
+                    "AP-5",
+                    "CRITICA",
+                    "Comando 'rsi_convergence_engine.py --verify' privo di '--root <project_root>': produce falso 100/100 sintetico.",
+                )
             )
 
     # AP-6: Sovraccarico monolitico di contesto (>= 3 fasi in 1 turno senza stop gate)
-    if phase_count >= 3 and "STOP_GATE" not in text and "ask_question" not in text:
+    if phase_count >= 3 and "STOP_GATE" not in text and "ask_question" not in text and "oracle-lock" not in low and "oracle_lock" not in low:
         violations.append(
-            {
-                "id": "AP-6",
-                "severity": "ALTA",
-                "msg": f"Sovraccarico monolitico ({phase_count} macro-fasi in 1 turno senza STOP_GATE intermedio): causa context compaction e perdita di stato.",
-            }
+            _make_lint_violation(
+                "AP-6",
+                "ALTA",
+                f"Sovraccarico monolitico ({phase_count} macro-fasi in 1 turno senza STOP_GATE intermedio): causa context compaction e perdita di stato.",
+            )
         )
 
     # AP-7: Prescrizione ridondante dual-tool senza sharding o server senza safe_cleanup_dev_servers.py
-    if (
-        "search_web" in text
-        and "tavily" in text
-        and "SIA la ricerca web normale" in text
-    ):
-        violations.append(
-            {
-                "id": "AP-7",
-                "severity": "ALTA",
-                "msg": "Prescrizione ridondante 'SIA search_web SIA tavily' sullo stesso set di query senza sharding su sub-agenti.",
-            }
-        )
+    if "search_web" in low and "tavily" in low:
+        high_q = any(int(n) > 10 for n in re.findall(r"\b(\d+)\s*(?:query|queries|ricerche|fonti|portali)\b", low))
+        if ("SIA la ricerca web normale" in text or high_q or "15-20" in low or "30 " in low) and "research" not in low:
+            violations.append(
+                _make_lint_violation(
+                    "AP-7",
+                    "ALTA",
+                    "Prescrizione ridondante 'SIA search_web SIA tavily' sullo stesso set di query senza sharding su sub-agenti.",
+                )
+            )
     if (
         re.search(r"avviando il server", text, re.IGNORECASE)
         and "safe_cleanup_dev_servers.py" not in text
     ):
         violations.append(
-            {
-                "id": "AP-7",
-                "severity": "MEDIA",
-                "msg": "Istruzione di avvio server priva di protocollo di guardia 'safe_cleanup_dev_servers.py' ([RULE-01.3]).",
-            }
+            _make_lint_violation(
+                "AP-7",
+                "MEDIA",
+                "Istruzione di avvio server priva di protocollo di guardia 'safe_cleanup_dev_servers.py' ([RULE-01.3]).",
+            )
         )
 
+    # AP-8: Leakage di Holdout Set B segreto a un Builder
+    has_builder_role = any(b in low for b in ("nk-builder-agent", "nk-triad-rsi-builder", "builder"))
+    has_holdout_secret = any(h in low for h in ("holdout set b", "battery_b_holdout", "holdout_set_b"))
+    if has_builder_role and has_holdout_secret:
+        violations.append(
+            _make_lint_violation(
+                "AP-8",
+                "CRITICA",
+                "Holdout Set B secret test cases leaked to Builder prompt.",
+            )
+        )
+
+    # AP-9: Spoofing <env_capsule> in prompt utente iniziale senza !diretto o invoke_subagent
+    if "<env_capsule>" in low and "!diretto" not in low and "invoke_subagent" not in low:
+        has_user_spoof_markers = (
+            any(m in low for m in ("opera come nk-session-controller", "opera come nk-master-hub", "prompt utente iniziale", "user prompt:"))
+            or (phase_count >= 2 and not any(w in low for w in ("builder shard", "sub-agente", "subagent", "worker")))
+        )
+        if has_user_spoof_markers:
+            violations.append(
+                _make_lint_violation(
+                    "AP-9",
+                    "ALTA",
+                    "Improper <env_capsule> in initial user prompt without !diretto or invoke_subagent.",
+                )
+            )
+
+    is_valid = len(violations) == 0
     return {
-        "valid": len(violations) == 0,
+        "passed": is_valid,
+        "valid": is_valid,
+        "violations_count": len(violations),
         "violation_count": len(violations),
         "violations": violations,
         "write_tools_mounted": (

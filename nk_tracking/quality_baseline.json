@@ -1,23 +1,23 @@
 {
-  "_version": "4.3.0-Super-Plan-Triad-RSI",
+  "_version": "4.4.0-STE100-Unified",
   "project": "NK_Project",
   "baseline_date": "2026-08-20T22:45:00.000000",
-  "last_updated": "2026-10-18T19:35:00.000000",
+  "last_updated": "2026-10-24T15:10:00.000000",
   "metrics": {
     "skills_audited": {
       "value": 16,
       "direction": "higher_is_better"
     },
     "total_golden_tests": {
-      "value": 98,
+      "value": 108,
       "direction": "higher_is_better"
     },
     "unit_tests_total": {
-      "value": 98,
+      "value": 108,
       "direction": "higher_is_better"
     },
     "unit_tests_passed": {
-      "value": 98,
+      "value": 108,
       "direction": "higher_is_better"
     },
     "unit_tests_pass_pct": {
@@ -219,6 +219,34 @@
         "total_golden_tests": 86,
         "unit_tests_total": 86,
         "unit_tests_passed": 86,
+        "unit_tests_pass_pct": 100.0,
+        "pass_rate_pct": 100.0,
+        "pass_rate_percent": 100.0,
+        "stress_test_concurrency_pass": 4,
+        "rsi_convergence_score": 100.0,
+        "rsi_residual_delta": 0
+      }
+    },
+    {
+      "timestamp": "2026-10-24T12:00:00.000000",
+      "metrics": {
+        "total_golden_tests": 98,
+        "unit_tests_total": 98,
+        "unit_tests_passed": 98,
+        "unit_tests_pass_pct": 100.0,
+        "pass_rate_pct": 100.0,
+        "pass_rate_percent": 100.0,
+        "stress_test_concurrency_pass": 4,
+        "rsi_convergence_score": 100.0,
+        "rsi_residual_delta": 0
+      }
+    },
+    {
+      "timestamp": "2026-10-24T15:10:00.000000",
+      "metrics": {
+        "total_golden_tests": 108,
+        "unit_tests_total": 108,
+        "unit_tests_passed": 108,
         "unit_tests_pass_pct": 100.0,
         "pass_rate_pct": 100.0,
         "pass_rate_percent": 100.0,

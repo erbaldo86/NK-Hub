@@ -787,6 +787,129 @@ def record_session_anchor_commit(
             f.write(json.dumps(entry) + "\n")
 
 
+def _extract_dual_schema_baseline(
+    data: Dict[str, Any],
+) -> Tuple[Dict[str, Any], Optional[float], int]:
+    """Estrae metriche, pass rate e numero di test supportando entrambi gli schemi baseline."""
+    raw_metrics = (
+        data.get("metrics", {}) if isinstance(data.get("metrics"), dict) else {}
+    )
+    candidate_metrics: Dict[str, Any] = {
+        k: (v.get("value") if isinstance(v, dict) else v)
+        for k, v in raw_metrics.items()
+    }
+    pass_rate: Optional[float] = None
+    if "unit_tests_pass_pct" in candidate_metrics:
+        pass_rate = float(candidate_metrics["unit_tests_pass_pct"])
+    elif data.get("pass_rate_pct") is not None:
+        pass_rate = float(data["pass_rate_pct"])
+        candidate_metrics["unit_tests_pass_pct"] = pass_rate
+    elif data.get("pass_rate") is not None:
+        pass_rate = float(data["pass_rate"])
+        candidate_metrics["unit_tests_pass_pct"] = pass_rate
+
+    total_tests = 0
+    if "unit_tests_total" in candidate_metrics:
+        total_tests = int(candidate_metrics["unit_tests_total"])
+    elif "total_golden_tests" in candidate_metrics:
+        total_tests = int(candidate_metrics["total_golden_tests"])
+    elif data.get("total_tests") is not None:
+        total_tests = int(data["total_tests"])
+        candidate_metrics["unit_tests_total"] = total_tests
+    elif data.get("golden_tests_count") is not None:
+        total_tests = int(data["golden_tests_count"])
+        candidate_metrics["unit_tests_total"] = total_tests
+
+    if data.get("failed_tests") is not None and "failed_tests" not in candidate_metrics:
+        candidate_metrics["failed_tests"] = int(data["failed_tests"])
+
+    return candidate_metrics, pass_rate, total_tests
+
+
+def _verify_quality_baseline_ratchet(
+    dst_bl: Union[str, Path, Dict[str, Any]],
+    stg_bl: Optional[Union[str, Path, Dict[str, Any]]] = None,
+) -> Dict[str, Any]:
+    """Verifica il rispetto del ratchet quality_baseline.json con supporto Dual-Schema."""
+    from quality_baseline_manager import check_baseline_compliance
+
+    if isinstance(dst_bl, dict):
+        cand_metrics, pass_rate, total_tests = _extract_dual_schema_baseline(dst_bl)
+        if not cand_metrics or pass_rate is None:
+            raise TwoPhaseCommitError("Metriche assenti o invalide nel quality_baseline.")
+        if pass_rate < 100.0:
+            raise TwoPhaseCommitError(
+                f"Pass rate inferiore al 100.0% nel quality_baseline: {pass_rate}%"
+            )
+        return {
+            "verdict": "PASS",
+            "pass_rate_pct": pass_rate,
+            "total_tests": total_tests,
+            "metrics": cand_metrics,
+        }
+
+    dst_path = Path(dst_bl)
+    stg_path = Path(stg_bl) if isinstance(stg_bl, (str, Path)) else None
+
+    if stg_path is not None and stg_path.exists() and dst_path.exists():
+        dst_data = json.loads(dst_path.read_text(encoding="utf-8"))
+        stg_data = json.loads(stg_path.read_text(encoding="utf-8"))
+        dst_metrics, dst_pass, dst_tot = _extract_dual_schema_baseline(dst_data)
+        stg_metrics, stg_pass, stg_tot = _extract_dual_schema_baseline(stg_data)
+        if not stg_metrics:
+            raise TwoPhaseCommitError(
+                f"Metriche assenti o invalide nel quality_baseline di staging: {stg_path}"
+            )
+        if stg_pass is not None and stg_pass < 100.0:
+            raise TwoPhaseCommitError(
+                f"Pass rate di staging inferiore al 100.0%: {stg_pass}%"
+            )
+        if dst_pass is not None and stg_pass is not None and stg_pass < dst_pass:
+            raise TwoPhaseCommitError(
+                f"Regressione pass rate nel quality_baseline: {dst_pass}% -> {stg_pass}%"
+            )
+        if isinstance(dst_data.get("metrics"), dict) and dst_data.get("metrics"):
+            res_bl = check_baseline_compliance(str(dst_path), stg_metrics)
+            if res_bl.get("verdict") != "PASS":
+                raise TwoPhaseCommitError(
+                    f"Regressione rilevata nel quality_baseline di staging: {res_bl.get('regressions')}"
+                )
+        return {
+            "verdict": "PASS",
+            "pass_rate_pct": stg_pass if stg_pass is not None else 100.0,
+            "total_tests": stg_tot,
+            "metrics": stg_metrics,
+        }
+
+    active_bl = (
+        dst_path
+        if dst_path.exists()
+        else (stg_path if stg_path is not None else dst_path)
+    )
+    bl_data = json.loads(active_bl.read_text(encoding="utf-8"))
+    cand_metrics, pass_rate, total_tests = _extract_dual_schema_baseline(bl_data)
+    if not cand_metrics:
+        raise TwoPhaseCommitError(
+            f"Metriche assenti o invalide nel quality_baseline: {active_bl}"
+        )
+    if pass_rate is not None and pass_rate < 100.0:
+        raise TwoPhaseCommitError(
+            f"Regressione rilevata nel quality_baseline ({active_bl}): pass_rate={pass_rate}%"
+        )
+    if isinstance(bl_data.get("metrics"), dict) and bl_data.get("metrics"):
+        res_bl = check_baseline_compliance(str(active_bl), cand_metrics)
+        if res_bl.get("verdict") != "PASS":
+            raise TwoPhaseCommitError(
+                f"Regressione rilevata nel quality_baseline: {res_bl.get('regressions')}"
+            )
+    return {
+        "verdict": "PASS",
+        "pass_rate_pct": pass_rate if pass_rate is not None else 100.0,
+        "total_tests": total_tests,
+        "metrics": cand_metrics,
+    }
+
+
 def promote_staging_to_production(
     repo_root: Optional[Union[str, Path]] = None,
     milestone: Optional[str] = None,
@@ -828,37 +951,7 @@ def promote_staging_to_production(
                 f"File quality_baseline.json mancante sia in produzione ({dst_bl}) sia in staging ({stg_bl})."
             )
         try:
-            from quality_baseline_manager import check_baseline_compliance
-
-            if stg_bl.exists() and dst_bl.exists():
-                stg_data = json.loads(stg_bl.read_text(encoding="utf-8"))
-                raw_metrics = stg_data.get("metrics", {})
-                candidate_metrics = {
-                    k: (v.get("value") if isinstance(v, dict) else v)
-                    for k, v in raw_metrics.items()
-                }
-                res_bl = check_baseline_compliance(str(dst_bl), candidate_metrics)
-                if res_bl.get("verdict") != "PASS":
-                    raise TwoPhaseCommitError(
-                        f"Regressione rilevata nel quality_baseline di staging: {res_bl.get('regressions')}"
-                    )
-            else:
-                active_bl = dst_bl if dst_bl.exists() else stg_bl
-                bl_data = json.loads(active_bl.read_text(encoding="utf-8"))
-                raw_metrics = bl_data.get("metrics", {})
-                if not isinstance(raw_metrics, dict) or not raw_metrics:
-                    raise TwoPhaseCommitError(
-                        f"Metriche assenti o invalide nel quality_baseline: {active_bl}"
-                    )
-                candidate_metrics = {
-                    k: (v.get("value") if isinstance(v, dict) else v)
-                    for k, v in raw_metrics.items()
-                }
-                res_bl = check_baseline_compliance(str(active_bl), candidate_metrics)
-                if res_bl.get("verdict") != "PASS":
-                    raise TwoPhaseCommitError(
-                        f"Regressione rilevata nel quality_baseline: {res_bl.get('regressions')}"
-                    )
+            _verify_quality_baseline_ratchet(dst_bl, stg_bl)
         except TwoPhaseCommitError:
             raise
         except Exception as exc:

@@ -51,6 +51,9 @@ class GuardViolation(BaseModel):
     diff_context: Optional[str] = Field(
         default=None, description="Frammento diff o contesto della riga"
     )
+    severity: str = Field(
+        default="CRITICAL", description="Livello di gravita della violazione"
+    )
 
 
 class FunctionSignatureSnapshot(BaseModel):
@@ -546,11 +549,190 @@ class ScopeIntegrityChecker(ast.NodeVisitor):
 
 
 class SASTConstructChecker(ast.NodeVisitor):
-    """Rileva costrutti non sicuri eval, exec, compile, deserializzazioni, shell=True e MagicMock."""
+    """Rileva costrutti non sicuri eval, exec, compile, deserializzazioni, shell=True, MagicMock e SAST-GAMING."""
 
-    def __init__(self) -> None:
+    _TOK_PYTEST_CUR: str = "_".join(("PYTEST", "CURRENT", "TEST"))
+    _TOK_NK_SANDBOX: str = "_".join(("NK", "SANDBOX"))
+    _TOK_FIXTURE_FN: str = "_" + "_".join(
+        ("ensure", "sandbox", "benchmark", "fixture")
+    )
+    _TOK_EXT_PROJ: str = "_".join(("NK", "External", "Projects"))
+    _FRAME_ATTRS: Set[str] = {"f_back", "f_globals", "f_locals"}
+
+    def __init__(
+        self, target_file: str = "<target>", is_test_file: bool = False
+    ) -> None:
         self.violations: List[GuardViolation] = []
+        self.sast_violations: List[GuardViolation] = self.violations
         self._imported_aliases: Dict[str, str] = {}
+        norm_target = str(target_file or "<target>").replace("\\", "/")
+        path_parts = [p.lower() for p in norm_target.split("/") if p]
+        basename = path_parts[-1] if path_parts else ""
+        self.target_file = norm_target
+        self.is_test_file = bool(
+            is_test_file
+            or basename.startswith("test_")
+            or basename.endswith("_test.py")
+            or basename == "conftest.py"
+            or "tests" in path_parts
+        )
+        self.is_self_validator = basename == "ast_guard_validator.py"
+        self.in_src_app = (
+            "src_app" in path_parts
+            or "src" in path_parts
+            or "app" in path_parts
+            or norm_target in ("<target>", "")
+        ) and "scripts" not in path_parts
+
+    def _emit_gaming_violation(
+        self, rule_id: str, node: ast.AST, detail: str
+    ) -> None:
+        self.violations.append(
+            GuardViolation(
+                violation_type=ViolationType.SAST_VIOLATION,
+                symbol_name=rule_id,
+                line_number=getattr(node, "lineno", None),
+                column=getattr(node, "col_offset", None),
+                message=f"[CRITICAL] {rule_id}: {detail}",
+                severity="CRITICAL",
+            )
+        )
+
+    def visit_Constant(self, node: ast.Constant) -> None:
+        if (
+            not self.is_test_file
+            and not self.is_self_validator
+            and isinstance(node.value, str)
+        ):
+            val = node.value
+            if self._TOK_PYTEST_CUR in val or self._TOK_NK_SANDBOX in val:
+                self._emit_gaming_violation(
+                    "SAST-GAMING-D01",
+                    node,
+                    f"Test or sandbox environment sniffing '{val}' detected.",
+                )
+            if self.in_src_app and self._TOK_EXT_PROJ.lower() in val.lower():
+                self._emit_gaming_violation(
+                    "SAST-GAMING-D03",
+                    node,
+                    "Hardcoded external project host path in application code detected.",
+                )
+        self.generic_visit(node)
+
+    def visit_Subscript(self, node: ast.Subscript) -> None:
+        if not self.is_test_file and not self.is_self_validator:
+            is_sys_modules = False
+            if (
+                isinstance(node.value, ast.Attribute)
+                and node.value.attr == "modules"
+                and isinstance(node.value.value, ast.Name)
+                and self._imported_aliases.get(
+                    node.value.value.id, node.value.value.id
+                )
+                == "sys"
+            ):
+                is_sys_modules = True
+            elif (
+                isinstance(node.value, ast.Name)
+                and self._imported_aliases.get(node.value.id) == "sys.modules"
+            ):
+                is_sys_modules = True
+            if (
+                is_sys_modules
+                and isinstance(node.slice, ast.Constant)
+                and node.slice.value == "pytest"
+            ):
+                self._emit_gaming_violation(
+                    "SAST-GAMING-D01",
+                    node,
+                    "Direct sys.modules['pytest'] sniffing detected.",
+                )
+        self.generic_visit(node)
+
+    def visit_Attribute(self, node: ast.Attribute) -> None:
+        if (
+            not self.is_test_file
+            and not self.is_self_validator
+            and node.attr in self._FRAME_ATTRS
+        ):
+            self._emit_gaming_violation(
+                "SAST-GAMING-D02",
+                node,
+                f"Prohibited frame attribute access '.{node.attr}' detected.",
+            )
+        self.generic_visit(node)
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        if (
+            not self.is_test_file
+            and not self.is_self_validator
+            and node.name == self._TOK_FIXTURE_FN
+        ):
+            self._emit_gaming_violation(
+                "SAST-GAMING-D03",
+                node,
+                f"Prohibited sandbox fixture helper function '{node.name}' detected.",
+            )
+        self.generic_visit(node)
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        if (
+            not self.is_test_file
+            and not self.is_self_validator
+            and node.name == self._TOK_FIXTURE_FN
+        ):
+            self._emit_gaming_violation(
+                "SAST-GAMING-D03",
+                node,
+                f"Prohibited sandbox fixture helper function '{node.name}' detected.",
+            )
+        self.generic_visit(node)
+
+    def visit_Compare(self, node: ast.Compare) -> None:
+        if not self.is_test_file and not self.is_self_validator:
+            if (
+                isinstance(node.left, ast.Constant)
+                and node.left.value == "pytest"
+            ):
+                for comp in node.comparators:
+                    if (
+                        isinstance(comp, ast.Attribute) and comp.attr == "modules"
+                    ) or (
+                        isinstance(comp, ast.Name)
+                        and self._imported_aliases.get(comp.id) == "sys.modules"
+                    ):
+                        self._emit_gaming_violation(
+                            "SAST-GAMING-D01",
+                            node,
+                            "sys.modules 'pytest' membership sniffing detected.",
+                        )
+            operands = [node.left, *node.comparators]
+            has_grant_or_snapshot_len = False
+            has_threshold_int = False
+            for op_node in operands:
+                if (
+                    isinstance(op_node, ast.Call)
+                    and isinstance(op_node.func, ast.Name)
+                    and op_node.func.id == "len"
+                    and len(op_node.args) == 1
+                ):
+                    arg_repr = ast.unparse(op_node.args[0]).lower()
+                    if "grant" in arg_repr or "snapshot" in arg_repr:
+                        has_grant_or_snapshot_len = True
+                elif (
+                    isinstance(op_node, ast.Constant)
+                    and isinstance(op_node.value, int)
+                    and not isinstance(op_node.value, bool)
+                    and op_node.value >= 10
+                ):
+                    has_threshold_int = True
+            if has_grant_or_snapshot_len and has_threshold_int:
+                self._emit_gaming_violation(
+                    "SAST-GAMING-D04",
+                    node,
+                    "Conditional branching on len(grant/snapshot) >= 10 detected.",
+                )
+        self.generic_visit(node)
 
     def visit_Import(self, node: ast.Import) -> None:
         for alias in node.names:
@@ -802,6 +984,69 @@ class SASTConstructChecker(ast.NodeVisitor):
                         message="Zero-Mock violation: MagicMock attribute call detected.",
                     )
                 )
+            if not self.is_test_file and not self.is_self_validator:
+                if (
+                    attr == "get"
+                    and node.args
+                    and isinstance(node.args[0], ast.Constant)
+                    and node.args[0].value == "pytest"
+                ):
+                    if (
+                        isinstance(val, ast.Attribute) and val.attr == "modules"
+                    ) or (
+                        isinstance(val, ast.Name)
+                        and self._imported_aliases.get(val.id) == "sys.modules"
+                    ):
+                        self._emit_gaming_violation(
+                            "SAST-GAMING-D01",
+                            node,
+                            "sys.modules.get('pytest') sniffing detected.",
+                        )
+                if isinstance(val, ast.Name):
+                    base_mod_g = self._imported_aliases.get(val.id, val.id)
+                    if (
+                        base_mod_g == "inspect"
+                        and attr in ("currentframe", "stack")
+                    ) or (base_mod_g == "sys" and attr == "_getframe"):
+                        self._emit_gaming_violation(
+                            "SAST-GAMING-D02",
+                            node,
+                            f"Prohibited stack introspection '{base_mod_g}.{attr}()' detected.",
+                        )
+                elif attr in ("currentframe", "_getframe"):
+                    self._emit_gaming_violation(
+                        "SAST-GAMING-D02",
+                        node,
+                        f"Prohibited stack introspection '.{attr}()' detected.",
+                    )
+                if attr == self._TOK_FIXTURE_FN:
+                    self._emit_gaming_violation(
+                        "SAST-GAMING-D03",
+                        node,
+                        f"Prohibited sandbox fixture call '.{attr}()' detected.",
+                    )
+        if (
+            not self.is_test_file
+            and not self.is_self_validator
+            and isinstance(func, ast.Name)
+        ):
+            resolved_g = self._imported_aliases.get(func.id, func.id)
+            if func.id in ("currentframe", "_getframe") or resolved_g in (
+                "inspect.currentframe",
+                "inspect.stack",
+                "sys._getframe",
+            ):
+                self._emit_gaming_violation(
+                    "SAST-GAMING-D02",
+                    node,
+                    f"Prohibited stack introspection '{resolved_g}()' detected.",
+                )
+            elif func.id == self._TOK_FIXTURE_FN:
+                self._emit_gaming_violation(
+                    "SAST-GAMING-D03",
+                    node,
+                    f"Prohibited sandbox fixture call '{func.id}()' detected.",
+                )
         self.generic_visit(node)
 
 
@@ -853,13 +1098,15 @@ class ASTGuardValidator:
         return validate_pydantic_catalog_records(records, model_cls)
 
     @classmethod
-    def check_sast_constructs(cls, code: str) -> List[GuardViolation]:
+    def check_sast_constructs(
+        cls, code: str, target_file: str = "<target>"
+    ) -> List[GuardViolation]:
         """Scansiona l'AST per rilevare costrutti SAST proibiti e uso di MagicMock."""
         try:
             tree = ast.parse(code, type_comments=True)
         except SyntaxError:
             return []
-        sast_checker = SASTConstructChecker()
+        sast_checker = SASTConstructChecker(target_file=target_file)
         sast_checker.visit(tree)
         return sast_checker.violations
 
@@ -913,9 +1160,9 @@ class ASTGuardValidator:
         checker.visit(post_tree)
         violations.extend(checker.violations)
 
-        sast_checker = SASTConstructChecker()
+        sast_checker = SASTConstructChecker(target_file=target_file)
         sast_checker.visit(post_tree)
-        sast_violations = sast_checker.violations
+        sast_violations = sast_checker.sast_violations
         violations.extend(sast_violations)
 
         if pre_code == post_code:
@@ -1078,9 +1325,17 @@ def _resolve_production_counterpart(py_file: Path, workspace_root: Path) -> Opti
         idx = parts.index(".staging")
         rel_parts = parts[idx + 1 :]
         if rel_parts:
-            prod_cand = workspace_root.joinpath(*rel_parts)
+            effective_root = Path(*parts[:idx]) if idx > 0 else workspace_root
+            prod_cand = effective_root.joinpath(*rel_parts)
             if prod_cand.exists() and prod_cand.is_file() and prod_cand != resolved:
                 return prod_cand
+            fallback_cand = workspace_root.joinpath(*rel_parts)
+            if (
+                fallback_cand.exists()
+                and fallback_cand.is_file()
+                and fallback_cand != resolved
+            ):
+                return fallback_cand
     return None
 
 
@@ -1215,7 +1470,7 @@ def main() -> int:
             pre_code,
             code,
             allowed_mutations=validator.allowed_mutations,
-            target_file=py_file.name,
+            target_file=py_file.as_posix(),
         )
         total_sast_violations += int(report.metrics.get("sast_violations_count", 0))
         rel_path = py_file.as_posix()

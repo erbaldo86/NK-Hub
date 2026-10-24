@@ -4,7 +4,7 @@
 Strumenti forensi per transcript, oracle-lock SHA-256 e linting prompt di Nexus Keystone v6.0.0.
 Modulo: scripts/nk_transcript_tools.py.
 @domain_id: DOM-04
-Implementa i sottocomandi locate, compliance, evidence, oracle-lock e lint-prompt.
+Implementa i sottocomandi locate, compliance, evidence, oracle-lock, report-conflict e lint-prompt.
 """
 
 from __future__ import annotations
@@ -18,15 +18,74 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-_DIRECT_TOOLS = ("view_file", "run_command", "replace_file_content", "write_to_file", "write_file", "edit_file", "grep_search", "find_by_name")
+_DIRECT_TOOLS = (
+    "view_file",
+    "read_file",
+    "run_command",
+    "replace_file_content",
+    "write_to_file",
+    "write_file",
+    "edit_file",
+    "grep_search",
+    "find_by_name",
+)
 _DELEGATION_TOOLS = ("invoke_subagent", "define_subagent", "send_message")
-_SAFE_WRITE_MARKERS = (".staging/", "/.staging/", "nk_genome/", "nk_tracking/", "scratch/", "appdata/local/temp", "/temp/", "%temp%", "brain/")
-_CLAIM_RE = re.compile(r"(\bCONVERGED_OPTIMAL\b|\b\d+/\d+\s+PASS\b|\b100(?:\.0)?%\s+PASS\b)", re.IGNORECASE)
-_EXIT_ZERO_RE = re.compile(r"(exited with code\s+0\b|\"exit_code\"\s*:\s*0\b|\"returncode\"\s*:\s*0\b)", re.IGNORECASE)
-_PASS_FALSE_RE = re.compile(r"(\"pass\"\s*:\s*false\b|\bpass\s*:\s*false\b)", re.IGNORECASE)
-_PASS_TRUE_RE = re.compile(r"(\"pass\"\s*:\s*true\b|\bpass\s*:\s*true\b)", re.IGNORECASE)
+_SAFE_WRITE_MARKERS = (
+    ".staging/",
+    "/.staging/",
+    "nk_genome/",
+    "nk_tracking/",
+    "scratch/",
+    "appdata/local/temp",
+    "/temp/",
+    "%temp%",
+    "brain/",
+    "patch_notes.md",
+    "readme",
+)
+_READONLY_CMD_MARKERS = (
+    "pytest",
+    "rsi_convergence_engine.py",
+    "ast_guard_validator.py",
+    "nk_session_bootstrap.py",
+    "dast_sandbox_runner.py",
+    "compliance",
+    "evidence",
+    "oracle-lock verify",
+    "oracle-lock",
+    "--verify",
+    "win32_2pc_engine.py",
+)
+_WRITE_CMD_RE = re.compile(
+    r"(\bset-content\b|\bout-file\b|\badd-content\b|\bcopy-item\b|\bmove-item\b"
+    r"|\bnew-item\b|\bremove-item\b|--promote-staging|>>|(?<![-\w])>(?![>=]))",
+    re.IGNORECASE,
+)
+_CLAIM_RE = re.compile(
+    r"(\bCONVERGED_OPTIMAL\b|\b\d+/\d+\s+PASS\b|\b100(?:\.0)?%\s+PASS\b)",
+    re.IGNORECASE,
+)
+_EXIT_ZERO_RE = re.compile(
+    r"(exited with code\s+0\b|\"exit_code\"\s*:\s*0\b|\"returncode\"\s*:\s*0\b)",
+    re.IGNORECASE,
+)
+_PASS_FALSE_RE = re.compile(
+    r"(\"pass\"\s*:\s*false\b|\bpass\s*:\s*false\b)", re.IGNORECASE
+)
+_PASS_TRUE_RE = re.compile(
+    r"(\"pass\"\s*:\s*true\b|\bpass\s*:\s*true\b)", re.IGNORECASE
+)
 _SCRIPT_RE = re.compile(r"([a-zA-Z0-9_]+\.py)\b")
 _PHASE_RE = re.compile(r"\b(?:FASE|PHASE|MACRO-FASE)\s*\d+\b", re.IGNORECASE)
+
+
+def _prefer_full_transcript(path: Path) -> Path:
+    """Restituisce transcript_full.jsonl se presente accanto a transcript.jsonl."""
+    if path.name == "transcript.jsonl":
+        full_cand = path.parent / "transcript_full.jsonl"
+        if full_cand.is_file():
+            return full_cand.resolve()
+    return path.resolve()
 
 
 def locate_transcript(
@@ -38,7 +97,8 @@ def locate_transcript(
     if transcript_arg:
         p = Path(transcript_arg).resolve()
         if p.is_file():
-            return {"status": "LOCATED", "passed": True, "transcript_path": p.as_posix()}, 0
+            best_p = _prefer_full_transcript(p)
+            return {"status": "LOCATED", "passed": True, "transcript_path": best_p.as_posix()}, 0
         return {"status": "UNMEASURED", "passed": False, "error": f"Transcript not found: {p}"}, 2
 
     if conversation_id:
@@ -47,28 +107,37 @@ def locate_transcript(
             if brain_dir
             else Path(os.environ.get("USERPROFILE", "")) / ".gemini" / "antigravity" / "brain"
         )
-        for rel in (f"{conversation_id}/.system_generated/logs/transcript.jsonl", f"{conversation_id}/transcript.jsonl"):
+        for rel in (
+            f"{conversation_id}/.system_generated/logs/transcript_full.jsonl",
+            f"{conversation_id}/.system_generated/logs/transcript.jsonl",
+            f"{conversation_id}/transcript_full.jsonl",
+            f"{conversation_id}/transcript.jsonl",
+        ):
             cand = base / rel
             if cand.is_file():
-                return {"status": "LOCATED", "passed": True, "transcript_path": cand.as_posix()}, 0
+                return {"status": "LOCATED", "passed": True, "transcript_path": cand.resolve().as_posix()}, 0
         return {"status": "UNMEASURED", "passed": False, "error": f"No transcript for conversation_id={conversation_id}"}, 2
 
     return {"status": "UNMEASURED", "passed": False, "error": "Explicit --transcript or --conversation-id required (no st_mtime fallback)."}, 2
 
 
 def analyze_compliance(transcript_path: Path) -> Dict[str, Any]:
-    """Analizza un transcript.jsonl calcolando streak dirette, scritture non staged e frasi lunghe."""
+    """Analizza un transcript.jsonl calcolando streak dirette, scritture non staged e metriche forensi."""
     if not transcript_path.is_file():
         return {"passed": False, "error": f"Missing transcript: {transcript_path}"}
 
+    effective_path = _prefer_full_transcript(transcript_path)
     max_streak = 0
     cur_streak = 0
     delegations = 0
     ext_writes = 0
+    polling_list_calls = 0
+    oversized_swarm_messages = 0
+    prev_was_poll = False
     scripts_seen: List[str] = []
     last_model_text = ""
 
-    for raw in transcript_path.read_text(encoding="utf-8", errors="replace").splitlines():
+    for raw in effective_path.read_text(encoding="utf-8", errors="replace").splitlines():
         if not raw.strip():
             continue
         try:
@@ -76,9 +145,14 @@ def analyze_compliance(transcript_path: Path) -> Dict[str, Any]:
         except Exception:
             continue
         src = str(rec.get("source") or rec.get("type") or "").upper()
+        rec_type = str(rec.get("type") or "").upper()
+        is_turn_boundary = ("USER" in src) or (rec_type == "SYSTEM_MESSAGE") or ("SYSTEM_MESSAGE" in src)
         content = str(rec.get("content") or rec.get("output") or "")
         if src in ("MODEL", "ASSISTANT", "PLANNER_RESPONSE") and content.strip():
             last_model_text = content
+
+        if is_turn_boundary:
+            prev_was_poll = False
 
         calls = rec.get("tool_calls") or []
         step_delegated = False
@@ -86,6 +160,22 @@ def analyze_compliance(transcript_path: Path) -> Dict[str, Any]:
         for call in calls:
             tname = str(call.get("name") or call.get("toolName") or call.get("tool_name") or "")
             args = call.get("args") or call.get("arguments") or {}
+            act_val = str(args.get("Action") or args.get("action") or "").strip().lower()
+            is_poll_call = (tname == "manage_subagents" and act_val == "list") or (
+                tname == "manage_task" and act_val == "status"
+            )
+            if is_poll_call:
+                if prev_was_poll:
+                    polling_list_calls += 1
+                prev_was_poll = True
+            elif tname:
+                prev_was_poll = False
+
+            if tname == "send_message":
+                msg_body = str(args.get("Message") or args.get("message") or args.get("content") or "")
+                if len(msg_body) > 1800:
+                    oversized_swarm_messages += 1
+
             if tname in _DELEGATION_TOOLS:
                 step_delegated = True
                 if tname == "invoke_subagent":
@@ -103,11 +193,14 @@ def analyze_compliance(transcript_path: Path) -> Dict[str, Any]:
                     if sm not in scripts_seen:
                         scripts_seen.append(sm)
                 cmd_low = cmd.replace("\\", "/").lower()
-                if "nk_external_projects/" in cmd_low and ".staging" not in cmd_low and "win32_2pc_engine.py" not in cmd_low:
-                    if not any(ro in cmd_low for ro in ("pytest", "rsi_convergence_engine.py", "ast_guard_validator.py")):
-                        ext_writes += 1
+                if "nk_external_projects/" in cmd_low and ".staging" not in cmd_low:
+                    if not any(ro in cmd_low for ro in _READONLY_CMD_MARKERS):
+                        if _WRITE_CMD_RE.search(cmd) and not any(
+                            sm in cmd_low for sm in ("patch_notes.md", "readme")
+                        ):
+                            ext_writes += 1
 
-        if step_delegated or "USER" in src:
+        if step_delegated or is_turn_boundary:
             cur_streak = 0
         elif step_direct > 0:
             cur_streak += step_direct
@@ -119,10 +212,12 @@ def analyze_compliance(transcript_path: Path) -> Dict[str, Any]:
     long_sentences = sum(1 for s in sentences if len(re.findall(r"\b\w+\b", s)) > 20)
 
     return {
-        "passed": max_streak <= 12 and ext_writes == 0,
+        "passed": max_streak <= 12 and ext_writes == 0 and oversized_swarm_messages == 0,
         "max_consecutive_direct_tools": max_streak,
         "subagent_delegations": delegations,
         "external_writes_outside_staging": ext_writes,
+        "polling_list_calls": polling_list_calls,
+        "oversized_swarm_messages": oversized_swarm_messages,
         "nk_scripts_invoked": scripts_seen,
         "unverified_final_sentences_over_20_words": long_sentences,
     }
@@ -132,7 +227,8 @@ def check_evidence(transcript_path: Optional[Path] = None, message: str = "") ->
     """Verifica che le certificazioni PASS o CONVERGED_OPTIMAL abbiano exit code 0 dopo l'ultimo input utente."""
     records: List[Dict[str, Any]] = []
     if transcript_path and transcript_path.is_file():
-        for ln in transcript_path.read_text(encoding="utf-8", errors="replace").splitlines():
+        effective_path = _prefer_full_transcript(transcript_path)
+        for ln in effective_path.read_text(encoding="utf-8", errors="replace").splitlines():
             if ln.strip():
                 try:
                     records.append(json.loads(ln))
@@ -142,7 +238,8 @@ def check_evidence(transcript_path: Optional[Path] = None, message: str = "") ->
     last_user_idx = -1
     for idx, rec in enumerate(records):
         src = str(rec.get("source") or rec.get("type") or "").upper()
-        if "USER" in src:
+        rec_type = str(rec.get("type") or "").upper()
+        if "USER" in src or rec_type == "SYSTEM_MESSAGE" or "SYSTEM_MESSAGE" in src:
             last_user_idx = idx
 
     turn_records = records[last_user_idx + 1 :] if last_user_idx >= 0 else records
@@ -192,7 +289,7 @@ def handle_oracle_lock(action: str, target: Path, lock_file: Path) -> Tuple[Dict
         return {"status": "ERROR", "passed": False, "error": f"Empty or missing target: {target}"}, 1
 
     combined = hashlib.sha256(json.dumps(current_map, sort_keys=True).encode("utf-8")).hexdigest()
-    if action == "create":
+    if action in ("create", "freeze"):
         lock_file.parent.mkdir(parents=True, exist_ok=True)
         payload = {"target": target.resolve().as_posix(), "files": current_map, "combined_sha256": combined}
         lock_file.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -219,8 +316,31 @@ def handle_oracle_lock(action: str, target: Path, lock_file: Path) -> Tuple[Dict
     return {"status": "VERIFIED", "passed": True, "mismatches": []}, 0
 
 
+def handle_report_conflict(
+    root: Optional[Path] = None,
+    test_a: str = "",
+    test_b: str = "",
+    reason: str = "",
+    output: Optional[Path] = None,
+) -> Tuple[Dict[str, Any], int]:
+    """Genera epistemic_conflict_report.json e ferma il ciclo con HALT_EPISTEMIC_CONFLICT."""
+    base_root = Path(root).resolve() if root else Path(".").resolve()
+    out_path = Path(output).resolve() if output else (base_root / "nk_tracking" / "epistemic_conflict_report.json")
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    payload: Dict[str, Any] = {
+        "status": "HALT_EPISTEMIC_CONFLICT",
+        "passed": True,
+        "test_a": test_a,
+        "test_b": test_b,
+        "reason": reason or "Epistemic conflict detected between locked oracle tests or requirements.",
+        "report_path": out_path.as_posix(),
+    }
+    out_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    return payload, 0
+
+
 def lint_prompt_text(prompt_text: str) -> Tuple[Dict[str, Any], int]:
-    """Verifica gli anti-pattern AP-1..AP-7 e AP-2b su un prompt generato."""
+    """Verifica gli anti-pattern AP-1..AP-9 e AP-2b su un prompt generato."""
     txt = prompt_text or ""
     low = txt.lower()
     phases = _PHASE_RE.findall(txt)
@@ -259,6 +379,19 @@ def lint_prompt_text(prompt_text: str) -> Tuple[Dict[str, Any], int]:
         if (high_q or "15-20" in low or "30 " in low) and "research" not in low:
             violations.append({"code": "AP-7", "message": "Simultaneous search_web + tavily >10 queries without research subagent sharding."})
 
+    has_builder_role = any(b in low for b in ("nk-builder-agent", "nk-triad-rsi-builder", "builder"))
+    has_holdout_secret = any(h in low for h in ("holdout set b", "battery_b_holdout", "holdout_set_b"))
+    if has_builder_role and has_holdout_secret:
+        violations.append({"code": "AP-8", "message": "Holdout Set B secret test cases leaked to Builder prompt."})
+
+    if "<env_capsule>" in low and "!diretto" not in low and "invoke_subagent" not in low:
+        has_user_spoof_markers = (
+            any(m in low for m in ("opera come nk-session-controller", "opera come nk-master-hub", "prompt utente iniziale", "user prompt:"))
+            or (len(phases) >= 2 and not any(w in low for w in ("builder shard", "sub-agente", "subagent", "worker")))
+        )
+        if has_user_spoof_markers:
+            violations.append({"code": "AP-9", "message": "Improper <env_capsule> in initial user prompt without !diretto or invoke_subagent."})
+
     passed = len(violations) == 0
     return {"passed": passed, "violations_count": len(violations), "violations": violations}, (0 if passed else 1)
 
@@ -266,28 +399,66 @@ def lint_prompt_text(prompt_text: str) -> Tuple[Dict[str, Any], int]:
 def main(argv: Optional[Sequence[str]] = None) -> int:
     """Punto di ingresso CLI per gli strumenti transcript e prompt linter."""
     parser = argparse.ArgumentParser(description="Nexus Keystone Transcript & Prompt Tools")
-    parser.add_argument("subcommand", choices=("locate", "compliance", "evidence", "oracle-lock", "lint-prompt"))
+    parser.add_argument(
+        "subcommand",
+        choices=("locate", "compliance", "evidence", "oracle-lock", "lint-prompt", "report-conflict"),
+    )
     parser.add_argument("action", nargs="?", default="")
     parser.add_argument("--transcript", type=str, default=None)
     parser.add_argument("--conversation-id", type=str, default=None)
     parser.add_argument("--brain-dir", type=str, default=None)
     parser.add_argument("--message", type=str, default="")
+    parser.add_argument("--root", type=str, default="")
     parser.add_argument("--target", type=str, default="")
     parser.add_argument("--lock-file", type=str, default="")
+    parser.add_argument("--test-a", type=str, default="")
+    parser.add_argument("--test-b", type=str, default="")
+    parser.add_argument("--reason", type=str, default="")
+    parser.add_argument("--output", type=str, default="")
     parser.add_argument("--file", type=str, default=None)
     parser.add_argument("--text", type=str, default=None)
     args = parser.parse_args(argv)
 
+    brain_p = Path(args.brain_dir) if args.brain_dir else None
+
     if args.subcommand == "locate":
-        res, code = locate_transcript(args.transcript, args.conversation_id, Path(args.brain_dir) if args.brain_dir else None)
+        res, code = locate_transcript(args.transcript, args.conversation_id, brain_p)
     elif args.subcommand == "compliance":
-        res = analyze_compliance(Path(args.transcript or ""))
+        tr_path_str = args.transcript
+        if not tr_path_str and args.conversation_id:
+            loc_res, loc_code = locate_transcript(None, args.conversation_id, brain_p)
+            if loc_code != 0:
+                print(json.dumps(loc_res, indent=2, ensure_ascii=False))
+                return loc_code
+            tr_path_str = str(loc_res.get("transcript_path", ""))
+        res = analyze_compliance(Path(tr_path_str or ""))
         code = 0 if res.get("passed") else 1
     elif args.subcommand == "evidence":
-        res, code = check_evidence(Path(args.transcript) if args.transcript else None, args.message)
+        tr_path_str = args.transcript
+        if not tr_path_str and args.conversation_id:
+            loc_res, loc_code = locate_transcript(None, args.conversation_id, brain_p)
+            if loc_code != 0 and not args.message:
+                print(json.dumps(loc_res, indent=2, ensure_ascii=False))
+                return loc_code
+            tr_path_str = str(loc_res.get("transcript_path", "")) if loc_code == 0 else None
+        res, code = check_evidence(Path(tr_path_str) if tr_path_str else None, args.message)
     elif args.subcommand == "oracle-lock":
-        act = args.action if args.action in ("create", "verify") else "verify"
-        res, code = handle_oracle_lock(act, Path(args.target), Path(args.lock_file))
+        act = args.action if args.action in ("create", "freeze", "verify") else "verify"
+        target_p = Path(args.target) if args.target else (Path(args.root) / "tests" if args.root else Path("tests"))
+        lock_p = (
+            Path(args.lock_file)
+            if args.lock_file
+            else (Path(args.root) / "nk_tracking" / "oracle_lock.json" if args.root else Path("nk_tracking/oracle_lock.json"))
+        )
+        res, code = handle_oracle_lock(act, target_p, lock_p)
+    elif args.subcommand == "report-conflict":
+        res, code = handle_report_conflict(
+            root=Path(args.root) if args.root else None,
+            test_a=args.test_a,
+            test_b=args.test_b,
+            reason=args.reason,
+            output=Path(args.output) if args.output else None,
+        )
     else:
         txt = args.text or (Path(args.file).read_text(encoding="utf-8", errors="replace") if args.file else "")
         res, code = lint_prompt_text(txt)

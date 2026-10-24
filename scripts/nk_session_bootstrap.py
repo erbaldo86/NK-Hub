@@ -68,6 +68,7 @@ _BOOTSTRAP_LOCK = threading.Lock()
 
 _WAIT_OBJECT_0 = 0x00000000
 _WAIT_ABANDONED_0 = 0x00000080
+HUB_ROOT: Path = _workspace_root.resolve()
 
 
 class NKSessionBootstrap:
@@ -98,8 +99,6 @@ class NKSessionBootstrap:
         self.fast_cache_file = self.temp_bootstrap_dir / ".bootstrap_fast_cache.json"
         self.temp_bootstrap_dir.mkdir(parents=True, exist_ok=True)
         self.model_profile = os.environ.get("NK_MODEL_PROFILE", "argon")
-        if "PYTEST_CURRENT_TEST" not in os.environ:
-            os.environ.setdefault("NK_MODEL_PROFILE", "argon")
         self._last_root_mtime: float = 0.0
         self._last_root_violations: List[str] = []
 
@@ -164,8 +163,6 @@ class NKSessionBootstrap:
         start_time = time.perf_counter()
         os.environ["PYTHONUTF8"] = "1"
         os.environ["PYTHONIOENCODING"] = "utf-8"
-        if "PYTEST_CURRENT_TEST" not in os.environ:
-            os.environ.setdefault("NK_MODEL_PROFILE", "argon")
 
         report: Dict[str, Any] = {
             "status": "PASS",
@@ -316,23 +313,37 @@ class NKSessionBootstrap:
         forbidden_dirs = ("src_app", "app", "src")
         detected_dirs: List[str] = []
         detected_py: List[str] = []
+        is_hub_root = self.workspace_root.resolve() == HUB_ROOT.resolve()
+        dir_check_root = self.workspace_root if is_hub_root else HUB_ROOT
+
+        try:
+            with os.scandir(dir_check_root) as it:
+                for entry in it:
+                    if (
+                        entry.is_dir(follow_symlinks=False)
+                        and entry.name in forbidden_dirs
+                    ):
+                        target = Path(entry.path)
+                        if any(target.iterdir()):
+                            detected_dirs.append(entry.name)
+        except Exception:
+            for fdir in forbidden_dirs:
+                target = dir_check_root / fdir
+                if target.exists() and any(target.iterdir()):
+                    detected_dirs.append(fdir)
 
         try:
             with os.scandir(self.workspace_root) as it:
                 for entry in it:
-                    if entry.is_dir(follow_symlinks=False) and entry.name in forbidden_dirs:
-                        target = Path(entry.path)
-                        if any(target.iterdir()):
-                            detected_dirs.append(entry.name)
-                    elif entry.is_file(follow_symlinks=False) and entry.name.endswith(".py"):
-                        detected_py.append(entry.name)
+                    if entry.is_file(follow_symlinks=False) and entry.name.endswith(
+                        ".py"
+                    ):
+                        if is_hub_root or entry.name not in ("conftest.py", "setup.py"):
+                            detected_py.append(entry.name)
         except Exception:
-            for fdir in forbidden_dirs:
-                target = self.workspace_root / fdir
-                if target.exists() and any(target.iterdir()):
-                    detected_dirs.append(fdir)
             for root_py in self.workspace_root.glob("*.py"):
-                detected_py.append(root_py.name)
+                if is_hub_root or root_py.name not in ("conftest.py", "setup.py"):
+                    detected_py.append(root_py.name)
 
         ordered_dirs = [d for d in forbidden_dirs if d in detected_dirs]
         detected = ordered_dirs + sorted(detected_py)
@@ -343,6 +354,7 @@ class NKSessionBootstrap:
         return {
             "passed": passed,
             "root_mtime": curr_mtime,
+            "is_external_project": not is_hub_root,
             "violations": detected,
             "details": "Workspace root isolated."
             if passed
@@ -434,13 +446,43 @@ class NKSessionBootstrap:
             return {"passed": False, "details": "quality_baseline.json missing."}
         try:
             data = json.loads(baseline_path.read_text(encoding="utf-8"))
-            unit_pass = (
-                data.get("metrics", {}).get("unit_tests_pass_pct", {}).get("value", 0)
+            metrics = (
+                data.get("metrics", {})
+                if isinstance(data.get("metrics"), dict)
+                else {}
             )
+            raw_pct = metrics.get("unit_tests_pass_pct")
+            if isinstance(raw_pct, dict) and "value" in raw_pct:
+                unit_pass = float(raw_pct["value"])
+            elif isinstance(raw_pct, (int, float)):
+                unit_pass = float(raw_pct)
+            elif data.get("pass_rate_pct") is not None:
+                unit_pass = float(data["pass_rate_pct"])
+            elif data.get("pass_rate") is not None:
+                unit_pass = float(data["pass_rate"])
+            else:
+                unit_pass = 0.0
+
+            raw_tot = metrics.get("unit_tests_total") or metrics.get(
+                "total_golden_tests"
+            )
+            if isinstance(raw_tot, dict) and "value" in raw_tot:
+                total_tests = int(raw_tot["value"])
+            elif isinstance(raw_tot, (int, float)):
+                total_tests = int(raw_tot)
+            else:
+                total_tests = int(
+                    data.get("total_tests")
+                    or data.get("golden_tests_count")
+                    or data.get("passed_tests")
+                    or 0
+                )
+
             passed = unit_pass >= 100.0
             return {
                 "passed": passed,
                 "unit_pass_pct": unit_pass,
+                "total_tests": total_tests,
                 "details": f"Baseline pass rate: {unit_pass}%",
             }
         except Exception as exc:

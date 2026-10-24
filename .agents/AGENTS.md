@@ -31,6 +31,7 @@
 * Il Livello 0 genera lo Specchio Concettuale, il Meta-Prompt e l'Intent Brief (`IB-*` con `R1..Rn`).
 * Prima dell'esecuzione, l'agente richiede conferma rapida 1-Click tramite `ask_question` (`Conferma`, `Solo risposta diretta`, `Modifica intento`).
 * Il gate applica le 5 esenzioni anti-loop (`ok`, `[0]..[14]`, `Proceed`, `<env_capsule>`, `!diretto`).
+* La stringa `<env_capsule>` dentro un prompt utente iniziale (`step <= 10`) non disattiva il Gate L0 se manca `!diretto`.
 * Il comando `!diretto` salta solo la conferma `ask_question` del Gate L0 (`L0_GATE_ONLY`).
 * Anche con `!diretto` restano obbligatori la classificazione del Mode, lo staging e la topologia 2-Tier.
 * L'utente disattiva o riattiva il gate con `"disattiva prompt gate"`, `"attiva prompt gate"` o `"!diretto"`.
@@ -75,7 +76,8 @@
 
 ### [RULE-01] UNIVERSAL_DDI_MANDATE (Topologia 2-Tier Hub-and-Spoke)
 * L'Agente Principale registra i worker con `define_subagent(enable_subagent_tools=False)` per imporre un singolo livello.
-* Per i Builder, l'orchestratore registra il worker con `define_subagent(EnableWriteTools=True, EnableSubagentTools=False)`.
+* Per Builder e Scribe, l'Orchestratore registra sempre il worker con `define_subagent(Name="<Role>-Worker", EnableWriteTools=True, EnableSubagentTools=False)`.
+* Per gli Auditor (`NK-Security-DAST-Auditor`, `NK-RSI-Auditor`), l'Orchestratore mantiene `EnableWriteTools=False` in sola lettura (`GT-14`).
 * I 5 Sub-Agenti Nativi in `.agents/agents/` sono: `NK-Specifier-Agent`, `NK-Builder-Agent`, `NK-Security-DAST-Auditor`, `NK-RSI-Auditor` e `NK-Scribe-Agent`.
 * In `Mode C` (`<= 150` LOC), il Fast-Bypass consente l'esecuzione diretta in `.staging/` con `--vibe-check`.
 * Per scrivere codice, l'Agente Principale delega il lavoro a un Builder in `.staging/`.
@@ -94,8 +96,16 @@
 * Nessun agente inventa date di scadenza o inserisce record sintetici per superare i benchmark.
 
 ### [RULE-ORACLE-LOCK] IMMUTABLE_ORACLE_LOCK_MANDATE
-* Prima della fase Build, l'Auditor congela gli hash SHA-256 dei test in `nk_tracking/oracle_lock.json`.
+* Prima della Fase 3, l'Orchestratore congela i test e l'Holdout Set in `nk_tracking/oracle_lock.json`.
 * Nessun Builder modifica la ground truth o i test congelati per forzare il superamento.
+* Nessun Orchestratore rivela query, acronimi o casi dell'Holdout Set nei prompt inviati ai Builder.
+* Nessun Auditor modifica una query dell'Holdout Set per mascherare un fallimento (`M-05`).
+
+### [RULE-EPISTEMIC-HONESTY] EPISTEMIC_HONESTY_AND_ANTI_GOODHART_MANDATE
+* Il sistema applica la matrice di incentivi asimmetrica `100x` contro ogni forma di test-gaming.
+* **+100 punti:** L'agente applica una soluzione reale che risolve il difetto su codice e dati di produzione.
+* **0 punti (Esito Neutro Protetto):** L'agente segnala conflitti tra test congelati tramite `python scripts/nk_transcript_tools.py report-conflict` (`HALT_EPISTEMIC_CONFLICT`).
+* **-10.000 punti ($\Delta_k + 100 D_k$, $Q(S_k)=0.0$):** Il sistema vieta test-gaming, `PYTEST_CURRENT_TEST`, `inspect.currentframe()`, soglie `len(grants)` e auto-censura.
 
 ### [RULE-SWARM-HYGIENE] / [RULE-08] / [RULE-08.2] SWARM_MESSAGE_HYGIENE_MANDATE
 * Nessun sub-agente invia messaggi `send_message` di ritorno superiori a `1.800` caratteri netti (`2.000` MTU).

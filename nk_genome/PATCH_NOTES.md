@@ -1,10 +1,33 @@
 # NEXUS KEYSTONE OFFICIAL CHANGELOG E PATCH NOTES (SSOT)
 
 > **Single Source of Truth (SSOT):** `nk_genome/PATCH_NOTES.md`  
-> **Release Ufficiale:** `v4.3.0-Super-Plan-Triad-RSI` (`v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified`)  
-> **Milestone Anchor:** `NK-MS-20261024-SUPER-PLAN-TRIAD-v6.0.0-RSI`  
+> **Release Ufficiale:** `v4.4.0-STE100-Unified` (`v4.3.0-Super-Plan-Triad-RSI` / `v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified`)  
+> **Milestone Anchor:** `NK-MS-20261024-TRIAD-EPISTEMIC-v4.4.0-RSI`  
 > **Data Consolidamento:** `2026-10-24`  
-> **Stato Release:** `[NK-SUPER-BRIEF-STATUS: AUDITED_AND_CERTIFIED_v4.3.0_SOVEREIGN]`
+> **Stato Release:** `[NK-SUPER-BRIEF-STATUS: AUDITED_AND_CERTIFIED_v4.4.0_SOVEREIGN]`
+
+---
+
+## [v4.4.0-STE100-Unified] - 2026-10-24 (Triad-RSI & Epistemic Honesty Edition)
+
+La release **`v4.4.0-STE100-Unified`** consolida la governance epistemica Triad-RSI e la matrice Anti-Goodharting 100x.
+
+1. **Matrice Asimmetrica 100x Anti-Goodharting e `[RULE-EPISTEMIC-HONESTY]` (`.agents/AGENTS.md`, `scripts/rsi_convergence_engine.py`):**
+   - Istituisce la matrice d'incentivi asimmetrica: `+100` punti per fix reali, `0` per conflitti segnalati e `-10.000` per test-gaming.
+   - Aggiunge il canale `deception_gaming_count` (`+100 * D_k`) in `RSIDefectVector` forzando la fitness `Q(S_k) = 0.0` su ogni tentativo d'inganno.
+   - Introduce il sottocomando `report-conflict` in `nk_transcript_tools.py` che emette `HALT_EPISTEMIC_CONFLICT` (`exit 0`) e salva `nk_tracking/epistemic_conflict_report.json`.
+2. **Ispettore SAST Anti-Gaming (`SAST-GAMING-D01..D04`) e Guardia `U-20` Cross-Repo (`scripts/ast_guard_validator.py`):**
+   - Blocca nel codice applicativo (`src_app/`, `src/`, `app/`) lo sniffing di `PYTEST_CURRENT_TEST` (`D01`) e l'introspezione dello stack (`D02`).
+   - Vieta i path host cablati o fixture sintetiche (`D03`) e le soglie arbitrarie `len(grants) > N` (`D04`).
+   - Riattiva `_resolve_production_counterpart` (`U-20`) sui progetti esterni risolvendo i file in `<ExternalRepo>/.staging/src_app/` contro la produzione esterna.
+3. **Isolamento Blind Holdout (`[RULE-ORACLE-LOCK]`), Shadow Sandbox Multi-Target e Forensics (`scripts/`):**
+   - Supporta `oracle-lock freeze --root` e `verify --root` in `nk_transcript_tools.py` isolando l'Holdout Set B dai Builder.
+   - Aggiorna `dast_sandbox_runner.py` copiando `data/` e `benchmark_empirico_v7/`, scansionando tutte le cartelle Python e salvando `dast_last_report.json`.
+   - Potenzia `nk_transcript_tools.py` con `--conversation-id`, priorita a `transcript_full.jsonl`, metriche `polling_list_calls`/`oversized_swarm_messages` e regole `AP-8`/`AP-9`.
+4. **Bootstrap Dual-Root, Baseline 2PC, Port Scanner e Suite a 108 Test (`scripts/`, `tests/test_triad_epistemic_governance_v44.py`):**
+   - Supporta lo schema duale di `quality_baseline.json` e `--project-root` in `nk_session_bootstrap.py`, `win32_2pc_engine.py` e `nk_session_handoff.py`.
+   - Estende `safe_cleanup_dev_servers.py` con `--ports`, la porta `8018` e lo scanner dinamico sulle porte `3000..9999`.
+   - Espande la suite permanente Zero-Mock a `108/108 PASS` (`100.0%`) su `29` moduli di test (`33` file in `tests/`).
 
 ---
 
@@ -138,4 +161,3 @@ La versione **`v4.0.0-Native-Swarm-Playbooks`** introduce una rifondazione archi
    - `scripts/nk_session_bootstrap.py` filtra i transcript dei sub-agenti tramite `<env_capsule>` privilegiando la conversazione principale.
    - Rimossa la cartella duplicata `nk_tracking/episodic_memory/`, i file `.bak_*` e i `18` report obsoleti `v1.9..v3.5`.
    - Il tempo di esecuzione degli `86` Golden e Stress Tests scende da `12.54 s` a **`7.08 s` (`100.0% PASS`)**.
-

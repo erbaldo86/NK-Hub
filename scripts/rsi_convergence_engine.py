@@ -135,6 +135,11 @@ class RSIDefectVector(BaseModel):
         ge=0,
         description="Drift contrattuali o topologici L2/L3 confermati",
     )
+    deception_gaming_count: int = Field(
+        default=0,
+        ge=0,
+        description="Episodi di test-gaming o inganno epistemico [RULE-EPISTEMIC-HONESTY]",
+    )
     measured_components: List[str] = Field(
         default_factory=list,
         description="Componenti di verifica effettivamente misurati",
@@ -325,6 +330,7 @@ def compute_delta(defects: RSIDefectVector, profile: str = "code_rsi") -> int:
         + w_g * defects.doc_drift
         + 20 * defects.poc_confirmed_exploits
         + 12 * defects.semantic_drift_findings
+        + 100 * defects.deception_gaming_count
     )
     if w_tfail == 0 and defects.tests_failed > 0:
         raw_delta += 10 * defects.tests_failed
@@ -337,6 +343,8 @@ def compute_fitness(
     profile: str = "code_rsi",
 ) -> float:
     """Calcola il punteggio di fitness iperbolico Q(S_k) nell'intervallo [0, 100]."""
+    if defects.deception_gaming_count > 0:
+        return 0.0
     cfg = RSIProfileRegistry.get(profile)
     d_val = compute_delta(defects, profile=profile) if delta_k is None else delta_k
     if cfg.test_weight <= 0.0:
@@ -551,6 +559,11 @@ class RSIConvergenceEngine:
             return (
                 True,
                 f"Semantic drift saliti da {prev_defects.semantic_drift_findings} a {curr_defects.semantic_drift_findings}.",
+            )
+        if curr_defects.deception_gaming_count > prev_defects.deception_gaming_count:
+            return (
+                True,
+                f"Episodi di test-gaming saliti da {prev_defects.deception_gaming_count} a {curr_defects.deception_gaming_count}.",
             )
         if strict_monotonic:
             prev_d = compute_delta(prev_defects)
@@ -1055,7 +1068,7 @@ class RSIConvergenceEngine:
             if fpath.suffix == ".py":
                 if ASTGuardValidator is not None:
                     rep = ASTGuardValidator.validate_code_edit(
-                        text, text, target_file=fpath.name
+                        text, text, target_file=fpath.as_posix()
                     )
                     if not rep.is_valid:
                         sast_in_rep = int(rep.metrics.get("sast_violations_count", 0))
@@ -1219,8 +1232,14 @@ class RSIConvergenceEngine:
             ]
 
         for fpath in sorted(list(dict.fromkeys(candidate_files))):
+            eff_fpath = fpath
             try:
-                text = fpath.read_text(encoding="utf-8", errors="replace")
+                rel_cand = fpath.relative_to(root).as_posix()
+                eff_fpath = self._resolve_candidate(root, rel_cand)
+            except Exception:
+                eff_fpath = fpath
+            try:
+                text = eff_fpath.read_text(encoding="utf-8", errors="replace")
             except Exception:
                 continue
 
@@ -1234,7 +1253,12 @@ class RSIConvergenceEngine:
                     invalid_json_files.append(f"{fpath.name}: {exc}")
             elif fpath.suffix == ".py" and not fpath.name.startswith("test_"):
                 if ASTGuardValidator is not None:
-                    v_list = ASTGuardValidator.check_sast_constructs(text)
+                    try:
+                        v_list = ASTGuardValidator.check_sast_constructs(
+                            text, target_file=eff_fpath.as_posix()
+                        )
+                    except TypeError:
+                        v_list = ASTGuardValidator.check_sast_constructs(text)
                     if v_list:
                         sast_count += len(v_list)
                         for v in v_list[:3]:
@@ -1317,42 +1341,84 @@ class RSIConvergenceEngine:
         skills_dir = self._resolve_candidate(root, ".agents/skills")
         broken_links: List[str] = []
         ste100_issues: List[str] = []
+        seen_md_hashes: Set[str] = set()
 
         if skills_dir.exists() and skills_dir.is_dir():
-            for skill_folder in sorted(skills_dir.iterdir()):
-                if not skill_folder.is_dir():
+            md_candidates: List[Path] = sorted(skills_dir.rglob("*.md"))
+            agents_sub_dir = self._resolve_candidate(root, ".agents/agents")
+            if agents_sub_dir.exists() and agents_sub_dir.is_dir():
+                md_candidates.extend(sorted(agents_sub_dir.rglob("*.md")))
+            genome_dir = self._resolve_candidate(root, "nk_genome")
+            if genome_dir.exists() and genome_dir.is_dir():
+                md_candidates.extend(sorted(genome_dir.glob("*.md")))
+            for root_md_name in ("PATCH_NOTES.md", "README.md", "README.it.md"):
+                rmd_cand = self._resolve_candidate(root, root_md_name)
+                if rmd_cand.exists() and rmd_cand.is_file():
+                    md_candidates.append(rmd_cand)
+
+            for md_file in md_candidates:
+                if not md_file.exists() or not md_file.is_file():
                     continue
-                skill_md = self._resolve_candidate(
-                    root, f".agents/skills/{skill_folder.name}/SKILL.md"
+                raw_bytes = md_file.read_bytes()
+                md_sha = hashlib.sha256(raw_bytes).hexdigest()
+                if md_sha in seen_md_hashes:
+                    continue
+                seen_md_hashes.add(md_sha)
+                try:
+                    rel_md = md_file.relative_to(root).as_posix()
+                except ValueError:
+                    rel_md = md_file.name
+
+                content = raw_bytes.decode("utf-8", errors="replace")
+                is_skill_doc = ".agents/skills" in rel_md
+                is_agent_doc = ".agents/agents" in rel_md
+                is_genome_doc = rel_md.startswith("nk_genome/") and md_file.name != "repo_map.md"
+                is_patch_notes = md_file.name == "PATCH_NOTES.md"
+
+                should_check_ste = (
+                    (is_skill_doc and ("v3.0.0" in content or "v3.1.0" in content or "v3.2.0" in content or "[RULE-STE100]" in content))
+                    or is_agent_doc
+                    or is_genome_doc
+                    or is_patch_notes
+                    or canonical_profile == "ste100_rsi"
                 )
-                if not skill_md.exists():
-                    continue
-                content = skill_md.read_text(encoding="utf-8", errors="replace")
-                if "v3.0.0" in content or "v3.1.0" in content or "v3.2.0" in content:
+                if should_check_ste:
                     ste_skill = verify_ste100_compliance(content)
                     if not ste_skill["passed"]:
                         ste100_issues.extend(
-                            f"{skill_folder.name}: {v}"
+                            f"{rel_md}: {v}"
                             for v in ste_skill["violations"][:2]
                         )
-                for m in re.finditer(
-                    r"\]\(((?:resources|references)/[^\)]+)\)", content
-                ):
-                    rel_link = m.group(1)
-                    target_aux = self._resolve_candidate(
-                        root, f".agents/skills/{skill_folder.name}/{rel_link}"
-                    )
-                    if not target_aux.exists():
-                        broken_links.append(f"{skill_folder.name}/{rel_link}")
+
+                if md_file.name == "SKILL.md":
+                    skill_folder_name = md_file.parent.name
+                    for m in re.finditer(
+                        r"\]\(((?:resources|references)/[^\)]+)\)", content
+                    ):
+                        rel_link = m.group(1)
+                        target_aux = self._resolve_candidate(
+                            root, f".agents/skills/{skill_folder_name}/{rel_link}"
+                        )
+                        if not target_aux.exists():
+                            broken_links.append(f"{rel_md} -> {rel_link}")
         else:
-            # Directory esterna o temporanea: esclude EXCLUDED_SCAN_DIRS (OPT-9) e filtra STE100 (OPT-2)
-            for md_file in root.rglob("*.md"):
+            # Directory esterna o temporanea: esclude EXCLUDED_SCAN_DIRS (OPT-9) e deduplica per SHA-256
+            for md_file in sorted(root.rglob("*.md")):
                 if _is_excluded_rel_path(md_file, root):
                     continue
-                content = md_file.read_text(encoding="utf-8", errors="replace")
+                raw_bytes = md_file.read_bytes()
+                md_sha = hashlib.sha256(raw_bytes).hexdigest()
+                if md_sha in seen_md_hashes:
+                    continue
+                seen_md_hashes.add(md_sha)
+                try:
+                    rel_md = md_file.relative_to(root).as_posix()
+                except ValueError:
+                    rel_md = md_file.name
+                content = raw_bytes.decode("utf-8", errors="replace")
                 has_nk_marker = (
                     ".agents" in md_file.parts
-                    or md_file.name == "SKILL.md"
+                    or md_file.name in ("SKILL.md", "PATCH_NOTES.md")
                     or ".agents" in content
                     or "SKILL.md" in content
                     or "[RULE-STE100]" in content
@@ -1361,7 +1427,7 @@ class RSIConvergenceEngine:
                     ste_md = verify_ste100_compliance(content)
                     if not ste_md["passed"]:
                         ste100_issues.extend(
-                            f"{md_file.name}: {v}" for v in ste_md["violations"]
+                            f"{rel_md}: {v}" for v in ste_md["violations"]
                         )
                 for m in re.finditer(r"\]\(([^\)]+)\)", content):
                     link_target = m.group(1)
@@ -1377,7 +1443,7 @@ class RSIConvergenceEngine:
                     ):
                         continue
                     if not (md_file.parent / link_target).exists():
-                        broken_links.append(f"{md_file.name} -> {link_target}")
+                        broken_links.append(f"{rel_md} -> {link_target}")
 
         if broken_links:
             violations.append(f"Link ausiliari interrotti: {broken_links}")

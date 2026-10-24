@@ -39,6 +39,8 @@ _SAFE_MARKERS = (
     "nk_hooks",
     "nk_sandbox_",
     "nk_diagnostics",
+    "patch_notes.md",
+    "readme",
 )
 _CERT_RE = re.compile(r"(\bCONVERGED_OPTIMAL\b|\b\d+/\d+\s+PASS\b)", re.IGNORECASE)
 

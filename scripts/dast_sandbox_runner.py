@@ -734,7 +734,21 @@ def run_staging_shadow_verification(
         "src",
         "src_app",
         "app",
+        "data",
+        "benchmark_empirico_v7",
+        "config",
     )
+    excluded_top_dirs = {
+        ".git",
+        ".venv",
+        "venv",
+        "__pycache__",
+        ".pytest_cache",
+        "node_modules",
+        ".staging",
+        ".mypy_cache",
+        ".ruff_cache",
+    }
     allowed_root_exts = {
         ".py",
         ".md",
@@ -756,6 +770,8 @@ def run_staging_shadow_verification(
         "venv",
         "node_modules",
         ".wal",
+        ".mypy_cache",
+        ".ruff_cache",
     )
 
     overlay_files: List[str] = []
@@ -769,6 +785,7 @@ def run_staging_shadow_verification(
         sb_id = sb.sandbox_id
         sb_dir_str = str(sb.sandbox_dir)
 
+        copied_top_dirs: set[str] = set()
         for dname in essential_dirs:
             src_d = root / dname
             if src_d.exists() and src_d.is_dir():
@@ -778,16 +795,37 @@ def run_staging_shadow_verification(
                     dirs_exist_ok=True,
                     ignore=ignore_fn,
                 )
+                copied_top_dirs.add(dname)
 
         for item in root.iterdir():
             if (
+                item.is_dir()
+                and item.name not in excluded_top_dirs
+                and item.name not in copied_top_dirs
+            ):
+                shutil.copytree(
+                    item,
+                    sb.sandbox_dir / item.name,
+                    dirs_exist_ok=True,
+                    ignore=ignore_fn,
+                )
+                copied_top_dirs.add(item.name)
+            elif (
                 item.is_file()
                 and item.suffix.lower() in allowed_root_exts
-                and item.stat().st_size <= 10 * 1024 * 1024
+                and item.stat().st_size <= 50 * 1024 * 1024
             ):
                 shutil.copy2(item, sb.sandbox_dir / item.name)
 
         if stg.exists() and stg.is_dir():
+            stg_data = stg / "data"
+            if stg_data.exists() and stg_data.is_dir():
+                shutil.copytree(
+                    stg_data,
+                    sb.sandbox_dir / "data",
+                    dirs_exist_ok=True,
+                    ignore=ignore_fn,
+                )
             for stg_file in sorted(stg.rglob("*")):
                 if not stg_file.is_file():
                     continue
@@ -840,38 +878,82 @@ def run_staging_shadow_verification(
                 sb.sandbox_dir / d
                 for d in ("scripts", "src", "src_app", "app")
                 if (sb.sandbox_dir / d).exists()
+                and (sb.sandbox_dir / d).is_dir()
+                and any((sb.sandbox_dir / d).rglob("*.py"))
             ]
-            target_for_guard = code_targets[0] if code_targets else sb.sandbox_dir
+            targets_for_guard = code_targets if code_targets else [sb.sandbox_dir]
             if guard_script.exists():
                 try:
-                    proc_ast = subprocess.run(
-                        [
-                            sys.executable,
-                            str(guard_script),
-                            "--target",
-                            str(target_for_guard),
-                        ],
-                        cwd=str(sb.sandbox_dir),
-                        env=env,
-                        capture_output=True,
-                        text=True,
-                        encoding="utf-8",
-                        errors="replace",
-                        timeout=min(timeout_sec, 60.0),
-                    )
+                    agg_passed = True
+                    agg_exit = 0
+                    agg_files_checked = 0
+                    agg_violations = 0
+                    agg_stdout_parts: List[str] = []
+                    agg_stderr_parts: List[str] = []
+
+                    for t_dir in targets_for_guard:
+                        py_count = len(
+                            [
+                                f
+                                for f in t_dir.rglob("*.py")
+                                if "__pycache__" not in f.parts
+                            ]
+                        )
+                        proc_ast = subprocess.run(
+                            [
+                                sys.executable,
+                                str(guard_script),
+                                "--target",
+                                str(t_dir),
+                            ],
+                            cwd=str(sb.sandbox_dir),
+                            env=env,
+                            capture_output=True,
+                            text=True,
+                            encoding="utf-8",
+                            errors="replace",
+                            timeout=min(timeout_sec, 60.0),
+                        )
+                        agg_files_checked += py_count
+                        if proc_ast.returncode != 0:
+                            agg_passed = False
+                            if agg_exit == 0:
+                                agg_exit = proc_ast.returncode
+                            fail_lines = [
+                                ln
+                                for ln in (proc_ast.stdout or "").splitlines()
+                                if ln.strip().startswith("- [")
+                            ]
+                            agg_violations += max(1, len(fail_lines))
+                        if proc_ast.stdout:
+                            agg_stdout_parts.append(proc_ast.stdout)
+                        if proc_ast.stderr:
+                            agg_stderr_parts.append(proc_ast.stderr)
+
+                    combined_out = "\n".join(agg_stdout_parts)
+                    combined_err = "\n".join(agg_stderr_parts)
                     ast_guard_res = {
                         "executed": True,
-                        "passed": proc_ast.returncode == 0,
-                        "exit_code": proc_ast.returncode,
-                        "stdout": proc_ast.stdout[-1500:],
-                        "stderr": proc_ast.stderr[-1000:],
+                        "passed": agg_passed,
+                        "exit_code": agg_exit,
+                        "files_checked": agg_files_checked,
+                        "violations": agg_violations,
+                        "targets_scanned": [str(t) for t in targets_for_guard],
+                        "stdout": combined_out[-1500:],
+                        "stderr": combined_err[-1000:],
+                        "stdout_tail": combined_out[-1500:],
+                        "stderr_tail": combined_err[-1500:],
                     }
                 except Exception as exc:
                     ast_guard_res = {
                         "executed": True,
                         "passed": False,
                         "exit_code": -1,
+                        "files_checked": 0,
+                        "violations": 1,
                         "error": str(exc),
+                        "stdout_tail": "",
+                        "stderr_tail": str(exc)[-1500:],
                     }
 
         tests_dir = sb.sandbox_dir / "tests"
@@ -893,6 +975,8 @@ def run_staging_shadow_verification(
                     "exit_code": proc_pt.returncode,
                     "stdout": proc_pt.stdout[-2000:],
                     "stderr": proc_pt.stderr[-1000:],
+                    "stdout_tail": proc_pt.stdout[-1500:],
+                    "stderr_tail": proc_pt.stderr[-1500:],
                 }
             except Exception as exc:
                 pytest_res = {
@@ -900,6 +984,8 @@ def run_staging_shadow_verification(
                     "passed": False,
                     "exit_code": -1,
                     "error": str(exc),
+                    "stdout_tail": "",
+                    "stderr_tail": str(exc)[-1500:],
                 }
 
     sandbox_cleaned = not Path(sb_dir_str).exists()
@@ -908,7 +994,7 @@ def run_staging_shadow_verification(
         and bool(pytest_res.get("passed", True))
         and sandbox_cleaned
     )
-    return {
+    report_payload: Dict[str, Any] = {
         "status": "PASS" if overall_passed else "FAIL",
         "passed": overall_passed,
         "sandbox_id": sb_id,
@@ -923,6 +1009,39 @@ def run_staging_shadow_verification(
         "pytest": pytest_res,
         "duration_sec": round(time.perf_counter() - t0, 4),
     }
+    if not overall_passed:
+        combined_stdout = "\n".join(
+            p
+            for p in (
+                str(ast_guard_res.get("stdout", "")),
+                str(pytest_res.get("stdout", "")),
+            )
+            if p
+        )
+        combined_stderr = "\n".join(
+            p
+            for p in (
+                str(ast_guard_res.get("stderr", "")),
+                str(ast_guard_res.get("error", "")),
+                str(pytest_res.get("stderr", "")),
+                str(pytest_res.get("error", "")),
+            )
+            if p
+        )
+        report_payload["stdout_tail"] = combined_stdout[-1500:]
+        report_payload["stderr_tail"] = combined_stderr[-1500:]
+
+    try:
+        diag_dir = Path(tempfile.gettempdir()) / "nk_diagnostics"
+        diag_dir.mkdir(parents=True, exist_ok=True)
+        (diag_dir / "dast_last_report.json").write_text(
+            json.dumps(report_payload, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+    except Exception:
+        pass
+
+    return report_payload
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
