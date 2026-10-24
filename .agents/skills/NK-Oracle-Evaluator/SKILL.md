@@ -4,7 +4,7 @@ description: Playbook Oracolo deterministico e Cold Auditor in sola lettura per 
 version: "3.0.0-STE100-Unified"
 thinking_level: "HIGH"
 nk_tas_audit: "CRV-4.0-Universal"
-patch_version: 6
+patch_version: 7
 nk_tas_date: "2026-10-24"
 domain_id: "DOM-04"
 sector: "AUDIT_DAST_AND_RCA"
@@ -17,7 +17,7 @@ sector: "AUDIT_DAST_AND_RCA"
 4. CANONICAL_SANDBOX_ISOLATION [RULE-00.3]: Esegui le verifiche dinamiche esclusivamente dentro `%TEMP%\nk_sandbox_<uuid>\`.
 5. JSON_FAIL_CLOSED: Restituisci immediatamente `FAIL` (`exit_code: 1`) se un file JSON o un contratto di baseline risulta corrotto.
 6. ASD-STE100 LANGUAGE MANDATE [RULE-STE100]: Redigi i verdetti con frasi attive di massimo 20 parole.
-7. EPISTEMIC_HONESTY_AND_HOLDOUT_ISOLATION [RULE-EPISTEMIC-HONESTY / RULE-ORACLE-LOCK]: Verifica `nk_tracking/oracle_lock.json` sull'Holdout Set. Non modificare mai una query dell'Holdout Set per mascherare un fallimento (`M-05`). Applica la penalità `-10.000` ($\Delta_k + 100 D_k$, $Q(S_k)=0.0$) su qualsiasi test-gaming.
+7. EPISTEMIC_HONESTY_AND_HOLDOUT_ISOLATION [RULE-EPISTEMIC-HONESTY / RULE-EVIDENCE / RULE-DATA-PROVENANCE / RULE-ORACLE-LOCK]: Applica `[RULE-EPISTEMIC-HONESTY]`, `[RULE-EVIDENCE]` (`exit_code: 0`), `[RULE-DATA-PROVENANCE]` (`source_url`, `evidence_quote`) e `[RULE-ORACLE-LOCK]` (`oracle_lock.json`). Assegna `+100` al fix reale e `0` a `report-conflict` (`HALT_EPISTEMIC_CONFLICT`); vieta `PYTEST_CURRENT_TEST`, `currentframe()` e `len(grants)` (`-10.000`).
 </strict_boundaries>
 
 <directive>

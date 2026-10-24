@@ -1,8 +1,8 @@
-# NK Genome: Implementation Plan (`v4.4.0-STE100-Unified` / `v4.3.0-Super-Plan-Triad-RSI` / `v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified`)
+# NK Genome: Implementation Plan (`v4.5.0-STE100-Unified` / `v4.4.0-STE100-Unified` / `v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified`)
 
 > **Badge di Certificazione:** 🛡️ `[NK-BRIEF-STATUS: AUDITED_AND_CONVERGED 🟢]` | `[RSI-CONVERGENCE: CONVERGED_OPTIMAL (Δ=0, Q=100.0) 🟢]`  
-> **Milestone Anchor ID:** `NK-MS-20261024-TRIAD-EPISTEMIC-v4.4.0-RSI`  
-> **Versione Target:** `v4.4.0-STE100-Unified` (`v4.3.0-Super-Plan-Triad-RSI` / `v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified` Compatible)  
+> **Milestone Anchor ID:** `NK-MS-20261024-HOLISTIC-SANITATION-v4.5.0-RSI` (`NK-MS-20261024-TRIAD-EPISTEMIC-v4.4.0-RSI`)  
+> **Versione Target:** `v4.5.0-STE100-Unified` (`v4.4.0-STE100-Unified` / `v4.3.0-Super-Plan-Triad-RSI` / `v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified` Compatible)  
 > **Standard Linguistico:** ASD-STE100 Italiano Tecnico (`[RULE-STE100]`, frasi `<= 20` parole)  
 > **Modalità Esecutiva:** Protocollo CRV 4.0 in `.staging/` con promozione atomica Win32 2PC (`[RULE-00]`)
 
@@ -10,9 +10,9 @@
 
 ## 1. Sintesi di Convergenza RSI ($\Delta_k = 0$, $Q(S_k) = 100.0$)
 
-Questo piano esecutivo coordina l'evoluzione di Nexus Keystone fino alla release **`v4.4.0-STE100-Unified`**.
-Il piano integra l'architettura **Tensor-RSI 2D**, i `5` Sub-Agenti Nativi e i `16` Playbook Procedurali.
-Tutte le modifiche preservano il `100%` di successo sui `108` Golden e Stress Tests certificati.
+Questo piano esecutivo coordina l'evoluzione di Nexus Keystone fino alla release **`v4.5.0-STE100-Unified`**.
+Il piano integra **Tensor-RSI 2D**, `5` Sub-Agenti Nativi, `16` Playbook e `34` moduli indicizzati (`36` file Python).
+Tutte le modifiche preservano il `100%` sui `115` test in `34` file (`68` pavimento `GT-13`).
 
 * **Iterazione 1 ($k=1$):** Verifica empirica sul codice reale e sintesi preliminare ($\Delta_1 = 17$, $Q(S_1) = 83.8095$).
 * **Iterazione 2 ($k=2$):** Audit avversariale di `NK-RSI-Auditor` su link, guardie `GT-01..GT-14` e soglia `20` parole.
@@ -41,7 +41,7 @@ Ogni Builder deve rispettare le `14` guardie seguenti per mantenere il `100%` di
 
 ---
 
-## 3. Piano Esecutivo Atomico in 12 Work Package (`WP1..WP12`)
+## 3. Piano Esecutivo Atomico in 18 Work Package (`WP1..WP18`)
 
 ### WP1: Bonifica dei 14 Script Core e Motore Tensor-RSI (`scripts/`)
 1. **`ast_guard_validator.py`:** Aggiungi `--stage-dir` come alias di `--target` e rileva nell'AST `eval()`, `exec()`, `pickle.loads()`, `yaml.load()` e `MagicMock`.
@@ -62,12 +62,12 @@ Ogni Builder deve rispettare le `14` guardie seguenti per mantenere il `100%` di
 ### WP3: Riallineamento Tetralogia Sovrana 4/4, `nk_tracking/` e CI/CD
 1. Crea `nk_genome/idea_canvas.md`, correggi le frasi lunghe in `concept_map.md`, aggiorna `structural_tree.md` e rigenera `repo_map.md` a `4.000` token Argon.
 2. Ripara le righe `23-25` di `session_anchor.jsonl`, allinea `quality_baseline.json` e rimuovi i file `.bak_*` e i relitti legacy.
-3. Aggiorna `.github/workflows/ci.yml` (`100+ Golden Tests`, `--check-only`, `--verify`), `README.md`, `README.it.md` e `PATCH_NOTES.md`.
+3. Aggiorna `.github/workflows/ci.yml` (`115 Golden e Stress Tests`, `--check-only`, `--verify`), `README.md`, `README.it.md` e `PATCH_NOTES.md`.
 
 ### WP4: Espansione a 108 Golden Tests, Verifica TAS e Commit 2PC
 1. Correggi il test CLI in `test_quality_baseline_manager.py` e il path in `test_ast_repo_mapper.py`.
 2. Aggiungi `8` nuovi test reali Zero-Mock per `async_heartbeat_signaler`, `RSIProfileRegistry`, `--vibe-check`, CoVe CLI AST Gate, `LOWER_IS_BETTER_KEYS` e `tier1_active_capsule.json`.
-3. Esegui l'audit TAS completo in `.staging/` (`108/108 PASS`, `ast_guard`, `rsi --verify` con $\Delta=0, Q=100.0$) e promuovi atomicamente via `win32_2pc_engine.py`.
+3. Esegui l'audit TAS completo in `.staging/` (`ast_guard`, `rsi --verify` con $\Delta=0, Q=100.0$) e promuovi atomicamente via `win32_2pc_engine.py`.
 
 ### WP5: Ottimizzazioni Post-Audit Forense (`OPT-1..OPT-11`) e Stress Evaluation Suite (`NK-MS-20261017-OPT5-STRESS-v3.2.0`)
 1. **`OPT-1` (`scripts/nk_session_bootstrap.py`):** Ottimizza `_check_root_hygiene` e `_verify_context_sentry` con cache `root_mtime` e lettura tail per scendere sotto `50 ms`.
@@ -94,7 +94,7 @@ Ogni Builder deve rispettare le `14` guardie seguenti per mantenere il `100%` di
 
 ### WP8: Indice Tassonomico Modulare O(1) e Disaccoppiamento SSOT (`NK-MS-20261017-MODULAR-INDEX-v3.5.1-RSI2`)
 1. **Regola `[RULE-01.14]` (`.agents/AGENTS.md`):** Istituisci il registro modulare O(1) basato su `nk_genome/nk_registry_manifest.json` e `nk_genome/SKILL_INDEX.md`.
-2. **Indicizzatore AST (`scripts/nk_registry_indexer.py`):** Mappa `5` domini, `16` skill e `30` script con `--sync`, `--verify` e `--lookup`.
+2. **Indicizzatore AST (`scripts/nk_registry_indexer.py`):** Mappa `5` domini, `16` skill e `34` script con `--sync`, `--verify` e `--lookup`.
 3. **Disaccoppiamento SSOT (`preflight_health_check.py`, `vibe_sprint_router.py`):** Carica skill e domini direttamente dal manifesto JSON eliminando le liste hardcoded.
 4. **Dual-Schema Lifecycle (`.agents/hooks.json`):** Espone gli hook sia sotto la chiave `hooks` sia a livello root con `timeout` e `timeout_ms`.
 
@@ -144,14 +144,14 @@ Ogni Builder deve rispettare le `14` guardie seguenti per mantenere il `100%` di
 7. **Guardia Anti-Overfitting Dati e Chiusura Loop Browser E2E (`NK-Oracle-Evaluator`, `NK-Dynamic-Sandbox-StressTester`).** Vieta l'iniezione di record sintetici multi-regione cuciti sulle query di test e i boost lessicali nominali. Rendi bloccanti nel Gate 5 tutti gli errori console e di accessibilità DOM (`<input>` senza `<label>`) rilevati via `chrome-devtools-mcp`.
 
 ### WP15: Super Implementation Plan v6.0-Unified-Triad-RSI (`NK-MS-20261024-SUPER-PLAN-TRIAD-v6.0.0-RSI`)
-1. **Runtime Hook Gate (`scripts/nk_hook_gate.py`, `.agents/hooks.json`).** Crea il gate stdlib con sottocomandi `probe`, `write-gate`, `fasttrack`, `integrity` e `stop-check` mantenendo il dual-schema in `hooks.json`.
+1. **Runtime Hook Gate (`scripts/nk_hook_gate.py`, `.agents/hooks.json`).** Crea il gate stdlib con sottocomandi `probe`, `write-gate`, `fasttrack`, `integrity` e `stop-evidence` mantenendo il dual-schema in `hooks.json`.
 2. **Strumenti Forensi e Linter Prompt (`scripts/nk_transcript_tools.py`).** Implementa `locate` senza fallback `st_mtime`, `compliance`, `evidence`, `oracle-lock` SHA-256 e `lint-prompt` (`AP-1..AP-7` più `AP-2b`).
 3. **Riparazione Bootstrap e Sentinelle (`nk_session_bootstrap.py`, `nk_context_sentry.py`, `nk_active_runtime_sentinel.py`).** Filtra per `workspace_root`, conta solo i turni `USER_EXPLICIT` o `PLANNER_RESPONSE` ed elimina il falso `RED (523 steps)`.
 4. **Hardening Router, 2PC e Baseline (`vibe_sprint_router.py`, `win32_2pc_engine.py`, `quality_baseline_manager.py`).** Confina `!diretto` a `L0_GATE_ONLY`, accetta target esterni in `--promote-staging` e gestisce `--root` su `quality_baseline.json`.
 5. **Pre-Flight Schema Grounding e Compliance (`ast_guard_validator.py`, `nk_compliance_checker.py`, `rsi_convergence_engine.py`).** Aggiunge `validate_pydantic_catalog_records()`, `--output-json`, la metrica `external_unstage_writes` e il controllo `oracle_lock.json` in `--verify`.
 6. **Allineamento Costituzionale e Suite a 98 Test (`.agents/AGENTS.md`, `SKILL.md`, `tests/test_super_plan_v6_triad.py`).** Aggiunge `[RULE-00.7]`, `[RULE-EVIDENCE]`, `[RULE-DATA-PROVENANCE]` e `[RULE-ORACLE-LOCK]` certificando `98/98 PASS` con $\Delta_k = 0$.
 
-### WP16: Anti-Goodharting SAST, Holdout Isolation & Multi-Level Stress Hardening (NK-MS-20261024-ANTI-GOODHART-STRESS-v4.4.0-RSI)
+### WP16: Anti-Goodharting SAST, Holdout Isolation & Multi-Level Stress Hardening (`NK-MS-20261024-ANTI-GOODHART-STRESS-v4.4.0-RSI`)
 1. **Regole SAST Anti-Goodharting (`scripts/ast_guard_validator.py`).** Blocca nel codice applicativo `PYTEST_CURRENT_TEST`, `inspect.currentframe()`, `sys._getframe()`, `f_back`, `f_globals` e `f_locals`. Vieta inoltre le soglie condizionali `len(grants) > N` usate per aggirare i test unitari.
 2. **Riparazione Bootstrap Progetti Esterni (`scripts/nk_session_bootstrap.py`).** Adatta `_check_root_hygiene` e la validazione di `quality_baseline.json` quando `--project-root` punta a `NK_External_Projects`. Consenti la cartella `src_app/` nei progetti esterni senza generare falsi `exit 1`.
 3. **Hardening Forense Transcript e Linter Prompt (`scripts/nk_transcript_tools.py`).** Rispetta `--conversation-id` in `compliance` ed `evidence` ed escludi `oracle-lock` dai falsi positivi di scrittura. Rileva il polling `manage_subagents`, il superamento di `100` step e gli anti-pattern `AP-8` e `AP-9`.
@@ -167,5 +167,9 @@ Ogni Builder deve rispettare le `14` guardie seguenti per mantenere il `100%` di
 4. **Blind Holdout, Sandbox e Forensics:** Attivati `oracle-lock freeze/verify --root`, `dast_sandbox_runner.py` multi-target, `polling_list_calls`, `oversized_swarm_messages` e le regole `AP-8`/`AP-9`.
 5. **Certificazione Finale:** Suite Zero-Mock portata a `108/108 PASS` (`100.0%`) con `tests/test_triad_epistemic_governance_v44.py`, $\Delta_k = 0$ e $Q(S_k) = 100.0$.
 
-
-
+### WP18: Bonifica Olistica e Propagazione Capillare v4.5.0 (`NK-MS-20261024-HOLISTIC-SANITATION-v4.5.0-RSI`)
+1. **Hardening Motori Core (`scripts/`):** Allinea `nk_hook_gate.py` (`stop-evidence`), `nk_transcript_tools.py`, `ast_guard_validator.py`, `rsi_convergence_engine.py`, `preflight_health_check.py`, `nk_registry_indexer.py` e `vibe_sprint_router.py`.
+2. **Propagazione Anti-Menzogna (`100%` su `.agents/`):** Inietta `[RULE-EPISTEMIC-HONESTY]`, `[RULE-EVIDENCE]`, `[RULE-DATA-PROVENANCE]` e `[RULE-ORACLE-LOCK]` nei `5` `agent.md` e nei `16` `SKILL.md`.
+3. **Allineamento Tetralogia (`nk_genome/`):** Sincronizza la Tetralogia a `v4.5.0-STE100-Unified` (`34` moduli, `36` file Python, `115` test in `34` file, `68` `GT-13`).
+4. **Guida Bilingue, Installer e CI/CD:** Aggiorna `GUIDA_INSTALLAZIONE.md` in formato bilingue completo (`IT + EN`), `install.ps1`, `install.sh` e `.github/workflows/ci.yml` a `v4.5.0-STE100-Unified`.
+5. **Validazione Olistica Zero-Mock (`tests/test_holistic_sanitation_v45.py`):** Espandi la suite a `115` test permanenti (`115/115 PASS`, `100.0%`) certificando $\Delta_k = 0$ e $Q(S_k) = 100.0$.

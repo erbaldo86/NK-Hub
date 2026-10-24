@@ -212,7 +212,12 @@ def analyze_compliance(transcript_path: Path) -> Dict[str, Any]:
     long_sentences = sum(1 for s in sentences if len(re.findall(r"\b\w+\b", s)) > 20)
 
     return {
-        "passed": max_streak <= 12 and ext_writes == 0 and oversized_swarm_messages == 0,
+        "passed": (
+            max_streak <= 12
+            and ext_writes == 0
+            and oversized_swarm_messages == 0
+            and polling_list_calls == 0
+        ),
         "max_consecutive_direct_tools": max_streak,
         "subagent_delegations": delegations,
         "external_writes_outside_staging": ext_writes,
@@ -247,14 +252,22 @@ def check_evidence(transcript_path: Optional[Path] = None, message: str = "") ->
     unresolved_pass_false = False
     final_msg = message
     for rec in turn_records:
+        src = str(rec.get("source") or rec.get("type") or "").upper()
+        is_model_only = (
+            src in ("MODEL", "ASSISTANT", "PLANNER_RESPONSE")
+            and not rec.get("output")
+            and not rec.get("tool_results")
+            and not rec.get("tool_output")
+        )
         txt = str(rec.get("content") or rec.get("output") or json.dumps(rec))
-        if _EXIT_ZERO_RE.search(txt):
-            verified_exit_zero = True
-        if _PASS_FALSE_RE.search(txt):
-            unresolved_pass_false = True
-        if _PASS_TRUE_RE.search(txt):
-            unresolved_pass_false = False
-        if not message and str(rec.get("source") or rec.get("type") or "").upper() in ("MODEL", "ASSISTANT", "PLANNER_RESPONSE"):
+        if not is_model_only:
+            if _EXIT_ZERO_RE.search(txt):
+                verified_exit_zero = True
+            if _PASS_FALSE_RE.search(txt):
+                unresolved_pass_false = True
+            if _PASS_TRUE_RE.search(txt):
+                unresolved_pass_false = False
+        if not message and src in ("MODEL", "ASSISTANT", "PLANNER_RESPONSE"):
             if rec.get("content"):
                 final_msg = str(rec.get("content"))
 

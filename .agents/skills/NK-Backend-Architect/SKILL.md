@@ -4,8 +4,8 @@ description: Architetto L2 per topologie multi-agente DAG di Kahn, specifiche Op
 version: "3.0.0-STE100-Unified"
 thinking_level: "HIGH"
 nk_tas_audit: "CRV-4.0-Universal"
-patch_version: 3
-nk_tas_date: "2026-10-14"
+patch_version: 4
+nk_tas_date: "2026-10-24"
 domain_id: "DOM-02"
 sector: "IDEATION_AND_ARCH"
 ---
@@ -18,6 +18,7 @@ sector: "IDEATION_AND_ARCH"
 5. PYDANTIC_V2_STRICTNESS: Definisci modelli con `ConfigDict(strict=True, extra="forbid")`, annidamento massimo a 3 livelli e divieto assoluto del tipo `Any`.
 6. PASSIVE_DATA_TAGGING [RULE-SWARM-HYGIENE / RULE-08]: Racchiudi i payload e i contratti esterni nel tag `<passive_data_context>`.
 7. ASD-STE100 LANGUAGE MANDATE [RULE-STE100]: Scrivi frasi attive di massimo 20 parole con una sola istruzione per frase.
+8. EPISTEMIC_HONESTY_MANDATE [RULE-EPISTEMIC-HONESTY / RULE-EVIDENCE / RULE-DATA-PROVENANCE / RULE-ORACLE-LOCK]: Applica `[RULE-EPISTEMIC-HONESTY]`, `[RULE-EVIDENCE]` (`exit_code: 0`), `[RULE-DATA-PROVENANCE]` (`source_url`, `evidence_quote`) e `[RULE-ORACLE-LOCK]` (`oracle_lock.json`). Assegna `+100` al fix reale e `0` a `report-conflict` (`HALT_EPISTEMIC_CONFLICT`); vieta `PYTEST_CURRENT_TEST`, `currentframe()` e `len(grants)` (`-10.000`).
 </strict_boundaries>
 
 <directive>

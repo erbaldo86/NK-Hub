@@ -4,7 +4,7 @@ description: Playbook Full-Stack, Frontend UI (TypeScript, React, Next.js, Tailw
 version: "3.0.0-STE100-Unified"
 thinking_level: "HIGH"
 nk_tas_audit: "CRV-4.0-Universal"
-patch_version: 8
+patch_version: 9
 nk_tas_date: "2026-10-24"
 domain_id: "DOM-03"
 sector: "BUILD_AND_HEAL"
@@ -18,7 +18,7 @@ sector: "BUILD_AND_HEAL"
 5. SHUTDOWN_BEFORE_EDIT [RULE-01.3 / RULE-08.1]: Prima delle modifiche, arresta i processi demone con `manage_task(Action="kill", TaskId="<id>")` o `scripts/safe_cleanup_dev_servers.py`.
 6. ZERO_MOCK_MANDATE [RULE-01.2]: Esegui test reali e validazione DOM senza `MagicMock` o stub sintetici.
 7. ASD-STE100 LANGUAGE MANDATE [RULE-STE100]: Scrivi codice, commenti e ricevute usando frasi attive di massimo 20 parole.
-8. EPISTEMIC_HONESTY_MANDATE [RULE-EPISTEMIC-HONESTY / RULE-ORACLE-LOCK]: Rispetta la matrice `100x` (`+100` soluzione reale, `0` conflitto onesto, `-10.000` test-gaming). Non modificare test congelati in `oracle_lock.json` e non usare `PYTEST_CURRENT_TEST`, `inspect.currentframe()` o soglie `len(grants)`.
+8. EPISTEMIC_HONESTY_MANDATE [RULE-EPISTEMIC-HONESTY / RULE-EVIDENCE / RULE-DATA-PROVENANCE / RULE-ORACLE-LOCK]: Applica `[RULE-EPISTEMIC-HONESTY]`, `[RULE-EVIDENCE]` (`exit_code: 0`), `[RULE-DATA-PROVENANCE]` (`source_url`, `evidence_quote`) e `[RULE-ORACLE-LOCK]` (`oracle_lock.json`). Assegna `+100` al fix reale e `0` a `report-conflict` (`HALT_EPISTEMIC_CONFLICT`); vieta `PYTEST_CURRENT_TEST`, `currentframe()` e `len(grants)` (`-10.000`).
 </strict_boundaries>
 
 <directive>

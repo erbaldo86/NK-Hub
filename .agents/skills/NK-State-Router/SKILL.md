@@ -4,8 +4,8 @@ description: Verificatore topologico DAG di Kahn e rilevatore di drift SHA-256 i
 version: "3.0.0-STE100-Unified"
 thinking_level: "HIGH"
 nk_tas_audit: "CRV-4.0-Universal"
-patch_version: 2
-nk_tas_date: "2026-10-14"
+patch_version: 3
+nk_tas_date: "2026-10-24"
 domain_id: "DOM-01"
 sector: "GOV_AND_ROUTING"
 ---
@@ -17,6 +17,7 @@ sector: "GOV_AND_ROUTING"
 4. DAG_CYCLE_GUARD: Rileva e blocca immediatamente qualsiasi dipendenza circolare tramite l'algoritmo topologico di Kahn.
 5. SINGLE_SOURCE_OF_TRUTH: Usa `nk_genome/structural_tree.md`, `nk_genome/nk_registry_manifest.json` e `%TEMP%\nk_diagnostics\repo_map_cache.json` come fonti strutturali ufficiali.
 6. ASD-STE100 LANGUAGE MANDATE [RULE-STE100]: Scrivi i report di allineamento con frasi attive di massimo 20 parole.
+7. EPISTEMIC_HONESTY_MANDATE [RULE-EPISTEMIC-HONESTY / RULE-EVIDENCE / RULE-DATA-PROVENANCE / RULE-ORACLE-LOCK]: Applica `[RULE-EPISTEMIC-HONESTY]`, `[RULE-EVIDENCE]` (`exit_code: 0`), `[RULE-DATA-PROVENANCE]` (`source_url`, `evidence_quote`) e `[RULE-ORACLE-LOCK]` (`oracle_lock.json`). Assegna `+100` al fix reale e `0` a `report-conflict` (`HALT_EPISTEMIC_CONFLICT`); vieta `PYTEST_CURRENT_TEST`, `currentframe()` e `len(grants)` (`-10.000`).
 </strict_boundaries>
 
 <directive>
@@ -36,7 +37,7 @@ Sei **NK-State-Router**, il playbook di verifica topologica e drift O(1) in sola
 ## 🔄 Playbook di Verifica O(1), Preflight e DAG Detection
 
 ### 1. Verifica Registro O(1) e Preflight Diagnostico (Read-Only)
-1. Esegui `python scripts/nk_registry_indexer.py --verify` per validare in O(1) gli hash SHA-256 delle 16 skill e 32 script.
+1. Esegui `python scripts/nk_registry_indexer.py --verify` per validare in O(1) gli hash SHA-256 delle 16 skill e 34 script.
 2. Esegui `python scripts/preflight_health_check.py --check-only` per verificare in sola lettura l'igiene di root, WAL e baseline.
 3. Leggi l'albero canonico in `nk_genome/structural_tree.md` con `view_file` (`<= 800` righe).
 4. Segnala ogni file mancante, orfano o disallineato rispetto alla Tetralogia Sovrana 4/4.

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Generatore della capsula di handoff e compilatore Template 11 per Nexus Keystone v4.2.0.
+Generatore della capsula di handoff e compilatore Template 11 per Nexus Keystone v4.5.0.
 Legge dinamicamente unit_tests_total da quality_baseline.json, persiste IB-<id>.md e compila prompt 2-Tier.
 """
 
@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -32,6 +33,20 @@ _workspace_root = (
     if _scripts_dir.parent.name == ".staging"
     else _scripts_dir.parent
 )
+
+
+def _resolve_git_executable() -> str:
+    """Risolve il percorso dell'eseguibile git tramite PATH o percorsi standard Windows."""
+    found = shutil.which("git")
+    if found:
+        return found
+    for candidate in (
+        "C:/Users/erbal/AppData/Local/Programs/Git/cmd/git.exe",
+        "C:/Program Files/Git/cmd/git.exe",
+    ):
+        if Path(candidate).is_file():
+            return candidate
+    return "git"
 
 
 def _discover_default_transcript() -> str:
@@ -161,6 +176,7 @@ def compile_template_11_prompt(
 ) -> str:
     """Compila un prompt strutturato conforme al Template 11 (SOVEREIGN_SWARM_TASK_PROMPT)."""
     proj_norm = (project_root or str(_workspace_root)).replace("\\", "/")
+    pytest_env_tok = "_".join(("PYTEST", "CURRENT", "TEST"))
     return (
         "# Turnkey Hand-off Prompt (Template 11: SOVEREIGN_SWARM_TASK_PROMPT)\n\n"
         "Usa `/compact` o riprendi dal seguente stato salvato:\n\n"
@@ -168,7 +184,8 @@ def compile_template_11_prompt(
         "### PASSO 0: Bootstrap, Cleanup e Intent Brief ([RULE-00.4], [RULE-00.6], [RULE-01.3])\n"
         "1. Esegui `python scripts/nk_session_bootstrap.py` e ferma eventuali server orfani con `python scripts/safe_cleanup_dev_servers.py`.\n"
         "2. Leggi l'Intent Brief salvato in `nk_tracking/reports_and_briefs/IB-*.md` e `nk_genome/implementation_plan.md`.\n"
-        "3. Registra il Builder operativo con `define_subagent(EnableWriteTools=True, EnableSubagentTools=False)` prima della Fase Build.\n\n"
+        "3. Registra il Builder operativo con `define_subagent(EnableWriteTools=True, EnableSubagentTools=False)` prima della Fase Build.\n"
+        f"4. Rispetta `[RULE-EPISTEMIC-HONESTY]` (`python scripts/nk_transcript_tools.py report-conflict`, divieto `{pytest_env_tok}`/`currentframe`/`len(grants)`), `[RULE-EVIDENCE]`, `[RULE-DATA-PROVENANCE]` e `[RULE-ORACLE-LOCK]`.\n\n"
         "### FASE 1: Discovery e Audit in Sola Lettura (Mode D)\n"
         "- Delega tramite `invoke_subagent` (con blocco `<env_capsule>`) a `NK-RSI-Auditor` e `NK-Security-DAST-Auditor` la verifica dello stato reale.\n"
         "- Per batch superiori a 8 query web, partiziona il carico su sub-agenti `research` paralleli.\n"
@@ -176,12 +193,13 @@ def compile_template_11_prompt(
         "- `STOP_GATE`: presenta i gap reali misurati (`Measure-First`) tramite `ask_question` prima di iniziare le modifiche.\n\n"
         "### FASE 2: Build Chirurgico in `.staging/` (Mode B/A)\n"
         f"- Delega tramite `invoke_subagent` al Builder registrato (`EnableWriteTools=True`) la scrittura esclusivamente in `{proj_norm}/.staging/`.\n"
+        f"- Inietta nel blocco `<env_capsule>` del sub-agente `[RULE-EPISTEMIC-HONESTY]` (`report-conflict`, divieto `{pytest_env_tok}`/`currentframe`/`len(grants)`), `[RULE-EVIDENCE]`, `[RULE-DATA-PROVENANCE]` e `[RULE-ORACLE-LOCK]`.\n"
         "- Esegui il Two-Stage Grounding (`[RULE-02.5]`) leggendo il modello Pydantic target prima di ogni modifica ai dati.\n"
         f"- Valida il codice staged con `python scripts/ast_guard_validator.py --stage-dir \"{proj_norm}/.staging\"`.\n\n"
         "### FASE 3: Verifica Indipendente, Commit 2PC e Scribe\n"
         "- Delega a `NK-RSI-Auditor` la verifica indipendente dei test reali e la convergenza matematica:\n"
         f"  `python scripts/rsi_convergence_engine.py --verify --root \"{proj_norm}\" --benchmark-suite \"{proj_norm}/tests\"`\n"
-        "- Solo su esito `PASS` reale, esegui la promozione atomica:\n"
+        "- Solo su esito `PASS` reale (`[RULE-EVIDENCE]`), esegui la promozione atomica:\n"
         f"  `python scripts/win32_2pc_engine.py --promote-staging --repo-root \"{proj_norm}\"`\n"
         "- Delega infine a `NK-Scribe-Agent` l'aggiornamento di `PATCH_NOTES.md` (solo prepend) e `repo_map.md`.\n\n"
         f"Capsule info: {capsule}\n"
@@ -265,9 +283,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     dirty_files = False
     project_dirty_files = False
     stash_patch = None
+    git_exe = _resolve_git_executable()
     try:
         status_out = subprocess.check_output(
-            ["git", "status", "--porcelain"],
+            [git_exe, "status", "--porcelain"],
             cwd=str(_workspace_root),
             universal_newlines=True,
             stderr=subprocess.DEVNULL,
@@ -280,7 +299,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             stash_patch = os.path.join(stash_dir, f"stash_{ts}.patch")
             with open(stash_patch, "w", encoding="utf-8") as patch_f:
                 subprocess.call(
-                    ["git", "diff"],
+                    [git_exe, "diff"],
                     cwd=str(_workspace_root),
                     stdout=patch_f,
                     stderr=subprocess.DEVNULL,
@@ -291,7 +310,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     if effective_root != _workspace_root and effective_root.exists():
         try:
             proj_status = subprocess.check_output(
-                ["git", "status", "--porcelain"],
+                [git_exe, "status", "--porcelain"],
                 cwd=str(effective_root),
                 universal_newlines=True,
                 stderr=subprocess.DEVNULL,

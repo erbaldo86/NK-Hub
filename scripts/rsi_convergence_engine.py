@@ -1318,10 +1318,10 @@ class RSIConvergenceEngine:
                 anti_crash_md.stat().st_size if anti_crash_md.exists() else 0
             )
             combined_bytes = agents_bytes + crash_bytes
-            budget_ok = agents_bytes < 24000
+            budget_ok = agents_bytes < 24000 and combined_bytes < 26000
             if not budget_ok:
                 violations.append(
-                    f"AGENTS.md supera il limite di 24000 byte ({agents_bytes} B)."
+                    f"AGENTS.md supera il limite di 24000 byte ({agents_bytes} B, combinato {combined_bytes} B)."
                 )
 
             agents_text = agents_md.read_text(encoding="utf-8", errors="replace")
@@ -1638,16 +1638,17 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             args.profile if args.profile != "code_rsi" else "vibe_sprint_micro_rsi"
         )
         if args.vibe_check == ".":
-            agents_cand = (
-                root_path / ".staging" / ".agents"
-                if (root_path / ".staging" / ".agents").exists()
-                else (
-                    root_path / ".agents"
-                    if (root_path / ".agents").exists()
-                    else root_path
-                )
+            stg_dir = root_path / ".staging"
+            has_staged_files = stg_dir.exists() and any(
+                p.is_file() and p.suffix in (".py", ".md", ".json")
+                for p in stg_dir.rglob("*")
             )
-            vibe_target = str(agents_cand)
+            if has_staged_files:
+                vibe_target = str(root_path)
+            elif (root_path / ".agents").exists():
+                vibe_target = str(root_path / ".agents")
+            else:
+                vibe_target = str(root_path)
         else:
             vibe_target = args.vibe_check
         vibe_res = engine.run_vibe_check(

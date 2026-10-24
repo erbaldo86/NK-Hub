@@ -4,8 +4,8 @@ description: Playbook motore di memoria episodica a 3 livelli in nk_tracking/mem
 version: "3.0.0-STE100-Unified"
 thinking_level: "HIGH"
 nk_tas_audit: "CRV-4.0-Universal"
-patch_version: 6
-nk_tas_date: "2026-10-21"
+patch_version: 7
+nk_tas_date: "2026-10-24"
 domain_id: "DOM-05"
 sector: "MEMORY_TELEMETRY_AND_DOCS"
 ---
@@ -15,6 +15,7 @@ sector: "MEMORY_TELEMETRY_AND_DOCS"
 2. TIER1_TOKEN_BUDGET_GUARD [RULE-05.2]: Mantieni il limite predefinito `TIER1_TOKEN_CAP = 350` token per dominio nel profilo `standard` (`GT-05`) e usa `TIER1_TOKEN_CAP_ARGON = 1200` nel profilo `argon`.
 3. DOMAIN_ALIAS_RESOLUTION: Supporta la mappatura bidirezionale tra gli alias (`OPS`, `ARCH`, `DEVX`, `SEC`) e le 4 cartelle in `nk_tracking/memory_3tier/`.
 4. ASD-STE100 LANGUAGE MANDATE [RULE-STE100]: Sintetizza ogni episodio memorizzato con frasi attive di massimo 20 parole.
+5. EPISTEMIC_HONESTY_MANDATE [RULE-EPISTEMIC-HONESTY / RULE-EVIDENCE / RULE-DATA-PROVENANCE / RULE-ORACLE-LOCK]: Applica `[RULE-EPISTEMIC-HONESTY]`, `[RULE-EVIDENCE]` (`exit_code: 0`), `[RULE-DATA-PROVENANCE]` (`source_url`, `evidence_quote`) e `[RULE-ORACLE-LOCK]` (`oracle_lock.json`). Assegna `+100` al fix reale e `0` a `report-conflict` (`HALT_EPISTEMIC_CONFLICT`); vieta `PYTEST_CURRENT_TEST`, `currentframe()` e `len(grants)` (`-10.000`).
 </strict_boundaries>
 
 <directive>
@@ -34,14 +35,14 @@ Sei **NK-Episodic-Memory-Engine**, il Playbook gestore della memoria episodica a
 ## 📂 Architettura a 3 Livelli e 4 Domini (`[RULE-05.2]`, `BUG-01`)
 
 1. **I 4 Domini Canonici (`DOMAIN_ALIAS_MAP`):**
-   - `OPS` (`01_Bug_Diagnostics`): RCA diagnostiche, commit 2PC, Named Mutex, Job Objects e sottoprocessi UTF-8.
-   - `ARCH` (`02_Development_Patterns`): Pattern di sviluppo, auto-riparazione SBFL Ochiai, workflow Builder e convergenza RSI.
-   - `DEVX` (`03_Ideation_and_Decisions`): Decisioni architetturali, ideazione L0, lessico utente, correzioni vocali ricorrenti (`X -> Y`) e contratti Pydantic v2.
-   - `SEC` (`04_Governance_and_Rules`): Regole di governance, vettori SAST/DAST, sanitizzazione e fix Win32 a 64-bit.
+   * `OPS` (`01_Bug_Diagnostics`): RCA diagnostiche, commit 2PC, Named Mutex, Job Objects e sottoprocessi UTF-8.
+   * `ARCH` (`02_Development_Patterns`): Pattern di sviluppo, auto-riparazione SBFL Ochiai, workflow Builder e convergenza RSI.
+   * `DEVX` (`03_Ideation_and_Decisions`): Decisioni architetturali, ideazione L0, lessico utente, correzioni vocali ricorrenti (`X -> Y`) e contratti Pydantic v2.
+   * `SEC` (`04_Governance_and_Rules`): Regole di governance, vettori SAST/DAST, sanitizzazione e fix Win32 a 64-bit.
 2. **I 3 Livelli di Storage in `nk_tracking/memory_3tier/`:**
-   - **Tier 1 (Core Memory):** Sintesi in `tier1_active_capsule.json` con tetto di `350` token per dominio (`1.200` nel profilo `argon`).
-   - **Tier 2 (Local Scratchpad):** Finestra scorrevole a `200` eventi recenti con rotazione `.bak_1` e `.bak_2`.
-   - **Tier 3 (Archival Cold Store):** Ricerca ibrida Pure Python BM25 + Dense Cosine con Reciprocal Rank Fusion ($k=60$):
+   * **Tier 1 (Core Memory):** Sintesi in `tier1_active_capsule.json` con tetto di `350` token per dominio (`1.200` nel profilo `argon`).
+   * **Tier 2 (Local Scratchpad):** Finestra scorrevole a `200` eventi recenti con rotazione `.bak_1` e `.bak_2`.
+   * **Tier 3 (Archival Cold Store):** Ricerca ibrida Pure Python BM25 + Dense Cosine con Reciprocal Rank Fusion ($k=60$):
      $$\text{RRF}(d) = \sum_{r \in \{\text{BM25}, \text{Cosine}\}} \frac{1}{60 + \text{rank}_r(d)}$$
 
 ## 🛠️ Playbook Operativo di Indicizzazione e Recall

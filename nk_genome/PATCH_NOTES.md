@@ -1,14 +1,33 @@
 # NEXUS KEYSTONE OFFICIAL CHANGELOG E PATCH NOTES (SSOT)
 
 > **Single Source of Truth (SSOT):** `nk_genome/PATCH_NOTES.md`  
-> **Release Ufficiale:** `v4.4.0-STE100-Unified` (`v4.3.0-Super-Plan-Triad-RSI` / `v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified`)  
-> **Milestone Anchor:** `NK-MS-20261024-TRIAD-EPISTEMIC-v4.4.0-RSI`  
+> **Release Ufficiale:** `v4.5.0-STE100-Unified` (`v4.4.0-STE100-Unified` / `v4.3.0-Super-Plan-Triad-RSI` / `v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified`)  
+> **Milestone Anchor:** `NK-MS-20261024-HOLISTIC-SANITATION-v4.5.0-RSI`  
 > **Data Consolidamento:** `2026-10-24`  
-> **Stato Release:** `[NK-SUPER-BRIEF-STATUS: AUDITED_AND_CERTIFIED_v4.4.0_SOVEREIGN]`
+> **Stato Release:** `[NK-SUPER-BRIEF-STATUS: AUDITED_AND_CERTIFIED_v4.5.0_SOVEREIGN]`
 
 ---
 
-## [v4.4.0-STE100-Unified] - 2026-10-24 (Triad-RSI & Epistemic Honesty Edition)
+## [v4.5.0-STE100-Unified] (2026-10-24)
+
+La release **`v4.5.0-STE100-Unified`** completa la bonifica olistica `WP18` su agenti, skill, script e documentazione.
+
+1. **Propagazione Olistica del Protocollo di Onestà Epistemica (`.agents/agents/`, `.agents/skills/`, `.agents/rules/anti_crash_rules.md`):**
+   - Propaga `[RULE-EPISTEMIC-HONESTY]`, `[RULE-EVIDENCE]`, `[RULE-DATA-PROVENANCE]` e `[RULE-ORACLE-LOCK]` sui `5` Sub-Agenti Nativi e sulle `16` Skill.
+   - Allinea `anti_crash_rules.md` e `prompt_templates.md` alla matrice Anti-Goodharting `100x` e al linter `AP-1..AP-9`.
+2. **Mappatura Completa 34/34 Script nel Registro O(1) (`scripts/nk_registry_indexer.py`, `nk_genome/nk_registry_manifest.json`):**
+   - Indicizza tutti i `34` script operativi mappando `nk_hook_gate.py` in `DOM-01` e `nk_transcript_tools.py` in `DOM-04`.
+   - Riallinea `NK-Agent-Instruction-Forge` in `DOM-02` e sincronizza `nk_genome/SKILL_INDEX.md` alla versione `4.5.0-STE100-Unified`.
+3. **Suite Permanente di Integrità Olistica a 115 Test (`tests/test_holistic_environment_integrity.py`, `nk_tracking/quality_baseline.json`):**
+   - Introduce `tests/test_holistic_environment_integrity.py` con `7` test ortogonali Zero-Mock sull'intero ecosistema.
+   - Espande la suite permanente a `115/115 PASS` (`100.0%` pass rate) su `34` file di test in `tests/`.
+4. **Guida di Installazione Bilingue e Igiene di Tracciamento (`GUIDA_INSTALLAZIONE.md`, `README.md`, `README.it.md`):**
+   - Unifica la guida bilingue Italiano ed Inglese in `GUIDA_INSTALLAZIONE.md` collegata da `README.md` e `README.it.md`.
+   - Rimuove le scorie obsolete in `nk_tracking/` e congela `nk_tracking/oracle_lock.json` dopo la verifica della suite.
+
+---
+
+## [v4.4.0-STE100-Unified] (2026-10-24) (Triad-RSI & Epistemic Honesty Edition)
 
 La release **`v4.4.0-STE100-Unified`** consolida la governance epistemica Triad-RSI e la matrice Anti-Goodharting 100x.
 

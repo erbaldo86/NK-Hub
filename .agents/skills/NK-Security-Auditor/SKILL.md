@@ -4,7 +4,7 @@ description: Playbook di audit TAS v4.0 Neuro-Simbolico SAST L1/L2/L3 e Chain-of
 version: "3.0.0-STE100-Unified"
 thinking_level: "HIGH"
 nk_tas_audit: "CRV-4.0-Universal"
-patch_version: 5
+patch_version: 6
 nk_tas_date: "2026-10-24"
 domain_id: "DOM-04"
 sector: "AUDIT_DAST_AND_RCA"
@@ -17,7 +17,7 @@ sector: "AUDIT_DAST_AND_RCA"
 4. SWARM_AUDIT_MACRO_FASE_2 [RULE-01.1]: Esegui l'audit statico SAST L1/L2/L3 con `scripts/ast_guard_validator.py --stage-dir .staging` e restituisci `PASS` o `FAIL`.
 5. ZERO_MOCK_MANDATE [RULE-01.2]: Esegui tutti i controlli su file reali e regole concrete.
 6. ASD-STE100 LANGUAGE MANDATE [RULE-STE100]: Scrivi i report usando frasi attive di massimo 20 parole.
-7. EPISTEMIC_HONESTY_AND_HOLDOUT_ISOLATION [RULE-EPISTEMIC-HONESTY / RULE-ORACLE-LOCK]: Non modificare mai una query dell'Holdout Set per mascherare un fallimento (`M-05`). Penalizza con `-10.000` punti ($\Delta_k + 100 D_k$, $Q(S_k)=0.0$) `PYTEST_CURRENT_TEST`, `inspect.currentframe()`, `len(grants)` e auto-censura.
+7. EPISTEMIC_HONESTY_AND_HOLDOUT_ISOLATION [RULE-EPISTEMIC-HONESTY / RULE-EVIDENCE / RULE-DATA-PROVENANCE / RULE-ORACLE-LOCK]: Applica `[RULE-EPISTEMIC-HONESTY]`, `[RULE-EVIDENCE]` (`exit_code: 0`), `[RULE-DATA-PROVENANCE]` (`source_url`, `evidence_quote`) e `[RULE-ORACLE-LOCK]` (`oracle_lock.json`). Assegna `+100` al fix reale e `0` a `report-conflict` (`HALT_EPISTEMIC_CONFLICT`); vieta `PYTEST_CURRENT_TEST`, `currentframe()` e `len(grants)` (`-10.000`).
 </strict_boundaries>
 
 <directive>

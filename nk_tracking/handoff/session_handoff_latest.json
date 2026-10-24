@@ -1,11 +1,12 @@
 {
-  "steps": 233,
-  "tokens": 95476,
-  "dirty_files": false,
-  "project_root": "G:\\Il mio Drive\\NK_External_Projects\\NK-Bandi",
+  "steps": 66,
+  "tokens": 34399,
+  "dirty_files": true,
+  "project_root": "G:\\Il mio Drive\\Antigravity",
   "project_dirty_files": false,
-  "stash_patch": null,
-  "baseline_tests": 87,
+  "stash_patch": "G:\\Il mio Drive\\Antigravity\\nk_tracking\\handoff\\stashes\\stash_1792856304.patch",
+  "baseline_tests": 115,
+  "baseline_pass_rate_pct": 100.0,
   "milestone": "Auto-Saved Milestone",
   "unverified_claims": []
 }

@@ -4,8 +4,8 @@ description: Playbook DAST backend in Shadow Sandbox e verifica E2E Browser, DOM
 version: "3.0.0-STE100-Unified"
 thinking_level: "HIGH"
 nk_tas_audit: "CRV-4.0-Universal"
-patch_version: 3
-nk_tas_date: "2026-10-18"
+patch_version: 4
+nk_tas_date: "2026-10-24"
 domain_id: "DOM-04"
 sector: "AUDIT_DAST_AND_RCA"
 ---
@@ -16,6 +16,7 @@ sector: "AUDIT_DAST_AND_RCA"
 3. STRICT_READ_ONLY_MANDATE [RULE-00.1 / RULE-01.1]: Opera in modalità 100% sola lettura sul codice sorgente durante la Macro-Fase 2 (`GT-14`). Qualsiasi crash o timeout produce `FAIL`.
 4. PROCESS_KILL_GUARD [RULE-01.3 / RULE-08.1]: Termina ricorsivamente tutti i processi figli tramite Win32 Job Objects e `psutil` prima di chiudere la sandbox.
 5. ASD-STE100 LANGUAGE MANDATE [RULE-STE100]: Scrivi i report DAST ed E2E con frasi attive di massimo 20 parole.
+6. EPISTEMIC_HONESTY_MANDATE [RULE-EPISTEMIC-HONESTY / RULE-EVIDENCE / RULE-DATA-PROVENANCE / RULE-ORACLE-LOCK]: Applica `[RULE-EPISTEMIC-HONESTY]`, `[RULE-EVIDENCE]` (`exit_code: 0`), `[RULE-DATA-PROVENANCE]` (`source_url`, `evidence_quote`) e `[RULE-ORACLE-LOCK]` (`oracle_lock.json`). Assegna `+100` al fix reale e `0` a `report-conflict` (`HALT_EPISTEMIC_CONFLICT`); vieta `PYTEST_CURRENT_TEST`, `currentframe()` e `len(grants)` (`-10.000`).
 </strict_boundaries>
 
 <directive>

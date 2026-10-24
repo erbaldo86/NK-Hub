@@ -14,7 +14,7 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 BASELINE_FILENAME = "quality_baseline.json"
 CONSTITUTIONAL_GOLDEN_FLOOR = 68

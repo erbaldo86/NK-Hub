@@ -221,8 +221,6 @@ def _handle_write_gate(
             "reason": "Direct write to src_app/ or tests/ outside .staging/ is blocked; stage and promote via win32_2pc_engine.py.",
         }
 
-    if "nk_tracking/" in norm_low:
-        return {}
     return {}
 
 
@@ -300,7 +298,26 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         return code
     if args.subcommand == "stop-evidence":
         msg = str(payload.get("content") or payload.get("message") or payload.get("response") or "")
-        if _CERT_RE.search(msg) and not payload.get("verifiedExitZero", True):
+        if "verifiedExitZero" in payload:
+            verified_ok = bool(payload.get("verifiedExitZero"))
+        elif conv_id != "unknown":
+            verified_ok = True
+            try:
+                if str(_SCRIPT_DIR) not in sys.path:
+                    sys.path.insert(0, str(_SCRIPT_DIR))
+                import nk_transcript_tools as _ntt
+
+                loc_res, loc_code = _ntt.locate_transcript(None, conv_id)
+                if loc_code == 0 and loc_res.get("transcript_path"):
+                    ev_res, _ = _ntt.check_evidence(
+                        Path(str(loc_res["transcript_path"])), msg
+                    )
+                    verified_ok = bool(ev_res.get("passed", True))
+            except Exception:
+                verified_ok = True
+        else:
+            verified_ok = True
+        if _CERT_RE.search(msg) and not verified_ok:
             print(json.dumps({"ephemeralMessage": "[RULE-EVIDENCE] Unverified PASS/CONVERGED_OPTIMAL claim detected."}))
         else:
             print("{}")

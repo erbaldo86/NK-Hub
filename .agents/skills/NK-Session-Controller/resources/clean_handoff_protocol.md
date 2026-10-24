@@ -15,6 +15,7 @@
    * **Stage B (Code Grounding):** Lettura dei file sorgente target tramite `view_file` (`<= 800` righe per chiamata).
 4. **Sicurezza Processi Win32 (`[RULE-01.3]`):** Prima di modificare i file, il Builder ferma i server attivi con `manage_task(Action="kill", TaskId="<id>")` o `scripts/safe_cleanup_dev_servers.py`.
 5. **Compattazione e Handoff (`[RULE-02.8]`):** Alla soglia di guardia, il Controller consiglia `/compact` o esegue `scripts/nk_session_handoff.py --transcript <path> --output-dir nk_tracking/handoff --generate-prompt`.
+6. **Onestà Epistemica (`[RULE-EPISTEMIC-HONESTY]`):** Applica `[RULE-EVIDENCE]` (`exit_code: 0`), `[RULE-DATA-PROVENANCE]` (`source_url`, `evidence_quote`) e `[RULE-ORACLE-LOCK]` (`oracle_lock.json`). Assegna `+100` al fix reale e `0` a `report-conflict` (`HALT_EPISTEMIC_CONFLICT`); vieta `PYTEST_CURRENT_TEST`, `currentframe()` e `len(grants)` (`-10.000`).
 
 ---
 
@@ -25,6 +26,8 @@
 
 <env_capsule>
 Usa `python -m pytest` per i test. Vieta `view_file` esplorativi alla cieca e `python -c` multi-riga.
+Applica `[RULE-EPISTEMIC-HONESTY]`, `[RULE-EVIDENCE]` (`exit_code: 0`), `[RULE-DATA-PROVENANCE]` (`source_url`, `evidence_quote`) e `[RULE-ORACLE-LOCK]` (`oracle_lock.json`).
+Assegna `+100` al fix reale e `0` a `report-conflict` (`HALT_EPISTEMIC_CONFLICT`); vieta `PYTEST_CURRENT_TEST`, `currentframe()` e `len(grants)` (`-10.000`).
 </env_capsule>
 
 ### 🎯 BLOCCO 1: Obiettivo e Brief Anchor Capsule
@@ -62,7 +65,7 @@ Usa `python -m pytest` per i test. Vieta `view_file` esplorativi alla cieca e `p
 2. **Gate 2 (Code Grounding):** Il Builder ha eseguito `view_file` (`<= 800` righe) sui file target? *(Se NO -> REJECTED_BLIND_EXECUTION)*.
 3. **Gate 3 (Brief Grounding):** Il Builder ha letto `nk_genome/implementation_plan.md` e verificato il Milestone Anchor ID? *(Se NO -> REJECT_FAKE_BRIEF_GROUNDING)*.
 4. **Gate 4 (Preservation):** Firme pubbliche, tipi e docstring esistenti sono preservati? *(Se NO -> REJECT_CLEAN_SLATE)*.
-5. **Gate 5 (Truth/DAST):** I test pytest e `dast_sandbox_runner.py` riportano `exit_code: 0`? *(Se NO -> REJECT_TEST_FAILED)*.
+5. **Gate 5 (Truth/DAST):** I test pytest, `dast_sandbox_runner.py` e `oracle_lock.json` riportano `exit_code: 0`? *(Se NO -> REJECT_TEST_FAILED)*.
 6. **Gate 6 (RSI Convergence):** `rsi_convergence_engine.py --verify` certifica $\Delta_k = 0$ e $Q(S_k) = 100.0$? *(Se NO -> REJECT_RSI_DIVERGENCE)*.
 ```
 
@@ -75,7 +78,8 @@ Usa `python -m pytest` per i test. Vieta `view_file` esplorativi alla cieca e `p
 - **Stage A (Brief Grounding):** `view_file` su `nk_genome/implementation_plan.md` (`{{MILESTONE_ANCHOR_ID}}`).
 - **Stage B (Code Grounding):** `view_file` su `{{FILE_PATH}}` (L{{START_B}}-L{{END_B}}).
 - **Staging Evidence:** Modifiche confinate in `.staging/{{TARGET_PATH}}`.
-- **Dynamic Test Evidence:** Comando `{{REAL_E2E_TEST_CMD}}` eseguito con `exit_code: 0`.
+- **Dynamic Test Evidence:** Comando `{{REAL_E2E_TEST_CMD}}` eseguito con `exit_code: 0` (`[RULE-EVIDENCE]`).
+- **Epistemic Integrity:** Rispettati `[RULE-EPISTEMIC-HONESTY]`, `[RULE-DATA-PROVENANCE]` e `[RULE-ORACLE-LOCK]`.
 - **RSI Convergence:** $\Delta_k = 0$, $Q(S_k) = 100.0$ (`CONVERGED_OPTIMAL`).
 - **Commit Status:** Staging completato. Promozione atomica demandata a `NK-Master-Hub` via `scripts/win32_2pc_engine.py`.
 ````

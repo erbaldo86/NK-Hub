@@ -40,16 +40,18 @@
 ### ⚙️ BLOCCO 4: Istruzioni Chirurgiche, Test e Ricevuta v3.0
 1. **Pre-Edit Safety & Snapshot:** Ferma i processi demone con `manage_task(Action="kill", TaskId="<id>")` e crea uno snapshot con `python scripts/healing_snapshot_rollback.py --create`.
 2. **Modifiche in `.staging/`:** Applica le modifiche in `.staging/` con codifica `UTF-8` senza BOM e standard `[RULE-STE100]`.
-3. **Verifica Locale AST e DOM:** Esegui `python scripts/ast_guard_validator.py --stage-dir .staging --allowed-mutations`, `python scripts/oracle_evaluator_l3.py --expected --actual --json` e pytest reale.
-4. **Consegna:** Salva il report completo in `scratch/` e restituisci via `send_message` la **Worker Execution Receipt v3.0** (`< 1.800` caratteri):
+3. **Onestà Epistemica (`[RULE-EPISTEMIC-HONESTY]`):** Applica `[RULE-EVIDENCE]` (`exit_code: 0`), `[RULE-DATA-PROVENANCE]` (`source_url`, `evidence_quote`) e `[RULE-ORACLE-LOCK]` (`oracle_lock.json`). Assegna `+100` al fix reale e `0` a `report-conflict` (`HALT_EPISTEMIC_CONFLICT`); vieta `PYTEST_CURRENT_TEST`, `currentframe()` e `len(grants)` (`-10.000`).
+4. **Verifica Locale AST e DOM:** Esegui `python scripts/ast_guard_validator.py --stage-dir .staging --allowed-mutations`, `python scripts/oracle_evaluator_l3.py --expected --actual --json` e pytest reale.
+5. **Consegna:** Salva il report completo in `scratch/` e restituisci via `send_message` la **Worker Execution Receipt v3.0** (`< 1.800` caratteri):
 
 ````markdown
 ### 📋 WORKER EXECUTION RECEIPT (v3.0 : CRV 4.0 & RSI Certified)
 - **Stage A (Brief Grounding):** `view_file` su `nk_genome/implementation_plan.md` (`{{MILESTONE_ANCHOR_ID}}`).
 - **Stage B (Code Grounding):** `view_file` eseguito su `{{FILE_PATH}}` (L{{START}}-L{{END}}).
 - **Staging Path:** `.staging/{{TARGET_PATH}}`
-- **AST & Test Evidence:** Comando `{{TEST_CMD}}` eseguito con `exit_code: 0`.
+- **AST & Test Evidence:** Comando `{{TEST_CMD}}` eseguito con `exit_code: 0` (`[RULE-EVIDENCE]`).
 - **DOM / UI Evidence:** Verifica `scripts/oracle_evaluator_l3.py --expected --actual --json` con verdetto `PASS`.
+- **Epistemic Integrity:** Rispettati `[RULE-EPISTEMIC-HONESTY]`, `[RULE-DATA-PROVENANCE]` e `[RULE-ORACLE-LOCK]`.
 - **RSI Status:** `CONVERGED_OPTIMAL` ($\Delta_k = 0$, $Q(S_k) = 100.0$).
 - **Commit Status:** Staging pronto per promozione atomica via `scripts/win32_2pc_engine.py`.
 ````

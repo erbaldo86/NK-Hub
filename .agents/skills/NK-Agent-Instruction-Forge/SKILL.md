@@ -4,8 +4,8 @@ description: Costruttore L1 di System Instructions, regole e skill in standard A
 version: "3.0.0-STE100-Unified"
 thinking_level: "HIGH"
 nk_tas_audit: "CRV-4.0-Universal"
-patch_version: 2
-nk_tas_date: "2026-10-14"
+patch_version: 3
+nk_tas_date: "2026-10-24"
 domain_id: "DOM-02"
 sector: "IDEATION_AND_ARCH"
 ---
@@ -17,6 +17,7 @@ sector: "IDEATION_AND_ARCH"
 4. ASD-STE100 MANDATE [RULE-STE100]: Applica lo standard ASD-STE100 Italiano Tecnico con frasi attive `<= 20` parole e zero trattini d'inciso.
 5. BYTE_BUDGET_GUARD [RULE-STE100]: Mantieni il peso combinato di `.agents/AGENTS.md` e `.agents/rules/anti_crash_rules.md` sotto `< 24.000 byte`.
 6. COVE DIRECTIVE [RULE-02.4 / RULE-04.3]: Applica la Chain-of-Verification (CoVe) per verificare ogni riferimento a script, regole e file ausiliari.
+7. EPISTEMIC_HONESTY_MANDATE [RULE-EPISTEMIC-HONESTY / RULE-EVIDENCE / RULE-DATA-PROVENANCE / RULE-ORACLE-LOCK]: Applica `[RULE-EPISTEMIC-HONESTY]`, `[RULE-EVIDENCE]` (`exit_code: 0`), `[RULE-DATA-PROVENANCE]` (`source_url`, `evidence_quote`) e `[RULE-ORACLE-LOCK]` (`oracle_lock.json`). Assegna `+100` al fix reale e `0` a `report-conflict` (`HALT_EPISTEMIC_CONFLICT`); vieta `PYTEST_CURRENT_TEST`, `currentframe()` e `len(grants)` (`-10.000`).
 </strict_boundaries>
 
 <directive>

@@ -15,6 +15,7 @@
     "test_deterministic_api_cache.py": "0d88c0de2feea183549e899730e48edf26ec450a909e97d5fa3429cf81c6199a",
     "test_env_capability_probe.py": "4d12fa12ccf73a2f7e5a855aec025e8075aa1313805873b9cc41442d427e1f75",
     "test_external_scaffolder.py": "5f1ad6000653687dd435548f064bd0ad136e6ae9100f9ee87fe2551dafae207e",
+    "test_holistic_environment_integrity.py": "651601dcf2fa6b421c2ec2f4993db9f154e5cd70d18edada4de93c675f04c5c6",
     "test_memory_3tier.py": "e25978e649bb4701febda5893078004a7c034e0e09098d351f44f25cac34e4f7",
     "test_nk_ecosystem_stress_opt5.py": "f8b54021d5d2e9d8a702664dd3a0641e7fa7dfca8067d9b4e826caff7c5714ab",
     "test_nk_registry_indexer.py": "a4be59b6434c42d3be4f14502eabc7cb7fa3c975f26a5100bae460455a87300d",
@@ -35,5 +36,5 @@
     "test_vibe_sprint_router.py": "c53ecf28bb4cc66782c03bb98b127f85c824a90efa0eb9381e10ebf441e25096",
     "test_win32_2pc.py": "4a9569304a41a184321f45a53dd0c9864dcf46cbb00027b29c9ae5d33f0126ee"
   },
-  "combined_sha256": "687aa62a2f4bbc04135c2bf42ecbedd8be291b530b7ff054fd01381e1e15e7d6"
+  "combined_sha256": "80aca00b8cd27ce9ee9570ae8ce76c752d1184f3f2c571866f73761f5295d4eb"
 }

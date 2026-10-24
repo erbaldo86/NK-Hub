@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Diagnostica di manutenzione e auto-sanitizzazione per Nexus Keystone v3.5.0.
+Diagnostica di manutenzione e auto-sanitizzazione per Nexus Keystone v4.5.0.
 Modulo: preflight_health_check.py.
 Implementa le regole [RULE-02.3.1] e [RULE-05.4], la correzione BS-01 e l'ottimizzazione OPT-10.
 
@@ -114,9 +114,21 @@ class PreflightHealthChecker:
 
         staging_dir = self.workspace_root / ".staging"
         if staging_dir.exists():
-            for pattern in ("*.wal", "*.wal_2pc.jsonl"):
-                for wf in staging_dir.glob(pattern):
-                    wal_files.append(wf)
+            for s_root, s_dirs, s_files in os.walk(staging_dir, topdown=True):
+                s_root_path = Path(s_root)
+                s_keep: List[str] = []
+                for sd in s_dirs:
+                    if sd in ("__pycache__", ".pytest_cache"):
+                        cache_dirs.append(s_root_path / sd)
+                    elif sd == ".wal":
+                        wal_dirs.append(s_root_path / sd)
+                        s_keep.append(sd)
+                    elif sd not in (".git", ".venv", "venv", "node_modules"):
+                        s_keep.append(sd)
+                s_dirs[:] = s_keep
+                for sf in s_files:
+                    if sf.endswith(".wal") or sf.endswith(".wal_2pc.jsonl"):
+                        wal_files.append(s_root_path / sf)
 
         self._cached_walk = (cache_dirs, wal_files, wal_dirs)
         return self._cached_walk
@@ -356,13 +368,16 @@ class PreflightHealthChecker:
         groups: Dict[str, List[Path]] = {}
         for p in report_files:
             name = p.stem
-            prefix = re.sub(r"_\d{8}[_\d]*$", "", name)
-            prefix = re.sub(
-                r"_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
-                "",
-                prefix,
-                flags=re.IGNORECASE,
-            )
+            if re.match(r"^IB-\d{8}-[0-9a-zA-Z_-]+$", name, flags=re.IGNORECASE):
+                prefix = "IB_Brief"
+            else:
+                prefix = re.sub(r"_\d{8}[_\d]*$", "", name)
+                prefix = re.sub(
+                    r"_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+                    "",
+                    prefix,
+                    flags=re.IGNORECASE,
+                )
             groups.setdefault(prefix, []).append(p)
 
         for _, p_list in groups.items():
@@ -375,6 +390,13 @@ class PreflightHealthChecker:
                         pruned_files.append(
                             str(old_f.relative_to(self.workspace_root))
                         )
+
+        if auto_fix and self.tracking_dir.exists():
+            for bak_f in self.tracking_dir.rglob("*.bak*"):
+                if bak_f.is_file() and safe_remove_file(bak_f):
+                    pruned_files.append(
+                        str(bak_f.relative_to(self.workspace_root))
+                    )
 
         return {
             "passed": True,
@@ -465,7 +487,7 @@ class PreflightHealthChecker:
 def main() -> int:
     """Punto di ingresso CLI per il verificatore preflight di Nexus Keystone."""
     parser = argparse.ArgumentParser(
-        description="Pre-Flight Health Check & Auto-Sanitizer Nexus Keystone v3.5.0"
+        description="Pre-Flight Health Check & Auto-Sanitizer Nexus Keystone v4.5.0"
     )
     parser.add_argument(
         "--check-only",
@@ -477,6 +499,11 @@ def main() -> int:
         type=str,
         default=None,
         help="Directory radice del workspace da controllare",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Stampa il report diagnostico in formato JSON strutturato",
     )
     args = parser.parse_args()
 

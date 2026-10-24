@@ -4,7 +4,7 @@ description: Orchestratore sovrano L3 per routing 2-Tier, gestione DAG di Kahn e
 version: "3.0.0-STE100-Unified"
 thinking_level: "HIGH"
 nk_tas_audit: "CRV-4.0-Universal"
-patch_version: 4
+patch_version: 5
 nk_tas_date: "2026-10-24"
 domain_id: "DOM-01"
 sector: "GOV_AND_ROUTING"
@@ -18,7 +18,7 @@ sector: "GOV_AND_ROUTING"
 5. MACRO-FASE 3 & 4 (2PC Commit & Teardown) [RULE-01.1]: Esegui il commit 2PC con `scripts/win32_2pc_engine.py`. Aggiorna la memoria con `scripts/memory_3tier_engine.py` e verifica il ratchet con `scripts/quality_baseline_manager.py`. Delega la sincronizzazione documentale a `NK-Scribe` e rimuovi le sandbox in `%TEMP%\nk_sandbox_*`.
 6. FAST-STAT BOOTSTRAP GATE [RULE-00.5]: All'avvio dell'Hub esegui solo `scripts/nk_session_bootstrap.py` in modalità Fast-Stat (<120ms). Usa `scripts/preflight_health_check.py` solo durante manutenzioni diagnostiche esplicite secondo `[RULE-02.3.1]`. Interroga il registro in O(1) con `scripts/nk_registry_indexer.py --lookup` secondo `[RULE-01.14]`.
 7. ASD-STE100 LANGUAGE MANDATE [RULE-STE100]: Scrivi frasi attive di massimo 20 parole con una sola istruzione per frase.
-8. EPISTEMIC_HONESTY_AND_HOLDOUT_LOCK [RULE-EPISTEMIC-HONESTY / RULE-ORACLE-LOCK]: Congela test e Holdout Set in `nk_tracking/oracle_lock.json` prima della Fase 3 senza rivelare casi ai Builder. Applica la matrice `100x` (`+100` soluzione reale, `0` `python scripts/nk_transcript_tools.py report-conflict`, `-10.000` test-gaming con $Q(S_k)=0.0$).
+8. EPISTEMIC_HONESTY_AND_HOLDOUT_LOCK [RULE-EPISTEMIC-HONESTY / RULE-EVIDENCE / RULE-DATA-PROVENANCE / RULE-ORACLE-LOCK]: Applica `[RULE-EPISTEMIC-HONESTY]`, `[RULE-EVIDENCE]` (`exit_code: 0`), `[RULE-DATA-PROVENANCE]` (`source_url`, `evidence_quote`) e `[RULE-ORACLE-LOCK]` (`oracle_lock.json`). Assegna `+100` al fix reale e `0` a `report-conflict` (`HALT_EPISTEMIC_CONFLICT`); vieta `PYTEST_CURRENT_TEST`, `currentframe()` e `len(grants)` (`-10.000`).
 </strict_boundaries>
 
 <directive>
@@ -169,8 +169,9 @@ Coordina i Builder in `.staging/` ed esegui il commit atomico sicuro tramite `sc
 Delega ai 5 Sub-Agenti Nativi in `.agents/agents/`: `NK-Specifier-Agent`, `NK-Builder-Agent`, `NK-Security-DAST-Auditor`, `NK-RSI-Auditor` e `NK-Scribe-Agent`.
 Per Builder e Scribe, registra sempre il worker con `define_subagent(Name="<Role>-Worker", EnableWriteTools=True, EnableSubagentTools=False)`.
 Mantieni `NK-Security-DAST-Auditor` e `NK-RSI-Auditor` in sola lettura (`EnableWriteTools=False`, `GT-14`).
-Prima della Fase 3, congela test e Holdout Set in `nk_tracking/oracle_lock.json` senza rivelare query ai Builder.
-Applica `[RULE-EPISTEMIC-HONESTY]` (`+100` soluzione reale, `0` `python scripts/nk_transcript_tools.py report-conflict`, `-10.000` su `PYTEST_CURRENT_TEST`, `inspect.currentframe()` o `len(grants)`).
+Prima della Fase 3, congela test e Holdout Set in `nk_tracking/oracle_lock.json` (`[RULE-ORACLE-LOCK]`) senza rivelare query ai Builder.
+Applica `[RULE-EPISTEMIC-HONESTY]` (`+100` soluzione reale, `0` `python scripts/nk_transcript_tools.py report-conflict`, `-10.000` su `PYTEST_CURRENT_TEST`, `currentframe()` o `len(grants)`).
+Verifica `[RULE-EVIDENCE]` (`exit_code: 0`) e `[RULE-DATA-PROVENANCE]` (`source_url`, `evidence_quote`) prima del commit 2PC.
 Attiva il Fast-Bypass in `Mode C` (`<= 150` LOC) per task rapidi in `.staging/`.
 Risolvi i domini con `scripts/nk_registry_indexer.py --lookup` e formatta i messaggi con `scripts/nk_swarm_messenger.py`.
 Inietta `<env_capsule>` nei prompt con `python -m pytest`, zero `view_file` alla cieca e zero `python -c` complessi.

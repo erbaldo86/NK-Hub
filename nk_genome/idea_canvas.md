@@ -1,16 +1,16 @@
-# 💡 Idea Canvas L0: Nexus Keystone (`v3.1.0-Tensor-RSI`)
+# 💡 Idea Canvas L0: Nexus Keystone (`v4.5.0-STE100-Unified` / `v3.1.0-Tensor-RSI`)
 
 > **Badge di Certificazione:** 🛡️ `[NK-BRIEF-STATUS: AUDITED_AND_CONVERGED 🟢]` | `[RSI-CONVERGENCE: CONVERGED_OPTIMAL (Δ3=0, Q=100.0) 🟢]`  
-> **Milestone Anchor ID:** `NK-MS-20261015-TENSOR-RSI-v3.1.0`  
-> **Versione Target:** `v3.1.0-Tensor-RSI`  
+> **Milestone Anchor ID:** `NK-MS-20261024-HOLISTIC-SANITATION-v4.5.0-RSI` (`NK-MS-20261015-TENSOR-RSI-v3.1.0`)  
+> **Versione Target:** `v4.5.0-STE100-Unified` (`v4.4.0-STE100-Unified` / `v3.1.0-Tensor-RSI` Compatible)  
 > **Standard Linguistico:** ASD-STE100 Italiano Tecnico (`[RULE-STE100]`, frasi `<= 20` parole)
 
 ---
 
 ## 1. Concetto Base
-- **Sintesi Progetto:** Nexus Keystone evolve con il motore Tensor-RSI 2D e `108` Golden Tests reali Zero-Mock.
+- **Sintesi Progetto:** Nexus Keystone integra Tensor-RSI 2D, `34` moduli (`36` file Python) e `115` test (`68` `GT-13`).
 - **Problema Reale:** La metrica RSI unica penalizza le skill senza test pytest e rallenta i micro-task in `Mode C`.
-- **Soluzione Tecnica:** Il sistema introduce `4` livelli verticali (`L0..L3`) e `5` profili specializzati in `RSIProfileRegistry`.
+- **Soluzione Tecnica:** Il sistema introduce `4` livelli verticali (`L0..L3`), `5` profili in `RSIProfileRegistry` e la propagazione capillare Anti-Menzogna al `100%`.
 
 ## 2. Analisi di Mercato e Benchmark (`[1]`)
 - **Utenti Target:** Architetti AI, sviluppatori Python asincroni e revisori SAST/DAST su Google Antigravity.
@@ -25,10 +25,10 @@
 - **Rischi Infrastrutturali:** Il Named Mutex Win32 a 64-bit previene race condition e lock `[WinError 32]` durante il commit.
 
 ## 4. Registro Pivot
-- **Data e ID Pivot:** `2026-10-15` (`PIVOT-TENSOR-RSI-v3.1.0`) e `2026-10-21` (`PIVOT-SUPER-META-PROMPT-GATE-v4.1.0`).
-- **Causa Tecnica del Blocco:** Le skill documentali subivano penalità fitness e il parlato STT generava falsi positivi e drift.
-- **Rettifica Adottata:** `[RULE-00.6]` unisce la tracciabilità `R1..Rn` e FSM di Opus con il motore Zero-Bloat di Argon.
-- **Arbitrato Terza Parte:** Integra conferma 1-Click `ask_question`, firma `intent_hash_sha256`, parser morfologico STT e protezione `WP8.4`.
+- **Data e ID Pivot:** `2026-10-15` (`PIVOT-TENSOR-RSI-v3.1.0`), `2026-10-21` (`PIVOT-SUPER-META-PROMPT-GATE-v4.1.0`) e `2026-10-24` (`PIVOT-HOLISTIC-SANITATION-v4.5.0`).
+- **Causa Tecnica del Blocco:** Le skill documentali subivano penalità fitness e mancava la propagazione capillare Anti-Menzogna su `.agents/`.
+- **Rettifica Adottata:** `[RULE-00.6]` e `[RULE-EPISTEMIC-HONESTY]` uniscono tracciabilità `R1..Rn`, `stop-evidence` e incentivi asimmetrici `100x` (`+ 100 \cdot D_k`).
+- **Arbitrato Terza Parte:** Integra conferma 1-Click `ask_question`, firma `intent_hash_sha256`, parser morfologico STT, `report-conflict` e protezione `WP8.4`.
 
 ## 5. Matrice SCAMPER
 - **S (Substitute):** Sostituisci il parsing manuale `sys.argv` con `argparse` retrocompatibile in `quality_baseline_manager.py` (`GT-13`).

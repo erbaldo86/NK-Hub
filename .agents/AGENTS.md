@@ -53,7 +53,7 @@
 * Solo i Builder scrivono codice sorgente dentro `.staging/`.
 
 ### [RULE-00.2] THE_SCRIBE_EXEMPTION
-* `NK-Scribe` aggiorna `nk_tracking/*`, `nk_genome/PATCH_NOTES.md`, `PATCH_NOTES.md`, `nk_genome/repo_map.md`, `README.md` e `README.it.md` dopo il commit 2PC.
+* `NK-Scribe` aggiorna `nk_tracking/*`, `nk_genome/PATCH_NOTES.md`, `PATCH_NOTES.md`, `nk_genome/repo_map.md`, `README.md`, `README.it.md` e `GUIDA_INSTALLAZIONE.md` dopo il commit 2PC.
 
 ### [RULE-00.3] SANITIZATION_AND_SANDBOX_EXEMPTION
 * Gli orchestratori e gli script core gestiscono le cartelle temporanee in `%TEMP%\nk_sandbox_*` e `%TEMP%\nk_diagnostics\`.

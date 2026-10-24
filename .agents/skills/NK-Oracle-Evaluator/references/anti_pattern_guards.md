@@ -21,5 +21,9 @@
 1. **Regola:** Tutti i file sorgente e gli output devono usare la codifica `UTF-8` senza BOM.
 2. **Verifica:** La presenza del carattere di sostituzione `U+FFFD` o di sequenze byte corrotte provoca il verdetto immediato di `FAIL` (`exit_code: 1`).
 
-## 5. Guardia Zero-Hallucination Audit Claim
+## 5. Guardia Zero-Hallucination Audit Claim (`[RULE-EVIDENCE]`)
 1. **Regola:** Nessun verdetto può dichiarare test superati senza l'esecuzione reale del sottoprocesso e la registrazione dell'`exit_code: 0`.
+
+## 6. Guardia Anti-Goodharting e Onestà Epistemica (`[RULE-EPISTEMIC-HONESTY]`, `[RULE-ORACLE-LOCK]`, `[RULE-DATA-PROVENANCE]`)
+1. **Regola:** Applica `[RULE-EPISTEMIC-HONESTY]`, `[RULE-EVIDENCE]` (`exit_code: 0`), `[RULE-DATA-PROVENANCE]` (`source_url`, `evidence_quote`) e `[RULE-ORACLE-LOCK]` (`oracle_lock.json`).
+2. **Verifica:** Assegna `+100` al fix reale e `0` a `report-conflict` (`HALT_EPISTEMIC_CONFLICT`); vieta `PYTEST_CURRENT_TEST`, `currentframe()` e `len(grants)` (`-10.000`).

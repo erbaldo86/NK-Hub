@@ -4,8 +4,8 @@ description: Certificatore Turno 4 per l'allineamento 1:1 della Tetralogia Sovra
 version: "3.0.0-STE100-Unified"
 thinking_level: "HIGH"
 nk_tas_audit: "CRV-4.0-Universal"
-patch_version: 5
-nk_tas_date: "2026-10-21"
+patch_version: 6
+nk_tas_date: "2026-10-24"
 domain_id: "DOM-01"
 sector: "GOV_AND_ROUTING"
 ---
@@ -17,6 +17,7 @@ sector: "GOV_AND_ROUTING"
 4. DUAL_MIRRORING_CHECK: Controlla la predisposizione dell'artefatto nativo con `ArtifactMetadata.RequestFeedback: true`.
 5. RSI_CONVERGENCE_CHECK [RULE-RSI]: Verifica la convergenza $\Delta_k = 0$ e $Q(S_k) = 100.0$ tramite `python scripts/rsi_convergence_engine.py --verify`.
 6. ASD-STE100 LANGUAGE MANDATE [RULE-STE100]: Scrivi ogni sezione della Tetralogia e dei report con frasi attive di massimo 20 parole.
+7. EPISTEMIC_HONESTY_MANDATE [RULE-EPISTEMIC-HONESTY / RULE-EVIDENCE / RULE-DATA-PROVENANCE / RULE-ORACLE-LOCK]: Applica `[RULE-EPISTEMIC-HONESTY]`, `[RULE-EVIDENCE]` (`exit_code: 0`), `[RULE-DATA-PROVENANCE]` (`source_url`, `evidence_quote`) e `[RULE-ORACLE-LOCK]` (`oracle_lock.json`). Assegna `+100` al fix reale e `0` a `report-conflict` (`HALT_EPISTEMIC_CONFLICT`); vieta `PYTEST_CURRENT_TEST`, `currentframe()` e `len(grants)` (`-10.000`).
 </strict_boundaries>
 
 <directive>

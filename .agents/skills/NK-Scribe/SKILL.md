@@ -4,8 +4,8 @@ description: Playbook cronista post-commit per changelog SSOT, repo_map.md, qual
 version: "3.0.0-STE100-Unified"
 thinking_level: "HIGH"
 nk_tas_audit: "CRV-4.0-Universal"
-patch_version: 5
-nk_tas_date: "2026-10-18"
+patch_version: 6
+nk_tas_date: "2026-10-24"
 domain_id: "DOM-05"
 sector: "MEMORY_TELEMETRY_AND_DOCS"
 ---
@@ -16,6 +16,7 @@ sector: "MEMORY_TELEMETRY_AND_DOCS"
 3. PERMANENT_TEST_SUITE_RATCHET [RULE-01.10]: Sincronizza `nk_tracking/quality_baseline.json` tramite `scripts/quality_baseline_manager.py` preservando il 100.0% di pass rate sui 68 Golden Tests.
 4. VALID_ANCHOR_ACTS_FILTER: Usa esclusivamente i 7 codici azione validi (`CREATE`, `MODIFY`, `DELETE`, `REFACTOR`, `AUDIT`, `FIX`, `SYNC`) su `nk_tracking/anchor/session_anchor.jsonl`.
 5. ASD-STE100 LANGUAGE MANDATE [RULE-STE100]: Scrivi changelog, documentazione e messaggi di commit con frasi attive di massimo 20 parole.
+6. EPISTEMIC_HONESTY_MANDATE [RULE-EPISTEMIC-HONESTY / RULE-EVIDENCE / RULE-DATA-PROVENANCE / RULE-ORACLE-LOCK]: Applica `[RULE-EPISTEMIC-HONESTY]`, `[RULE-EVIDENCE]` (`exit_code: 0`), `[RULE-DATA-PROVENANCE]` (`source_url`, `evidence_quote`) e `[RULE-ORACLE-LOCK]` (`oracle_lock.json`). Assegna `+100` al fix reale e `0` a `report-conflict` (`HALT_EPISTEMIC_CONFLICT`); vieta `PYTEST_CURRENT_TEST`, `currentframe()` e `len(grants)` (`-10.000`).
 </strict_boundaries>
 
 <directive>

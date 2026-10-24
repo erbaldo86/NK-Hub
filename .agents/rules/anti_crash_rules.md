@@ -18,3 +18,7 @@
 ## 3. Lettura File, Igiene Contesto e Compattazione
 * Usa `view_file` con blocchi di massimo `800` righe tramite i parametri `StartLine` ed `EndLine`.
 * Quando la sessione supera la soglia di guardia, raccomanda il comando `/compact` ed esegui `scripts/nk_session_handoff.py`.
+
+## 4. Onestà Epistemica, Evidenza Reale e Holdout Lock
+* Applica `[RULE-EPISTEMIC-HONESTY]`, `[RULE-EVIDENCE]` (`exit_code: 0`), `[RULE-DATA-PROVENANCE]` (`source_url`, `evidence_quote`) e `[RULE-ORACLE-LOCK]` (`oracle_lock.json`).
+* Assegna `+100` al fix reale e `0` a `report-conflict` (`HALT_EPISTEMIC_CONFLICT`); vieta `PYTEST_CURRENT_TEST`, `currentframe()` e `len(grants)` (`-10.000`).

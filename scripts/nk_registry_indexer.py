@@ -54,6 +54,7 @@ DOMAIN_TAXONOMY: Dict[str, Dict[str, Any]] = {
             "nk_session_handoff.py",
             "nk_swarm_messenger.py",
             "nk_registry_indexer.py",
+            "nk_hook_gate.py",
             "schemas/dual_ledgers.py",
             "schemas/nk_ipc_contracts.py",
         ],
@@ -178,6 +179,7 @@ DOMAIN_TAXONOMY: Dict[str, Dict[str, Any]] = {
             "sbfl_engine.py",
             "sbfl_pytest_bridge.py",
             "rsi_convergence_engine.py",
+            "nk_transcript_tools.py",
         ],
         "keywords": [
             "audit",
@@ -361,8 +363,8 @@ _INDEXER_SKILL_RULES: Tuple[Tuple[str, str, str, str, Tuple[str, ...]], ...] = (
     ),
     (
         "NK-Agent-Instruction-Forge",
-        "DOM-03",
-        "BUILD_AND_HEAL",
+        "DOM-02",
+        "IDEATION_AND_ARCH",
         "NK-Builder-Agent",
         (
             "forgia",
@@ -502,8 +504,8 @@ TETRALOGY_FILENAMES: Tuple[str, ...] = (
 class NKRegistryIndexer:
     """Indicizzatore deterministico O(1) per skill, script, sub-agenti nativi e domini di Nexus Keystone."""
 
-    MANIFEST_VERSION: str = "3.5.1-MODULAR-INDEX-RSI2"
-    MILESTONE_ID: str = "NK-MS-20261017-MODULAR-INDEX-v3.5.1-RSI2"
+    MANIFEST_VERSION: str = "4.5.0-STE100-Unified"
+    MILESTONE_ID: str = "NK-MS-20261024-HOLISTIC-SANITATION-v4.5.0-RSI"
     NATIVE_AGENT_DOMAIN_MAP: Dict[str, str] = NATIVE_AGENT_DOMAIN_MAP
 
     def __init__(

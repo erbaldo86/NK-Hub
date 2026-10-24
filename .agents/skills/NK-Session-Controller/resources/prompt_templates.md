@@ -45,7 +45,7 @@ Contesto operativo:
 **[DIRETTIVA ESECUTIVA: REAL DAST & SANDBOX VERIFICATION]**
 1. Invoca `NK-Dynamic-Sandbox-StressTester` tramite `invoke_subagent` per eseguire i test in `%TEMP%\nk_sandbox_<uuid>\` con `python scripts/dast_sandbox_runner.py --script <target> --timeout 10 --json`.
 2. Cedi il turno in silenzio reattivo (`[RULE-REACTIVE-SILENCE]`) fino alla risposta del sub-agente.
-3. Accetta il verdetto solo con `exit_code: 0` reale e zero mock (`[RULE-01.2]`).
+3. Accetta il verdetto solo con `exit_code: 0` reale (`[RULE-EVIDENCE]`) e zero mock (`[RULE-01.2]`).
 
 Componenti da testare:
 {{CONTEXT}}
@@ -57,8 +57,9 @@ Componenti da testare:
 ```markdown
 **[DIRETTIVA ESECUTIVA: RATCHET LOOP BUG FIX IN STAGING]**
 1. **Macro-Fase 1 (Build & Stage):** Delega al Builder in `.staging/` la patch con `python scripts/auto_heal_pipeline.py --test-cmd "<pytest_cmd>" --target-file {{TARGET_FILE}}`.
-2. **Macro-Fase 2 (Cold Audit):** Invoca `NK-Oracle-Evaluator` e verifica $\Delta_k = 0$ con `python scripts/rsi_convergence_engine.py --verify --root "<PROJECT_ROOT>"`.
-3. **Macro-Fase 3 (2PC Atomic Commit):** Delega a `NK-Master-Hub` il commit `python scripts/win32_2pc_engine.py --promote-staging --repo-root "<PROJECT_ROOT>" --milestone "{{MILESTONE_ANCHOR_ID}}"`. Registra quindi l'evento in `nk_tracking/anchor/session_anchor.jsonl`.
+2. **Onestà Epistemica (`[RULE-EPISTEMIC-HONESTY]`):** Assegna `+100` al fix reale e `0` a `report-conflict` (`HALT_EPISTEMIC_CONFLICT`); vieta `PYTEST_CURRENT_TEST`, `currentframe()` e `len(grants)` (`-10.000`).
+3. **Macro-Fase 2 (Cold Audit):** Invoca `NK-Oracle-Evaluator`, verifica `oracle_lock.json` (`[RULE-ORACLE-LOCK]`) e $\Delta_k = 0$ con `python scripts/rsi_convergence_engine.py --verify --root "<PROJECT_ROOT>"`.
+4. **Macro-Fase 3 (2PC Atomic Commit):** Con `exit_code: 0` (`[RULE-EVIDENCE]`), delega a `NK-Master-Hub` il commit `python scripts/win32_2pc_engine.py --promote-staging --repo-root "<PROJECT_ROOT>" --milestone "{{MILESTONE_ANCHOR_ID}}"`. Registra quindi l'evento in `nk_tracking/anchor/session_anchor.jsonl`.
 
 File impattati:
 {{TARGET_FILE}}
@@ -66,12 +67,13 @@ File impattati:
 
 ---
 
-## 4. DATA_MINING_TAXONOMY (`[RULE-02.4]` & `[RULE-08]`)
+## 4. DATA_MINING_TAXONOMY (`[RULE-02.4]` & `[RULE-DATA-PROVENANCE]`)
 ```markdown
 **[DIRETTIVA ESECUTIVA: RICERCA VERIFICATA E VALIDAZIONE PYDANTIC V2]**
 1. Raccogli i dati da fonti primarie verificabili tramite `search_web`.
-2. Valida ogni record con modelli Pydantic v2 strict (`strict=True, extra="forbid"`).
-3. Usa `python scripts/deterministic_api_cache.py --health` (o `--force-refresh` in CI) per la cache locale SQLite WAL.
+2. Garantire `source_url` reale ed `evidence_quote` estratta dalla fonte per ogni record (`[RULE-DATA-PROVENANCE]`).
+3. Valida ogni record con modelli Pydantic v2 strict (`strict=True, extra="forbid"`).
+4. Usa `python scripts/deterministic_api_cache.py --health` (o `--force-refresh` in CI) per la cache locale SQLite WAL.
 
 Requisiti Dati:
 {{CONTEXT}}
@@ -123,6 +125,8 @@ Specifica completa in [`clean_handoff_protocol.md`](clean_handoff_protocol.md).
 
 <env_capsule>
 Usa `python -m pytest` per i test. Vieta `view_file` esplorativi alla cieca e `python -c` multi-riga.
+Applica `[RULE-EPISTEMIC-HONESTY]`, `[RULE-EVIDENCE]` (`exit_code: 0`), `[RULE-DATA-PROVENANCE]` (`source_url`, `evidence_quote`) e `[RULE-ORACLE-LOCK]` (`oracle_lock.json`).
+Assegna `+100` al fix reale e `0` a `report-conflict` (`HALT_EPISTEMIC_CONFLICT`); vieta `PYTEST_CURRENT_TEST`, `currentframe()` e `len(grants)` (`-10.000`).
 <intent_brief id="{{BRIEF_ID}}" sha256="{{INTENT_HASH_SHA256}}">
   <requirements>{{REQUIREMENTS_R_IDS}}</requirements>
   <out_of_scope>{{OUT_OF_SCOPE}}</out_of_scope>
@@ -147,7 +151,8 @@ Usa `python -m pytest` per i test. Vieta `view_file` esplorativi alla cieca e `p
 ### ⚙️ BLOCCO 4: Istruzioni Chirurgiche e Test
 1. **Pre-Edit Safety:** Ferma eventuali processi demone con `manage_task(Action="kill", TaskId="<id>")`.
 2. **Modifiche in `.staging/`:** {{SURGICAL_INSTRUCTIONS}} (Codifica UTF-8 senza BOM, standard `[RULE-STE100]`).
-3. **Verifica:** Esegui `python scripts/ast_guard_validator.py --stage-dir .staging` e `python scripts/rsi_convergence_engine.py --verify --root "<PROJECT_ROOT>"` (o `--vibe-check`). Restituisci infine la **Worker Execution Receipt v3.0** (`< 1.800` caratteri).
+3. **Onestà Epistemica (`[RULE-EPISTEMIC-HONESTY]`):** Segnala conflitti tra test congelati con `python scripts/nk_transcript_tools.py report-conflict` (`HALT_EPISTEMIC_CONFLICT`, `0` punti).
+4. **Verifica:** Esegui `python scripts/ast_guard_validator.py --stage-dir .staging` e `python scripts/rsi_convergence_engine.py --verify --root "<PROJECT_ROOT>"` (o `--vibe-check`). Restituisci infine la **Worker Execution Receipt v3.0** (`< 1.800` caratteri).
 ```
 
 ### 8B. Checklist Cold Review (`CRITIC_REVIEW_CHECKLIST`)
@@ -156,8 +161,8 @@ Usa `python -m pytest` per i test. Vieta `view_file` esplorativi alla cieca e `p
 2. **Gate 2 (Code Grounding):** `view_file` (`<= 800` righe) eseguito sui file target?
 3. **Gate 3 (Brief Grounding):** `view_file` eseguito su `nk_genome/implementation_plan.md`?
 4. **Gate 4 (Preservation):** Firme pubbliche, tipi e commenti preservati?
-5. **Gate 5 (Truth/DAST):** Test pytest e `dast_sandbox_runner.py` superati con `exit_code: 0`?
-6. **Gate 6 (RSI Convergence):** `python scripts/rsi_convergence_engine.py --verify --root "<PROJECT_ROOT>"` con $\Delta_k = 0$ e $Q(S_k) = 100.0$?
+5. **Gate 5 (Truth/DAST):** Test pytest, `dast_sandbox_runner.py` e `oracle_lock.json` (`[RULE-ORACLE-LOCK]`) superati con `exit_code: 0` (`[RULE-EVIDENCE]`)?
+6. **Gate 6 (RSI & Epistemic):** `rsi_convergence_engine.py --verify` con $\Delta_k = 0$, $Q(S_k) = 100.0$ e zero violazioni `[RULE-EPISTEMIC-HONESTY]` o `[RULE-DATA-PROVENANCE]`?
 ```
 
 ---
@@ -168,6 +173,7 @@ Usa `python -m pytest` per i test. Vieta `view_file` esplorativi alla cieca e `p
 Assumi il ruolo di `[5] NK-Delta-Architect` dell'Ecosistema Nexus Keystone (`v3.0.0-STE100-Unified`).
 Esegui `view_file` su `.agents/skills/NK-Delta-Architect/SKILL.md`.
 Esegui Stage A (`view_file` su `nk_genome/implementation_plan.md`) e Stage B sui file target prima di scrivere in `.staging/`.
+Applica `[RULE-EPISTEMIC-HONESTY]`, `[RULE-EVIDENCE]` (`exit_code: 0`), `[RULE-DATA-PROVENANCE]` (`source_url`, `evidence_quote`) e `[RULE-ORACLE-LOCK]` (`oracle_lock.json`).
 Procedi con il task nei 4 Blocchi:
 {{TASK_HANDOFF_4_BLOCKS_PAYLOAD}}
 ```
@@ -200,18 +206,19 @@ Non usare mai `!diretto` per saltare lo staging o la delega ai sub-agenti.
 ### FASE 1: Discovery e Audit Empirico in Sola Lettura (`Mode D`)
 1. Partiziona i batch oltre 8 query web su sub-agenti `research` paralleli tramite `invoke_subagent` con `<env_capsule>`.
 2. Delega a `NK-Security-DAST-Auditor` e `NK-RSI-Auditor` la misura onesta dello stato reale (`Measure-First`).
-3. Congela gli hash della ground truth in `<PROJECT_ROOT>/nk_tracking/oracle_lock.json` (`[RULE-ORACLE-LOCK]`).
+3. Congela gli hash della ground truth in `<PROJECT_ROOT>/nk_tracking/oracle_lock.json` (`[RULE-ORACLE-LOCK]`) senza rivelare query ai Builder.
 4. `STOP_GATE`: mostra i gap reali misurati tramite `ask_question` prima di avviare la Fase 2.
 
 ### FASE 2: Remediation Chirurgica in `.staging/` (`Mode B` / `Mode A`)
 1. Delega tramite `invoke_subagent` al Builder (`EnableWriteTools=True`) le modifiche esclusivamente in `<PROJECT_ROOT>/.staging/`.
-2. Imponi la lettura preventiva del modello Pydantic target (`[RULE-02.5]`) e la validazione `model_validate()` in memoria.
-3. Valida il codice staged con `python scripts/ast_guard_validator.py --stage-dir "<PROJECT_ROOT>/.staging"`.
+2. Imponi la lettura preventiva del modello Pydantic target (`[RULE-02.5]`), `source_url` ed `evidence_quote` (`[RULE-DATA-PROVENANCE]`).
+3. Applica `[RULE-EPISTEMIC-HONESTY]` (`+100` soluzione reale, `0` `report-conflict` / `HALT_EPISTEMIC_CONFLICT`, `-10.000` su `PYTEST_CURRENT_TEST`, `currentframe()`, `len(grants)`).
+4. Valida il codice staged con `python scripts/ast_guard_validator.py --stage-dir "<PROJECT_ROOT>/.staging"`.
 
 ### FASE 3: Verifica Indipendente, Commit 2PC e Scribe (`[RULE-01.1]`)
 1. Delega a `NK-RSI-Auditor` la verifica dei test congelati e la convergenza matematica reale:
    `python scripts/rsi_convergence_engine.py --verify --root "<PROJECT_ROOT>" --benchmark-suite "<PROJECT_ROOT>/tests"`
-2. Solo su esito `PASS` reale con `exit code 0`, promuovi atomicamente i file staged:
+2. Solo su esito `PASS` reale con `exit_code: 0` (`[RULE-EVIDENCE]`), promuovi atomicamente i file staged:
    `python scripts/win32_2pc_engine.py --promote-staging --repo-root "<PROJECT_ROOT>" --milestone "{{MILESTONE_ANCHOR_ID}}"`
 3. Delega a `NK-Scribe-Agent` l'aggiornamento in prepend di `PATCH_NOTES.md` e la rigenerazione di `repo_map.md`.
 ```

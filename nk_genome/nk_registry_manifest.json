@@ -1,7 +1,7 @@
 {
-  "version": "3.5.1-MODULAR-INDEX-RSI2",
-  "milestone_anchor_id": "NK-MS-20261017-MODULAR-INDEX-v3.5.1-RSI2",
-  "generated_at": "2026-10-24T13:21:46Z",
+  "version": "4.5.0-STE100-Unified",
+  "milestone_anchor_id": "NK-MS-20261024-HOLISTIC-SANITATION-v4.5.0-RSI",
+  "generated_at": "2026-10-24T15:29:58Z",
   "summary": {
     "total_domains": 5,
     "total_skills": 16,
@@ -29,9 +29,9 @@
         "nk_session_handoff.py",
         "nk_swarm_messenger.py",
         "nk_registry_indexer.py",
+        "nk_hook_gate.py",
         "schemas/dual_ledgers.py",
-        "schemas/nk_ipc_contracts.py",
-        "nk_hook_gate.py"
+        "schemas/nk_ipc_contracts.py"
       ],
       "keywords": [
         "governance",
@@ -241,9 +241,9 @@
         "send_message"
       ],
       "auxiliary_links": [],
-      "loc": 54,
-      "bytes": 3794,
-      "sha256": "e58821e3ea303c6b62dc83ac8300058db87ba5533e6aef960dc14a92722f3817",
+      "loc": 55,
+      "bytes": 4240,
+      "sha256": "a8362847fdd9f4a0d6a9c5ab0747ce425073af53aead4456d8e36b037f711072",
       "path": ".agents/skills/NK-Agent-Instruction-Forge/SKILL.md",
       "source_layer": "production"
     },
@@ -263,9 +263,9 @@
         "send_message"
       ],
       "auxiliary_links": [],
-      "loc": 68,
-      "bytes": 4353,
-      "sha256": "15f2c815f1f76f10dc90caf5f18e54bcf51cfb8a4617b20413b585b391b830d4",
+      "loc": 69,
+      "bytes": 4799,
+      "sha256": "63dd7e32af0c5e1405fb1c55e978f183146fb3e9995f7c573ef029d0b0a4e744",
       "path": ".agents/skills/NK-App-UX-Architect/SKILL.md",
       "source_layer": "production"
     },
@@ -286,9 +286,9 @@
         "send_message"
       ],
       "auxiliary_links": [],
-      "loc": 63,
-      "bytes": 4386,
-      "sha256": "4b920ed1d35ecb8794a9f3816e52103e00e63125f2694b47c24e640cde57ff35",
+      "loc": 64,
+      "bytes": 4832,
+      "sha256": "1fc6c78130e949e48f484ec49031ab2b1a65eefc2593da296d637b63bec9a8e1",
       "path": ".agents/skills/NK-Backend-Architect/SKILL.md",
       "source_layer": "production"
     },
@@ -310,9 +310,9 @@
         "resources/false_bug_rejection_rules.yaml",
         "resources/rca_dual_language_template.md"
       ],
-      "loc": 50,
-      "bytes": 3440,
-      "sha256": "1b3bb0b8a47cb9f2cebae721884a84e3f26de56a5d6b9d9958509ee2cad28237",
+      "loc": 51,
+      "bytes": 3886,
+      "sha256": "eb4c912d0bdc6bad0f438cb1cb235e1d7cf85fbf5f1977d16ade3331323bf392",
       "path": ".agents/skills/NK-Bug-Diagnostic-Engine/SKILL.md",
       "source_layer": "production"
     },
@@ -337,8 +337,8 @@
         "resources/delta_brief_template.md"
       ],
       "loc": 82,
-      "bytes": 5762,
-      "sha256": "a00369255fc0c1770292509f34108808dd7f233134aec2ff8b271ceb26ef6314",
+      "bytes": 5900,
+      "sha256": "a4f1f87b4f60281054ac5e729d0418e212ba75e39faa4b1f2cead46997636715",
       "path": ".agents/skills/NK-Delta-Architect/SKILL.md",
       "source_layer": "production"
     },
@@ -358,9 +358,9 @@
         "send_message"
       ],
       "auxiliary_links": [],
-      "loc": 65,
-      "bytes": 4638,
-      "sha256": "bc36ac0a3c41d666197662ac06a94ac8dafd816bd6a72c69aa77d64f8eb03b56",
+      "loc": 66,
+      "bytes": 5084,
+      "sha256": "f1a6f25035ee5687fb97d546125f2bc5317a21c3400c97609836f5e32c4924f2",
       "path": ".agents/skills/NK-Dynamic-Sandbox-StressTester/SKILL.md",
       "source_layer": "production"
     },
@@ -379,9 +379,9 @@
         "send_message"
       ],
       "auxiliary_links": [],
-      "loc": 60,
-      "bytes": 3850,
-      "sha256": "1fe23497214a341d173f391e66abd421a7e973ea2ff8549f7716549df28009d2",
+      "loc": 61,
+      "bytes": 4296,
+      "sha256": "db681d946a9ecafab71674b1e13ba01ca3850eeb7c063bc4d16f93e17fd08b04",
       "path": ".agents/skills/NK-Episodic-Memory-Engine/SKILL.md",
       "source_layer": "production"
     },
@@ -405,9 +405,9 @@
       "auxiliary_links": [
         "resources/idea_canvas_template.md"
       ],
-      "loc": 60,
-      "bytes": 4009,
-      "sha256": "02f5b2c2ba22f362415a92901bb8101c8a275e18d648617389cc724f02ff0e62",
+      "loc": 61,
+      "bytes": 4525,
+      "sha256": "fef5413390f01b76f97bdb30c9527d7b8f1e26189d6e5e05c54310abf039b4bf",
       "path": ".agents/skills/NK-Ideator/SKILL.md",
       "source_layer": "production"
     },
@@ -429,9 +429,9 @@
         "send_message"
       ],
       "auxiliary_links": [],
-      "loc": 181,
-      "bytes": 10382,
-      "sha256": "8baa09bd3c1b29a8b7fe46f8d64204086330f3e1d519a31cd51e92d48f6cf8ab",
+      "loc": 182,
+      "bytes": 10630,
+      "sha256": "d2a72e0899ecf36c8e376ede169e20904b97a8ace4b1eee451fcbf6866d3b423",
       "path": ".agents/skills/NK-Master-Hub/SKILL.md",
       "source_layer": "production"
     },
@@ -454,8 +454,8 @@
         "references/verification_oracles.md"
       ],
       "loc": 61,
-      "bytes": 4458,
-      "sha256": "331d7c04293484c886cc0799573522611375b3689fdad1f4f30824c83b2fc98b",
+      "bytes": 4593,
+      "sha256": "b5f5bb3eb36ccb26baefc5f94563d7e5c6528687e38ba52f66040a0090e20811",
       "path": ".agents/skills/NK-Oracle-Evaluator/SKILL.md",
       "source_layer": "production"
     },
@@ -474,9 +474,9 @@
         "send_message"
       ],
       "auxiliary_links": [],
-      "loc": 57,
-      "bytes": 4067,
-      "sha256": "c42ef7c3de9a03412cdaf9ba585fd16fdcac7eab2b9903c5a1b371449286fbae",
+      "loc": 58,
+      "bytes": 4513,
+      "sha256": "8d5a4ef88d7fb1e0e6a2f663439ed0303d0289ed47904904fc379adf886293a3",
       "path": ".agents/skills/NK-Plan-Aligner/SKILL.md",
       "source_layer": "production"
     },
@@ -499,8 +499,8 @@
       ],
       "auxiliary_links": [],
       "loc": 60,
-      "bytes": 4878,
-      "sha256": "3c644404293e87e240219a9e89c95e6a2cd16b4e73626b19a0c2a785e114c1fb",
+      "bytes": 5016,
+      "sha256": "b7641642f8221cbb86a84dd29b92ab8372676183163d7c1cbc0368e4f76d5d8e",
       "path": ".agents/skills/NK-Python-Async-Builder/SKILL.md",
       "source_layer": "production"
     },
@@ -524,9 +524,9 @@
         "resources/activity_anchor_schema.md",
         "resources/scribe_knowledge.md"
       ],
-      "loc": 68,
-      "bytes": 4645,
-      "sha256": "6512f2b18da0c0d3cae7375c02018fdcc40dcbe83c45337c801d14ebbb0632f7",
+      "loc": 69,
+      "bytes": 5091,
+      "sha256": "d32f5dc200e429014c84dbe35b8f3e0ef0d9d5c048b3642ed7695a8acf5aff2d",
       "path": ".agents/skills/NK-Scribe/SKILL.md",
       "source_layer": "production"
     },
@@ -551,8 +551,8 @@
         "resources/tas_l3_fullstack_system_audit.md"
       ],
       "loc": 70,
-      "bytes": 5560,
-      "sha256": "6a6573e10b87e3044ebf7876bc7c55a95fd0567b02e662322f529c5fea4aa2cb",
+      "bytes": 5701,
+      "sha256": "4c82a444eaa1b7ac5a4075e6b5164d9c7599ade15dfb2e2285620841a252aff1",
       "path": ".agents/skills/NK-Security-Auditor/SKILL.md",
       "source_layer": "production"
     },
@@ -580,8 +580,8 @@
         "resources/saturation_thresholds.yaml"
       ],
       "loc": 100,
-      "bytes": 9532,
-      "sha256": "8a6536ed519ed56ddb6e4a3397b74c4ed72a3e46d5b372d71ecddad2eb9f6945",
+      "bytes": 9706,
+      "sha256": "f18abe97a49402ffb0397e9b3427491b7194438a9c5a62635817f685a1c201ba",
       "path": ".agents/skills/NK-Session-Controller/SKILL.md",
       "source_layer": "production"
     },
@@ -600,9 +600,9 @@
         "send_message"
       ],
       "auxiliary_links": [],
-      "loc": 56,
-      "bytes": 3556,
-      "sha256": "ccd64f0dd9eeaddaa310350da932ff295ae17e44ba76f02406ab1dfc594a9b0a",
+      "loc": 57,
+      "bytes": 4002,
+      "sha256": "e23ce1f9d28a4eb30679e6b5ed370dbf108bada5adae2e101e14b824180dfab6",
       "path": ".agents/skills/NK-State-Router/SKILL.md",
       "source_layer": "production"
     }
@@ -918,9 +918,9 @@
         "--strict-external",
         "--target"
       ],
-      "loc": 313,
-      "bytes": 12481,
-      "sha256": "afb1a058563d4c0d439a664dd68b8d4854d5ddcd1c3904b2a313f83185664e4f",
+      "loc": 330,
+      "bytes": 13215,
+      "sha256": "af510d18e62adb63e63525e92f4c796e232b22b5746cf7d969536699c76b754c",
       "path": "scripts/nk_hook_gate.py",
       "source_layer": "production"
     },
@@ -939,9 +939,9 @@
         "--sync-staging",
         "--verify"
       ],
-      "loc": 2081,
-      "bytes": 79915,
-      "sha256": "01300f881969a9aefc0c7043a871d396cce0dc486e79b70c4d3277001c858923",
+      "loc": 2083,
+      "bytes": 79988,
+      "sha256": "2ea90af5439c193d3d987b595a6945dbc2505ed3aad8dc1d708b636cded11020",
       "path": "scripts/nk_registry_indexer.py",
       "source_layer": "production"
     },
@@ -968,7 +968,7 @@
       "name": "nk_session_handoff.py",
       "domain_id": "DOM-01",
       "domain_name": "GOV_AND_ROUTING",
-      "description": "Generatore della capsula di handoff e compilatore Template 11 per Nexus Keystone v4.2.0.",
+      "description": "Generatore della capsula di handoff e compilatore Template 11 per Nexus Keystone v4.5.0.",
       "cli_flags": [
         "--compile-task-prompt",
         "--generate-prompt",
@@ -978,9 +978,9 @@
         "--prompt-text",
         "--transcript"
       ],
-      "loc": 337,
-      "bytes": 13477,
-      "sha256": "b23002123d3180615bce26d3414c763fb074b20739bb2efa46a97c2bea1d182a",
+      "loc": 356,
+      "bytes": 14514,
+      "sha256": "13c1834dd162f60d7158f9c04810ab6cebc15ce5d17b9012625e1d02347da5a6",
       "path": "scripts/nk_session_handoff.py",
       "source_layer": "production"
     },
@@ -1021,9 +1021,9 @@
         "--text",
         "--transcript"
       ],
-      "loc": 471,
-      "bytes": 21470,
-      "sha256": "4bba62d76b45f9dd52a98986c505ac38e28cf310471fda26c58f5dc6d897dab9",
+      "loc": 484,
+      "bytes": 21853,
+      "sha256": "a8351546b21f807992068ae0967768e68fa19a617809a640115920aa7d18c240",
       "path": "scripts/nk_transcript_tools.py",
       "source_layer": "production"
     },
@@ -1064,14 +1064,15 @@
       "name": "preflight_health_check.py",
       "domain_id": "DOM-05",
       "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
-      "description": "Diagnostica di manutenzione e auto-sanitizzazione per Nexus Keystone v3.5.0.",
+      "description": "Diagnostica di manutenzione e auto-sanitizzazione per Nexus Keystone v4.5.0.",
       "cli_flags": [
         "--check-only",
+        "--json",
         "--root"
       ],
-      "loc": 491,
-      "bytes": 18905,
-      "sha256": "d0861442e840491ed4cc09c39564abe32a8eacaae42dbdd525914fcac59f8c67",
+      "loc": 518,
+      "bytes": 20160,
+      "sha256": "0df46d7ab4a63c45baf06350408e7ff3a9bcc451a4f232704b3a577de56eeb5a",
       "path": "scripts/preflight_health_check.py",
       "source_layer": "production"
     },
@@ -1090,8 +1091,8 @@
         "--update"
       ],
       "loc": 423,
-      "bytes": 14121,
-      "sha256": "8923d50a39b30964ead10cb2fe394c03fbc258fd57dac77625e9f78f0d1fcad5",
+      "bytes": 14111,
+      "sha256": "4349944778c321547c41c69f55c4bb5ab1b1b0c1ea23d225cda4dc6538438a5a",
       "path": "scripts/quality_baseline_manager.py",
       "source_layer": "production"
     },
@@ -1111,9 +1112,9 @@
         "--verify",
         "--vibe-check"
       ],
-      "loc": 1693,
-      "bytes": 66526,
-      "sha256": "e7cff1df89a78859907155755498dc0f79e7a089dab592ac7b7da8cce6784cd0",
+      "loc": 1694,
+      "bytes": 66685,
+      "sha256": "ce6415430a215e8acee21c25f08a9ca26d4b7ce9e4db6c1668945c194131742d",
       "path": "scripts/rsi_convergence_engine.py",
       "source_layer": "production"
     },
@@ -1247,8 +1248,8 @@
       "enable_subagent_tools": false,
       "enable_mcp_tools": false,
       "loc": 37,
-      "bytes": 2934,
-      "sha256": "c7f0c21d58871a49d4f36c920dc7c1c01db11de9b1a7e6c002ba00c6f41cff0f",
+      "bytes": 3113,
+      "sha256": "0723584e33ee794e5d22f0254eca7080e89745c7c59bf81cca68a408688a1786",
       "path": ".agents/agents/NK-Builder-Agent/agent.md",
       "source_layer": "production"
     },
@@ -1261,8 +1262,8 @@
       "enable_subagent_tools": false,
       "enable_mcp_tools": false,
       "loc": 37,
-      "bytes": 2829,
-      "sha256": "2427804269c685a7675ea4a5df9c85aa43cdc372a96f53fe215b997dbb9f92c8",
+      "bytes": 3012,
+      "sha256": "b1a1f26afb07b9c337abd557783ef3b0b78a2568a98f456db331c3dd02a8eed8",
       "path": ".agents/agents/NK-RSI-Auditor/agent.md",
       "source_layer": "production"
     },
@@ -1275,8 +1276,8 @@
       "enable_subagent_tools": false,
       "enable_mcp_tools": false,
       "loc": 36,
-      "bytes": 2581,
-      "sha256": "06b7fec8d7664d56b25b04a5fb206772f66df024dbf783d19ad5fcc417a663a2",
+      "bytes": 2843,
+      "sha256": "b68288cd6a15e3540faf84aea15d1a95c819cdb5e8a7df4d22bd238c399db09e",
       "path": ".agents/agents/NK-Scribe-Agent/agent.md",
       "source_layer": "production"
     },
@@ -1289,8 +1290,8 @@
       "enable_subagent_tools": false,
       "enable_mcp_tools": true,
       "loc": 37,
-      "bytes": 2852,
-      "sha256": "d520ac71756d7b5f6e4399eff9f13bfb26ad84e41ac455d5ad290d15fd6fbd00",
+      "bytes": 3050,
+      "sha256": "feba46f6faa8eef88d39e2ad37b1bca371a8f255de7f7ecba4827dbcb7d65635",
       "path": ".agents/agents/NK-Security-DAST-Auditor/agent.md",
       "source_layer": "production"
     },
@@ -1303,8 +1304,8 @@
       "enable_subagent_tools": false,
       "enable_mcp_tools": true,
       "loc": 36,
-      "bytes": 2683,
-      "sha256": "2aa5fafec4f8f8d87b297bf9d1caf9bc15104696cfe8df6c204c72bbe649d6b0",
+      "bytes": 2875,
+      "sha256": "4540d82edb9223a7c5d4246eee0b95370439bfdcc57d136e0f5e918f899840af",
       "path": ".agents/agents/NK-Specifier-Agent/agent.md",
       "source_layer": "production"
     }
@@ -1322,6 +1323,7 @@
         "nk_session_handoff.py",
         "nk_swarm_messenger.py",
         "nk_registry_indexer.py",
+        "nk_hook_gate.py",
         "schemas/dual_ledgers.py",
         "schemas/nk_ipc_contracts.py"
       ]
@@ -1338,6 +1340,7 @@
         "nk_session_handoff.py",
         "nk_swarm_messenger.py",
         "nk_registry_indexer.py",
+        "nk_hook_gate.py",
         "schemas/dual_ledgers.py",
         "schemas/nk_ipc_contracts.py"
       ]
@@ -1354,6 +1357,7 @@
         "nk_session_handoff.py",
         "nk_swarm_messenger.py",
         "nk_registry_indexer.py",
+        "nk_hook_gate.py",
         "schemas/dual_ledgers.py",
         "schemas/nk_ipc_contracts.py"
       ]
@@ -1370,6 +1374,7 @@
         "nk_session_handoff.py",
         "nk_swarm_messenger.py",
         "nk_registry_indexer.py",
+        "nk_hook_gate.py",
         "schemas/dual_ledgers.py",
         "schemas/nk_ipc_contracts.py"
       ]
@@ -1386,6 +1391,7 @@
         "nk_session_handoff.py",
         "nk_swarm_messenger.py",
         "nk_registry_indexer.py",
+        "nk_hook_gate.py",
         "schemas/dual_ledgers.py",
         "schemas/nk_ipc_contracts.py"
       ]
@@ -1402,6 +1408,7 @@
         "nk_session_handoff.py",
         "nk_swarm_messenger.py",
         "nk_registry_indexer.py",
+        "nk_hook_gate.py",
         "schemas/dual_ledgers.py",
         "schemas/nk_ipc_contracts.py"
       ]
@@ -1418,6 +1425,7 @@
         "nk_session_handoff.py",
         "nk_swarm_messenger.py",
         "nk_registry_indexer.py",
+        "nk_hook_gate.py",
         "schemas/dual_ledgers.py",
         "schemas/nk_ipc_contracts.py"
       ]
@@ -1434,6 +1442,7 @@
         "nk_session_handoff.py",
         "nk_swarm_messenger.py",
         "nk_registry_indexer.py",
+        "nk_hook_gate.py",
         "schemas/dual_ledgers.py",
         "schemas/nk_ipc_contracts.py"
       ]
@@ -1450,6 +1459,7 @@
         "nk_session_handoff.py",
         "nk_swarm_messenger.py",
         "nk_registry_indexer.py",
+        "nk_hook_gate.py",
         "schemas/dual_ledgers.py",
         "schemas/nk_ipc_contracts.py"
       ]
@@ -1466,6 +1476,7 @@
         "nk_session_handoff.py",
         "nk_swarm_messenger.py",
         "nk_registry_indexer.py",
+        "nk_hook_gate.py",
         "schemas/dual_ledgers.py",
         "schemas/nk_ipc_contracts.py"
       ]
@@ -1482,6 +1493,7 @@
         "nk_session_handoff.py",
         "nk_swarm_messenger.py",
         "nk_registry_indexer.py",
+        "nk_hook_gate.py",
         "schemas/dual_ledgers.py",
         "schemas/nk_ipc_contracts.py"
       ]
@@ -1498,6 +1510,7 @@
         "nk_session_handoff.py",
         "nk_swarm_messenger.py",
         "nk_registry_indexer.py",
+        "nk_hook_gate.py",
         "schemas/dual_ledgers.py",
         "schemas/nk_ipc_contracts.py"
       ]
@@ -1514,6 +1527,7 @@
         "nk_session_handoff.py",
         "nk_swarm_messenger.py",
         "nk_registry_indexer.py",
+        "nk_hook_gate.py",
         "schemas/dual_ledgers.py",
         "schemas/nk_ipc_contracts.py"
       ]
@@ -1530,6 +1544,7 @@
         "nk_session_handoff.py",
         "nk_swarm_messenger.py",
         "nk_registry_indexer.py",
+        "nk_hook_gate.py",
         "schemas/dual_ledgers.py",
         "schemas/nk_ipc_contracts.py"
       ]
@@ -1546,6 +1561,7 @@
         "nk_session_handoff.py",
         "nk_swarm_messenger.py",
         "nk_registry_indexer.py",
+        "nk_hook_gate.py",
         "schemas/dual_ledgers.py",
         "schemas/nk_ipc_contracts.py"
       ]
@@ -1562,6 +1578,7 @@
         "nk_session_handoff.py",
         "nk_swarm_messenger.py",
         "nk_registry_indexer.py",
+        "nk_hook_gate.py",
         "schemas/dual_ledgers.py",
         "schemas/nk_ipc_contracts.py"
       ]
@@ -1578,6 +1595,7 @@
         "nk_session_handoff.py",
         "nk_swarm_messenger.py",
         "nk_registry_indexer.py",
+        "nk_hook_gate.py",
         "schemas/dual_ledgers.py",
         "schemas/nk_ipc_contracts.py"
       ]
@@ -1594,6 +1612,7 @@
         "nk_session_handoff.py",
         "nk_swarm_messenger.py",
         "nk_registry_indexer.py",
+        "nk_hook_gate.py",
         "schemas/dual_ledgers.py",
         "schemas/nk_ipc_contracts.py"
       ]
@@ -1610,6 +1629,7 @@
         "nk_session_handoff.py",
         "nk_swarm_messenger.py",
         "nk_registry_indexer.py",
+        "nk_hook_gate.py",
         "schemas/dual_ledgers.py",
         "schemas/nk_ipc_contracts.py"
       ]
@@ -2119,7 +2139,8 @@
         "oracle_evaluator_l3.py",
         "sbfl_engine.py",
         "sbfl_pytest_bridge.py",
-        "rsi_convergence_engine.py"
+        "rsi_convergence_engine.py",
+        "nk_transcript_tools.py"
       ]
     },
     "security": {
@@ -2133,7 +2154,8 @@
         "oracle_evaluator_l3.py",
         "sbfl_engine.py",
         "sbfl_pytest_bridge.py",
-        "rsi_convergence_engine.py"
+        "rsi_convergence_engine.py",
+        "nk_transcript_tools.py"
       ]
     },
     "sicurezza": {
@@ -2147,7 +2169,8 @@
         "oracle_evaluator_l3.py",
         "sbfl_engine.py",
         "sbfl_pytest_bridge.py",
-        "rsi_convergence_engine.py"
+        "rsi_convergence_engine.py",
+        "nk_transcript_tools.py"
       ]
     },
     "sast": {
@@ -2161,7 +2184,8 @@
         "oracle_evaluator_l3.py",
         "sbfl_engine.py",
         "sbfl_pytest_bridge.py",
-        "rsi_convergence_engine.py"
+        "rsi_convergence_engine.py",
+        "nk_transcript_tools.py"
       ]
     },
     "dast": {
@@ -2175,7 +2199,8 @@
         "oracle_evaluator_l3.py",
         "sbfl_engine.py",
         "sbfl_pytest_bridge.py",
-        "rsi_convergence_engine.py"
+        "rsi_convergence_engine.py",
+        "nk_transcript_tools.py"
       ]
     },
     "sandbox": {
@@ -2189,7 +2214,8 @@
         "oracle_evaluator_l3.py",
         "sbfl_engine.py",
         "sbfl_pytest_bridge.py",
-        "rsi_convergence_engine.py"
+        "rsi_convergence_engine.py",
+        "nk_transcript_tools.py"
       ]
     },
     "stress": {
@@ -2203,7 +2229,8 @@
         "oracle_evaluator_l3.py",
         "sbfl_engine.py",
         "sbfl_pytest_bridge.py",
-        "rsi_convergence_engine.py"
+        "rsi_convergence_engine.py",
+        "nk_transcript_tools.py"
       ]
     },
     "oracle": {
@@ -2217,7 +2244,8 @@
         "oracle_evaluator_l3.py",
         "sbfl_engine.py",
         "sbfl_pytest_bridge.py",
-        "rsi_convergence_engine.py"
+        "rsi_convergence_engine.py",
+        "nk_transcript_tools.py"
       ]
     },
     "valuta": {
@@ -2231,7 +2259,8 @@
         "oracle_evaluator_l3.py",
         "sbfl_engine.py",
         "sbfl_pytest_bridge.py",
-        "rsi_convergence_engine.py"
+        "rsi_convergence_engine.py",
+        "nk_transcript_tools.py"
       ]
     },
     "bug": {
@@ -2245,7 +2274,8 @@
         "oracle_evaluator_l3.py",
         "sbfl_engine.py",
         "sbfl_pytest_bridge.py",
-        "rsi_convergence_engine.py"
+        "rsi_convergence_engine.py",
+        "nk_transcript_tools.py"
       ]
     },
     "diagnosi": {
@@ -2259,7 +2289,8 @@
         "oracle_evaluator_l3.py",
         "sbfl_engine.py",
         "sbfl_pytest_bridge.py",
-        "rsi_convergence_engine.py"
+        "rsi_convergence_engine.py",
+        "nk_transcript_tools.py"
       ]
     },
     "rca": {
@@ -2273,7 +2304,8 @@
         "oracle_evaluator_l3.py",
         "sbfl_engine.py",
         "sbfl_pytest_bridge.py",
-        "rsi_convergence_engine.py"
+        "rsi_convergence_engine.py",
+        "nk_transcript_tools.py"
       ]
     },
     "sbfl": {
@@ -2287,7 +2319,8 @@
         "oracle_evaluator_l3.py",
         "sbfl_engine.py",
         "sbfl_pytest_bridge.py",
-        "rsi_convergence_engine.py"
+        "rsi_convergence_engine.py",
+        "nk_transcript_tools.py"
       ]
     },
     "ochiai": {
@@ -2301,7 +2334,8 @@
         "oracle_evaluator_l3.py",
         "sbfl_engine.py",
         "sbfl_pytest_bridge.py",
-        "rsi_convergence_engine.py"
+        "rsi_convergence_engine.py",
+        "nk_transcript_tools.py"
       ]
     },
     "rsi": {
@@ -2315,7 +2349,8 @@
         "oracle_evaluator_l3.py",
         "sbfl_engine.py",
         "sbfl_pytest_bridge.py",
-        "rsi_convergence_engine.py"
+        "rsi_convergence_engine.py",
+        "nk_transcript_tools.py"
       ]
     },
     "convergenza": {
@@ -2329,7 +2364,8 @@
         "oracle_evaluator_l3.py",
         "sbfl_engine.py",
         "sbfl_pytest_bridge.py",
-        "rsi_convergence_engine.py"
+        "rsi_convergence_engine.py",
+        "nk_transcript_tools.py"
       ]
     },
     "ast_guard": {
@@ -2343,7 +2379,8 @@
         "oracle_evaluator_l3.py",
         "sbfl_engine.py",
         "sbfl_pytest_bridge.py",
-        "rsi_convergence_engine.py"
+        "rsi_convergence_engine.py",
+        "nk_transcript_tools.py"
       ]
     },
     "exploit": {
@@ -2357,7 +2394,8 @@
         "oracle_evaluator_l3.py",
         "sbfl_engine.py",
         "sbfl_pytest_bridge.py",
-        "rsi_convergence_engine.py"
+        "rsi_convergence_engine.py",
+        "nk_transcript_tools.py"
       ]
     },
     "vulnerabilita": {
@@ -2371,7 +2409,8 @@
         "oracle_evaluator_l3.py",
         "sbfl_engine.py",
         "sbfl_pytest_bridge.py",
-        "rsi_convergence_engine.py"
+        "rsi_convergence_engine.py",
+        "nk_transcript_tools.py"
       ]
     },
     "memory": {

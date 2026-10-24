@@ -4,8 +4,8 @@ description: Playbook diagnostico RCA in sola lettura basato su SBFL Ochiai e Fa
 version: "3.0.0-STE100-Unified"
 thinking_level: "HIGH"
 nk_tas_audit: "CRV-4.0-Universal"
-patch_version: 5
-nk_tas_date: "2026-10-18"
+patch_version: 6
+nk_tas_date: "2026-10-24"
 domain_id: "DOM-04"
 sector: "AUDIT_DAST_AND_RCA"
 ---
@@ -16,6 +16,7 @@ sector: "AUDIT_DAST_AND_RCA"
 3. PATH_SANITIZATION [RULE-08.1]: Gestisci correttamente i percorsi Windows con spazi (`G:\Il mio Drive\`) e blocca ogni tentativo di path traversal.
 4. SBFL_COMPACT_PAYLOAD [RULE-01.12]: Mantieni il payload diagnostico `OchiaiDiagnosticPayload` sotto `80` token e la stringa JSON sotto `320` caratteri (`GT-07`).
 5. ASD-STE100 LANGUAGE MANDATE [RULE-STE100]: Scrivi le diagnosi RCA con frasi attive di massimo 20 parole.
+6. EPISTEMIC_HONESTY_MANDATE [RULE-EPISTEMIC-HONESTY / RULE-EVIDENCE / RULE-DATA-PROVENANCE / RULE-ORACLE-LOCK]: Applica `[RULE-EPISTEMIC-HONESTY]`, `[RULE-EVIDENCE]` (`exit_code: 0`), `[RULE-DATA-PROVENANCE]` (`source_url`, `evidence_quote`) e `[RULE-ORACLE-LOCK]` (`oracle_lock.json`). Assegna `+100` al fix reale e `0` a `report-conflict` (`HALT_EPISTEMIC_CONFLICT`); vieta `PYTEST_CURRENT_TEST`, `currentframe()` e `len(grants)` (`-10.000`).
 </strict_boundaries>
 
 <directive>
