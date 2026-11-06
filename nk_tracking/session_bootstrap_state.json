@@ -1,0 +1,57 @@
+{
+  "status": "PASS",
+  "mode": "FAST_STAT_CACHE_HIT",
+  "model_profile": "argon",
+  "duration_ms": 3.73,
+  "timestamp": "2026-10-30T18:25:34.488675+00:00",
+  "checks": {
+    "project_isolation": {
+      "passed": true,
+      "violations": [],
+      "details": "Root workspace pulita e conforme a [RULE-PROJECT-ISOLATION]."
+    },
+    "wal_cleanup": {
+      "passed": true,
+      "cleaned_count": 0,
+      "skipped_locked": 0,
+      "details": "Fast-Stat cache hit: WAL cleanup skipped (<30s TTL)."
+    },
+    "quality_baseline": {
+      "passed": true,
+      "details": "quality_baseline.json presente (8275 bytes)."
+    },
+    "context_sentry": {
+      "passed": true,
+      "status": "YELLOW",
+      "health_status": "PASS",
+      "step_count": 195,
+      "estimated_tokens": 91842,
+      "last_transcript_path": "C:\\Users\\erbal\\.gemini\\antigravity\\brain\\9dc0b0f2-35bf-401c-a2f8-7608e457edf6\\.system_generated\\logs\\transcript.jsonl",
+      "transcript_mtime": 1793384674.7249577,
+      "transcript_size": 367371,
+      "active_profile": "argon",
+      "warning": "Context warning: session at 195 steps (~91,842 tokens).",
+      "details": "Context status YELLOW (195 steps)."
+    }
+  },
+  "issues": [
+    "Context warning: session at 195 steps (~91,842 tokens)."
+  ],
+  "timestamp_epoch": 1793384734.4886975,
+  "workspace_root": "G:\\Il mio Drive\\Antigravity",
+  "conversation_id": "",
+  "active_profile": "argon",
+  "root_mtime": 1793381476.543,
+  "root_hygiene_violations": [],
+  "root_hygiene": {
+    "passed": true,
+    "violations": [],
+    "details": "Root workspace pulita e conforme a [RULE-PROJECT-ISOLATION]."
+  },
+  "last_transcript_path": "C:\\Users\\erbal\\.gemini\\antigravity\\brain\\9dc0b0f2-35bf-401c-a2f8-7608e457edf6\\.system_generated\\logs\\transcript.jsonl",
+  "last_transcript_mtime": 1793384674.7249577,
+  "last_transcript_size": 367371,
+  "last_step_count": 195,
+  "transcript_mtime": 1793384674.7249577,
+  "transcript_size": 367371
+}

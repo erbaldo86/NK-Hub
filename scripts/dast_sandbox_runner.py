@@ -1,0 +1,1269 @@
+# -*- coding: utf-8 -*-
+"""
+Esecutore DAST in Shadow Sandbox per Nexus Keystone v3.0.0-STE100-Unified.
+Esegue codice reale in una cartella temporanea isolata con watchdog asincrono.
+"""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import ctypes
+from ctypes import wintypes
+import json
+import os
+import shutil
+import stat
+import subprocess
+import sys
+import tempfile
+import time
+import uuid
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Sequence
+from pydantic import BaseModel, ConfigDict, Field
+
+try:
+    import psutil
+
+    _HAS_PSUTIL = True
+except ImportError:
+    psutil = None
+    _HAS_PSUTIL = False
+
+INVALID_HANDLE_VALUE = ctypes.c_void_p(-1).value
+TH32CS_SNAPPROCESS = 0x00000002
+PROCESS_QUERY_INFORMATION = 0x0400
+PROCESS_VM_READ = 0x0010
+PROCESS_SET_QUOTA = 0x0100
+PROCESS_TERMINATE = 0x0001
+JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000
+JobObjectExtendedLimitInformation = 9
+
+_BUILDER_STRIP_PATHS = (
+    "nk_tracking/oracle_lock.json",
+    "nk_tracking/oracle_holdout",
+    "nk_tracking/benchmark_suite",
+    "tests/evals",
+)
+
+
+class IO_COUNTERS(ctypes.Structure):
+    """Struttura Win32 per i contatori di I/O del Job Object."""
+
+    _fields_ = [
+        ("ReadOperationCount", ctypes.c_ulonglong),
+        ("WriteOperationCount", ctypes.c_ulonglong),
+        ("OtherOperationCount", ctypes.c_ulonglong),
+        ("ReadTransferCount", ctypes.c_ulonglong),
+        ("WriteTransferCount", ctypes.c_ulonglong),
+        ("OtherTransferCount", ctypes.c_ulonglong),
+    ]
+
+
+class JOBOBJECT_BASIC_LIMIT_INFORMATION(ctypes.Structure):
+    """Struttura Win32 per i limiti base di un Job Object."""
+
+    _fields_ = [
+        ("PerProcessUserTimeLimit", ctypes.c_longlong),
+        ("PerJobUserTimeLimit", ctypes.c_longlong),
+        ("LimitFlags", wintypes.DWORD),
+        ("MinimumWorkingSetSize", ctypes.c_size_t),
+        ("MaximumWorkingSetSize", ctypes.c_size_t),
+        ("ActiveProcessLimit", wintypes.DWORD),
+        ("Affinity", ctypes.c_size_t),
+        ("PriorityClass", wintypes.DWORD),
+        ("SchedulingClass", wintypes.DWORD),
+    ]
+
+
+class JOBOBJECT_EXTENDED_LIMIT_INFORMATION(ctypes.Structure):
+    """Struttura Win32 per i limiti estesi con JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE."""
+
+    _fields_ = [
+        ("BasicLimitInformation", JOBOBJECT_BASIC_LIMIT_INFORMATION),
+        ("IoInfo", IO_COUNTERS),
+        ("ProcessMemoryLimit", ctypes.c_size_t),
+        ("JobMemoryLimit", ctypes.c_size_t),
+        ("PeakProcessMemoryUsed", ctypes.c_size_t),
+        ("PeakJobMemoryUsed", ctypes.c_size_t),
+    ]
+
+
+class PROCESSENTRY32(ctypes.Structure):
+    """Struttura Win32 per l'enumerazione dei processi nel snapshot di sistema."""
+
+    _fields_ = [
+        ("dwSize", wintypes.DWORD),
+        ("cntUsage", wintypes.DWORD),
+        ("th32ProcessID", wintypes.DWORD),
+        ("th32DefaultHeapID", ctypes.c_size_t),
+        ("th32ModuleID", wintypes.DWORD),
+        ("cntThreads", wintypes.DWORD),
+        ("th32ParentProcessID", wintypes.DWORD),
+        ("pcPriClassBase", ctypes.c_long),
+        ("dwFlags", wintypes.DWORD),
+        ("szExeFile", ctypes.c_char * 260),
+    ]
+
+
+class PROCESS_MEMORY_COUNTERS(ctypes.Structure):
+    """Struttura Win32 per la lettura dei contatori di memoria RSS del processo."""
+
+    _fields_ = [
+        ("cb", wintypes.DWORD),
+        ("PageFaultCount", wintypes.DWORD),
+        ("PeakWorkingSetSize", ctypes.c_size_t),
+        ("WorkingSetSize", ctypes.c_size_t),
+        ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+        ("QuotaPagedPoolUsage", ctypes.c_size_t),
+        ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+        ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+        ("PagefileUsage", ctypes.c_size_t),
+        ("PeakPagefileUsage", ctypes.c_size_t),
+    ]
+
+
+if sys.platform == "win32":
+    _kernel32 = ctypes.windll.kernel32
+    _kernel32.CreateToolhelp32Snapshot.argtypes = [wintypes.DWORD, wintypes.DWORD]
+    _kernel32.CreateToolhelp32Snapshot.restype = ctypes.c_void_p
+
+    _kernel32.Process32First.argtypes = [
+        ctypes.c_void_p,
+        ctypes.POINTER(PROCESSENTRY32),
+    ]
+    _kernel32.Process32First.restype = wintypes.BOOL
+
+    _kernel32.Process32Next.argtypes = [
+        ctypes.c_void_p,
+        ctypes.POINTER(PROCESSENTRY32),
+    ]
+    _kernel32.Process32Next.restype = wintypes.BOOL
+
+    _kernel32.OpenProcess.argtypes = [
+        wintypes.DWORD,
+        wintypes.BOOL,
+        wintypes.DWORD,
+    ]
+    _kernel32.OpenProcess.restype = ctypes.c_void_p
+
+    _kernel32.CloseHandle.argtypes = [ctypes.c_void_p]
+    _kernel32.CloseHandle.restype = wintypes.BOOL
+
+    _kernel32.CreateJobObjectW.argtypes = [ctypes.c_void_p, wintypes.LPCWSTR]
+    _kernel32.CreateJobObjectW.restype = ctypes.c_void_p
+
+    _kernel32.SetInformationJobObject.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_int,
+        ctypes.c_void_p,
+        wintypes.DWORD,
+    ]
+    _kernel32.SetInformationJobObject.restype = wintypes.BOOL
+
+    _kernel32.AssignProcessToJobObject.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_void_p,
+    ]
+    _kernel32.AssignProcessToJobObject.restype = wintypes.BOOL
+else:
+    _kernel32 = None
+
+
+def _assign_to_kill_on_close_job(pid: int) -> Optional[int]:
+    """Associa il processo a un Job Object Win32 con flag KILL_ON_JOB_CLOSE."""
+    if sys.platform != "win32" or not pid or _kernel32 is None:
+        return None
+    try:
+        h_job = _kernel32.CreateJobObjectW(None, None)
+        if not h_job or h_job == INVALID_HANDLE_VALUE:
+            return None
+        info = JOBOBJECT_EXTENDED_LIMIT_INFORMATION()
+        info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        ok_info = _kernel32.SetInformationJobObject(
+            h_job,
+            JobObjectExtendedLimitInformation,
+            ctypes.byref(info),
+            ctypes.sizeof(info),
+        )
+        if not ok_info:
+            _kernel32.CloseHandle(h_job)
+            return None
+        h_proc = _kernel32.OpenProcess(
+            PROCESS_SET_QUOTA | PROCESS_TERMINATE | PROCESS_QUERY_INFORMATION,
+            False,
+            pid,
+        )
+        if h_proc and h_proc != INVALID_HANDLE_VALUE:
+            try:
+                assigned = _kernel32.AssignProcessToJobObject(h_job, h_proc)
+                if assigned:
+                    return int(h_job)
+            finally:
+                _kernel32.CloseHandle(h_proc)
+        _kernel32.CloseHandle(h_job)
+        return None
+    except Exception:
+        return None
+
+
+class SandboxConfig(BaseModel):
+    """Opzioni di configurazione per l'esecuzione nella Shadow Sandbox."""
+
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
+
+    timeout_sec: float = Field(default=10.0, gt=0.0, le=60.0)
+    poll_interval_sec: float = Field(default=0.025, gt=0.0, le=0.5)
+    max_memory_mb: float = Field(default=512.0, gt=0.0)
+    env_vars: Dict[str, str] = Field(default_factory=dict)
+    trace_coverage: bool = Field(default=True)
+    profile: str = Field(default="evaluator")
+
+
+class CoverageTraceItem(BaseModel):
+    """Singolo elemento di tracciamento dell'esecuzione per riga di codice."""
+
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
+
+    file_name: str
+    line_number: int = Field(ge=1)
+    execution_count: int = Field(ge=1)
+
+    @property
+    def statement_id(self) -> str:
+        """Restituisce l'identificatore canonico nel formato file:riga."""
+        return f"{self.file_name}:{self.line_number}"
+
+
+class SandboxTelemetryReport(BaseModel):
+    """Rapporto telemetrico deterministico per l'esecuzione DAST."""
+
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
+
+    sandbox_id: str
+    sandbox_dir: str
+    command: List[str]
+    exit_code: int
+    duration_sec: float = Field(ge=0.0)
+    peak_memory_bytes: int = Field(ge=0)
+    timed_out: bool
+    memory_exceeded: bool
+    stdout: str
+    stderr: str
+    executed_statements: List[str] = Field(default_factory=list)
+    statement_traces: List[CoverageTraceItem] = Field(default_factory=list)
+    success: bool
+
+
+def _handle_remove_readonly(func: Any, path: str, exc_info: Any) -> None:
+    """Rimuove l'attributo di sola lettura durante la pulizia della sandbox."""
+    try:
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
+    except Exception:
+        pass
+
+
+def _strip_builder_holdouts_from_sandbox(sandbox_dir: Path) -> List[str]:
+    """Rimuove dalla sandbox i file e le cartelle riservate all'oracolo in profilo builder."""
+    removed: List[str] = []
+    for rel_p in _BUILDER_STRIP_PATHS:
+        cand = sandbox_dir / rel_p
+        if cand.is_dir():
+            shutil.rmtree(cand, onerror=_handle_remove_readonly)
+            removed.append(rel_p)
+        elif cand.exists():
+            cand.unlink(missing_ok=True)
+            removed.append(rel_p)
+    return removed
+
+
+_LAST_FALLBACK_SCAN_TS: float = 0.0
+_LAST_RSS_CACHE: Dict[int, int] = {}
+
+
+def _terminate_process_tree_fallback(pid: int) -> int:
+    """Termina ricorsivamente l'albero dei processi tramite Toolhelp32 con throttling di 25 ms tra due scansioni consecutive."""
+    global _LAST_FALLBACK_SCAN_TS
+    if not pid or sys.platform != "win32" or _kernel32 is None:
+        return 0
+    terminated = 0
+    for scan_idx in range(2):
+        now = time.perf_counter()
+        elapsed = now - _LAST_FALLBACK_SCAN_TS
+        if scan_idx > 0 or elapsed < 0.025:
+            time.sleep(max(0.0, 0.025 - elapsed) if scan_idx == 0 else 0.025)
+        _LAST_FALLBACK_SCAN_TS = time.perf_counter()
+        try:
+            pids_to_kill = {pid}
+            snap = _kernel32.CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)
+            if snap and snap != INVALID_HANDLE_VALUE:
+                try:
+                    pe = PROCESSENTRY32()
+                    pe.dwSize = ctypes.sizeof(PROCESSENTRY32)
+                    entries = []
+                    if _kernel32.Process32First(snap, ctypes.byref(pe)):
+                        while True:
+                            entries.append((pe.th32ProcessID, pe.th32ParentProcessID))
+                            if not _kernel32.Process32Next(snap, ctypes.byref(pe)):
+                                break
+                    changed = True
+                    while changed:
+                        changed = False
+                        for c_pid, p_pid in entries:
+                            if p_pid in pids_to_kill and c_pid not in pids_to_kill:
+                                pids_to_kill.add(c_pid)
+                                changed = True
+                finally:
+                    _kernel32.CloseHandle(snap)
+            for target_p in pids_to_kill:
+                try:
+                    os.kill(target_p, 9)
+                    terminated += 1
+                except Exception:
+                    pass
+        except Exception:
+            break
+    return terminated
+
+
+def _get_process_memory_rss(pid: int, p_process: Optional[Any] = None) -> int:
+    """Calcola la memoria RSS totale per il processo radice e i suoi figli."""
+    if _HAS_PSUTIL and p_process is not None:
+        try:
+            mem = p_process.memory_info().rss
+            for child in p_process.children(recursive=True):
+                try:
+                    mem += child.memory_info().rss
+                except Exception:
+                    pass
+            return mem
+        except Exception:
+            pass
+
+    if sys.platform == "win32" and pid and _kernel32 is not None:
+        try:
+            global _LAST_FALLBACK_SCAN_TS
+            now_scan = time.perf_counter()
+            if (now_scan - _LAST_FALLBACK_SCAN_TS) < 0.025 and pid in _LAST_RSS_CACHE:
+                return _LAST_RSS_CACHE[pid]
+            _LAST_FALLBACK_SCAN_TS = now_scan
+            pids_to_check = {pid}
+            snap = _kernel32.CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)
+            if snap and snap != INVALID_HANDLE_VALUE:
+                try:
+                    pe = PROCESSENTRY32()
+                    pe.dwSize = ctypes.sizeof(PROCESSENTRY32)
+                    entries = []
+                    if _kernel32.Process32First(snap, ctypes.byref(pe)):
+                        while True:
+                            entries.append((pe.th32ProcessID, pe.th32ParentProcessID))
+                            if not _kernel32.Process32Next(snap, ctypes.byref(pe)):
+                                break
+                    changed = True
+                    while changed:
+                        changed = False
+                        for c_pid, p_pid in entries:
+                            if p_pid in pids_to_check and c_pid not in pids_to_check:
+                                pids_to_check.add(c_pid)
+                                changed = True
+                finally:
+                    _kernel32.CloseHandle(snap)
+
+            total_rss = 0
+            for p in pids_to_check:
+                h = _kernel32.OpenProcess(
+                    PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+                    False,
+                    p,
+                )
+                if h and h != INVALID_HANDLE_VALUE:
+                    try:
+                        counters = PROCESS_MEMORY_COUNTERS()
+                        counters.cb = ctypes.sizeof(PROCESS_MEMORY_COUNTERS)
+                        try:
+                            res = _kernel32.K32GetProcessMemoryInfo(
+                                h,
+                                ctypes.byref(counters),
+                                counters.cb,
+                            )
+                        except Exception:
+                            res = ctypes.windll.psapi.GetProcessMemoryInfo(
+                                h,
+                                ctypes.byref(counters),
+                                counters.cb,
+                            )
+                        if res:
+                            total_rss += int(counters.WorkingSetSize)
+                    finally:
+                        _kernel32.CloseHandle(h)
+
+            _LAST_RSS_CACHE[pid] = total_rss
+            return total_rss
+        except Exception:
+            pass
+
+    return 0
+
+
+class ShadowSandbox:
+    """Gestisce una cartella temporanea isolata in %TEMP%\\nk_sandbox_<uuid>\\."""
+
+    def __init__(self, sandbox_id: Optional[str] = None) -> None:
+        self.sandbox_id = sandbox_id or f"nk_sandbox_{uuid.uuid4().hex}"
+        self.base_temp_dir = Path(tempfile.gettempdir())
+        self.sandbox_dir = self.base_temp_dir / self.sandbox_id
+        self._is_active = False
+
+    def create(self) -> Path:
+        """Crea la cartella isolata della sandbox su disco."""
+        self.sandbox_dir.mkdir(parents=True, exist_ok=True)
+        self._is_active = True
+        return self.sandbox_dir
+
+    def write_file(
+        self,
+        rel_path: str,
+        content: str | bytes,
+        encoding: str = "utf-8",
+    ) -> Path:
+        """Scrive un file all'interno della sandbox isolata."""
+        if not self._is_active:
+            self.create()
+
+        target_path = self.sandbox_dir / rel_path
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+
+        if isinstance(content, bytes):
+            target_path.write_bytes(content)
+        else:
+            target_path.write_text(content, encoding=encoding)
+
+        return target_path
+
+    def copy_file(self, src_path: Path | str, dst_rel_path: str = "") -> Path:
+        """Copia un file sorgente dentro la sandbox."""
+        if not self._is_active:
+            self.create()
+
+        src = Path(src_path)
+        if not src.exists():
+            raise FileNotFoundError(f"Source file not found: {src}")
+
+        if dst_rel_path:
+            dst = self.sandbox_dir / dst_rel_path
+            if dst.is_dir() or dst_rel_path.endswith(("/", "\\")):
+                dst.mkdir(parents=True, exist_ok=True)
+                dst = dst / src.name
+            else:
+                dst.parent.mkdir(parents=True, exist_ok=True)
+        else:
+            dst = self.sandbox_dir / src.name
+
+        shutil.copy2(src, dst)
+        return dst
+
+    def cleanup(self) -> None:
+        """Rimuove la cartella temporanea gestendo eventuali lock su Windows."""
+        if not self.sandbox_dir.exists():
+            self._is_active = False
+            return
+
+        for attempt in range(5):
+            try:
+                shutil.rmtree(self.sandbox_dir, onerror=_handle_remove_readonly)
+                break
+            except Exception:
+                time.sleep(0.05 * (attempt + 1))
+
+        self._is_active = False
+
+    def __enter__(self) -> ShadowSandbox:
+        self.create()
+        return self
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        self.cleanup()
+
+    async def __aenter__(self) -> ShadowSandbox:
+        self.create()
+        return self
+
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        self.cleanup()
+
+
+def _generate_trace_harness_script() -> str:
+    """Genera lo script Python per la raccolta deterministica delle tracce di riga."""
+    return '''"""
+Harness di tracciamento deterministico per Nexus Keystone.
+"""
+import sys
+import json
+import trace
+from pathlib import Path
+
+def main():
+    if len(sys.argv) < 3:
+        sys.stderr.write("Usage: python _nk_trace_harness.py <coverage_out_json> <target_script> [args...]\\n")
+        sys.exit(1)
+
+    cov_out_path = Path(sys.argv[1]).resolve()
+    target_script = Path(sys.argv[2]).resolve()
+    target_args = sys.argv[2:]
+
+    sys.argv = target_args
+    tracer = trace.Trace(count=True, trace=False, ignoredirs=[sys.prefix, sys.exec_prefix])
+
+    try:
+        with open(target_script, "rb") as f:
+            code = compile(f.read(), str(target_script), "exec")
+
+        global_dict = {"__name__": "__main__", "__file__": str(target_script)}
+        tracer.runctx(code, global_dict, global_dict)
+    finally:
+        results = tracer.results()
+        counts = results.counts
+
+        trace_data = []
+        target_name = target_script.name
+
+        for (filename, lineno), count in counts.items():
+            fpath = Path(filename).resolve()
+            if fpath == target_script or fpath.name == target_name:
+                trace_data.append({
+                    "file_name": target_name,
+                    "line_number": int(lineno),
+                    "execution_count": int(count)
+                })
+
+        cov_out_path.write_text(json.dumps(trace_data), encoding="utf-8")
+
+if __name__ == "__main__":
+    main()
+'''
+
+
+class DASTSandboxRunner:
+    """Esegue codice reale dentro una ShadowSandbox con controllo di tempo e memoria."""
+
+    def __init__(self, config: Optional[SandboxConfig] = None) -> None:
+        self.config = config or SandboxConfig()
+
+    async def run_in_sandbox(
+        self,
+        sandbox: ShadowSandbox,
+        command: Sequence[str],
+        target_script_name: Optional[str] = None,
+    ) -> SandboxTelemetryReport:
+        """Avvia il comando nella sandbox e raccoglie le metriche di esecuzione."""
+        if not sandbox._is_active:
+            sandbox.create()
+
+        is_builder_profile = self.config.profile.strip().lower() == "builder"
+        if is_builder_profile:
+            _strip_builder_holdouts_from_sandbox(sandbox.sandbox_dir)
+
+        env = os.environ.copy()
+        env.update(self.config.env_vars)
+        env["PYTHONUNBUFFERED"] = "1"
+        env["PYTHONDONTWRITEBYTECODE"] = "1"
+        sandbox_path_str = str(sandbox.sandbox_dir)
+        existing_pypath = env.get("PYTHONPATH", "")
+        if is_builder_profile:
+            env["PYTHONPATH"] = sandbox_path_str
+        elif existing_pypath:
+            env["PYTHONPATH"] = f"{sandbox_path_str}{os.pathsep}{existing_pypath}"
+        else:
+            env["PYTHONPATH"] = sandbox_path_str
+
+        actual_cmd = list(command)
+        cov_out_file = sandbox.sandbox_dir / "_nk_coverage_out.json"
+
+        if self.config.trace_coverage and target_script_name:
+            harness_path = sandbox.sandbox_dir / "_nk_trace_harness.py"
+            if not harness_path.exists():
+                harness_path.write_text(
+                    _generate_trace_harness_script(),
+                    encoding="utf-8",
+                )
+
+            python_exe = sys.executable
+            extra_args = list(command[2:]) if len(command) > 2 else []
+            actual_cmd = [
+                python_exe,
+                str(harness_path),
+                str(cov_out_file),
+                str(sandbox.sandbox_dir / target_script_name),
+            ] + extra_args
+
+        start_time = time.perf_counter()
+        peak_memory_bytes = 0
+        timed_out = False
+        memory_exceeded = False
+
+        proc = await asyncio.create_subprocess_exec(
+            *actual_cmd,
+            cwd=str(sandbox.sandbox_dir),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            env=env,
+        )
+
+        pid = proc.pid
+        job_handle = _assign_to_kill_on_close_job(pid) if pid else None
+        max_bytes = int(self.config.max_memory_mb * 1024 * 1024)
+        watchdog_active = True
+
+        async def _watchdog() -> None:
+            nonlocal peak_memory_bytes, timed_out, memory_exceeded, watchdog_active
+            p_process = None
+            if _HAS_PSUTIL and psutil is not None:
+                try:
+                    p_process = psutil.Process(pid)
+                except Exception:
+                    p_process = None
+
+            while watchdog_active:
+                await asyncio.sleep(self.config.poll_interval_sec)
+                if not watchdog_active:
+                    break
+
+                if _HAS_PSUTIL and psutil is not None and p_process is None:
+                    try:
+                        p_process = psutil.Process(pid)
+                    except Exception:
+                        p_process = None
+
+                elapsed = time.perf_counter() - start_time
+                if elapsed > self.config.timeout_sec:
+                    timed_out = True
+                    self._kill_process_tree(proc, p_process)
+                    break
+
+                current_mem = _get_process_memory_rss(pid, p_process)
+                if current_mem > peak_memory_bytes:
+                    peak_memory_bytes = current_mem
+
+                if current_mem > max_bytes:
+                    memory_exceeded = True
+                    self._kill_process_tree(proc, p_process)
+                    break
+
+        watchdog_task = asyncio.create_task(_watchdog())
+
+        stdout_bytes, stderr_bytes = b"", b""
+        try:
+            stdout_bytes, stderr_bytes = await proc.communicate()
+        except Exception:
+            try:
+                p_proc = (
+                    psutil.Process(pid)
+                    if (_HAS_PSUTIL and psutil is not None)
+                    else None
+                )
+                self._kill_process_tree(proc, p_proc)
+            except Exception:
+                p_proc = None
+        finally:
+            watchdog_active = False
+            if not watchdog_task.done():
+                watchdog_task.cancel()
+                try:
+                    await watchdog_task
+                except asyncio.CancelledError:
+                    watchdog_active = False
+            if job_handle is not None and _kernel32 is not None:
+                try:
+                    _kernel32.CloseHandle(ctypes.c_void_p(job_handle))
+                except Exception:
+                    job_handle = None
+
+        duration_sec = round(time.perf_counter() - start_time, 6)
+        exit_code = proc.returncode if proc.returncode is not None else -1
+
+        stdout_str = stdout_bytes.decode("utf-8", errors="replace")
+        stderr_str = stderr_bytes.decode("utf-8", errors="replace")
+
+        statement_traces: List[CoverageTraceItem] = []
+        executed_statements: List[str] = []
+
+        if cov_out_file.exists():
+            try:
+                raw_cov = json.loads(cov_out_file.read_text(encoding="utf-8"))
+                for item in raw_cov:
+                    trace_item = CoverageTraceItem(
+                        file_name=item["file_name"],
+                        line_number=item["line_number"],
+                        execution_count=item["execution_count"],
+                    )
+                    statement_traces.append(trace_item)
+                    executed_statements.append(trace_item.statement_id)
+                executed_statements = sorted(set(executed_statements))
+                statement_traces.sort(key=lambda x: (x.file_name, x.line_number))
+            except Exception:
+                statement_traces = []
+
+        success = (exit_code == 0) and not timed_out and not memory_exceeded
+
+        return SandboxTelemetryReport(
+            sandbox_id=sandbox.sandbox_id,
+            sandbox_dir=str(sandbox.sandbox_dir),
+            command=actual_cmd,
+            exit_code=exit_code,
+            duration_sec=duration_sec,
+            peak_memory_bytes=peak_memory_bytes,
+            timed_out=timed_out,
+            memory_exceeded=memory_exceeded,
+            stdout=stdout_str,
+            stderr=stderr_str,
+            executed_statements=executed_statements,
+            statement_traces=statement_traces,
+            success=success,
+        )
+
+    def _kill_process_tree(
+        self,
+        proc: Optional[asyncio.subprocess.Process] = None,
+        parent: Optional[Any] = None,
+        children: Optional[List[Any]] = None,
+    ) -> None:
+        """Termina l'intero albero dei processi partendo da taskkill /F /T."""
+        target_pid = None
+        if proc is not None and proc.pid:
+            target_pid = proc.pid
+        elif parent is not None and hasattr(parent, "pid"):
+            target_pid = parent.pid
+
+        if sys.platform == "win32" and target_pid:
+            try:
+                subprocess.run(
+                    ["taskkill", "/F", "/T", "/PID", str(target_pid)],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    timeout=2.0,
+                )
+            except Exception:
+                _terminate_process_tree_fallback(target_pid)
+                target_pid = None
+
+        if _HAS_PSUTIL and psutil is not None and parent is not None:
+            all_procs = (children or []) + [parent]
+            for p in all_procs:
+                try:
+                    p.kill()
+                except Exception:
+                    continue
+
+        if proc is not None and proc.returncode is None:
+            try:
+                proc.kill()
+            except (ProcessLookupError, PermissionError, OSError, Exception):
+                return
+
+    def kill_process_tree(
+        self,
+        proc: Optional[asyncio.subprocess.Process] = None,
+        parent: Optional[Any] = None,
+        children: Optional[List[Any]] = None,
+    ) -> bool:
+        """Termina in modo idempotente l'albero dei processi gestendo ProcessLookupError e PermissionError."""
+        try:
+            self._kill_process_tree(proc=proc, parent=parent, children=children)
+        except (ProcessLookupError, PermissionError, OSError):
+            pass
+        return True
+
+
+def run_staging_shadow_verification(
+    repo_root: Path | str,
+    staging_dir: Optional[Path | str] = None,
+    timeout_sec: float = 120.0,
+    run_pytest: bool = True,
+    run_ast_guard: bool = True,
+    profile: str = "evaluator",
+) -> Dict[str, Any]:
+    """Copia il progetto in Shadow Sandbox, sovrappone .staging/ ed esegue AST Guard e pytest."""
+    t0 = time.perf_counter()
+    root = Path(repo_root).resolve()
+    if not root.exists():
+        return {
+            "status": "FAIL",
+            "passed": False,
+            "repo_root": str(root),
+            "error": f"Root directory non trovata: {root}",
+            "duration_sec": 0.0,
+        }
+
+    stg = (
+        Path(staging_dir).resolve()
+        if staging_dir is not None
+        else (root / ".staging").resolve()
+    )
+    essential_dirs = (
+        "scripts",
+        "tests",
+        ".agents",
+        "nk_genome",
+        "genome",
+        "nk_tracking",
+        "src",
+        "src_app",
+        "app",
+        "data",
+        "benchmark_empirico_v7",
+        "config",
+    )
+    excluded_top_dirs = {
+        ".git",
+        ".venv",
+        "venv",
+        "__pycache__",
+        ".pytest_cache",
+        "node_modules",
+        ".staging",
+        ".mypy_cache",
+        ".ruff_cache",
+    }
+    allowed_root_exts = {
+        ".py",
+        ".md",
+        ".json",
+        ".ini",
+        ".toml",
+        ".cfg",
+        ".txt",
+        ".yaml",
+        ".yml",
+    }
+    ignore_fn = shutil.ignore_patterns(
+        "__pycache__",
+        "*.pyc",
+        "*.pyo",
+        ".pytest_cache",
+        ".git",
+        ".venv",
+        "venv",
+        "node_modules",
+        ".wal",
+        ".mypy_cache",
+        ".ruff_cache",
+    )
+
+    overlay_files: List[str] = []
+    deleted_applied: List[str] = []
+    stripped_holdouts: List[str] = []
+    _base_ignore = ignore_fn
+    _max_heavy_data_bytes = 5 * 1024 * 1024
+
+    def _dir_exceeds_5mb(dir_path: Path) -> bool:
+        total = 0
+        try:
+            for sub in dir_path.rglob("*"):
+                if sub.is_file():
+                    total += sub.stat().st_size
+                    if total > _max_heavy_data_bytes:
+                        return True
+        except OSError:
+            return True
+        return False
+
+    def _sandbox_ignore_heavy(src: str, names: List[str]) -> set[str]:
+        ignored = set(_base_ignore(src, names))
+        src_path = Path(src)
+        parts_lower = {pt.lower() for pt in src_path.parts}
+        in_heavy_dir = "data" in parts_lower or "benchmark_empirico_v7" in parts_lower
+        for name in names:
+            if name in ignored:
+                continue
+            cand = src_path / name
+            try:
+                if in_heavy_dir or name.lower() in ("data", "benchmark_empirico_v7"):
+                    if cand.is_file() and cand.stat().st_size > _max_heavy_data_bytes:
+                        ignored.add(name)
+                    elif cand.is_dir() and _dir_exceeds_5mb(cand):
+                        ignored.add(name)
+            except OSError:
+                ignored.add(name)
+        return ignored
+
+    ignore_fn = _sandbox_ignore_heavy
+    ast_guard_res: Dict[str, Any] = {"executed": False, "passed": True}
+    pytest_res: Dict[str, Any] = {"executed": False, "passed": True}
+    sb_id = ""
+    sb_dir_str = ""
+    norm_prof = profile.strip().lower()
+
+    with ShadowSandbox() as sb:
+        sb_id = sb.sandbox_id
+        sb_dir_str = str(sb.sandbox_dir)
+
+        copied_top_dirs: set[str] = set()
+        for dname in essential_dirs:
+            src_d = root / dname
+            if src_d.exists() and src_d.is_dir():
+                shutil.copytree(
+                    src_d,
+                    sb.sandbox_dir / dname,
+                    dirs_exist_ok=True,
+                    ignore=ignore_fn,
+                )
+                copied_top_dirs.add(dname)
+
+        for item in root.iterdir():
+            if (
+                item.is_dir()
+                and item.name not in excluded_top_dirs
+                and item.name not in copied_top_dirs
+            ):
+                shutil.copytree(
+                    item,
+                    sb.sandbox_dir / item.name,
+                    dirs_exist_ok=True,
+                    ignore=ignore_fn,
+                )
+                copied_top_dirs.add(item.name)
+            elif (
+                item.is_file()
+                and item.suffix.lower() in allowed_root_exts
+                and item.stat().st_size <= 50 * 1024 * 1024
+            ):
+                shutil.copy2(item, sb.sandbox_dir / item.name)
+
+        if stg.exists() and stg.is_dir():
+            stg_data = stg / "data"
+            if stg_data.exists() and stg_data.is_dir():
+                shutil.copytree(
+                    stg_data,
+                    sb.sandbox_dir / "data",
+                    dirs_exist_ok=True,
+                    ignore=ignore_fn,
+                )
+            for stg_file in sorted(stg.rglob("*")):
+                if not stg_file.is_file():
+                    continue
+                if (
+                    "__pycache__" in stg_file.parts
+                    or stg_file.name in (".gitkeep", ".deleted_files.json")
+                ):
+                    continue
+                rel = stg_file.relative_to(stg)
+                if rel.parts and rel.parts[0] in ("data", "benchmark_empirico_v7"):
+                    try:
+                        if stg_file.stat().st_size > _max_heavy_data_bytes:
+                            continue
+                    except OSError:
+                        continue
+                dst_file = sb.sandbox_dir / rel
+                dst_file.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(stg_file, dst_file)
+                overlay_files.append(rel.as_posix())
+
+            del_manifest = stg / ".deleted_files.json"
+            if del_manifest.exists() and del_manifest.is_file():
+                try:
+                    raw_del = json.loads(del_manifest.read_text(encoding="utf-8"))
+                    del_list = (
+                        raw_del
+                        if isinstance(raw_del, list)
+                        else raw_del.get("deleted_files", [])
+                        if isinstance(raw_del, dict)
+                        else []
+                    )
+                    for rel_del in del_list:
+                        cand_del = (sb.sandbox_dir / str(rel_del)).resolve()
+                        if (
+                            sb.sandbox_dir in cand_del.parents
+                            and cand_del.exists()
+                            and cand_del.is_file()
+                        ):
+                            cand_del.unlink(missing_ok=True)
+                            deleted_applied.append(str(rel_del))
+                except Exception:
+                    pass
+
+        if norm_prof == "builder":
+            stripped_holdouts = _strip_builder_holdouts_from_sandbox(sb.sandbox_dir)
+
+        env = os.environ.copy()
+        env["PYTHONUTF8"] = "1"
+        env["PYTHONIOENCODING"] = "utf-8"
+        env["PYTHONDONTWRITEBYTECODE"] = "1"
+        env["PYTHONPATH"] = str(sb.sandbox_dir)
+
+        if run_ast_guard:
+            hub_ast_guard = Path(__file__).resolve().parent / "ast_guard_validator.py"
+            sb_ast_guard = sb.sandbox_dir / "scripts" / "ast_guard_validator.py"
+            guard_script = sb_ast_guard if sb_ast_guard.exists() else hub_ast_guard
+
+            code_targets = [
+                sb.sandbox_dir / d
+                for d in ("scripts", "src", "src_app", "app")
+                if (sb.sandbox_dir / d).exists()
+                and (sb.sandbox_dir / d).is_dir()
+                and any((sb.sandbox_dir / d).rglob("*.py"))
+            ]
+            targets_for_guard = code_targets if code_targets else [sb.sandbox_dir]
+            if guard_script.exists():
+                try:
+                    agg_passed = True
+                    agg_exit = 0
+                    agg_files_checked = 0
+                    agg_violations = 0
+                    agg_stdout_parts: List[str] = []
+                    agg_stderr_parts: List[str] = []
+
+                    for t_dir in targets_for_guard:
+                        py_count = len(
+                            [
+                                f
+                                for f in t_dir.rglob("*.py")
+                                if "__pycache__" not in f.parts
+                            ]
+                        )
+                        proc_ast = subprocess.run(
+                            [
+                                sys.executable,
+                                str(guard_script),
+                                "--target",
+                                str(t_dir),
+                            ],
+                            cwd=str(sb.sandbox_dir),
+                            env=env,
+                            capture_output=True,
+                            text=True,
+                            encoding="utf-8",
+                            errors="replace",
+                            timeout=min(timeout_sec, 60.0),
+                        )
+                        agg_files_checked += py_count
+                        if proc_ast.returncode != 0:
+                            agg_passed = False
+                            if agg_exit == 0:
+                                agg_exit = proc_ast.returncode
+                            fail_lines = [
+                                ln
+                                for ln in (proc_ast.stdout or "").splitlines()
+                                if ln.strip().startswith("- [")
+                            ]
+                            agg_violations += max(1, len(fail_lines))
+                        if proc_ast.stdout:
+                            agg_stdout_parts.append(proc_ast.stdout)
+                        if proc_ast.stderr:
+                            agg_stderr_parts.append(proc_ast.stderr)
+
+                    combined_out = "\n".join(agg_stdout_parts)
+                    combined_err = "\n".join(agg_stderr_parts)
+                    ast_guard_res = {
+                        "executed": True,
+                        "passed": agg_passed,
+                        "exit_code": agg_exit,
+                        "files_checked": agg_files_checked,
+                        "violations": agg_violations,
+                        "targets_scanned": [str(t) for t in targets_for_guard],
+                        "stdout": combined_out[-1500:],
+                        "stderr": combined_err[-1000:],
+                        "stdout_tail": combined_out[-1500:],
+                        "stderr_tail": combined_err[-1500:],
+                    }
+                except Exception as exc:
+                    ast_guard_res = {
+                        "executed": True,
+                        "passed": False,
+                        "exit_code": -1,
+                        "files_checked": 0,
+                        "violations": 1,
+                        "error": str(exc),
+                        "stdout_tail": "",
+                        "stderr_tail": str(exc)[-1500:],
+                    }
+
+        tests_dir = sb.sandbox_dir / "tests"
+        if run_pytest and tests_dir.exists() and any(tests_dir.rglob("test_*.py")):
+            try:
+                proc_pt = subprocess.run(
+                    [sys.executable, "-m", "pytest", "tests", "-q", "--tb=short"],
+                    cwd=str(sb.sandbox_dir),
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    timeout=timeout_sec,
+                )
+                pytest_res = {
+                    "executed": True,
+                    "passed": proc_pt.returncode == 0,
+                    "exit_code": proc_pt.returncode,
+                    "stdout": proc_pt.stdout[-2000:],
+                    "stderr": proc_pt.stderr[-1000:],
+                    "stdout_tail": proc_pt.stdout[-1500:],
+                    "stderr_tail": proc_pt.stderr[-1500:],
+                }
+            except Exception as exc:
+                pytest_res = {
+                    "executed": True,
+                    "passed": False,
+                    "exit_code": -1,
+                    "error": str(exc),
+                    "stdout_tail": "",
+                    "stderr_tail": str(exc)[-1500:],
+                }
+
+    sandbox_cleaned = not Path(sb_dir_str).exists()
+    overall_passed = (
+        bool(ast_guard_res.get("passed", True))
+        and bool(pytest_res.get("passed", True))
+        and sandbox_cleaned
+    )
+    report_payload: Dict[str, Any] = {
+        "status": "PASS" if overall_passed else "FAIL",
+        "passed": overall_passed,
+        "profile": norm_prof,
+        "sandbox_id": sb_id,
+        "sandbox_dir": sb_dir_str,
+        "sandbox_cleaned": sandbox_cleaned,
+        "repo_root": str(root),
+        "staging_dir": str(stg),
+        "overlay_files_count": len(overlay_files),
+        "overlay_files": overlay_files,
+        "deleted_files": deleted_applied,
+        "stripped_holdouts": stripped_holdouts,
+        "ast_guard": ast_guard_res,
+        "pytest": pytest_res,
+        "duration_sec": round(time.perf_counter() - t0, 4),
+    }
+    if not overall_passed:
+        combined_stdout = "\n".join(
+            p
+            for p in (
+                str(ast_guard_res.get("stdout", "")),
+                str(pytest_res.get("stdout", "")),
+            )
+            if p
+        )
+        combined_stderr = "\n".join(
+            p
+            for p in (
+                str(ast_guard_res.get("stderr", "")),
+                str(ast_guard_res.get("error", "")),
+                str(pytest_res.get("stderr", "")),
+                str(pytest_res.get("error", "")),
+            )
+            if p
+        )
+        report_payload["stdout_tail"] = combined_stdout[-1500:]
+        report_payload["stderr_tail"] = combined_stderr[-1500:]
+
+    try:
+        diag_dir = Path(tempfile.gettempdir()) / "nk_diagnostics"
+        diag_dir.mkdir(parents=True, exist_ok=True)
+        (diag_dir / "dast_last_report.json").write_text(
+            json.dumps(report_payload, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+    except Exception:
+        pass
+
+    return report_payload
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    """Interfaccia CLI per l'esecuzione isolata in Shadow Sandbox."""
+    parser = argparse.ArgumentParser(
+        description="Nexus Keystone DAST Shadow Sandbox Runner",
+    )
+    parser.add_argument(
+        "--script", type=str, help="Percorso dello script Python da eseguire"
+    )
+    parser.add_argument(
+        "--overlay-staging",
+        type=str,
+        default=None,
+        help="Percorso radice su cui eseguire la Shadow Run sovrapponendo .staging/",
+    )
+    parser.add_argument(
+        "--staging-dir",
+        type=str,
+        default=None,
+        help="Percorso opzionale alla cartella .staging/ per --overlay-staging",
+    )
+    parser.add_argument(
+        "--profile",
+        type=str,
+        choices=("evaluator", "builder"),
+        default="evaluator",
+        help="Profilo di isolamento della sandbox (evaluator o builder)",
+    )
+    parser.add_argument(
+        "--timeout", type=float, default=10.0, help="Timeout in secondi"
+    )
+    parser.add_argument("--json", action="store_true", help="Stampa il report in JSON")
+    args = parser.parse_args(argv)
+
+    if args.overlay_staging:
+        shadow_timeout = max(float(args.timeout), 60.0)
+        res = run_staging_shadow_verification(
+            repo_root=Path(args.overlay_staging),
+            staging_dir=Path(args.staging_dir) if args.staging_dir else None,
+            timeout_sec=shadow_timeout,
+            profile=args.profile,
+        )
+        if args.json:
+            print(json.dumps(res, indent=2, ensure_ascii=False))
+        else:
+            print(
+                f"[DAST-OVERLAY-STAGING] Status: {res['status']} | "
+                f"Overlay Files: {res.get('overlay_files_count', 0)} | "
+                f"Cleaned: {res.get('sandbox_cleaned', False)} ({res.get('duration_sec', 0.0)} s)"
+            )
+        return 0 if res.get("passed") else 1
+
+    if not args.script:
+        parser.print_help()
+        return 0
+
+    src_script = Path(args.script).resolve()
+    if not src_script.exists():
+        sys.stderr.write(f"Script non trovato: {src_script}\n")
+        return 1
+
+    async def _run() -> SandboxTelemetryReport:
+        with ShadowSandbox() as sb:
+            sb.copy_file(src_script)
+            sibling_py = [
+                p
+                for p in src_script.parent.glob("*.py")
+                if p.is_file() and p.resolve() != src_script
+            ]
+            if len(sibling_py) <= 50:
+                for sib in sibling_py:
+                    sb.copy_file(sib)
+            if args.profile == "builder":
+                _strip_builder_holdouts_from_sandbox(sb.sandbox_dir)
+                py_paths = str(sb.sandbox_dir)
+            else:
+                py_paths = f"{src_script.parent}{os.pathsep}{src_script.parent.parent}"
+            cfg = SandboxConfig(
+                timeout_sec=args.timeout,
+                env_vars={"PYTHONPATH": py_paths},
+                profile=args.profile,
+            )
+            runner = DASTSandboxRunner(cfg)
+            return await runner.run_in_sandbox(
+                sb,
+                [sys.executable, src_script.name],
+                target_script_name=src_script.name,
+            )
+
+    report = asyncio.run(_run())
+    if args.json:
+        print(report.model_dump_json(indent=2))
+    else:
+        print(f"[DAST-SANDBOX] Success: {report.success} | Exit: {report.exit_code}")
+    return 0 if report.success else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

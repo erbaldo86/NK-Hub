@@ -1,0 +1,115 @@
+{
+  "suite_id": "nk_ab_benchmark_v1",
+  "version": "1.0.0",
+  "total_tasks": 12,
+  "tasks": [
+    {
+      "task_id": "AB-01",
+      "title": "Classificazione deterministica Mode A/B/C/D nel Vibe Sprint Router",
+      "module": "scripts/vibe_sprint_router.py",
+      "check_type": "router_classification",
+      "expected": "mode_c",
+      "source_url": "https://docs.python.org/3/library/argparse.html",
+      "evidence_quote": "The argparse module makes it easy to write user-friendly command-line interfaces."
+    },
+    {
+      "task_id": "AB-02",
+      "title": "Confinamento write-gate e risoluzione path traversal con Path.resolve",
+      "module": "scripts/nk_hook_gate.py",
+      "check_type": "hook_write_gate",
+      "expected": "deny",
+      "source_url": "https://docs.python.org/3/library/pathlib.html#pathlib.Path.resolve",
+      "evidence_quote": "Make the path absolute, resolving any symlinks. A new path object is returned."
+    },
+    {
+      "task_id": "AB-03",
+      "title": "Memoria episodica a 3 livelli con Hybrid RRF e budget Tier-1",
+      "module": "scripts/memory_3tier_engine.py",
+      "check_type": "memory_3tier_rrf",
+      "expected": 350,
+      "source_url": "https://dl.acm.org/doi/10.1145/1571941.1572114",
+      "evidence_quote": "Reciprocal Rank Fusion outperforms Condorcet and individual rank learning methods."
+    },
+    {
+      "task_id": "AB-04",
+      "title": "Validazione statica AST e conservazione delle firme delle funzioni",
+      "module": "scripts/ast_guard_validator.py",
+      "check_type": "ast_signature_guard",
+      "expected": true,
+      "source_url": "https://docs.python.org/3/library/ast.html",
+      "evidence_quote": "The ast module helps Python applications to process trees of the Python abstract syntax grammar."
+    },
+    {
+      "task_id": "AB-05",
+      "title": "Calcolo deterministico di Delta_k e fitness iperbolica Q(S_k)",
+      "module": "scripts/rsi_convergence_engine.py",
+      "check_type": "rsi_delta_fitness",
+      "expected": 100.0,
+      "source_url": "https://docs.python.org/3/library/hashlib.html",
+      "evidence_quote": "This module implements a common interface to many different secure hash and message digest algorithms."
+    },
+    {
+      "task_id": "AB-06",
+      "title": "Risoluzione O(1) di skill, domini e script nell'indicizzatore modulare",
+      "module": "scripts/nk_registry_indexer.py",
+      "check_type": "registry_o1_lookup",
+      "expected": "DOM-01",
+      "source_url": "https://docs.python.org/3/library/json.html",
+      "evidence_quote": "JSON (JavaScript Object Notation), specified by RFC 7159, is a lightweight data interchange format."
+    },
+    {
+      "task_id": "AB-07",
+      "title": "Verifica sintattica ASD-STE100 con limite di 20 parole per frase",
+      "module": "scripts/rsi_convergence_engine.py",
+      "check_type": "ste100_sentence_limit",
+      "expected": true,
+      "source_url": "https://www.asd-ste100.org/",
+      "evidence_quote": "Simplified Technical English (ASD-STE100) is an international specification for the preparation of technical documentation."
+    },
+    {
+      "task_id": "AB-08",
+      "title": "Verifica dell'evidenza di esecuzione exit code 0 nei transcript",
+      "module": "scripts/nk_transcript_tools.py",
+      "check_type": "transcript_evidence_gate",
+      "expected": true,
+      "source_url": "https://docs.python.org/3/library/subprocess.html",
+      "evidence_quote": "The subprocess module allows you to spawn new processes, connect to their input/output/error pipes, and obtain their return codes."
+    },
+    {
+      "task_id": "AB-09",
+      "title": "Promozione transazionale atomica Two-Phase Commit su Win32",
+      "module": "scripts/win32_2pc_engine.py",
+      "check_type": "win32_2pc_atomic",
+      "expected": true,
+      "source_url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-movefileexw",
+      "evidence_quote": "Moves an existing file or directory, including its children, with various move options."
+    },
+    {
+      "task_id": "AB-10",
+      "title": "Cache deterministica locale Tier-0 in modalita SQLite WAL",
+      "module": "scripts/deterministic_api_cache.py",
+      "check_type": "sqlite_wal_cache",
+      "expected": "wal",
+      "source_url": "https://sqlite.org/wal.html",
+      "evidence_quote": "Write-Ahead Logging (WAL) is an atomic commit and rollback method in SQLite."
+    },
+    {
+      "task_id": "AB-11",
+      "title": "Localizzazione statistica dei guasti con formula SBFL Ochiai",
+      "module": "scripts/sbfl_pytest_bridge.py",
+      "check_type": "sbfl_ochiai_suspiciousness",
+      "expected": 1.0,
+      "source_url": "https://ieeexplore.ieee.org/document/5362086",
+      "evidence_quote": "Spectrum-based fault localization utilizes program execution traces to rank program elements by likelihood of containing a fault."
+    },
+    {
+      "task_id": "AB-12",
+      "title": "Guardia Context Sentry con soglie standard 70/100 e Argon 150/250",
+      "module": "scripts/nk_context_sentry.py",
+      "check_type": "context_sentry_thresholds",
+      "expected": 70,
+      "source_url": "https://pydantic.dev/docs/",
+      "evidence_quote": "Pydantic is the most widely used data validation library for Python."
+    }
+  ]
+}

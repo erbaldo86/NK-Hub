@@ -1,0 +1,15 @@
+{
+  "folders": [
+    {
+      "name": "NK_Hub",
+      "path": ".."
+    },
+    {
+      "name": "NK_External_Projects",
+      "path": "../../NK_External_Projects"
+    }
+  ],
+  "settings": {
+    "python.defaultInterpreterPath": "C:\\Python314\\python.exe"
+  }
+}

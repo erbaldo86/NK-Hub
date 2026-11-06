@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "6.0.0-STE100-Unified",
+  "description": "Hook del ciclo di vita dual-schema per Nexus Keystone Hub v6.0.0-STE100-Unified",
+  "schema_mode": "DUAL_COMPATIBLE_NATIVE_AND_NK",
+  "nk-gate": {
+    "enabled": true,
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "if exist scripts\\nk_hook_gate.py (python -u scripts/nk_hook_gate.py session-start --event SessionStart --native-contract --shadow) else if exist ..\\scripts\\nk_hook_gate.py (python -u ../scripts/nk_hook_gate.py session-start --event SessionStart --native-contract --shadow) else (python -u ../../../scripts/nk_hook_gate.py session-start --event SessionStart --native-contract --shadow)",
+        "timeout": 5
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "write_file|edit_file|write_to_file|replace_file_content|multi_replace_file_content|run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if exist scripts\\nk_hook_gate.py (python -u scripts/nk_hook_gate.py write-gate --event PreToolUse --native-contract --shadow) else if exist ..\\scripts\\nk_hook_gate.py (python -u ../scripts/nk_hook_gate.py write-gate --event PreToolUse --native-contract --shadow) else (python -u ../../../scripts/nk_hook_gate.py write-gate --event PreToolUse --native-contract --shadow)",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if exist scripts\\nk_hook_gate.py (python -u scripts/nk_hook_gate.py fasttrack --event PostToolUse --native-contract --shadow) else if exist ..\\scripts\\nk_hook_gate.py (python -u ../scripts/nk_hook_gate.py fasttrack --event PostToolUse --native-contract --shadow) else (python -u ../../../scripts/nk_hook_gate.py fasttrack --event PostToolUse --native-contract --shadow)",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "if exist scripts\\nk_hook_gate.py (python -u scripts/nk_hook_gate.py fasttrack --event PreInvocation --native-contract --shadow) else if exist ..\\scripts\\nk_hook_gate.py (python -u ../scripts/nk_hook_gate.py fasttrack --event PreInvocation --native-contract --shadow) else (python -u ../../../scripts/nk_hook_gate.py fasttrack --event PreInvocation --native-contract --shadow)",
+        "timeout": 5
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "if exist scripts\\nk_hook_gate.py (python -u scripts/nk_hook_gate.py stop-evidence --event Stop --native-contract --shadow) else if exist ..\\scripts\\nk_hook_gate.py (python -u ../scripts/nk_hook_gate.py stop-evidence --event Stop --native-contract --shadow) else (python -u ../../../scripts/nk_hook_gate.py stop-evidence --event Stop --native-contract --shadow)",
+        "timeout": 5
+      }
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "name": "nk_fast_stat_bootstrap",
+        "command": "python -u ../scripts/nk_hook_gate.py session-start --event SessionStart",
+        "enabled": true,
+        "blocking": false,
+        "timeout": 10,
+        "timeout_ms": 10000
+      }
+    ],
+    "PreToolUse": [
+      {
+        "name": "nk_write_gate",
+        "command": "python -u ../scripts/nk_hook_gate.py write-gate --event PreToolUse",
+        "enabled": true,
+        "blocking": true,
+        "timeout": 10,
+        "timeout_ms": 10000
+      }
+    ],
+    "PostToolUse": [
+      {
+        "name": "nk_runtime_sentinel_argon",
+        "command": "python -u ../scripts/nk_hook_gate.py fasttrack --event PostToolUse",
+        "enabled": true,
+        "blocking": false,
+        "timeout": 10,
+        "timeout_ms": 10000
+      }
+    ],
+    "Stop": [
+      {
+        "name": "nk_rsi_convergence_check",
+        "command": "python -u ../scripts/nk_hook_gate.py stop-evidence --event Stop",
+        "enabled": true,
+        "blocking": false,
+        "timeout": 10,
+        "timeout_ms": 10000
+      }
+    ]
+  },
+  "SessionStart": [
+    {
+      "name": "nk_fast_stat_bootstrap",
+      "command": "python -u ../scripts/nk_hook_gate.py session-start --event SessionStart",
+      "enabled": true,
+      "blocking": false,
+      "timeout": 10,
+      "timeout_ms": 10000
+    }
+  ],
+  "PreToolUse": [
+    {
+      "name": "nk_write_gate",
+      "command": "python -u ../scripts/nk_hook_gate.py write-gate --event PreToolUse",
+      "enabled": true,
+      "blocking": true,
+      "timeout": 10,
+      "timeout_ms": 10000
+    }
+  ],
+  "PostToolUse": [
+    {
+      "name": "nk_runtime_sentinel_argon",
+      "command": "python -u ../scripts/nk_hook_gate.py fasttrack --event PostToolUse",
+      "enabled": true,
+      "blocking": false,
+      "timeout": 10,
+      "timeout_ms": 10000
+    }
+  ],
+  "Stop": [
+    {
+      "name": "nk_rsi_convergence_check",
+      "command": "python -u ../scripts/nk_hook_gate.py stop-evidence --event Stop",
+      "enabled": true,
+      "blocking": false,
+      "timeout": 10,
+      "timeout_ms": 10000
+    }
+  ]
+}

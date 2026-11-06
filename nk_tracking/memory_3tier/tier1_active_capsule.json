@@ -1,0 +1,110 @@
+{
+  "schema_version": "3.1.0-Tensor-RSI",
+  "updated_at": 1793971371.1238632,
+  "profile": "standard",
+  "token_cap": 350,
+  "domains": {
+    "01_Bug_Diagnostics": {
+      "total_tokens": 0,
+      "context": "",
+      "items": []
+    },
+    "02_Development_Patterns": {
+      "total_tokens": 276,
+      "context": "[ep_1793971370_0838d1] Release v4.8.0-STE100-Unified Remediation & Lean Token Optimization: Completati WP-O1..WP-O6 con 35/35 mutanti comportamentali uccisi (100%), fix nk_compliance_checker JSON args, AST cache RSI, default WAL in %TEMP% e matrice TAS automatica.\n[ep_1793385126_20d64f] Release Gate 1 v4.6.0 Unified: Completati WP-0c, WP-0a, WP-0b, WP-0d, WP-1a e WP-1b con 224 test verdi e backup esterni.\n[ep_1793051625_6821ee] NK-Bandi Release v1.3.0 Sovereign: Promossi 5 nuovi moduli <=250 LOC (plain_language_explainer, colloquial_advisor_lexicon, deep_card_enricher, guided_wizard, subpage_grant_discoverer). 113 moduli totali, 156/156 Golden Tests PASS.\n[ep_1792345022_b49991] Checkpoint Release v4.0.0 Cold Trial: Certificata la release v4.0.0-Native-Swarm-Playbooks con 10/10 sul router O(1), 15 fix RSI, rimozione scorie legacy e 86 test in 7.08s.\n[ep_1792344119_4d452a] Zero-Bias Cold Trial v4.0.0 Native Swarm: Risolte 15 frizioni a freddo su router O(1), lookup multi-skill, motore RSI, flag CLI e 2PC.",
+      "items": [
+        {
+          "key": "ep_1793971370_0838d1",
+          "value": "Release v4.8.0-STE100-Unified Remediation & Lean Token Optimization: Completati WP-O1..WP-O6 con 35/35 mutanti comportamentali uccisi (100%), fix nk_compliance_checker JSON args, AST cache RSI, default WAL in %TEMP% e matrice TAS automatica.",
+          "priority": 7,
+          "estimated_tokens": 68
+        },
+        {
+          "key": "ep_1792344119_4d452a",
+          "value": "Zero-Bias Cold Trial v4.0.0 Native Swarm: Risolte 15 frizioni a freddo su router O(1), lookup multi-skill, motore RSI, flag CLI e 2PC.",
+          "priority": 3,
+          "estimated_tokens": 46
+        },
+        {
+          "key": "ep_1792345022_b49991",
+          "value": "Checkpoint Release v4.0.0 Cold Trial: Certificata la release v4.0.0-Native-Swarm-Playbooks con 10/10 sul router O(1), 15 fix RSI, rimozione scorie legacy e 86 test in 7.08s.",
+          "priority": 4,
+          "estimated_tokens": 60
+        },
+        {
+          "key": "ep_1793051625_6821ee",
+          "value": "NK-Bandi Release v1.3.0 Sovereign: Promossi 5 nuovi moduli <=250 LOC (plain_language_explainer, colloquial_advisor_lexicon, deep_card_enricher, guided_wizard, subpage_grant_discoverer). 113 moduli totali, 156/156 Golden Tests PASS.",
+          "priority": 5,
+          "estimated_tokens": 51
+        },
+        {
+          "key": "ep_1793385126_20d64f",
+          "value": "Release Gate 1 v4.6.0 Unified: Completati WP-0c, WP-0a, WP-0b, WP-0d, WP-1a e WP-1b con 224 test verdi e backup esterni.",
+          "priority": 6,
+          "estimated_tokens": 51
+        }
+      ]
+    },
+    "03_Ideation_and_Decisions": {
+      "total_tokens": 59,
+      "context": "[ep_1792607110_f1f08c] WP13 Super Meta-Prompt Gate Unified: Unificati i piani Opus, Argon e Terza Parte nel Gate L0 ALWAYS-ON con R1..Rn, FSM 5 stati, split CamelCase STT primaLa, esclusione sostantivi -zione e conferma 1-Click ask_question.",
+      "items": [
+        {
+          "key": "ep_1792607110_f1f08c",
+          "value": "WP13 Super Meta-Prompt Gate Unified: Unificati i piani Opus, Argon e Terza Parte nel Gate L0 ALWAYS-ON con R1..Rn, FSM 5 stati, split CamelCase STT primaLa, esclusione sostantivi -zione e conferma 1-Click ask_question.",
+          "priority": 3,
+          "estimated_tokens": 59
+        }
+      ]
+    },
+    "04_Governance_and_Rules": {
+      "total_tokens": 0,
+      "context": "",
+      "items": []
+    }
+  },
+  "lessons": [
+    {
+      "domain": "02_Development_Patterns",
+      "key": "ep_1793971370_0838d1",
+      "lesson": "[ep_1793971370_0838d1] Release v4.8.0-STE100-Unified Remediation & Lean Token Optimization: Completati WP-O1..WP-O6 con 35/35 mutanti comportamentali uccisi (100%), fix nk_compliance_checker JSON args, AST cache RSI, default WAL in %TEMP% e matrice TAS automatica.",
+      "priority": 7,
+      "estimated_tokens": 68
+    },
+    {
+      "domain": "02_Development_Patterns",
+      "key": "ep_1792344119_4d452a",
+      "lesson": "[ep_1792344119_4d452a] Zero-Bias Cold Trial v4.0.0 Native Swarm: Risolte 15 frizioni a freddo su router O(1), lookup multi-skill, motore RSI, flag CLI e 2PC.",
+      "priority": 3,
+      "estimated_tokens": 46
+    },
+    {
+      "domain": "02_Development_Patterns",
+      "key": "ep_1792345022_b49991",
+      "lesson": "[ep_1792345022_b49991] Checkpoint Release v4.0.0 Cold Trial: Certificata la release v4.0.0-Native-Swarm-Playbooks con 10/10 sul router O(1), 15 fix RSI, rimozione scorie legacy e 86 test in 7.08s.",
+      "priority": 4,
+      "estimated_tokens": 60
+    },
+    {
+      "domain": "02_Development_Patterns",
+      "key": "ep_1793051625_6821ee",
+      "lesson": "[ep_1793051625_6821ee] NK-Bandi Release v1.3.0 Sovereign: Promossi 5 nuovi moduli <=250 LOC (plain_language_explainer, colloquial_advisor_lexicon, deep_card_enricher, guided_wizard, subpage_grant_discoverer). 113 moduli totali, 156/156 Golden Tests PASS.",
+      "priority": 5,
+      "estimated_tokens": 51
+    },
+    {
+      "domain": "02_Development_Patterns",
+      "key": "ep_1793385126_20d64f",
+      "lesson": "[ep_1793385126_20d64f] Release Gate 1 v4.6.0 Unified: Completati WP-0c, WP-0a, WP-0b, WP-0d, WP-1a e WP-1b con 224 test verdi e backup esterni.",
+      "priority": 6,
+      "estimated_tokens": 51
+    },
+    {
+      "domain": "03_Ideation_and_Decisions",
+      "key": "ep_1792607110_f1f08c",
+      "lesson": "[ep_1792607110_f1f08c] WP13 Super Meta-Prompt Gate Unified: Unificati i piani Opus, Argon e Terza Parte nel Gate L0 ALWAYS-ON con R1..Rn, FSM 5 stati, split CamelCase STT primaLa, esclusione sostantivi -zione e conferma 1-Click ask_question.",
+      "priority": 3,
+      "estimated_tokens": 59
+    }
+  ]
+}

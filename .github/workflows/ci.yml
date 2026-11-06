@@ -1,0 +1,71 @@
+name: Lab NK Hub Continuous Verification
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  verify:
+    runs-on: windows-latest
+    env:
+      PYTHONIOENCODING: "utf-8"
+      PYTHONUTF8: "1"
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    steps:
+      - name: Configure Git Line Endings
+        run: git config --global core.autocrlf false
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: "nk_docs_and_setup/requirements.txt"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if (Test-Path "nk_docs_and_setup/requirements.txt") { pip install -r nk_docs_and_setup/requirements.txt } else { pip install -r requirements.txt }
+
+      - name: Initialize Tracked Runtime Directories
+        run: |
+          New-Item -ItemType Directory -Force -Path ".staging", "nk_tracking/manifests" | Out-Null
+
+      - name: Run Pre-Flight Environment Capability Discovery
+        run: |
+          python scripts/env_capability_probe.py
+
+      - name: Run Preflight Health Check
+        run: |
+          python scripts/preflight_health_check.py --check-only
+
+      - name: Run Fast-Stat Session Bootstrap Gate
+        run: |
+          python scripts/nk_session_bootstrap.py --force-full
+
+      - name: Run Deterministic AST Guard Validator
+        run: |
+          python scripts/ast_guard_validator.py --target all
+
+      - name: Run Core Platform Test Suite (245 Golden & Stress Tests)
+        run: |
+          pip install pytest-github-actions-annotate-failures
+          python -m pytest tests/ -v --tb=short --junitxml=pytest-results.xml
+
+      - name: Report Failing Tests Diagnostic
+        if: failure()
+        shell: pwsh
+        run: |
+          if (Test-Path pytest-results.xml) {
+            [xml]$xml = Get-Content pytest-results.xml
+            $failures = $xml.SelectNodes("//testcase[failure or error]")
+            foreach ($f in $failures) {
+              Write-Host "::error::TEST FAILED: $($f.classname).$($f.name) -> $($f.failure.message)"
+              Write-Host $f.failure.'#text'
+            }
+          }

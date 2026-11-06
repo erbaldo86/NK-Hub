@@ -1,0 +1,271 @@
+# 📝 NK-Session-Controller: Prompt Templates (`v5.0.0-STE100-Unified` / `v4.7.0-STE100-Unified` / `v3.0.0-STE100-Unified` Compatible)
+
+> **Ambito:** Libreria di template pre-validati per l'orchestrazione 2-Tier Hub-and-Spoke e il loop RSI.  
+> **Standard Linguistico:** ASD-STE100 Italiano Tecnico (`[RULE-STE100]`).
+
+---
+
+## 0. META_PROMPT_INTENT_BRIEF (`[RULE-00.6]`)
+L'agente esegue `scripts/vibe_sprint_router.py --meta-prompt-gate` su ogni nuovo prompt utente, inclusi i turni successivi.
+L'agente stampa sempre lo Specchio Concettuale L0 nel testo visibile (`content`) prima di invocare `ask_question`.
+Nessun agente invoca `ask_question` con `content` vuoto (`content_len == 0`) o rimanda il riepilogo L0.
+Dopo la conferma L0, l'agente prepara il Brief e richiede conferma utente su implementation_plan.md prima del Builder.
+```markdown
+### 🧭 [LIVELLO 0: SUPER META-PROMPT & INTENT BRIEF GATE]
+- **Brief ID:** `{{BRIEF_ID}}` (`IB-AAAAMMGG-NNN`) | **Stato FSM:** `AWAIT_CONFIRM`
+- **Modalità Consigliata:** `{{RECOMMENDED_MODE}}` | **Skill:** `{{PRIMARY_AGENT}}` | **Sub-Agente:** `{{NATIVE_SUBAGENT}}`
+- **Protocolli Intrinseci Auto-Attivati:** `{{INTRINSIC_PROTOCOLS}}` (`INTRINSIC_GOAL`, `INTRINSIC_BOOST`, `INTRINSIC_PLAN`)
+- **Intent Hash SHA-256:** `{{INTENT_HASH_SHA256}}`
+- **Specchio Concettuale:** {{CONCEPTUAL_MIRROR}}
+- **Meta-Prompt Ottimizzato:** {{OPTIMIZED_META_PROMPT}}
+- **Requisiti Tracciabili (`R1..Rn`):**
+  * `R1`: {{REQ_1}}
+  * `R2`: {{REQ_2}}
+- **Correzioni vocali recepite (`X -> Y`):** {{VOICE_CORRECTIONS_APPLIED}}
+- **Fuori ambito:** {{OUT_OF_SCOPE}}
+- **Ambiguità rilevate:** {{AMBIGUITIES}}
+- **Flusso Post-Conferma L0:** 1) Brief in nk_genome/ e implementation_plan.md (RequestFeedback: true) -> 2) Builder in .staging/ -> 3) Audit RSI e Commit 2PC.
+- **[MANDATORY-VISIBLE-L0]:** Mostra obbligatoriamente questo blocco nel campo content della risposta PRIMA o INSIEME a ask_question (vietato content_len=0).
+- **Conferma 1-Click (`ask_question`):** Seleziona `1. Conferma ed esegui`, `2. Solo risposta diretta` oppure `3. Modifica intento`.
+```
+
+---
+
+## 1. AUTO_BRIEF_SWARM_FSM_LOOP (`[RULE-03]`)
+```markdown
+**[DIRETTIVA ESECUTIVA: RULE-03 AUTO-BRIEF SWARM FSM A 5 TURNI]**
+Applica la sequenza concatenata a 5 turni:
+1. **Turno 1 (Draft Synthesis):** Definisci la proposta iniziale e il Milestone Anchor ID in `nk_genome/implementation_plan.md`.
+2. **Turno 2 (Attack & Stress Swarm):** Invoca via `invoke_subagent` i sub-agenti auditor in parallelo e attendi in IDLE.
+3. **Turno 3 (Refine & Solution Architecture):** Risolvi i conflitti e aggiorna la Tetralogia Sovrana 4/4 in `nk_genome/`.
+4. **Turno 4 (1:1 Plan Alignment):** Invoca `NK-Plan-Aligner` per certificare l'allineamento 4/4 ed emettere il badge `🛡️ [NK-BRIEF-STATUS: AUDITED_AND_OPTIMIZED 🟢]`.
+5. **Turno 5 (Final Handoff):** Compila il prompt Template 8A o Template 11 e avvia l'esecuzione del Builder in `.staging/`.
+
+Contesto operativo:
+{{CONTEXT}}
+```
+
+---
+
+## 2. DYNAMIC_STRESS_TEST (`[RULE-01.1]` & `[RULE-01.2]`)
+```markdown
+**[DIRETTIVA ESECUTIVA: REAL DAST & SANDBOX VERIFICATION]**
+1. Invoca `NK-Dynamic-Sandbox-StressTester` tramite `invoke_subagent` per eseguire i test in `%TEMP%\nk_sandbox_<uuid>\` con `python scripts/dast_sandbox_runner.py --script <target> --timeout 10 --json`.
+2. Cedi il turno in silenzio reattivo (`[RULE-REACTIVE-SILENCE]`) fino alla risposta del sub-agente.
+3. Accetta il verdetto solo con `exit_code: 0` reale (`[RULE-EVIDENCE]`) e zero mock (`[RULE-01.2]`).
+
+Componenti da testare:
+{{CONTEXT}}
+```
+
+---
+
+## 3. RATCHET_LOOP_BUG_FIX (`[RULE-01.1]` & `[RULE-RSI]`)
+```markdown
+**[DIRETTIVA ESECUTIVA: RATCHET LOOP BUG FIX IN STAGING]**
+1. **Macro-Fase 1 (Build & Stage):** Delega al Builder in `.staging/` la patch con `python scripts/auto_heal_pipeline.py --test-cmd "<pytest_cmd>" --target-file {{TARGET_FILE}}`.
+2. **Onestà Epistemica (`[RULE-EPISTEMIC-HONESTY]`):** Assegna `+100` al fix reale e `0` a `report-conflict` (`HALT_EPISTEMIC_CONFLICT`); vieta `PYTEST_CURRENT_TEST`, `currentframe()` e `len(grants)` (`-10.000`).
+3. **Macro-Fase 2 (Cold Audit):** Invoca `NK-Oracle-Evaluator`, verifica `oracle_lock.json` (`[RULE-ORACLE-LOCK]`) e $\Delta_k = 0$ con `python scripts/rsi_convergence_engine.py --verify --root "<PROJECT_ROOT>"`.
+4. **Macro-Fase 3 (2PC Atomic Commit):** Con `exit_code: 0` (`[RULE-EVIDENCE]`), delega a `NK-Master-Hub` il commit `python scripts/win32_2pc_engine.py --promote-staging --repo-root "<PROJECT_ROOT>" --milestone "{{MILESTONE_ANCHOR_ID}}"`. Registra quindi l'evento in `nk_tracking/anchor/session_anchor.jsonl`.
+
+File impattati:
+{{TARGET_FILE}}
+```
+
+---
+
+## 4. DATA_MINING_TAXONOMY (`[RULE-02.4]` & `[RULE-DATA-PROVENANCE]`)
+```markdown
+**[DIRETTIVA ESECUTIVA: RICERCA VERIFICATA E VALIDAZIONE PYDANTIC V2]**
+1. Raccogli i dati da fonti primarie verificabili tramite `search_web`.
+2. Garantire `source_url` reale ed `evidence_quote` estratta dalla fonte per ogni record (`[RULE-DATA-PROVENANCE]`).
+3. Valida ogni record con modelli Pydantic v2 strict (`strict=True, extra="forbid"`).
+4. Usa `python scripts/deterministic_api_cache.py --health` (o `--force-refresh` in CI) per la cache locale SQLite WAL.
+
+Requisiti Dati:
+{{CONTEXT}}
+```
+
+---
+
+## 5. ARCHITECTURAL_CHANGE (`[RULE-01]` & `[RULE-01.13]`)
+```markdown
+**[DIRETTIVA ESECUTIVA: MODE A SOVEREIGN ARCHITECTURAL CHANGE]**
+1. Aggiorna i 4 file della Tetralogia Sovrana (`concept_map.md`, `structural_tree.md`, `implementation_plan.md`, `repo_map.md`) in `nk_genome/`.
+2. Invia il prompt Template 8A o Template 11 al Builder operante in `.staging/`.
+3. Valida il risultato con `NK-Oracle-Evaluator`, `NK-Security-Auditor` e `python scripts/rsi_convergence_engine.py --verify --root "<PROJECT_ROOT>"`. Esegui infine il commit con `python scripts/win32_2pc_engine.py --promote-staging --repo-root "<PROJECT_ROOT>" --milestone "{{MILESTONE_ANCHOR_ID}}"`.
+
+Contesto architetturale:
+{{CONTEXT}}
+```
+
+---
+
+## 6. COMPACT_AND_HANDOFF_PREPARE (`[RULE-02.8]`)
+```markdown
+**[DIRETTIVA SISTEMA: PREPARAZIONE HANDOFF E COMPACT]**
+1. Sincronizza la Tetralogia Sovrana 4/4 in `nk_genome/`.
+2. Aggiorna `nk_tracking/anchor/session_anchor.jsonl`.
+3. Esegui `python scripts/nk_session_handoff.py --transcript <path> --output-dir nk_tracking/handoff --generate-prompt` per generare `nk_tracking/handoff/next_session_prompt.md`.
+4. Consiglia all'utente il comando `/compact` per comprimere il contesto della sessione attiva.
+```
+
+---
+
+## 7. CONTROLLER_RESUME_PROMPT (`[RULE-02.8]`)
+```markdown
+**[RIPRESA SESSIONE: [14] NK-SESSION-CONTROLLER v5.0.0-STE100-UNIFIED / v3.0.0-STE100-UNIFIED]**
+Assumi il ruolo di `[14] NK-Session-Controller`.
+1. Esegui `python scripts/nk_session_bootstrap.py --json`.
+2. Leggi `nk_tracking/handoff/next_session_prompt.md` e `nk_genome/implementation_plan.md` (`view_file <= 800` righe).
+3. Riprendi l'orchestrazione dal Milestone Anchor ID `{{MILESTONE_ANCHOR_ID}}`.
+```
+
+---
+
+## 8. CLEAN_HANDOFF_ENGINE (Template 8A & 8B `v3.0`)
+Specifica completa in [`clean_handoff_protocol.md`](clean_handoff_protocol.md).
+
+### 8A. Prompt per il Builder (`TASK_HANDOFF_4_BLOCKS`)
+```markdown
+# 📦 [HANDOFF PROMPT FOR BUILDER : v5.0.0-STE100-UNIFIED / v3.0.0-STE100-UNIFIED]
+
+<env_capsule>
+Usa `python -m pytest` per i test. Vieta `view_file` esplorativi alla cieca e `python -c` multi-riga.
+Applica `[RULE-EPISTEMIC-HONESTY]`, `[RULE-EVIDENCE]` (`exit_code: 0`), `[RULE-DATA-PROVENANCE]` (`source_url`, `evidence_quote`) e `[RULE-ORACLE-LOCK]` (`oracle_lock.json`).
+Assegna `+100` al fix reale e `0` a `report-conflict` (`HALT_EPISTEMIC_CONFLICT`); vieta `PYTEST_CURRENT_TEST`, `currentframe()` e `len(grants)` (`-10.000`).
+<intent_brief id="{{BRIEF_ID}}" sha256="{{INTENT_HASH_SHA256}}">
+  <requirements>{{REQUIREMENTS_R_IDS}}</requirements>
+  <out_of_scope>{{OUT_OF_SCOPE}}</out_of_scope>
+</intent_brief>
+</env_capsule>
+
+### 🎯 BLOCCO 1: Obiettivo e Brief Anchor Capsule
+- **Task Operativo:** {{PROBLEM_DESCRIPTION}}
+- **Brief Anchor Capsule (<= 350 token):**
+  * **Milestone Anchor ID:** `{{MILESTONE_ANCHOR_ID}}`
+  * **Tetralogia Reference:** `nk_genome/implementation_plan.md`
+
+### 📍 BLOCCO 2: Perimetro d'Azione Chirurgico
+- **File Autorizzati in `.staging/`:** {{TARGET_FILES_PATHS}}
+- **Componenti:** {{TARGET_COMPONENTS}}
+
+### 🔍 BLOCCO 3: Two-Stage Grounding Obbligatorio (`[RULE-02.5]`)
+1. **Skill Grounding:** Esegui `view_file` sul `SKILL.md` del tuo nodo.
+2. **Stage A (Brief Grounding):** Esegui `view_file` (`<= 800` righe) su `nk_genome/implementation_plan.md`.
+3. **Stage B (Code Grounding):** Esegui `view_file` (`<= 800` righe) sui file sorgente target.
+
+### ⚙️ BLOCCO 4: Istruzioni Chirurgiche e Test
+1. **Pre-Edit Safety:** Ferma eventuali processi demone con `manage_task(Action="kill", TaskId="<id>")`.
+2. **Modifiche in `.staging/`:** {{SURGICAL_INSTRUCTIONS}} (Codifica UTF-8 senza BOM, standard `[RULE-STE100]`).
+3. **Onestà Epistemica (`[RULE-EPISTEMIC-HONESTY]`):** Segnala conflitti tra test congelati con `python scripts/nk_transcript_tools.py report-conflict` (`HALT_EPISTEMIC_CONFLICT`, `0` punti).
+4. **Verifica:** Esegui `python scripts/ast_guard_validator.py --stage-dir .staging` e `python scripts/rsi_convergence_engine.py --verify --root "<PROJECT_ROOT>"` (o `--vibe-check`). Restituisci infine la **Worker Execution Receipt v3.0** (`< 1.800` caratteri).
+```
+
+### 8B. Checklist Cold Review (`CRITIC_REVIEW_CHECKLIST`)
+```markdown
+1. **Gate 1 (Scope):** Modifiche confinate nei soli file autorizzati in `.staging/`?
+2. **Gate 2 (Code Grounding):** `view_file` (`<= 800` righe) eseguito sui file target?
+3. **Gate 3 (Brief Grounding):** `view_file` eseguito su `nk_genome/implementation_plan.md`?
+4. **Gate 4 (Preservation):** Firme pubbliche, tipi e commenti preservati?
+5. **Gate 5 (Truth/DAST):** Test pytest, `dast_sandbox_runner.py` e `oracle_lock.json` (`[RULE-ORACLE-LOCK]`) superati con `exit_code: 0` (`[RULE-EVIDENCE]`)?
+6. **Gate 6 (RSI & Epistemic):** `rsi_convergence_engine.py --verify` con $\Delta_k = 0$, $Q(S_k) = 100.0$ e zero violazioni `[RULE-EPISTEMIC-HONESTY]` o `[RULE-DATA-PROVENANCE]`?
+```
+
+---
+
+## 9. WORKER_REFRESH (Template 9 `v3.0`)
+```markdown
+<!-- ZERO-AMNESIA BOOTSTRAP CAPSULE v3.0 -->
+Assumi il ruolo di `[5] NK-Delta-Architect` dell'Ecosistema Nexus Keystone (`v5.0.0-STE100-Unified` / `v4.7.0-STE100-Unified` / `v3.0.0-STE100-Unified` Compatible).
+Esegui `view_file` su `.agents/skills/NK-Delta-Architect/SKILL.md`.
+Esegui Stage A (`view_file` su `nk_genome/implementation_plan.md`) e Stage B sui file target prima di scrivere in `.staging/`.
+Applica `[RULE-EPISTEMIC-HONESTY]`, `[RULE-EVIDENCE]` (`exit_code: 0`), `[RULE-DATA-PROVENANCE]` (`source_url`, `evidence_quote`) e `[RULE-ORACLE-LOCK]` (`oracle_lock.json`).
+Procedi con il task nei 4 Blocchi:
+{{TASK_HANDOFF_4_BLOCKS_PAYLOAD}}
+```
+
+---
+
+## 10. CRITIC_SELF_REFRESH (Template 10 `v3.0`)
+```markdown
+<!-- ZERO-AMNESIA BOOTSTRAP CAPSULE v3.0 -->
+Assumi il ruolo di `[14] NK-Session-Controller` (Sovereign Critic & Supervisor) dell'Ecosistema Nexus Keystone (`v5.0.0-STE100-Unified` / `v4.7.0-STE100-Unified` / `v3.0.0-STE100-Unified` Compatible).
+Esegui `view_file` su `.agents/skills/NK-Session-Controller/SKILL.md`.
+Leggi `nk_tracking/handoff/next_session_prompt.md` ed esegui la Cold Review per il Milestone `{{MILESTONE_ANCHOR_ID}}`.
+```
+
+---
+
+## 11. SOVEREIGN_SWARM_TASK_PROMPT (Template 11 `v6.0` `[RULE-00.7]`)
+Usa il `Template 11` (`scripts/nk_session_handoff.py --compile-template-11`) esclusivamente per compilare i task esecutivi multi-fase.
+Per gli handoff di stato inter-sessione usa invece il `Template 12` (`--compile-handoff-prompt`).
+```markdown
+# 🏛️ [SOVEREIGN SWARM TASK PROMPT : TEMPLATE 11 v6.0]
+
+Orchestra lo Swarm 2-Tier (`[RULE-01]`) sul progetto `<PROJECT_ROOT>` per il Milestone `{{MILESTONE_ANCHOR_ID}}`.
+Attiva autonomamente `INTRINSIC_GOAL` (`/goal`), `INTRINSIC_BOOST` (`/boost`) e `INTRINSIC_PLAN` (`/plan`) senza chiedere digitazioni manuali (`AP-10`).
+Non usare mai `!diretto` per saltare lo staging o la delega ai sub-agenti.
+
+### PASSO 0: Bootstrap, Cleanup e Mounting Worker (`[RULE-00.4]`, `[RULE-00.6]`, `[RULE-01.3]`)
+1. Esegui `python scripts/nk_session_bootstrap.py` e ferma i server orfani con `python scripts/safe_cleanup_dev_servers.py`.
+2. Salva l'Intent Brief in `nk_tracking/reports_and_briefs/IB-{{BRIEF_ID}}.md`, mostra lo Specchio Concettuale L0 in `content` e presenta `ask_question`.
+3. Registra il Builder con `define_subagent(EnableWriteTools=True, EnableSubagentTools=False)` prima della Fase Build.
+
+### FASE 1: Discovery e Audit Empirico in Sola Lettura (`Mode D`)
+1. Partiziona i batch oltre 8 query web su sub-agenti `research` paralleli tramite `invoke_subagent` con `<env_capsule>`.
+2. Delega a `NK-Security-DAST-Auditor` e `NK-RSI-Auditor` la misura onesta dello stato reale (`Measure-First`).
+3. Congela gli hash della ground truth in `<PROJECT_ROOT>/nk_tracking/oracle_lock.json` (`[RULE-ORACLE-LOCK]`) senza rivelare query ai Builder.
+4. `STOP_GATE`: mostra i gap reali misurati tramite `ask_question` prima di avviare la Fase 2.
+
+### FASE 2: Remediation Chirurgica in `.staging/` (`Mode B` / `Mode A`)
+1. Delega tramite `invoke_subagent` al Builder (`EnableWriteTools=True`) le modifiche esclusivamente in `<PROJECT_ROOT>/.staging/`.
+2. Imponi la lettura preventiva del modello Pydantic target (`[RULE-02.5]`), `source_url` ed `evidence_quote` (`[RULE-DATA-PROVENANCE]`).
+3. Applica `[RULE-EPISTEMIC-HONESTY]` (`+100` soluzione reale, `0` `report-conflict` / `HALT_EPISTEMIC_CONFLICT`, `-10.000` su `PYTEST_CURRENT_TEST`, `currentframe()`, `len(grants)`).
+4. Valida il codice staged con `python scripts/ast_guard_validator.py --stage-dir "<PROJECT_ROOT>/.staging"`.
+
+### FASE 3: Verifica Indipendente, Commit 2PC e Scribe (`[RULE-01.1]`)
+1. Delega a `NK-RSI-Auditor` la verifica dei test congelati e la convergenza matematica reale:
+   `python scripts/rsi_convergence_engine.py --verify --root "<PROJECT_ROOT>" --benchmark-suite "<PROJECT_ROOT>/tests"`
+2. Solo su esito `PASS` reale con `exit_code: 0` (`[RULE-EVIDENCE]`), promuovi atomicamente i file staged:
+   `python scripts/win32_2pc_engine.py --promote-staging --repo-root "<PROJECT_ROOT>" --milestone "{{MILESTONE_ANCHOR_ID}}"`
+3. Delega a `NK-Scribe-Agent` l'aggiornamento in prepend di `PATCH_NOTES.md` e la rigenerazione di `repo_map.md`.
+```
+
+---
+
+## 12. PASSIVE_SESSION_STATE_HANDOFF (Template 12 `v5.0.0-STE100-Unified` `[RULE-00.6]` & `[RULE-02.8]`)
+Usa il **Template 12 (`PASSIVE_SESSION_STATE_HANDOFF`)** per trasmettere lo stato inter-sessione con `scripts/nk_session_handoff.py --compile-handoff-prompt` (o `--generate-prompt`).
+Valida il testo con `scripts/nk_transcript_tools.py lint-prompt --mode state-handoff` contro `AP-12` (`STATE_HANDOFF_IMPERATIVE_LEAK`) e `AP-13` (`STATE_HANDOFF_COGNITIVE_TUNNELING`).
+```markdown
+# [HANDOFF STATO SESSIONE NK-HUB] (Template 12: PASSIVE_SESSION_STATE_HANDOFF)
+
+[NK-ANCHOR:START:PASSIVE_STATE_HANDOFF]
+
+### 1. Identità e Percorsi Operativi
+- **Workspace Hub:** `<WORKSPACE_ROOT>`
+- **Progetto Attivo:** `<PROJECT_ROOT>`
+- **Milestone di Riferimento:** `{{MILESTONE_ANCHOR_ID}}`
+- **Modalità Ricezione:** `STANDBY` (`STATE_HANDOFF_STANDBY` / `READ_ONLY`)
+
+### 2. Stato Tecnico Verificato
+- **Versione Handoff:** `5.0.0-STE100-Unified`
+- **Baseline Golden Tests:** `{{BASELINE_TESTS}}` test verificati (pass rate `{{PASS_RATE}}%`)
+- **Stato Working Tree:** `CLEAN` (zero relitti `.wal` o `.patch` pendenti)
+
+### 3. Ultima Attività Conclusa
+- **Sintesi Oggettiva:** {{COMPLETED_SUMMARY}}
+- **Ultimo Turno FSM Registrato:** Turno `{{LAST_TURN}}` con esito `{{LAST_GATE_STATUS}}`
+
+### 4. Contesto Aperto Neutrale e Vincoli Costituzionali
+- **Tetralogia Sovrana (4/4):** `nk_genome/concept_map.md`, `nk_genome/structural_tree.md`, `nk_genome/implementation_plan.md`, `nk_genome/repo_map.md`
+- **Invarianti Attivi:** `[RULE-PROJECT-ISOLATION]`, `[RULE-00]`, `[RULE-01]` (2-Tier), `[RULE-01.2]` (Zero-Mock), `[RULE-STE100]`, `[RULE-EPISTEMIC-HONESTY]`
+- **Nota di Neutralità:** Questo documento descrive esclusivamente lo stato oggettivo della sessione conclusa senza prescrivere task, fasi o piste pre-confezionate (`AP-12`, `AP-13`).
+
+### 5. Protocollo Ricezione Standby
+1. Esegui `python scripts/nk_session_bootstrap.py` in modalità Fast-Stat per verificare l'integrità dell'ambiente.
+2. Acquisisci questo stato in sola lettura con bypass `STATE_HANDOFF_STANDBY`, senza attivare protocolli intrinseci (`INTRINSIC_GOAL`, `INTRINSIC_PLAN`) e senza invocare `ask_question`.
+3. Conferma la ricezione dello stato in modo sintetico e attendi in `STANDBY` la prossima istruzione esplicita dell'utente.
+
+[NK-ANCHOR:END:PASSIVE_STATE_HANDOFF]
+```

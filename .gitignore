@@ -1,0 +1,44 @@
+# Python / Virtual Environment
+.venv/
+venv/
+ENV/
+__pycache__/
+*.py[cod]
+*.class
+.pytest_cache/
+
+# IDE / VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea/
+
+# Progetti Esterni e Cartelle Temporanee Isolate ([RULE-PROJECT-ISOLATION])
+NK_External_Projects/
+NK_Hub/
+Output Business Keystone/
+Antigravity model/
+google-docs-mcp/
+System_Documentation/
+fonti/
+scratch/
+test_scratch/
+data/
+
+# Temp / Logs
+*.log
+*.bak*
+
+# Large Binaries & Generated Artifacts
+*.zip
+!nk_docs_and_setup/NK_Hub_OneClick_Package.zip
+dashboard.html
+nk_tracking/cockpit/
+.archive/
+.wal/
+.wal_2pc.jsonl
+
+# Staging area
+.staging/*
+!.staging/.gitkeep

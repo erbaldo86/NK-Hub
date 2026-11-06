@@ -1,0 +1,27 @@
+{
+  "handoff_version": "5.0.0-STE100-Unified",
+  "generated_at_utc": "2026-11-06T18:50:00+00:00",
+  "transcript_source": "G:/Il mio Drive/Antigravity/NK_Hub/nk_tracking/anchor/session_anchor.jsonl",
+  "handoff_mode": "PASSIVE_SESSION_STATE_HANDOFF",
+  "template_id": "TEMPLATE_12_PASSIVE_STATE_HANDOFF",
+  "standby_bypass_flag": "STATE_HANDOFF_STANDBY",
+  "project_root": "G:/Il mio Drive/Antigravity/NK_Hub",
+  "milestone_anchor_id": "NK-MS-20261106-SOVEREIGN-CLEAN-SLATE-RELEASE-v5.0.0-RSI",
+  "metrics": {
+    "estimated_steps": 14,
+    "transcript_size_bytes": 16840,
+    "saturation_status": "HEALTHY (GREEN)"
+  },
+  "extracted_state": {
+    "last_user_intent": "Consolidamento sovrano Clean-Slate e rilascio v5.0.0-STE100-Unified di NK-Master-Hub con 253/253 test PASS.",
+    "recent_files_touched": [
+      ".agents/AGENTS.md",
+      "nk_genome/PATCH_NOTES.md",
+      "nk_genome/nk_registry_manifest.json",
+      "nk_tracking/quality_baseline.json",
+      "nk_docs_and_setup/README.md"
+    ],
+    "last_turn": 5,
+    "last_gate_status": "CONVERGED_OPTIMAL (Delta_k=0, Q=100.0, 253/253 PASS)"
+  }
+}

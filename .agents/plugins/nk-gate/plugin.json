@@ -1,0 +1,6 @@
+{
+  "name": "nk-gate",
+  "version": "5.0.0",
+  "description": "Nexus Keystone Lifecycle Hook Gate v5.0.0-STE100-Unified (CRV 4.0)",
+  "hooks": "./hooks.json"
+}

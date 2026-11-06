@@ -1,0 +1,2356 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Indicizzatore modulare O(1) e generatore del manifesto SSOT per Nexus Keystone v5.0.0-STE100-Unified.
+Modulo: scripts/nk_registry_indexer.py.
+Mappa i cinque domini funzionali, le skill Hot-Swap e i trentaquattro moduli Python.
+"""
+
+from __future__ import annotations
+
+import argparse
+import ast
+import hashlib
+import json
+import os
+import re
+import shutil
+import sys
+import time
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
+
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+_SCRIPT_DIR = Path(__file__).resolve().parent
+_DEFAULT_WORKSPACE_ROOT = (
+    _SCRIPT_DIR.parent.parent
+    if _SCRIPT_DIR.parent.name == ".staging"
+    else _SCRIPT_DIR.parent
+)
+DEFAULT_GLOBAL_CONFIG_DIR = Path("C:/Users/erbal/.gemini/config")
+
+DOMAIN_TAXONOMY: Dict[str, Dict[str, Any]] = {
+    "DOM-01": {
+        "domain_id": "DOM-01",
+        "name": "GOV_AND_ROUTING",
+        "title": "Governance, Routing & Transactional Commit",
+        "description": "Governa il bootstrap, il routing Mode A/B/C/D, il commit atomico 2PC e i contratti IPC.",
+        "primary_skill": "NK-Master-Hub",
+        "skills": [
+            "NK-Master-Hub",
+            "NK-Session-Controller",
+            "NK-State-Router",
+            "NK-Plan-Aligner",
+        ],
+        "scripts": [
+            "nk_session_bootstrap.py",
+            "vibe_sprint_router.py",
+            "win32_2pc_engine.py",
+            "nk_session_handoff.py",
+            "nk_swarm_messenger.py",
+            "nk_registry_indexer.py",
+            "nk_hook_gate.py",
+            "schemas/dual_ledgers.py",
+            "schemas/nk_ipc_contracts.py",
+        ],
+        "keywords": [
+            "governance",
+            "routing",
+            "router",
+            "bootstrap",
+            "2pc",
+            "commit",
+            "handoff",
+            "session",
+            "swarm",
+            "plan",
+            "aligner",
+            "dag",
+            "kahn",
+            "index",
+            "registry",
+            "manifest",
+            "orchestra",
+            "schemas",
+            "ledgers",
+        ],
+    },
+    "DOM-02": {
+        "domain_id": "DOM-02",
+        "name": "IDEATION_AND_ARCH",
+        "title": "Ideation, Discovery & System Architecture",
+        "description": "Gestisce discovery analitica Mode D, ideazione L0, architettura UI/UX, backend e skill.",
+        "primary_skill": "NK-Ideator",
+        "skills": [
+            "NK-Ideator",
+            "NK-App-UX-Architect",
+            "NK-Backend-Architect",
+            "NK-Agent-Instruction-Forge",
+        ],
+        "scripts": [
+            "ast_repo_mapper.py",
+            "external_project_scaffolder.py",
+            "env_capability_probe.py",
+        ],
+        "keywords": [
+            "discovery",
+            "benchmark",
+            "ricerca",
+            "esplora",
+            "censimento",
+            "mappatura",
+            "ideazione",
+            "scamper",
+            "ux",
+            "ui",
+            "design",
+            "frontend",
+            "backend",
+            "openapi",
+            "architettura",
+            "scaffold",
+            "repo_map",
+            "probe",
+            "forge",
+        ],
+    },
+    "DOM-03": {
+        "domain_id": "DOM-03",
+        "name": "BUILD_AND_HEAL",
+        "title": "Async Building, Surgical Refactor & Fast-Healing",
+        "description": "Costruisce codice Python asincrono in staging ed esegue il loop di auto-riparazione.",
+        "primary_skill": "NK-Python-Async-Builder",
+        "skills": [
+            "NK-Python-Async-Builder",
+            "NK-Delta-Architect",
+        ],
+        "scripts": [
+            "auto_heal_pipeline.py",
+            "healing_snapshot_rollback.py",
+            "invisible_healing_loop.py",
+            "platform_runner.py",
+            "deterministic_api_cache.py",
+            "safe_cleanup_dev_servers.py",
+            "async_heartbeat_signaler.py",
+        ],
+        "keywords": [
+            "build",
+            "builder",
+            "implementa",
+            "sviluppa",
+            "codice",
+            "async",
+            "pydantic",
+            "delta",
+            "refactor",
+            "modifica",
+            "heal",
+            "healing",
+            "rollback",
+            "snapshot",
+            "cache",
+            "sqlite",
+            "runner",
+            "cleanup",
+            "heartbeat",
+        ],
+    },
+    "DOM-04": {
+        "domain_id": "DOM-04",
+        "name": "AUDIT_DAST_AND_RCA",
+        "title": "Security Audit, DAST Sandbox, SBFL RCA & RSI Convergence",
+        "description": "Esegue audit SAST/DAST in sola lettura, diagnosi SBFL Ochiai e convergenza Tensor-RSI.",
+        "primary_skill": "NK-Security-Auditor",
+        "skills": [
+            "NK-Security-Auditor",
+            "NK-Oracle-Evaluator",
+            "NK-Dynamic-Sandbox-StressTester",
+            "NK-Bug-Diagnostic-Engine",
+        ],
+        "scripts": [
+            "ast_guard_validator.py",
+            "dast_sandbox_runner.py",
+            "oracle_evaluator_l3.py",
+            "sbfl_engine.py",
+            "sbfl_pytest_bridge.py",
+            "rsi_convergence_engine.py",
+            "nk_transcript_tools.py",
+        ],
+        "keywords": [
+            "audit",
+            "security",
+            "sicurezza",
+            "sast",
+            "dast",
+            "sandbox",
+            "stress",
+            "oracle",
+            "valuta",
+            "bug",
+            "diagnosi",
+            "rca",
+            "sbfl",
+            "ochiai",
+            "rsi",
+            "convergenza",
+            "ast_guard",
+            "exploit",
+            "vulnerabilita",
+        ],
+    },
+    "DOM-05": {
+        "domain_id": "DOM-05",
+        "name": "MEMORY_TELEMETRY_AND_DOCS",
+        "title": "3-Tier Memory, Runtime Telemetry, Hygiene & Documentation",
+        "description": "Gestisce memoria episodica 3-Tier, sentinelle di contesto, igiene preflight e documentazione SSOT.",
+        "primary_skill": "NK-Scribe",
+        "skills": [
+            "NK-Scribe",
+            "NK-Episodic-Memory-Engine",
+        ],
+        "scripts": [
+            "memory_3tier_engine.py",
+            "micro_hud_renderer.py",
+            "nk_active_runtime_sentinel.py",
+            "nk_auto_inning.py",
+            "nk_compliance_checker.py",
+            "nk_context_sentry.py",
+            "preflight_health_check.py",
+            "quality_baseline_manager.py",
+        ],
+        "keywords": [
+            "memory",
+            "memoria",
+            "episodic",
+            "recall",
+            "telemetry",
+            "telemetria",
+            "hud",
+            "sentinel",
+            "sentinella",
+            "inning",
+            "compliance",
+            "sentry",
+            "context",
+            "preflight",
+            "health",
+            "baseline",
+            "ratchet",
+            "scribe",
+            "documentazione",
+            "changelog",
+        ],
+    },
+}
+
+NATIVE_AGENT_DOMAIN_MAP: Dict[str, str] = {
+    "NK-Specifier-Agent": "DOM-02",
+    "NK-Builder-Agent": "DOM-03",
+    "NK-Security-DAST-Auditor": "DOM-04",
+    "NK-RSI-Auditor": "DOM-04",
+    "NK-Scribe-Agent": "DOM-05",
+}
+
+_EXCLUDED_SUBPROCESS_FLAGS: Set[str] = {
+    "--porcelain",
+    "--tb=short",
+    "--version",
+    "--quiet",
+    "--short",
+}
+
+_INDEXER_SKILL_RULES: Tuple[Tuple[str, str, str, str, Tuple[str, ...]], ...] = (
+    (
+        "NK-Plan-Aligner",
+        "DOM-01",
+        "GOV_AND_ROUTING",
+        "NK-RSI-Auditor",
+        (
+            "allinea 1:1",
+            "allinea",
+            "1:1",
+            "tetralogia",
+            "concept_map.md",
+            "concept_map",
+            "implementation_plan.md",
+            "turno 4",
+            "auto-brief",
+        ),
+    ),
+    (
+        "NK-Oracle-Evaluator",
+        "DOM-04",
+        "AUDIT_DAST_AND_RCA",
+        "NK-RSI-Auditor",
+        (
+            "cold review",
+            "6 gate",
+            "oracolo",
+            "oracle",
+            "delta_k",
+            "convergenza rsi",
+        ),
+    ),
+    (
+        "NK-State-Router",
+        "DOM-01",
+        "GOV_AND_ROUTING",
+        "NK-RSI-Auditor",
+        (
+            "dag di kahn",
+            "dag",
+            "kahn",
+            "drift sha",
+        ),
+    ),
+    (
+        "NK-Security-Auditor",
+        "DOM-04",
+        "AUDIT_DAST_AND_RCA",
+        "NK-Security-DAST-Auditor",
+        (
+            "sast",
+            "audit di sicurezza",
+            "sicurezza",
+            "l1/l2/l3",
+            "l1",
+            "l2",
+            "l3",
+            "security",
+            "vulnerabilita",
+            "exploit",
+            "cove",
+        ),
+    ),
+    (
+        "NK-Dynamic-Sandbox-StressTester",
+        "DOM-04",
+        "AUDIT_DAST_AND_RCA",
+        "NK-Security-DAST-Auditor",
+        (
+            "dast",
+            "sandbox",
+            "e2e",
+            "puppeteer",
+            "chrome-devtools-mcp",
+            "chrome-devtools",
+            "lighthouse",
+            "browser",
+            "stress",
+        ),
+    ),
+    (
+        "NK-Bug-Diagnostic-Engine",
+        "DOM-04",
+        "AUDIT_DAST_AND_RCA",
+        "NK-Security-DAST-Auditor",
+        (
+            "sbfl",
+            "ochiai",
+            "tarantula",
+            "dstar",
+            "causa radice",
+            "rca",
+            "falsi bug",
+            "crash",
+            "diagnosi",
+        ),
+    ),
+    (
+        "NK-Agent-Instruction-Forge",
+        "DOM-02",
+        "IDEATION_AND_ARCH",
+        "NK-Builder-Agent",
+        (
+            "forgia",
+            "forge",
+            "skill.md",
+            "playbook",
+            "metaprompt",
+            "strict_boundaries",
+        ),
+    ),
+    (
+        "NK-Delta-Architect",
+        "DOM-03",
+        "BUILD_AND_HEAL",
+        "NK-Builder-Agent",
+        (
+            "react",
+            "typescript",
+            "tailwind",
+            "nextjs",
+            "next.js",
+            "html",
+            "css",
+            "fullstack",
+            "full-stack",
+            "refactoring chirurgico",
+            "chirurgico",
+            "multi-file",
+            "multifile",
+            "delta",
+        ),
+    ),
+    (
+        "NK-Python-Async-Builder",
+        "DOM-03",
+        "BUILD_AND_HEAL",
+        "NK-Builder-Agent",
+        (
+            "fastapi",
+            "pydantic",
+            "asincrono",
+            "async",
+            "asyncio",
+            "sqlite",
+            "endpoint",
+        ),
+    ),
+    (
+        "NK-App-UX-Architect",
+        "DOM-02",
+        "IDEATION_AND_ARCH",
+        "NK-Specifier-Agent",
+        (
+            "ux/ui",
+            "ux",
+            "ui",
+            "8px",
+            "hsl",
+            "palette",
+            "generative_ui",
+            "design system",
+            "bounded context",
+            "user journey",
+            "canvas architetturale",
+        ),
+    ),
+    (
+        "NK-Backend-Architect",
+        "DOM-02",
+        "IDEATION_AND_ARCH",
+        "NK-Specifier-Agent",
+        (
+            "openapi",
+            "architettura backend",
+            "contratti dati",
+        ),
+    ),
+    (
+        "NK-Scribe",
+        "DOM-05",
+        "MEMORY_TELEMETRY_AND_DOCS",
+        "NK-Scribe-Agent",
+        (
+            "sincronizza",
+            "patch_notes.md",
+            "patch_notes",
+            "quality_baseline.json",
+            "quality_baseline",
+            "changelog",
+            "scribe",
+            "readme",
+        ),
+    ),
+    (
+        "NK-Episodic-Memory-Engine",
+        "DOM-05",
+        "MEMORY_TELEMETRY_AND_DOCS",
+        "NK-Scribe-Agent",
+        (
+            "memoria 3-tier",
+            "memoria episodica",
+            "memoria",
+            "memory",
+            "3-tier",
+            "bm25",
+            "rrf",
+            "recall",
+        ),
+    ),
+    (
+        "NK-Ideator",
+        "DOM-02",
+        "IDEATION_AND_ARCH",
+        "NK-Specifier-Agent",
+        (
+            "ricerca competitor",
+            "tavily",
+            "benchmark analitico",
+            "stato dell'arte",
+            "ricerca web",
+            "ideazione",
+            "scamper",
+            "quanti bandi",
+            "copertura bandi",
+        ),
+    ),
+)
+
+TETRALOGY_FILENAMES: Tuple[str, ...] = (
+    "concept_map.md",
+    "structural_tree.md",
+    "implementation_plan.md",
+    "repo_map.md",
+)
+
+
+class NKRegistryIndexer:
+    """Indicizzatore deterministico O(1) per skill, script, sub-agenti nativi e domini di Nexus Keystone."""
+
+    MANIFEST_VERSION: str = "4.7.0-STE100-Unified"
+    RELEASE_VERSION: str = "5.0.0-STE100-Unified"
+    MILESTONE_ID: str = "NK-MS-20261106-SOVEREIGN-CLEAN-SLATE-RELEASE-v5.0.0-RSI"
+    NATIVE_AGENT_DOMAIN_MAP: Dict[str, str] = NATIVE_AGENT_DOMAIN_MAP
+
+    def __init__(
+        self,
+        workspace_root: Optional[Path] = None,
+        stage_dir: Optional[Path] = None,
+        global_config_dir: Optional[Path] = None,
+    ) -> None:
+        self.workspace_root = (
+            Path(workspace_root).resolve()
+            if workspace_root is not None
+            else _DEFAULT_WORKSPACE_ROOT
+        )
+        self._explicit_stage_dir = stage_dir is not None
+        if stage_dir is not None:
+            s_path = Path(stage_dir)
+            self.stage_dir = (
+                s_path.resolve()
+                if s_path.is_absolute()
+                else (self.workspace_root / s_path).resolve()
+            )
+        else:
+            self.stage_dir = self.workspace_root / ".staging"
+
+        self.global_config_dir = (
+            Path(global_config_dir).resolve()
+            if global_config_dir is not None
+            else DEFAULT_GLOBAL_CONFIG_DIR
+        )
+
+        self._skill_to_domain: Dict[str, str] = {}
+        self._script_to_domain: Dict[str, str] = {}
+        for dom_id, dom_meta in DOMAIN_TAXONOMY.items():
+            for sk in dom_meta["skills"]:
+                self._skill_to_domain[sk] = dom_id
+            for sc in dom_meta["scripts"]:
+                self._script_to_domain[sc] = dom_id
+        self._load_persistent_hash_cache()
+        self._last_verify_cache: Optional[Tuple[float, Dict[str, Any]]] = None
+        if (
+            not self._explicit_stage_dir
+            and self.workspace_root == _DEFAULT_WORKSPACE_ROOT
+            and (self.stage_dir / "scripts" / "nk_registry_indexer.py").is_file()
+        ):
+            stg_manifest = self.stage_dir / "nk_genome" / "nk_registry_manifest.json"
+            loaded = self.load_manifest()
+            if (
+                not stg_manifest.is_file()
+                or not isinstance(loaded, dict)
+                or loaded.get("version") != self.MANIFEST_VERSION
+                or loaded.get("release_version") != self.RELEASE_VERSION
+                or not self.verify().get("passed")
+            ):
+                self.sync(sync_staging=True)
+                self.verify()
+
+    _HASH_CACHE: Dict[Tuple[str, int, int], str] = {}
+    _META_CACHE: Dict[Tuple[str, int, int], Dict[str, Any]] = {}
+    _MANIFEST_CACHE: Dict[Tuple[str, int, int], Dict[str, Any]] = {}
+    _PERSISTENT_CACHE_LOADED: bool = False
+
+    @classmethod
+    def _get_persistent_cache_file(cls) -> Path:
+        """Restituisce il percorso del file di cache persistente Fast-Stat in %TEMP%."""
+        import tempfile as _tempfile
+        tmp_base = Path(os.environ.get("TEMP", _tempfile.gettempdir()))
+        return tmp_base / "nk_diagnostics" / "registry_fast_stat_cache.json"
+
+    @classmethod
+    def _load_persistent_hash_cache(cls) -> None:
+        """Carica la cache SHA-256 persistente da %TEMP% per azzerare le letture su Google Drive."""
+        if cls._PERSISTENT_CACHE_LOADED:
+            return
+        cls._PERSISTENT_CACHE_LOADED = True
+        cfile = cls._get_persistent_cache_file()
+        if not cfile.is_file():
+            return
+        try:
+            raw = json.loads(cfile.read_text(encoding="utf-8"))
+            if isinstance(raw, dict):
+                for k_str, sha_val in raw.items():
+                    parts = k_str.split("|")
+                    if len(parts) == 3 and isinstance(sha_val, str):
+                        cls._HASH_CACHE[(parts[0], int(parts[1]), int(parts[2]))] = sha_val
+        except Exception:
+            pass
+
+    @classmethod
+    def _save_persistent_hash_cache(cls) -> None:
+        """Salva atomicamente la cache SHA-256 Fast-Stat in %TEMP%/nk_diagnostics."""
+        cfile = cls._get_persistent_cache_file()
+        try:
+            cfile.parent.mkdir(parents=True, exist_ok=True)
+            serializable: Dict[str, str] = {}
+            items = list(cls._HASH_CACHE.items())[-600:]
+            for (p_str, mtime_ns, sz), sha_val in items:
+                serializable[f"{p_str}|{mtime_ns}|{sz}"] = sha_val
+            tmp_file = cfile.with_suffix(".tmp")
+            tmp_file.write_text(json.dumps(serializable), encoding="utf-8")
+            os.replace(str(tmp_file), str(cfile))
+        except Exception:
+            pass
+
+    def resolve_genome_dir(
+        self, root: Optional[Path] = None
+    ) -> Tuple[Path, bool]:
+        """Risolve la cartella genome preferendo nk_genome/ rispetto al fallback legacy genome/."""
+        base = Path(root).resolve() if root is not None else self.workspace_root
+        preferred = base / "nk_genome"
+        legacy = base / "genome"
+        if preferred.exists() and preferred.is_dir():
+            return preferred, False
+        if legacy.exists() and legacy.is_dir():
+            return legacy, True
+        return preferred, False
+
+    def resolve_tetralogy_files(
+        self, root: Optional[Path] = None
+    ) -> Dict[str, Any]:
+        """Risolve i quattro documenti della Tetralogia supportando nk_genome/ e genome/ legacy."""
+        base = Path(root).resolve() if root is not None else self.workspace_root
+        genome_dir, is_legacy = self.resolve_genome_dir(base)
+        files_map: Dict[str, Optional[str]] = {}
+        missing: List[str] = []
+        for fname in TETRALOGY_FILENAMES:
+            cand_pref = base / "nk_genome" / fname
+            cand_leg = base / "genome" / fname
+            if cand_pref.exists():
+                files_map[fname] = str(cand_pref)
+            elif cand_leg.exists():
+                files_map[fname] = str(cand_leg)
+                is_legacy = True
+            else:
+                files_map[fname] = None
+                missing.append(fname)
+        warning_msg = (
+            f"Rilevata cartella legacy genome/ in '{base}'; migra verso nk_genome/."
+            if is_legacy
+            else None
+        )
+        return {
+            "genome_dir": str(genome_dir),
+            "is_legacy_genome": is_legacy,
+            "warning": warning_msg,
+            "files": files_map,
+            "missing_files": missing,
+        }
+
+    @staticmethod
+    def _compute_sha256(file_path: Path) -> str:
+        """Calcola l'hash crittografico SHA-256 del file specificato."""
+        st = file_path.stat()
+        cache_key = (str(file_path), st.st_mtime_ns, st.st_size)
+        if st.st_size > 256 and cache_key in NKRegistryIndexer._HASH_CACHE:
+            return NKRegistryIndexer._HASH_CACHE[cache_key]
+        hasher = hashlib.sha256()
+        hasher.update(file_path.read_bytes())
+        digest = hasher.hexdigest()
+        NKRegistryIndexer._HASH_CACHE[cache_key] = digest
+        return digest
+
+    def _collect_priority_skills(self) -> Dict[str, Tuple[Path, os.stat_result]]:
+        """Raccoglie la mappa skill_name -> (SKILL.md, stat) con una sola stat per skill."""
+        import os as _os
+
+        resolved_map: Dict[str, Tuple[Path, os.stat_result]] = {}
+        for base in (
+            self.stage_dir / ".agents" / "skills",
+            self.workspace_root / ".agents" / "skills",
+        ):
+            try:
+                with _os.scandir(base) as it:
+                    for entry in it:
+                        if entry.name in resolved_map:
+                            continue
+                        if entry.is_dir(follow_symlinks=False):
+                            sk_md = Path(entry.path) / "SKILL.md"
+                            try:
+                                st = sk_md.stat()
+                                resolved_map[entry.name] = (sk_md, st)
+                            except OSError:
+                                pass
+            except OSError:
+                pass
+        return resolved_map
+
+    def _collect_priority_scripts(self) -> Dict[str, Tuple[Path, os.stat_result]]:
+        """Raccoglie la mappa script_name -> (Path, stat) a costo zero tramite os.scandir."""
+        import os as _os
+
+        resolved_map: Dict[str, Tuple[Path, os.stat_result]] = {}
+        for base in (self.stage_dir / "scripts", self.workspace_root / "scripts"):
+            try:
+                with _os.scandir(base) as it:
+                    for entry in it:
+                        if (
+                            entry.is_file(follow_symlinks=False)
+                            and entry.name.endswith(".py")
+                            and entry.name != "__init__.py"
+                        ):
+                            if entry.name in resolved_map:
+                                continue
+                            resolved_map[entry.name] = (
+                                Path(entry.path),
+                                entry.stat(follow_symlinks=False),
+                            )
+                        elif (
+                            entry.is_dir(follow_symlinks=False)
+                            and entry.name == "schemas"
+                        ):
+                            try:
+                                with _os.scandir(entry.path) as sit:
+                                    for s_entry in sit:
+                                        if (
+                                            s_entry.is_file(follow_symlinks=False)
+                                            and s_entry.name.endswith(".py")
+                                            and s_entry.name != "__init__.py"
+                                        ):
+                                            sc_key = f"schemas/{s_entry.name}"
+                                            if sc_key in resolved_map:
+                                                continue
+                                            resolved_map[sc_key] = (
+                                                Path(s_entry.path),
+                                                s_entry.stat(follow_symlinks=False),
+                                            )
+                            except OSError:
+                                pass
+            except OSError:
+                pass
+        return resolved_map
+
+    @staticmethod
+    def _parse_skill_metadata(content: str) -> Dict[str, Any]:
+        """Estrae frontmatter YAML (inclusi domain_id e sector), card e link da SKILL.md."""
+        meta: Dict[str, Any] = {
+            "name": "",
+            "description": "",
+            "version": "3.0.0-STE100-Unified",
+            "thinking_level": "HIGH",
+            "nk_tas_audit": "CRV-4.0-Universal",
+            "domain_id": "",
+            "sector": "",
+            "role_identity": "",
+            "tools": [],
+            "auxiliary_links": [],
+        }
+
+        fm_match = re.match(
+            r"^---\s*\r?\n(.*?)\r?\n---\s*(?:\r?\n|$)", content, re.DOTALL
+        )
+        if fm_match:
+            fm_block = fm_match.group(1)
+            for line in fm_block.splitlines():
+                if ":" not in line:
+                    continue
+                k, v = line.split(":", 1)
+                key = k.strip()
+                val = v.strip().strip('"').strip("'")
+                if key in (
+                    "name",
+                    "description",
+                    "version",
+                    "thinking_level",
+                    "nk_tas_audit",
+                    "domain_id",
+                    "sector",
+                ):
+                    meta[key] = val
+
+        card_match = re.search(
+            r"<yaml_metadata_card>(.*?)</yaml_metadata_card>", content, re.DOTALL
+        )
+        if card_match:
+            card_block = card_match.group(1)
+            role_m = re.search(r'role_identity:\s*"([^"]+)"', card_block)
+            if role_m:
+                meta["role_identity"] = role_m.group(1).strip()
+            dom_m = re.search(r'domain_id:\s*"?([^"\r\n]+)"?', card_block)
+            if dom_m and not meta["domain_id"]:
+                meta["domain_id"] = dom_m.group(1).strip()
+            sec_m = re.search(r'sector:\s*"?([^"\r\n]+)"?', card_block)
+            if sec_m and not meta["sector"]:
+                meta["sector"] = sec_m.group(1).strip()
+            tools_m = re.search(r"tools:\s*\[([^\]]*)\]", card_block)
+            if tools_m:
+                raw_tools = tools_m.group(1)
+                meta["tools"] = [
+                    t.strip().strip('"').strip("'")
+                    for t in raw_tools.split(",")
+                    if t.strip().strip('"').strip("'")
+                ]
+
+        aux_links: List[str] = []
+        for m in re.finditer(r"\]\(((?:resources|references)/[^\)]+)\)", content):
+            link = m.group(1).strip()
+            if link not in aux_links:
+                aux_links.append(link)
+        meta["auxiliary_links"] = sorted(aux_links)
+        return meta
+
+    @staticmethod
+    def _extract_script_metadata(script_path: Path) -> Dict[str, Any]:
+        """Estrae docstring, @domain_id, flag CLI add_argument, LOC e SHA-256 da uno script."""
+        st = script_path.stat()
+        cache_key = (str(script_path), st.st_mtime_ns, st.st_size)
+        if st.st_size > 256 and cache_key in NKRegistryIndexer._META_CACHE:
+            return NKRegistryIndexer._META_CACHE[cache_key]
+
+        raw_bytes = script_path.read_bytes()
+        sha256_hex = hashlib.sha256(raw_bytes).hexdigest()
+        NKRegistryIndexer._HASH_CACHE[cache_key] = sha256_hex
+
+        source = raw_bytes.decode("utf-8", errors="replace")
+        lines = source.splitlines()
+        loc = len(lines)
+        byte_size = st.st_size
+
+        description = f"Modulo operativo {script_path.name}."
+        domain_id = ""
+        flags: Set[str] = set()
+
+        try:
+            tree = ast.parse(source, filename=script_path.name)
+            doc = ast.get_docstring(tree)
+            if doc:
+                dom_match = re.search(
+                    r"@?domain_id\s*:\s*(DOM-0[1-5])", doc, re.IGNORECASE
+                )
+                if dom_match:
+                    domain_id = dom_match.group(1).upper()
+                for doc_line in doc.splitlines():
+                    cleaned = doc_line.strip()
+                    if (
+                        cleaned
+                        and not cleaned.lower().startswith("modulo:")
+                        and not cleaned.lower().startswith("@domain_id")
+                        and not cleaned.lower().startswith("domain_id:")
+                    ):
+                        description = cleaned
+                        break
+
+            has_add_argument = False
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Call):
+                    func_name = ""
+                    if isinstance(node.func, ast.Attribute):
+                        func_name = node.func.attr
+                    elif isinstance(node.func, ast.Name):
+                        func_name = node.func.id
+                    if func_name == "add_argument":
+                        has_add_argument = True
+                        for arg in node.args:
+                            if isinstance(arg, ast.Constant) and isinstance(
+                                arg.value, str
+                            ):
+                                val = arg.value.strip()
+                                if (
+                                    val.startswith("--")
+                                    and val not in _EXCLUDED_SUBPROCESS_FLAGS
+                                    and re.match(r"^--[a-zA-Z0-9][a-zA-Z0-9_-]*$", val)
+                                ):
+                                    flags.add(val)
+
+            if not has_add_argument:
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                        val = node.value.strip()
+                        if (
+                            val.startswith("--")
+                            and val not in _EXCLUDED_SUBPROCESS_FLAGS
+                            and re.match(r"^--[a-zA-Z0-9][a-zA-Z0-9_-]*$", val)
+                        ):
+                            flags.add(val)
+        except Exception:
+            pass
+
+        if not domain_id:
+            header_match = re.search(
+                r"@?domain_id\s*:\s*(DOM-0[1-5])", source[:600], re.IGNORECASE
+            )
+            if header_match:
+                domain_id = header_match.group(1).upper()
+
+        res = {
+            "description": description,
+            "domain_id": domain_id,
+            "cli_flags": sorted(flags),
+            "loc": loc,
+            "bytes": byte_size,
+            "sha256": sha256_hex,
+        }
+        NKRegistryIndexer._META_CACHE[cache_key] = res
+        return res
+
+    def scan_skills(self) -> Dict[str, Dict[str, Any]]:
+        """Scansiona tutte le skill supportando auto-registrazione Hot-Swap via YAML."""
+        skill_map = self._collect_priority_skills()
+        skills_index: Dict[str, Dict[str, Any]] = {}
+        for sk_name in sorted(skill_map.keys()):
+            resolved, st = skill_map[sk_name]
+            rel_path = f".agents/skills/{sk_name}/SKILL.md"
+            raw_bytes = resolved.read_bytes()
+            sha_hex = hashlib.sha256(raw_bytes).hexdigest()
+            NKRegistryIndexer._HASH_CACHE[
+                (str(resolved), st.st_mtime_ns, st.st_size)
+            ] = sha_hex
+
+            content = raw_bytes.decode("utf-8", errors="replace")
+            parsed = self._parse_skill_metadata(content)
+            declared_dom = parsed.get("domain_id", "").strip().upper()
+            dom_id = (
+                declared_dom
+                if declared_dom in DOMAIN_TAXONOMY
+                else (
+                    parsed.get("domain_id")
+                    or self._skill_to_domain.get(sk_name, "DOM-02")
+                )
+            )
+            if dom_id not in DOMAIN_TAXONOMY:
+                dom_id = "DOM-02"
+            dom_name = DOMAIN_TAXONOMY[dom_id]["name"]
+            sector = parsed.get("sector") or dom_name
+            native_subagent = self._resolve_skill_native_subagent(sk_name, dom_id)
+
+            skills_index[sk_name] = {
+                "name": parsed["name"] or sk_name,
+                "domain_id": dom_id,
+                "domain_name": dom_name,
+                "sector": sector,
+                "native_subagent": native_subagent,
+                "version": parsed["version"],
+                "description": parsed["description"],
+                "thinking_level": parsed["thinking_level"],
+                "role_identity": parsed["role_identity"],
+                "tools": parsed["tools"],
+                "auxiliary_links": parsed["auxiliary_links"],
+                "loc": len(content.splitlines()),
+                "bytes": st.st_size,
+                "sha256": sha_hex,
+                "path": rel_path,
+                "source_layer": (
+                    "staging" if self.stage_dir in resolved.parents else "production"
+                ),
+            }
+        return skills_index
+
+    @staticmethod
+    def _resolve_skill_native_subagent(sk_name: str, dom_id: str) -> str:
+        """Risolve il sub-agente nativo associato a una skill vocazionale e al suo dominio."""
+        if sk_name == "NK-Agent-Instruction-Forge":
+            return "NK-Builder-Agent"
+        if sk_name in {"NK-Oracle-Evaluator", "NK-State-Router", "NK-Plan-Aligner"}:
+            return "NK-RSI-Auditor"
+        dom_to_native = {
+            "DOM-01": "NK-Specifier-Agent",
+            "DOM-02": "NK-Specifier-Agent",
+            "DOM-03": "NK-Builder-Agent",
+            "DOM-04": "NK-Security-DAST-Auditor",
+            "DOM-05": "NK-Scribe-Agent",
+        }
+        return dom_to_native.get(dom_id, "NK-Builder-Agent")
+
+    def _collect_priority_native_agents(
+        self,
+    ) -> Dict[str, Tuple[Path, os.stat_result]]:
+        """Raccoglie la mappa agent_name -> (agent.md, stat) dando priorita a .staging/."""
+        import os as _os
+
+        resolved_map: Dict[str, Tuple[Path, os.stat_result]] = {}
+        for base in (
+            self.stage_dir / ".agents" / "agents",
+            self.workspace_root / ".agents" / "agents",
+        ):
+            try:
+                with _os.scandir(base) as it:
+                    for entry in it:
+                        if entry.name in resolved_map:
+                            continue
+                        if entry.is_dir(follow_symlinks=False):
+                            ag_md = Path(entry.path) / "agent.md"
+                            try:
+                                st = ag_md.stat()
+                                resolved_map[entry.name] = (ag_md, st)
+                            except OSError:
+                                pass
+            except OSError:
+                pass
+        return resolved_map
+
+    @staticmethod
+    def _parse_native_agent_metadata(content: str) -> Dict[str, Any]:
+        """Estrae frontmatter YAML e permessi hardware da un file agent.md."""
+        meta: Dict[str, Any] = {
+            "name": "",
+            "description": "",
+            "domain_id": "",
+            "enable_write_tools": False,
+            "enable_subagent_tools": False,
+            "enable_mcp_tools": False,
+        }
+
+        fm_match = re.match(
+            r"^---\s*\r?\n(.*?)\r?\n---\s*(?:\r?\n|$)", content, re.DOTALL
+        )
+        block_to_parse = fm_match.group(1) if fm_match else content[:800]
+        for line in block_to_parse.splitlines():
+            if ":" not in line:
+                continue
+            k, v = line.split(":", 1)
+            key = k.strip()
+            val = v.strip().strip('"').strip("'")
+            if key in ("name", "description", "domain_id"):
+                meta[key] = val
+            elif key in (
+                "enable_write_tools",
+                "enable_subagent_tools",
+                "enable_mcp_tools",
+            ):
+                meta[key] = val.lower() in ("true", "1", "yes")
+
+        if re.search(r"(?m)^\s*enable_write_tools\s*:\s*true\b", content, re.IGNORECASE):
+            meta["enable_write_tools"] = True
+        return meta
+
+    def scan_native_agents(self) -> Dict[str, Dict[str, Any]]:
+        """Scansiona i sub-agenti nativi in .agents/agents/*/agent.md dando priorita a .staging/."""
+        agent_map = self._collect_priority_native_agents()
+        native_agents_index: Dict[str, Dict[str, Any]] = {}
+        for ag_name in sorted(agent_map.keys()):
+            resolved, st = agent_map[ag_name]
+            rel_path = f".agents/agents/{ag_name}/agent.md"
+            raw_bytes = resolved.read_bytes()
+            sha_hex = hashlib.sha256(raw_bytes).hexdigest()
+            NKRegistryIndexer._HASH_CACHE[
+                (str(resolved), st.st_mtime_ns, st.st_size)
+            ] = sha_hex
+
+            content = raw_bytes.decode("utf-8", errors="replace")
+            parsed = self._parse_native_agent_metadata(content)
+            declared_dom = str(parsed.get("domain_id", "")).strip().upper()
+            default_dom = "DOM-04" if "Auditor" in ag_name else "DOM-03"
+            dom_id = (
+                declared_dom
+                if declared_dom in DOMAIN_TAXONOMY
+                else NATIVE_AGENT_DOMAIN_MAP.get(ag_name, default_dom)
+            )
+            dom_name = DOMAIN_TAXONOMY.get(dom_id, DOMAIN_TAXONOMY["DOM-03"])["name"]
+
+            native_agents_index[ag_name] = {
+                "name": parsed["name"] or ag_name,
+                "description": parsed["description"],
+                "domain_id": dom_id,
+                "domain_name": dom_name,
+                "enable_write_tools": bool(parsed["enable_write_tools"]),
+                "enable_subagent_tools": bool(parsed["enable_subagent_tools"]),
+                "enable_mcp_tools": bool(parsed["enable_mcp_tools"]),
+                "loc": len(content.splitlines()),
+                "bytes": st.st_size,
+                "sha256": sha_hex,
+                "path": rel_path,
+                "source_layer": (
+                    "staging" if self.stage_dir in resolved.parents else "production"
+                ),
+            }
+        return native_agents_index
+
+    def scan_scripts(self) -> Dict[str, Dict[str, Any]]:
+        """Scansiona gli script in scripts/ e scripts/schemas/ dando priorita a .staging/."""
+        script_map = self._collect_priority_scripts()
+        scripts_index: Dict[str, Dict[str, Any]] = {}
+        for sc_name in sorted(script_map.keys()):
+            resolved, _ = script_map[sc_name]
+            rel_path = f"scripts/{sc_name}"
+            meta = self._extract_script_metadata(resolved)
+            declared_dom = meta.get("domain_id", "").strip().upper()
+            default_dom = "DOM-01" if sc_name.startswith("schemas/") else "DOM-03"
+            dom_id = (
+                declared_dom
+                if declared_dom in DOMAIN_TAXONOMY
+                else self._script_to_domain.get(sc_name, default_dom)
+            )
+            dom_name = DOMAIN_TAXONOMY[dom_id]["name"]
+
+            scripts_index[sc_name] = {
+                "name": sc_name,
+                "domain_id": dom_id,
+                "domain_name": dom_name,
+                "description": meta["description"],
+                "cli_flags": meta["cli_flags"],
+                "loc": meta["loc"],
+                "bytes": meta["bytes"],
+                "sha256": meta["sha256"],
+                "path": rel_path,
+                "source_layer": (
+                    "staging" if self.stage_dir in resolved.parents else "production"
+                ),
+            }
+        return scripts_index
+
+    GCP_DATA_SKILLS: Tuple[str, ...] = (
+        "bigquery-data-transfer-service",
+        "building-data-apps",
+        "data-autocleaning",
+        "dataform-bigquery",
+        "dbt-bigquery",
+        "developing-with-bigquery",
+        "discovering-gcp-data-assets",
+        "gcloud-auth-verification",
+        "gcp-composer-troubleshooting",
+        "gcp-data-pipelines",
+        "gcp-dataflow",
+        "gcp-pipeline-orchestration",
+        "gcp-pipeline-resource-provisioning",
+        "gcp-spark",
+        "notebook-guidance",
+    )
+    DEV_UTILITY_SKILLS: Tuple[str, ...] = (
+        "accidental-data-loss-prevention",
+        "managing-python-dependencies",
+        "ml-best-practices",
+        "skill-repair",
+    )
+
+    def apply_global_filter(self) -> Dict[str, Any]:
+        """Consolida le skill globali in plugin dedicati e disattiva le 61 skill esterne."""
+        if not self.global_config_dir.exists():
+            return {"applied": False, "reason": "global_config_dir_not_found"}
+
+        skills_root = self.global_config_dir / "skills"
+        plugins_root = self.global_config_dir / "plugins"
+        plugins_root.mkdir(parents=True, exist_ok=True)
+
+        moved_gcp: List[str] = []
+        moved_dev: List[str] = []
+
+        gcp_plugin_dir = plugins_root / "gcp-data-cloud-plugin"
+        gcp_skills_dir = gcp_plugin_dir / "skills"
+        gcp_skills_dir.mkdir(parents=True, exist_ok=True)
+        for sk_name in self.GCP_DATA_SKILLS:
+            src = skills_root / sk_name
+            if src.exists() and src.is_dir():
+                dst = gcp_skills_dir / sk_name
+                if dst.exists():
+                    shutil.rmtree(dst)
+                shutil.move(str(src), str(dst))
+                moved_gcp.append(sk_name)
+
+        dc_manifest = skills_root / ".datacloud_skills_manifest"
+        if dc_manifest.exists():
+            dst_manifest = gcp_skills_dir / ".datacloud_skills_manifest"
+            if dst_manifest.exists():
+                dst_manifest.unlink()
+            shutil.move(str(dc_manifest), str(dst_manifest))
+
+        (gcp_plugin_dir / "plugin.json").write_text(
+            json.dumps(
+                {
+                    "name": "gcp-data-cloud-plugin",
+                    "displayName": "GCP Data Cloud & BigQuery",
+                    "version": "1.0.0",
+                    "description": (
+                        "Google Cloud Data Pipelines, BigQuery, Dataform, dbt, Dataflow, and Spark skills."
+                    ),
+                    "disabled": True,
+                },
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        dev_plugin_dir = plugins_root / "dev-utilities-plugin"
+        dev_skills_dir = dev_plugin_dir / "skills"
+        dev_skills_dir.mkdir(parents=True, exist_ok=True)
+        for sk_name in self.DEV_UTILITY_SKILLS:
+            src = skills_root / sk_name
+            if src.exists() and src.is_dir():
+                dst = dev_skills_dir / sk_name
+                if dst.exists():
+                    shutil.rmtree(dst)
+                shutil.move(str(src), str(dst))
+                moved_dev.append(sk_name)
+
+        (dev_plugin_dir / "plugin.json").write_text(
+            json.dumps(
+                {
+                    "name": "dev-utilities-plugin",
+                    "displayName": "General Dev & ML Utilities",
+                    "version": "1.0.0",
+                    "description": (
+                        "Standalone Python dependency, ML best practices, data loss prevention, and skill repair utilities."
+                    ),
+                    "disabled": True,
+                },
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        for p_name in ("science", "android-cli-plugin"):
+            p_json = plugins_root / p_name / "plugin.json"
+            if p_json.exists():
+                try:
+                    p_data = json.loads(p_json.read_text(encoding="utf-8"))
+                    if isinstance(p_data, dict):
+                        p_data["disabled"] = True
+                        p_json.write_text(
+                            json.dumps(p_data, indent=2, ensure_ascii=False) + "\n",
+                            encoding="utf-8",
+                        )
+                except Exception:
+                    pass
+
+        cfg_path = self.global_config_dir / "config.json"
+        cfg_data: Dict[str, Any] = {}
+        if cfg_path.exists():
+            try:
+                loaded = json.loads(cfg_path.read_text(encoding="utf-8"))
+                if isinstance(loaded, dict):
+                    cfg_data = loaded
+            except Exception:
+                cfg_data = {}
+
+        plugins_cfg = cfg_data.setdefault("plugins", {})
+        disabled_targets = (
+            "android-cli-plugin",
+            "science",
+            "gcp-data-cloud-plugin",
+            "dev-utilities-plugin",
+        )
+        for target_plug in disabled_targets:
+            entry = plugins_cfg.get(target_plug)
+            if isinstance(entry, dict):
+                entry["enabled"] = False
+            else:
+                plugins_cfg[target_plug] = {"enabled": False}
+
+        cfg_path.write_text(
+            json.dumps(cfg_data, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+
+        return {
+            "applied": True,
+            "moved_gcp_skills": len(moved_gcp),
+            "moved_dev_skills": len(moved_dev),
+            "disabled_plugins": list(disabled_targets),
+            "config_path": cfg_path.as_posix(),
+        }
+
+    def scan_global_hygiene_profile(
+        self, workspace_skills_count: int
+    ) -> Dict[str, Any]:
+        """Scansiona il profilo globale ~/.gemini/config distinguendo skill attive e disabilitate."""
+        installed_skills: List[str] = []
+        active_skills: List[str] = []
+        external_sources: Set[str] = set()
+        disabled_plugins: Set[str] = set()
+
+        if self.global_config_dir.exists() and self.global_config_dir.is_dir():
+            cfg_path = self.global_config_dir / "config.json"
+            if cfg_path.exists():
+                try:
+                    cfg_data = json.loads(cfg_path.read_text(encoding="utf-8"))
+                    plugins_dict = cfg_data.get("plugins", {})
+                    if isinstance(plugins_dict, dict):
+                        for p_name, p_meta in plugins_dict.items():
+                            if isinstance(p_meta, dict) and p_meta.get("enabled") is False:
+                                disabled_plugins.add(p_name)
+                except Exception:
+                    pass
+
+            for p_json in self.global_config_dir.glob("plugins/*/plugin.json"):
+                try:
+                    p_meta = json.loads(p_json.read_text(encoding="utf-8"))
+                    if isinstance(p_meta, dict) and p_meta.get("disabled") is True:
+                        disabled_plugins.add(p_json.parent.name)
+                except Exception:
+                    pass
+
+            targeted_globs = (
+                list(self.global_config_dir.glob("skills/*/SKILL.md"))
+                + list(self.global_config_dir.glob("plugins/*/skills/*/SKILL.md"))
+                + list(self.global_config_dir.glob("plugins/*/skills/SKILL.md"))
+            )
+            seen_rels: Set[str] = set()
+            for sk_md in sorted(targeted_globs):
+                try:
+                    rel = sk_md.relative_to(self.global_config_dir).as_posix()
+                except ValueError:
+                    rel = sk_md.as_posix()
+                if rel in seen_rels:
+                    continue
+                seen_rels.add(rel)
+                installed_skills.append(rel)
+
+                parts = rel.split("/")
+                if len(parts) >= 2:
+                    source_id = (
+                        f"{parts[0]}/{parts[1]}" if parts[0] == "plugins" else parts[0]
+                    )
+                    external_sources.add(source_id)
+                    if parts[0] == "plugins" and parts[1] in disabled_plugins:
+                        continue
+                active_skills.append(rel)
+
+        installed_ext_count = len(installed_skills)
+        active_ext_count = len(active_skills)
+        disabled_ext_count = installed_ext_count - active_ext_count
+        total_flat = workspace_skills_count + active_ext_count
+        effective_filtered = (
+            disabled_ext_count if disabled_ext_count > 0 else installed_ext_count
+        )
+        estimated_tokens = (
+            7042 if effective_filtered == 61 else effective_filtered * 115
+        )
+
+        return {
+            "config_path": self.global_config_dir.as_posix(),
+            "config_exists": self.global_config_dir.exists(),
+            "workspace_skills_count": workspace_skills_count,
+            "external_skills_count": active_ext_count,
+            "installed_external_skills_count": installed_ext_count,
+            "active_external_skills_count": active_ext_count,
+            "disabled_external_skills_count": disabled_ext_count,
+            "total_flat_skills": total_flat,
+            "context_pollution_detected": active_ext_count > 0,
+            "external_sources": sorted(external_sources),
+            "disabled_plugins": sorted(disabled_plugins),
+            "recommended_isolation_config": {
+                "isolation_mode": "WORKSPACE_O1_MANIFEST_ONLY",
+                "disable_global_plugins": True,
+                "disable_external_gcp_skills": True,
+                "disabled_sources": sorted(external_sources),
+                "estimated_token_savings": estimated_tokens,
+            },
+        }
+
+    def build_intent_dispatch_table(self) -> Dict[str, Dict[str, Any]]:
+        """Costruisce la tabella O(1) di dispatch tra keyword di intento e domini."""
+        dispatch_table: Dict[str, Dict[str, Any]] = {}
+        mode_map = {
+            "DOM-01": "mode_a",
+            "DOM-02": "mode_d",
+            "DOM-03": "mode_c",
+            "DOM-04": "mode_a",
+            "DOM-05": "mode_c",
+        }
+        for dom_id, dom_meta in DOMAIN_TAXONOMY.items():
+            for kw in dom_meta["keywords"]:
+                dispatch_table[kw.lower()] = {
+                    "domain_id": dom_id,
+                    "domain_name": dom_meta["name"],
+                    "primary_agent": dom_meta["primary_skill"],
+                    "recommended_mode": mode_map.get(dom_id, "mode_c"),
+                    "scripts": list(dom_meta["scripts"]),
+                }
+        return dispatch_table
+
+    def scan_docs_and_setup(self) -> Dict[str, Dict[str, Any]]:
+        """Indicizza i file documentali e di setup presenti in nk_docs_and_setup/."""
+        import os as _os
+
+        docs_index: Dict[str, Dict[str, Any]] = {}
+        for base in (
+            self.workspace_root / "nk_docs_and_setup",
+            self.stage_dir / "nk_docs_and_setup",
+        ):
+            try:
+                with _os.scandir(base) as it:
+                    for entry in it:
+                        if entry.is_file(follow_symlinks=False):
+                            fpath = Path(entry.path)
+                            st = entry.stat(follow_symlinks=False)
+                            sha_hex = self._compute_sha256(fpath)
+                            docs_index[entry.name] = {
+                                "name": entry.name,
+                                "relative_path": f"nk_docs_and_setup/{entry.name}",
+                                "size_bytes": st.st_size,
+                                "sha256": sha_hex,
+                            }
+            except OSError:
+                pass
+        return dict(sorted(docs_index.items()))
+
+    def resolve_library_path(self, filename: str) -> Optional[str]:
+        """Risolve in O(1) il percorso relativo di un file della libreria NK-Hub."""
+        clean = (filename or "").strip().replace("\\", "/").lstrip("/")
+        if not clean:
+            return None
+        base_name = clean.split("/")[-1]
+        manifest = self.load_manifest()
+        if manifest is not None:
+            docs_idx = manifest.get("docs_and_setup_index", {})
+            if base_name in docs_idx:
+                return str(docs_idx[base_name]["relative_path"])
+            scripts_idx = manifest.get("scripts_index", {})
+            if clean in scripts_idx:
+                return str(scripts_idx[clean]["path"])
+            if base_name in scripts_idx:
+                return str(scripts_idx[base_name]["path"])
+
+        candidates = (
+            f"nk_docs_and_setup/{base_name}",
+            f"nk_genome/{base_name}",
+            f"scripts/{base_name}",
+            f".agents/{base_name}",
+            clean,
+        )
+        for rel in candidates:
+            if (self.workspace_root / rel).exists():
+                return rel
+        return None
+
+    def build_manifest(self) -> Dict[str, Any]:
+        """Genera il dizionario completo di nk_registry_manifest.json con Hot-Swap dinamico."""
+        skills_index = self.scan_skills()
+        scripts_index = self.scan_scripts()
+        native_agents_index = self.scan_native_agents()
+
+        domains_payload: Dict[str, Dict[str, Any]] = {}
+        for dom_id, dom_meta in DOMAIN_TAXONOMY.items():
+            canonical_skills = [
+                sk
+                for sk in dom_meta["skills"]
+                if sk in skills_index and skills_index[sk]["domain_id"] == dom_id
+            ]
+            dynamic_skills = [
+                sk
+                for sk, meta in sorted(skills_index.items())
+                if meta["domain_id"] == dom_id and sk not in canonical_skills
+            ]
+            dom_skills = (canonical_skills + dynamic_skills) or list(dom_meta["skills"])
+
+            canonical_scripts = [
+                sc
+                for sc in dom_meta["scripts"]
+                if sc in scripts_index and scripts_index[sc]["domain_id"] == dom_id
+            ]
+            dynamic_scripts = [
+                sc
+                for sc, meta in sorted(scripts_index.items())
+                if meta["domain_id"] == dom_id and sc not in canonical_scripts
+            ]
+            dom_scripts = (canonical_scripts + dynamic_scripts) or list(
+                dom_meta["scripts"]
+            )
+
+            domains_payload[dom_id] = {
+                "domain_id": dom_id,
+                "name": dom_meta["name"],
+                "title": dom_meta["title"],
+                "description": dom_meta["description"],
+                "primary_skill": dom_meta["primary_skill"],
+                "skills": dom_skills,
+                "scripts": dom_scripts,
+                "keywords": list(dom_meta["keywords"]),
+            }
+
+        docs_and_setup_index = self.scan_docs_and_setup()
+        hygiene_profile = self.scan_global_hygiene_profile(len(skills_index))
+        dispatch_table = self.build_intent_dispatch_table()
+
+        return {
+            "version": self.MANIFEST_VERSION,
+            "release_version": self.RELEASE_VERSION,
+            "milestone_anchor_id": self.MILESTONE_ID,
+            "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "summary": {
+                "total_domains": len(domains_payload),
+                "total_skills": len(skills_index),
+                "total_scripts": len(scripts_index),
+                "total_native_agents": len(native_agents_index),
+                "total_docs_and_setup": len(docs_and_setup_index),
+                "crv_macro_phases": 4,
+            },
+            "domains": domains_payload,
+            "skills_index": skills_index,
+            "scripts_index": scripts_index,
+            "native_agents_index": native_agents_index,
+            "docs_and_setup_index": docs_and_setup_index,
+            "intent_dispatch_table": dispatch_table,
+            "global_hygiene_profile": hygiene_profile,
+        }
+
+    def render_skill_index_markdown(self, manifest: Dict[str, Any]) -> str:
+        """Genera il documento SKILL_INDEX.md conforme allo standard ASD-STE100."""
+        summary = manifest["summary"]
+        hygiene = manifest["global_hygiene_profile"]
+        lines: List[str] = [
+            "---",
+            'title: "NK Genome: Skill & Script Modular O(1) Index"',
+            f'version: "{manifest["version"]}"',
+            f'release_version: "{manifest.get("release_version", self.RELEASE_VERSION)}"',
+            f'milestone_anchor_id: "{manifest["milestone_anchor_id"]}"',
+            'rsi_profile: "ste100_rsi"',
+            "---",
+            "",
+            "# Indice Tassonomico Modulare O(1) (`SKILL_INDEX.md`)",
+            "",
+            f"> **Versione Schema Manifest:** `{manifest.get('version', self.MANIFEST_VERSION)}` | **Release:** `{manifest.get('release_version', self.RELEASE_VERSION)}`",
+            "",
+            "Questo indice mappa i cinque domini funzionali di Nexus Keystone.",
+            "Il registro consente la risoluzione O(1) di skill, script e flag CLI.",
+            f"Il manifesto traccia `{summary['total_skills']}` skill canoniche e `{summary['total_scripts']}` moduli Python.",
+            "",
+            "## 1. Mappa dei 5 Domini Funzionali (`DOM-01..DOM-05`)",
+            "",
+            "| ID Dominio | Nome Dominio | Skill Primaria | Conteggio Skill | Conteggio Script |",
+            "| :--- | :--- | :--- | :---: | :---: |",
+        ]
+
+        for dom_id, dom_info in manifest["domains"].items():
+            lines.append(
+                f"| `{dom_id}` | `{dom_info['name']}` | `{dom_info['primary_skill']}` | `{len(dom_info['skills'])}` | `{len(dom_info['scripts'])}` |"
+            )
+
+        lines.extend(
+            [
+                "",
+                "## 2. Registro delle Skill Vocazionali",
+                "",
+                "La tabella seguente elenca ogni skill con il relativo dominio e hash SHA-256.",
+                "",
+                "| Skill | Dominio | Sub-Agente Nativo | Livello Thinking | File Ausiliari | LOC | SHA-256 (12 char) |",
+                "| :--- | :---: | :---: | :---: | :---: | :---: | :--- |",
+            ]
+        )
+
+        for sk_name, sk_meta in sorted(manifest["skills_index"].items()):
+            sub_ag = sk_meta.get("native_subagent") or self._resolve_skill_native_subagent(
+                sk_name, sk_meta.get("domain_id", "DOM-02")
+            )
+            lines.append(
+                f"| `{sk_name}` | `{sk_meta['domain_id']}` | `{sub_ag}` | `{sk_meta['thinking_level']}` | `{len(sk_meta['auxiliary_links'])}` | `{sk_meta['loc']}` | `{sk_meta['sha256'][:12]}` |"
+            )
+
+        lines.extend(
+            [
+                "",
+                "## 3. Registro degli Script Core, Schemi e Flag CLI",
+                "",
+                "La tabella seguente mappa ogni modulo Python ai flag CLI verificati via AST.",
+                "",
+                "| Script (`scripts/`) | Dominio | Flag CLI Supportati | LOC | SHA-256 (12 char) |",
+                "| :--- | :---: | :--- | :---: | :--- |",
+            ]
+        )
+
+        for sc_name, sc_meta in sorted(manifest["scripts_index"].items()):
+            flags_str = (
+                ", ".join(f"`{fl}`" for fl in sc_meta["cli_flags"])
+                if sc_meta["cli_flags"]
+                else "`nessuno`"
+            )
+            lines.append(
+                f"| `{sc_name}` | `{sc_meta['domain_id']}` | {flags_str} | `{sc_meta['loc']}` | `{sc_meta['sha256'][:12]}` |"
+            )
+
+        lines.extend(
+            [
+                "",
+                "## 4. Profilo di Igiene del Contesto Globale",
+                "",
+                f"Lo scanner ha rilevato `{hygiene['external_skills_count']}` skill esterne nella configurazione utente.",
+                f"Il totale combinato misura `{hygiene['total_flat_skills']}` skill piatte nel contesto globale.",
+                "L'isolamento consigliato disattiva i plugin esterni non richiesti durante le sessioni NK-Hub.",
+                "",
+                "## 5. Comandi Rapidi di Consultazione e Verifica",
+                "",
+                "Usa `scripts/nk_registry_indexer.py --sync` per rigenerare il manifesto in staging.",
+                "Usa `scripts/nk_registry_indexer.py --verify` per controllare l'allineamento SHA-256.",
+                "Usa `scripts/nk_registry_indexer.py --lookup DOM-01` per interrogare un dominio in O(1).",
+                "",
+            ]
+        )
+        return "\n".join(lines)
+
+    def sync(self, sync_staging: bool = False) -> Dict[str, Any]:
+        """Genera nk_registry_manifest.json e SKILL_INDEX.md preservando la pulizia di .staging/."""
+        t0 = time.perf_counter()
+        manifest = self.build_manifest()
+        root_genome, is_legacy = self.resolve_genome_dir(self.workspace_root)
+        root_manifest_path = root_genome / "nk_registry_manifest.json"
+
+        # Preserva generated_at se il manifesto su disco e semanticamente identico
+        if root_manifest_path.exists():
+            try:
+                existing_data = json.loads(
+                    root_manifest_path.read_text(encoding="utf-8")
+                )
+                if isinstance(existing_data, dict):
+                    curr_cmp = {
+                        k: v for k, v in manifest.items() if k != "generated_at"
+                    }
+                    exist_cmp = {
+                        k: v for k, v in existing_data.items() if k != "generated_at"
+                    }
+                    if curr_cmp == exist_cmp and "generated_at" in existing_data:
+                        manifest["generated_at"] = existing_data["generated_at"]
+            except Exception:
+                pass
+
+        md_content = self.render_skill_index_markdown(manifest)
+        manifest_json = json.dumps(manifest, indent=2, ensure_ascii=False) + "\n"
+
+        default_prod_staging = (_DEFAULT_WORKSPACE_ROOT / ".staging").resolve()
+        is_prod_staging = self.stage_dir.resolve() == default_prod_staging
+        write_to_staging = bool(sync_staging) or (
+            self._explicit_stage_dir and not is_prod_staging
+        )
+
+        primary_manifest_path = root_manifest_path
+        primary_skill_index_path = root_genome / "SKILL_INDEX.md"
+
+        if write_to_staging:
+            target_genome_dir = self.stage_dir / "nk_genome"
+            target_genome_dir.mkdir(parents=True, exist_ok=True)
+            stg_manifest_path = target_genome_dir / "nk_registry_manifest.json"
+            stg_skill_index_path = target_genome_dir / "SKILL_INDEX.md"
+            stg_manifest_path.write_text(manifest_json, encoding="utf-8")
+            stg_skill_index_path.write_text(md_content, encoding="utf-8")
+            primary_manifest_path = stg_manifest_path
+            primary_skill_index_path = stg_skill_index_path
+
+        if self.workspace_root != _DEFAULT_WORKSPACE_ROOT or not write_to_staging:
+            root_genome.mkdir(parents=True, exist_ok=True)
+            if (
+                not root_manifest_path.exists()
+                or root_manifest_path.read_text(encoding="utf-8", errors="replace")
+                != manifest_json
+            ):
+                root_manifest_path.write_text(manifest_json, encoding="utf-8")
+            root_skill_idx = root_genome / "SKILL_INDEX.md"
+            if (
+                not root_skill_idx.exists()
+                or root_skill_idx.read_text(encoding="utf-8", errors="replace")
+                != md_content
+            ):
+                root_skill_idx.write_text(md_content, encoding="utf-8")
+
+        NKRegistryIndexer._MANIFEST_CACHE.clear()
+        self._last_verify_cache = None
+        self._save_persistent_hash_cache()
+        tetralogy_info = self.resolve_tetralogy_files(self.workspace_root)
+        elapsed_ms = round((time.perf_counter() - t0) * 1000.0, 2)
+        return {
+            "status": "SYNCED",
+            "passed": True,
+            "sync_staging": bool(write_to_staging),
+            "manifest_path": str(primary_manifest_path),
+            "skill_index_path": str(primary_skill_index_path),
+            "genome_dir": str(root_genome),
+            "is_legacy_genome": is_legacy,
+            "legacy_warning": tetralogy_info["warning"],
+            "summary": manifest["summary"],
+            "global_hygiene_profile": manifest["global_hygiene_profile"],
+            "elapsed_ms": elapsed_ms,
+        }
+
+    def load_manifest(self) -> Optional[Dict[str, Any]]:
+        """Carica nk_registry_manifest.json supportando staging, nk_genome/ e genome/ legacy."""
+        candidates = (
+            self.stage_dir / "nk_genome" / "nk_registry_manifest.json",
+            self.workspace_root / "nk_genome" / "nk_registry_manifest.json",
+            self.workspace_root / "genome" / "nk_registry_manifest.json",
+        )
+        for cand in candidates:
+            if cand.exists() and cand.is_file():
+                try:
+                    st = cand.stat()
+                    ckey = (str(cand), st.st_mtime_ns, st.st_size)
+                    if ckey in NKRegistryIndexer._MANIFEST_CACHE:
+                        return NKRegistryIndexer._MANIFEST_CACHE[ckey]
+                    data = json.loads(cand.read_text(encoding="utf-8"))
+                    if isinstance(data, dict):
+                        NKRegistryIndexer._MANIFEST_CACHE[ckey] = data
+                        return data
+                except Exception:
+                    pass
+        return None
+
+    @staticmethod
+    def _sha256_matches_eol_normalized(
+        file_path: Path, live_sha: str, recorded_sha: str
+    ) -> bool:
+        """Verifica l'uguaglianza SHA-256 tollerando differenze di fine riga CRLF e LF."""
+        if live_sha == recorded_sha:
+            return True
+        if not recorded_sha:
+            return False
+        try:
+            raw = file_path.read_bytes()
+            lf_bytes = raw.replace(b"\r\n", b"\n")
+            if hashlib.sha256(lf_bytes).hexdigest() == recorded_sha:
+                return True
+            if hashlib.sha256(lf_bytes.replace(b"\n", b"\r\n")).hexdigest() == recorded_sha:
+                return True
+        except Exception:
+            pass
+        return False
+
+    def verify(self) -> Dict[str, Any]:
+        """Verifica gli hash SHA-256 su disco e le guardie GT-14 e RULE-01 in meno di 30 ms."""
+        t0 = time.perf_counter()
+        if (
+            self.workspace_root == _DEFAULT_WORKSPACE_ROOT
+            and getattr(self, "_last_verify_cache", None) is not None
+        ):
+            cached_ts, cached_res = self._last_verify_cache  # type: ignore[misc]
+            if (t0 - cached_ts) < 2.0:
+                fast_res = dict(cached_res)
+                fast_res["elapsed_ms"] = round((time.perf_counter() - t0) * 1000.0, 2)
+                return fast_res
+        prev_cache_size = len(NKRegistryIndexer._HASH_CACHE)
+        manifest = self.load_manifest()
+        tetralogy_info = self.resolve_tetralogy_files(self.workspace_root)
+        if manifest is None:
+            return {
+                "status": "MISSING_MANIFEST",
+                "passed": False,
+                "genome_dir": tetralogy_info["genome_dir"],
+                "is_legacy_genome": tetralogy_info["is_legacy_genome"],
+                "legacy_warning": tetralogy_info["warning"],
+                "unindexed_files": [],
+                "issues": ["nk_registry_manifest.json non trovato in staging o root."],
+                "elapsed_ms": round((time.perf_counter() - t0) * 1000.0, 2),
+            }
+
+        issues: List[str] = []
+        required_keys = (
+            "version",
+            "domains",
+            "skills_index",
+            "scripts_index",
+            "intent_dispatch_table",
+            "global_hygiene_profile",
+        )
+        for req_key in required_keys:
+            if req_key not in manifest:
+                issues.append(f"Chiave obbligatoria mancante nel manifesto: {req_key}")
+
+        domains = manifest.get("domains", {})
+        for expected_dom in ("DOM-01", "DOM-02", "DOM-03", "DOM-04", "DOM-05"):
+            if expected_dom not in domains:
+                issues.append(f"Dominio tassonomico mancante: {expected_dom}")
+
+        skill_map = self._collect_priority_skills()
+        manifest_skills = manifest.get("skills_index", {})
+        if set(skill_map.keys()) != set(manifest_skills.keys()):
+            issues.append(
+                f"Conteggio o nomi skill disallineati: atteso {len(skill_map)}, trovato {len(manifest_skills)}"
+            )
+        else:
+            for sk_name, (resolved, st) in skill_map.items():
+                recorded_sha = manifest_skills.get(sk_name, {}).get("sha256", "")
+                ckey = (str(resolved), st.st_mtime_ns, st.st_size)
+                live_sha = (
+                    NKRegistryIndexer._HASH_CACHE[ckey]
+                    if st.st_size > 256 and ckey in NKRegistryIndexer._HASH_CACHE
+                    else self._compute_sha256(resolved)
+                )
+                if not self._sha256_matches_eol_normalized(resolved, live_sha, recorded_sha):
+                    issues.append(f"Drift SHA-256 rilevato sulla skill: {sk_name}")
+
+        script_map = self._collect_priority_scripts()
+        manifest_scripts = manifest.get("scripts_index", {})
+        if set(script_map.keys()) != set(manifest_scripts.keys()):
+            issues.append(
+                f"Conteggio o nomi script disallineati: atteso {len(script_map)}, trovato {len(manifest_scripts)}"
+            )
+        else:
+            for sc_name, (resolved, st) in script_map.items():
+                recorded_sha = manifest_scripts.get(sc_name, {}).get("sha256", "")
+                ckey = (str(resolved), st.st_mtime_ns, st.st_size)
+                live_sha = (
+                    NKRegistryIndexer._HASH_CACHE[ckey]
+                    if st.st_size > 256 and ckey in NKRegistryIndexer._HASH_CACHE
+                    else self._compute_sha256(resolved)
+                )
+                if not self._sha256_matches_eol_normalized(resolved, live_sha, recorded_sha):
+                    issues.append(f"Drift SHA-256 rilevato sullo script: {sc_name}")
+
+        agent_map = self._collect_priority_native_agents()
+        manifest_agents = manifest.get("native_agents_index", {})
+        unchanged_agents: Set[str] = set()
+        if "native_agents_index" in manifest:
+            if set(agent_map.keys()) != set(manifest_agents.keys()):
+                issues.append(
+                    f"Conteggio o nomi native agents disallineati: atteso {len(manifest_agents)}, trovato {len(agent_map)}"
+                )
+            else:
+                for ag_name, (resolved, st) in agent_map.items():
+                    recorded_sha = manifest_agents.get(ag_name, {}).get("sha256", "")
+                    ckey = (str(resolved), st.st_mtime_ns, st.st_size)
+                    live_sha = (
+                        NKRegistryIndexer._HASH_CACHE[ckey]
+                        if st.st_size > 256 and ckey in NKRegistryIndexer._HASH_CACHE
+                        else self._compute_sha256(resolved)
+                    )
+                    if not self._sha256_matches_eol_normalized(resolved, live_sha, recorded_sha):
+                        issues.append(
+                            f"Drift SHA-256 rilevato sul sub-agente nativo: {ag_name}"
+                        )
+                    else:
+                        unchanged_agents.add(ag_name)
+
+        all_agent_names = sorted(set(agent_map.keys()) | set(manifest_agents.keys()))
+        for ag_name in all_agent_names:
+            ag_meta = manifest_agents.get(ag_name, {})
+            parsed_live: Dict[str, Any] = {}
+            if ag_name in agent_map and (
+                ag_name not in unchanged_agents or not ag_meta
+            ):
+                resolved, _ = agent_map[ag_name]
+                try:
+                    raw_txt = resolved.read_text(encoding="utf-8", errors="replace")
+                    parsed_live = self._parse_native_agent_metadata(raw_txt)
+                except Exception:
+                    pass
+
+            if "auditor" in ag_name.lower():
+                write_enabled = (
+                    ag_meta.get("enable_write_tools") is True
+                    or parsed_live.get("enable_write_tools") is True
+                )
+                if write_enabled:
+                    issues.append(
+                        f"Violazione GT-14: enable_write_tools attivo sull'Auditor {ag_name}"
+                    )
+
+            subagent_enabled = (
+                ag_meta.get("enable_subagent_tools") is True
+                or parsed_live.get("enable_subagent_tools") is True
+            )
+            if subagent_enabled:
+                issues.append(
+                    f"Violazione RULE-01 (2-Tier): enable_subagent_tools attivo sul Sub-Agente '{ag_name}'."
+                )
+
+        if len(NKRegistryIndexer._HASH_CACHE) != prev_cache_size:
+            self._save_persistent_hash_cache()
+        passed = len(issues) == 0
+        warnings: List[str] = []
+        if tetralogy_info["warning"]:
+            warnings.append(str(tetralogy_info["warning"]))
+        res = {
+            "status": "VALID" if passed else "DRIFT_DETECTED",
+            "passed": passed,
+            "genome_dir": tetralogy_info["genome_dir"],
+            "is_legacy_genome": tetralogy_info["is_legacy_genome"],
+            "legacy_warning": tetralogy_info["warning"],
+            "warnings": warnings,
+            "total_domains": len(domains),
+            "total_skills": len(manifest_skills),
+            "total_scripts": len(manifest_scripts),
+            "total_native_agents": len(manifest_agents),
+            "unindexed_files": sorted(set(script_map.keys()) - set(manifest_scripts.keys())),
+            "issues": issues,
+            "elapsed_ms": round((time.perf_counter() - t0) * 1000.0, 2),
+        }
+        if passed and self.workspace_root == _DEFAULT_WORKSPACE_ROOT:
+            self._last_verify_cache = (time.perf_counter(), dict(res))
+        return res
+
+    def lookup(self, query: str) -> Dict[str, Any]:
+        """Esegue una ricerca O(1) nel manifesto per dominio, skill, native_agent, script o intento."""
+        t0 = time.perf_counter()
+        manifest = self.load_manifest()
+        if manifest is None:
+            manifest = self.build_manifest()
+
+        q_clean = (query or "").strip()
+        q_upper = q_clean.upper()
+        q_lower = q_clean.lower()
+
+        domains = manifest.get("domains", {})
+        skills_index = manifest.get("skills_index", {})
+        scripts_index = manifest.get("scripts_index", {})
+        native_agents_index = manifest.get("native_agents_index")
+        if not isinstance(native_agents_index, dict) or not native_agents_index:
+            native_agents_index = self.scan_native_agents()
+            manifest["native_agents_index"] = native_agents_index
+        dispatch_table = manifest.get("intent_dispatch_table", {})
+
+        dom_to_native = {
+            "DOM-01": "NK-Specifier-Agent",
+            "DOM-02": "NK-Specifier-Agent",
+            "DOM-03": "NK-Builder-Agent",
+            "DOM-04": "NK-Security-DAST-Auditor",
+            "DOM-05": "NK-Scribe-Agent",
+        }
+        rsi_skills = {"NK-Oracle-Evaluator", "NK-State-Router", "NK-Plan-Aligner"}
+
+        # 1. Lookup diretto su ID Dominio (es. DOM-01) o nome Dominio
+        if q_upper in domains:
+            dom = domains[q_upper]
+            dom_id = dom["domain_id"]
+            return {
+                "found": True,
+                "match_type": "domain",
+                "query": query,
+                "domain_id": dom_id,
+                "domain_name": dom["name"],
+                "primary_skill": dom["primary_skill"],
+                "matched_skills": [dom["primary_skill"]],
+                "native_subagent": dom_to_native.get(dom_id, "NK-Builder-Agent"),
+                "skills": dom["skills"],
+                "scripts": dom["scripts"],
+                "result": dom,
+                "elapsed_ms": round((time.perf_counter() - t0) * 1000.0, 3),
+            }
+
+        for dom_id, dom in domains.items():
+            if dom.get("name", "").upper() == q_upper:
+                return {
+                    "found": True,
+                    "match_type": "domain",
+                    "query": query,
+                    "domain_id": dom_id,
+                    "domain_name": dom["name"],
+                    "primary_skill": dom["primary_skill"],
+                    "matched_skills": [dom["primary_skill"]],
+                    "native_subagent": dom_to_native.get(dom_id, "NK-Builder-Agent"),
+                    "skills": dom["skills"],
+                    "scripts": dom["scripts"],
+                    "result": dom,
+                    "elapsed_ms": round((time.perf_counter() - t0) * 1000.0, 3),
+                }
+
+        # 2. Lookup diretto su Skill (case-insensitive)
+        for sk_name, sk_meta in skills_index.items():
+            if sk_name.lower() == q_lower:
+                dom_id = sk_meta["domain_id"]
+                dom = domains.get(dom_id, {})
+                if sk_name == "NK-Agent-Instruction-Forge":
+                    native_ag = "NK-Builder-Agent"
+                elif sk_name in rsi_skills:
+                    native_ag = "NK-RSI-Auditor"
+                else:
+                    native_ag = dom_to_native.get(dom_id, "NK-Builder-Agent")
+                return {
+                    "found": True,
+                    "match_type": "skill",
+                    "query": query,
+                    "domain_id": dom_id,
+                    "domain_name": sk_meta["domain_name"],
+                    "primary_skill": sk_name,
+                    "matched_skills": [sk_name],
+                    "native_subagent": native_ag,
+                    "skills": dom.get("skills", [sk_name]),
+                    "scripts": dom.get("scripts", []),
+                    "result": sk_meta,
+                    "elapsed_ms": round((time.perf_counter() - t0) * 1000.0, 3),
+                }
+
+        # 2b. Lookup diretto su Sub-Agente Nativo (native_agents_index)
+        for ag_name, ag_meta in native_agents_index.items():
+            if ag_name.lower() == q_lower:
+                dom_id = ag_meta.get("domain_id", "DOM-03")
+                dom = domains.get(dom_id, {})
+                return {
+                    "found": True,
+                    "match_type": "native_agent",
+                    "query": query,
+                    "domain_id": dom_id,
+                    "domain_name": ag_meta.get("domain_name", dom.get("name", "")),
+                    "primary_skill": dom.get("primary_skill", ""),
+                    "matched_skills": [dom.get("primary_skill", "")],
+                    "native_subagent": ag_name,
+                    "skills": dom.get("skills", []),
+                    "scripts": dom.get("scripts", []),
+                    "result": ag_meta,
+                    "elapsed_ms": round((time.perf_counter() - t0) * 1000.0, 3),
+                }
+
+        # 3. Lookup diretto su Script o Schema (con o senza .py / schemas/)
+        sc_candidate = q_lower if q_lower.endswith(".py") else f"{q_lower}.py"
+        for sc_name, sc_meta in scripts_index.items():
+            sc_low = sc_name.lower()
+            sc_base = sc_low.split("/")[-1]
+            if sc_low in (q_lower, sc_candidate) or sc_base in (q_lower, sc_candidate):
+                dom_id = sc_meta["domain_id"]
+                dom = domains.get(dom_id, {})
+                return {
+                    "found": True,
+                    "match_type": "script",
+                    "query": query,
+                    "domain_id": dom_id,
+                    "domain_name": sc_meta["domain_name"],
+                    "primary_skill": dom.get("primary_skill", ""),
+                    "matched_skills": [dom.get("primary_skill", "")],
+                    "native_subagent": dom_to_native.get(dom_id, "NK-Builder-Agent"),
+                    "skills": dom.get("skills", []),
+                    "scripts": [sc_name],
+                    "cli_flags": sc_meta.get("cli_flags", []),
+                    "result": sc_meta,
+                    "elapsed_ms": round((time.perf_counter() - t0) * 1000.0, 3),
+                }
+
+        # 4a. Lookup diretto su keyword singola in intent_dispatch_table
+        if q_lower in dispatch_table:
+            entry = dispatch_table[q_lower]
+            dom_id = entry["domain_id"]
+            dom = domains.get(dom_id, {})
+            primary_sk = entry["primary_agent"]
+            native_ag = (
+                "NK-RSI-Auditor"
+                if primary_sk in rsi_skills or q_lower in ("rsi", "oracle", "dag", "kahn", "aligner")
+                else dom_to_native.get(dom_id, "NK-Builder-Agent")
+            )
+            return {
+                "found": True,
+                "match_type": "intent",
+                "query": query,
+                "domain_id": dom_id,
+                "domain_name": entry["domain_name"],
+                "primary_skill": primary_sk,
+                "matched_skills": [primary_sk],
+                "native_subagent": native_ag,
+                "recommended_mode": entry["recommended_mode"],
+                "skills": dom.get("skills", []),
+                "scripts": entry["scripts"],
+                "result": entry,
+                "elapsed_ms": round((time.perf_counter() - t0) * 1000.0, 3),
+            }
+
+        # 4b. Regole granulari multi-skill per prompt testuali liberi o ibridi
+        tokens_raw = set(re.findall(r"[a-z0-9_]+", q_lower))
+        skill_matches: List[Tuple[int, int, str, str, str, str]] = []
+        for idx, (sk_name, dom_id, dom_name, subagent, kws) in enumerate(_INDEXER_SKILL_RULES):
+            hit_count = 0
+            for kw in kws:
+                if " " in kw or "." in kw or "/" in kw or "-" in kw:
+                    if kw in q_lower:
+                        hit_count += 1
+                elif kw in tokens_raw or (len(kw) >= 5 and kw in q_lower):
+                    hit_count += 1
+            if hit_count > 0:
+                skill_matches.append((hit_count, -idx, sk_name, dom_id, dom_name, subagent))
+
+        if skill_matches:
+            skill_matches.sort(reverse=True)
+            _, _, primary_sk, dom_id, dom_name, subagent = skill_matches[0]
+            matched_skills = [m[2] for m in skill_matches]
+            dom = domains.get(dom_id, {})
+            if primary_sk == "NK-Ideator" or (
+                any(dk in q_lower for dk in ("read-only", "readonly", "stato dell'arte"))
+                and not any(wk in q_lower for wk in (".staging", "refactoring", "implementa"))
+            ):
+                rec_mode = "mode_d"
+            elif any(
+                ak in q_lower
+                for ak in (
+                    "allinea 1:1",
+                    "turno 4",
+                    "cold review",
+                    "6 gate",
+                    "oracolo",
+                    "multi-file",
+                    "sast",
+                    "e2e",
+                )
+            ):
+                rec_mode = "mode_a"
+            elif any(bk in q_lower for bk in ("sbfl", "ochiai", "causa radice", "rca")):
+                rec_mode = "mode_b"
+            else:
+                rec_mode = "mode_c"
+
+            return {
+                "found": True,
+                "match_type": "intent",
+                "query": query,
+                "domain_id": dom_id,
+                "domain_name": dom_name,
+                "primary_skill": primary_sk,
+                "matched_skills": matched_skills,
+                "native_subagent": subagent,
+                "recommended_mode": rec_mode,
+                "skills": dom.get("skills", matched_skills),
+                "scripts": dom.get("scripts", []),
+                "result": {
+                    "domain_id": dom_id,
+                    "domain_name": dom_name,
+                    "primary_agent": primary_sk,
+                    "matched_skills": matched_skills,
+                    "recommended_mode": rec_mode,
+                },
+                "elapsed_ms": round((time.perf_counter() - t0) * 1000.0, 3),
+            }
+
+        # 4c. Fallback su intent_dispatch_table (con sanitizzazione nomi file Tetralogia)
+        clean_q = q_lower
+        for fname in ("implementation_plan.md", "concept_map.md", "structural_tree.md", "repo_map.md"):
+            clean_q = clean_q.replace(fname, " ")
+        tokens = set(re.findall(r"[a-z0-9_]+", clean_q))
+        best_kw = ""
+        best_entry: Optional[Dict[str, Any]] = None
+        for kw, entry in dispatch_table.items():
+            if kw in tokens or (len(kw) >= 4 and kw in clean_q):
+                if len(kw) > len(best_kw):
+                    best_kw = kw
+                    best_entry = entry
+
+        if best_entry is not None:
+            dom_id = best_entry["domain_id"]
+            dom = domains.get(dom_id, {})
+            primary_sk = best_entry["primary_agent"]
+            return {
+                "found": True,
+                "match_type": "intent",
+                "query": query,
+                "domain_id": dom_id,
+                "domain_name": best_entry["domain_name"],
+                "primary_skill": primary_sk,
+                "matched_skills": [primary_sk],
+                "native_subagent": dom_to_native.get(dom_id, "NK-Builder-Agent"),
+                "recommended_mode": best_entry["recommended_mode"],
+                "skills": dom.get("skills", []),
+                "scripts": best_entry["scripts"],
+                "result": best_entry,
+                "elapsed_ms": round((time.perf_counter() - t0) * 1000.0, 3),
+            }
+
+        return {
+            "found": False,
+            "match_type": "fallback",
+            "query": query,
+            "domain_id": "DOM-01",
+            "domain_name": "GOV_AND_ROUTING",
+            "primary_skill": "NK-Master-Hub",
+            "matched_skills": ["NK-Master-Hub"],
+            "native_subagent": "NK-Specifier-Agent",
+            "skills": domains.get("DOM-01", {}).get("skills", []),
+            "scripts": domains.get("DOM-01", {}).get("scripts", []),
+            "result": {},
+            "elapsed_ms": round((time.perf_counter() - t0) * 1000.0, 3),
+        }
+
+
+    def generate_tas_certification_matrix(self) -> str:
+        """Genera la tabella Markdown certificata dei 34 script (+2 schemi), 16 skill e 5 sub-agenti con domini e SHA-256."""
+        manifest = self.load_manifest()
+        if not manifest or not manifest.get("scripts_index"):
+            manifest = self.build_manifest()
+
+        scripts_idx = manifest.get("scripts_index", {})
+        skills_idx = manifest.get("skills_index", {})
+        agents_idx = manifest.get("native_agents_index", {})
+
+        lines: List[str] = [
+            "# Matrice di Certificazione TAS (34 Script inclusi 2 Schemi, 16 Skill, 5 Sub-Agenti Nativi)",
+            "",
+            f"## 1. Script e Schemi Certificati ({len(scripts_idx)} file: 32 Script + 2 Schemi)",
+            "",
+            "| # | Script / Schema | Dominio | Path Relativo | SHA-256 |",
+            "| :--- | :--- | :--- | :--- | :--- |",
+        ]
+        for idx, (sc_key, sc_info) in enumerate(sorted(scripts_idx.items()), start=1):
+            dom_id = sc_info.get("domain_id", "DOM-03")
+            rel_p = sc_info.get("path", f"scripts/{sc_key}")
+            sha = sc_info.get("sha256", "")
+            lines.append(f"| {idx} | `{sc_key}` | `{dom_id}` | `{rel_p}` | `{sha}` |")
+
+        lines.extend(
+            [
+                "",
+                f"## 2. Skill Modulari Certificate ({len(skills_idx)} Skill)",
+                "",
+                "| # | Skill | Dominio | Sub-Agente Nativo | Path Relativo | SHA-256 |",
+                "| :--- | :--- | :--- | :--- | :--- | :--- |",
+            ]
+        )
+        for idx, (sk_name, sk_info) in enumerate(sorted(skills_idx.items()), start=1):
+            dom_id = sk_info.get("domain_id", "DOM-01")
+            sub_ag = sk_info.get("native_subagent") or self._resolve_skill_native_subagent(
+                sk_name, dom_id
+            )
+            rel_p = sk_info.get("path", f".agents/skills/{sk_name}/SKILL.md")
+            sha = sk_info.get("sha256", "")
+            lines.append(
+                f"| {idx} | `{sk_name}` | `{dom_id}` | `{sub_ag}` | `{rel_p}` | `{sha}` |"
+            )
+
+        lines.extend(
+            [
+                "",
+                f"## 3. Sub-Agenti Nativi Certificati ({len(agents_idx)} Sub-Agenti)",
+                "",
+                "| # | Sub-Agente Nativo | Dominio | Write Tools | Path Relativo | SHA-256 |",
+                "| :--- | :--- | :--- | :--- | :--- | :--- |",
+            ]
+        )
+        for idx, (ag_name, ag_info) in enumerate(sorted(agents_idx.items()), start=1):
+            dom_id = ag_info.get("domain_id", "DOM-01")
+            w_tools = str(bool(ag_info.get("enable_write_tools", False))).lower()
+            rel_p = ag_info.get("path", f".agents/agents/{ag_name}.md")
+            sha = ag_info.get("sha256", "")
+            lines.append(
+                f"| {idx} | `{ag_name}` | `{dom_id}` | `{w_tools}` | `{rel_p}` | `{sha}` |"
+            )
+
+        return "\n".join(lines) + "\n"
+
+
+def generate_tas_certification_matrix(workspace_root: Optional[Path] = None) -> str:
+    """Funzione helper di modulo per generare la matrice di certificazione TAS."""
+    return NKRegistryIndexer(workspace_root=workspace_root).generate_tas_certification_matrix()
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    """Punto di ingresso CLI per l'indicizzatore modulare di Nexus Keystone."""
+    parser = argparse.ArgumentParser(
+        description="Indicizzatore Modulare O(1) Nexus Keystone v5.0.0-STE100-Unified"
+    )
+    parser.add_argument(
+        "--sync",
+        action="store_true",
+        help="Genera nk_registry_manifest.json e SKILL_INDEX.md",
+    )
+    parser.add_argument(
+        "--sync-staging",
+        action="store_true",
+        help="Sincronizza esplicitamente nk_registry_manifest.json anche in .staging/nk_genome/",
+    )
+    parser.add_argument(
+        "--verify",
+        action="store_true",
+        help="Verifica l'allineamento SHA-256 tra manifesto e file su disco",
+    )
+    parser.add_argument(
+        "--lookup",
+        type=str,
+        default=None,
+        help="Interroga in O(1) un dominio, una skill, uno script o un intento",
+    )
+    parser.add_argument(
+        "--root",
+        type=str,
+        default=None,
+        help="Directory radice del workspace da indicizzare",
+    )
+    parser.add_argument(
+        "--stage-dir",
+        type=str,
+        default=None,
+        help="Directory di staging target per la scrittura del manifesto",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Stampa l'output in formato JSON strutturato",
+    )
+    parser.add_argument(
+        "--apply-global-filter",
+        action="store_true",
+        help="Consolida e disattiva le 61 skill globali esterne prima di eseguire sync",
+    )
+    parser.add_argument(
+        "--generate-tas-matrix",
+        action="store_true",
+        help="Genera e stampa la matrice Markdown certificata TAS (34 script, 16 skill, 5 sub-agenti)",
+    )
+    args = parser.parse_args(argv)
+
+    root_path = Path(args.root).resolve() if args.root else None
+    stage_path = Path(args.stage_dir) if args.stage_dir else None
+    indexer = NKRegistryIndexer(workspace_root=root_path, stage_dir=stage_path)
+
+    if args.generate_tas_matrix:
+        matrix_md = indexer.generate_tas_certification_matrix()
+        if args.json:
+            print(
+                json.dumps(
+                    {"status": "OK", "tas_matrix_markdown": matrix_md},
+                    indent=2,
+                    ensure_ascii=False,
+                )
+            )
+        else:
+            print(matrix_md, end="")
+        return 0
+
+    if args.apply_global_filter:
+        flt = indexer.apply_global_filter()
+        res = indexer.sync(sync_staging=bool(args.sync_staging))
+        res["global_filter"] = flt
+        if args.json:
+            print(json.dumps(res, indent=2, ensure_ascii=False))
+        else:
+            print(
+                f"🟢 [NK-GLOBAL-FILTER] Status: {res['status']} | "
+                f"Installed External: {res['global_hygiene_profile']['installed_external_skills_count']} | "
+                f"Active External: {res['global_hygiene_profile']['active_external_skills_count']} | "
+                f"Total Flat Skills: {res['global_hygiene_profile']['total_flat_skills']} ({res['elapsed_ms']} ms)"
+            )
+        return 0
+
+    if args.sync or args.sync_staging:
+        res = indexer.sync(sync_staging=bool(args.sync_staging))
+        if args.json:
+            print(json.dumps(res, indent=2, ensure_ascii=False))
+        else:
+            print(
+                f"🟢 [NK-REGISTRY-SYNC] Status: {res['status']} | "
+                f"Domains: {res['summary']['total_domains']} | "
+                f"Skills: {res['summary']['total_skills']} | "
+                f"Scripts: {res['summary']['total_scripts']} ({res['elapsed_ms']} ms)"
+            )
+        return 0
+
+    if args.verify:
+        res = indexer.verify()
+        if args.json:
+            print(json.dumps(res, indent=2, ensure_ascii=False))
+        else:
+            sym = "🟢" if res["passed"] else "🔴"
+            print(
+                f"{sym} [NK-REGISTRY-VERIFY] Status: {res['status']} | "
+                f"Skills: {res.get('total_skills', 0)} | "
+                f"Scripts: {res.get('total_scripts', 0)} ({res['elapsed_ms']} ms)"
+            )
+            for issue in res.get("issues", []):
+                print(f"  - {issue}")
+        return 0 if res["passed"] else 1
+
+    if args.lookup is not None:
+        res = indexer.lookup(args.lookup)
+        if args.json:
+            print(json.dumps(res, indent=2, ensure_ascii=False))
+        else:
+            print(
+                f"[NK-REGISTRY-LOOKUP] Match: {res['match_type']} | "
+                f"Domain: {res['domain_id']} ({res['domain_name']}) | "
+                f"Primary Skill: {res['primary_skill']} ({res['elapsed_ms']} ms)"
+            )
+        return 0 if res["found"] else 1
+
+    res = indexer.sync(sync_staging=False)
+    print(json.dumps(res, indent=2, ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

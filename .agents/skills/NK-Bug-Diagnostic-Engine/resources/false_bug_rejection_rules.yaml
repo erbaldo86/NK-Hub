@@ -1,0 +1,11 @@
+# Regole di Rigetto Falsi Bug (NK-Bug-Diagnostic-Engine : v3.0.0-STE100-Unified)
+rejection_rules:
+  - rule: "Nuovo requisito non specificato"
+    condition: "Il comportamento richiesto non compare nella Tetralogia Sovrana in nk_genome/"
+    action: "Reject as FEATURE_REQUEST"
+  - rule: "Modifica estetica UI/UX"
+    condition: "La segnalazione richiede una variazione visiva non prevista da concept_map.md"
+    action: "Reject as MODIFICATION"
+  - rule: "Soglia di confidenza Shadow Feature"
+    condition: "L'analisi dei requisiti stima una probabilità > 85% di nuova funzionalità mascherata da bug"
+    action: "Reject as FEATURE_REQUEST"
