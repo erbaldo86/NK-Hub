@@ -395,6 +395,14 @@ def compute_fitness(
     return round(q_val, 4)
 
 
+_STE100_INLINE_CODE_RE = re.compile(r"`[^`]*`")
+_STE100_SPACED_DASH_RE = re.compile(r" [\u2014\u2013] ")
+_STE100_MD_LINK_RE = re.compile(r"\[([^\]]+)\]\([^\)]+\)")
+_STE100_PREFIX_RE = re.compile(r"^[\*\-\+\d\.\>\s#]+")
+_STE100_IDENTIFIER_DOT_RE = re.compile(r"(?<=\w)\.(?=\w)")
+_STE100_SENTENCE_SPLIT_RE = re.compile(r"[\.!\?]+")
+
+
 def verify_ste100_compliance(text: str, max_sentence_words: int = 20) -> Dict[str, Any]:
     """Verifica la conformita di un testo allo standard tecnico ASD-STE100."""
     violations: List[str] = []
@@ -435,21 +443,25 @@ def verify_ste100_compliance(text: str, max_sentence_words: int = 20) -> Dict[st
             continue
 
         # Pulizia codice inline prima della verifica dei trattini e del conteggio parole
-        line_no_code = re.sub(r"`[^`]*`", "TOKEN", raw_line)
+        line_no_code = _STE100_INLINE_CODE_RE.sub("TOKEN", raw_line)
 
         # Regola 5: Divieto di incisi con trattini lunghi o medi spaziati
-        if " \u2014 " in line_no_code or " \u2013 " in line_no_code:
+        if _STE100_SPACED_DASH_RE.search(line_no_code):
             violations.append(
                 f"Riga {line_idx}: Rilevato inciso con trattino lungo o medio vietato da [RULE-STE100]."
             )
 
         # Pulizia link markdown e codice inline prima del conteggio parole
-        clean_line = re.sub(r"`[^`]*`", "TOKEN", stripped)
-        clean_line = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", clean_line)
-        clean_line = re.sub(r"^[\*\-\+\d\.\>\s#]+", "", clean_line)
-        clean_line = re.sub(r"(?<=\w)\.(?=\w)", "_", clean_line)
+        clean_line = line_no_code.strip()
+        clean_line = _STE100_MD_LINK_RE.sub(r"\1", clean_line)
+        clean_line = _STE100_PREFIX_RE.sub("", clean_line)
+        clean_line = _STE100_IDENTIFIER_DOT_RE.sub("_", clean_line)
 
-        sentences = [s.strip() for s in re.split(r"[\.!\?]+", clean_line) if s.strip()]
+        sentences = [
+            s.strip()
+            for s in _STE100_SENTENCE_SPLIT_RE.split(clean_line)
+            if s.strip()
+        ]
         for sent in sentences:
             words = [w for w in sent.split() if any(ch.isalpha() for ch in w)]
             if len(words) > max_sentence_words:

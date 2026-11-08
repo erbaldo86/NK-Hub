@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Configurazione Pytest e cache globale dei moduli per Nexus Keystone v4.7.0-STE100-Unified.
+Configurazione Pytest e cache globale dei moduli per Nexus Keystone v5.2.0-STE100-Unified.
 Modulo: tests/conftest.py.
 Fornisce il caricamento in-memory cachato degli script e le fixture di sessione.
 """
@@ -17,7 +17,7 @@ from typing import Any, Dict
 
 import pytest
 
-CONFTEST_VERSION: str = "4.7.0-STE100-Unified"
+CONFTEST_VERSION: str = "5.2.0-STE100-Unified"
 
 CURRENT_DIR = Path(__file__).resolve().parent
 STAGING_DIR = CURRENT_DIR.parent

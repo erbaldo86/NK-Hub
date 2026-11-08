@@ -349,13 +349,35 @@ def _hash_target_files(target: Path) -> Dict[str, str]:
     """Calcola la mappa percorso_relativo -> sha256 per un file o una directory."""
     resolved = target.resolve()
     if resolved.is_file():
-        return {resolved.name: hashlib.sha256(resolved.read_bytes()).hexdigest()}
+        return {
+            resolved.name: hashlib.sha256(resolved.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+        }
+    ignored_parts = {"__pycache__", ".pytest_cache", ".git", ".staging"}
+    ignored_names = {
+        "oracle_lock.json",
+        ".bootstrap_fast_cache.json",
+        ".fast_stat_cache.json",
+        ".session_state.json",
+        "session_anchor.jsonl",
+    }
     files_map: Dict[str, str] = {}
     if resolved.is_dir():
         for f in sorted(resolved.rglob("*")):
-            if f.is_file() and "__pycache__" not in f.parts:
+            if (
+                f.is_file()
+                and not any(pt in ignored_parts for pt in f.parts)
+                and f.name not in ignored_names
+            ):
                 rel = f.relative_to(resolved).as_posix()
-                files_map[rel] = hashlib.sha256(f.read_bytes()).hexdigest()
+                files_map[rel] = hashlib.sha256(f.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+        if resolved.name == "tests" and (resolved.parent / "scripts").is_dir():
+            scripts_dir = resolved.parent / "scripts"
+            for sf in sorted(scripts_dir.rglob("*.py")):
+                if sf.is_file() and not any(pt in ignored_parts for pt in sf.parts):
+                    rel_s = sf.relative_to(scripts_dir).as_posix()
+                    files_map[f"../scripts/{rel_s}"] = hashlib.sha256(
+                        sf.read_bytes().replace(b"\r\n", b"\n")
+                    ).hexdigest()
     return files_map
 
 

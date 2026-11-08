@@ -1,27 +1,27 @@
-# NK Genome: Structural Tree Master (`v5.0.0-STE100-Unified` / `v4.8.0-STE100-Unified` / `v4.7.0-STE100-Unified` / `v4.5.1-STE100-Unified` / `v4.5.0-STE100-Unified` / `v4.4.0-STE100-Unified` / `v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified`)
+# NK Genome: Structural Tree Master (`v5.2.0-STE100-Unified` / `v5.2.0-RSI` / `v5.1.1-RSI` / `v5.1.0-Lean-Sovereign-RSI` / `v5.0.0-STE100-Unified` / `v4.8.0-STE100-Unified` / `v4.7.0-STE100-Unified` / `v3.0.0-STE100-Unified`)
 
 > **Badge di Certificazione:** 🛡️ [NK-BRIEF-STATUS: AUDITED_AND_OPTIMIZED 🟢] | [RSI-CONVERGENCE: CONVERGED_OPTIMAL (Δ=0, Q=100.0) 🟢]  
-> **Milestone Anchor ID:** `NK-MS-20261106-SOVEREIGN-CLEAN-SLATE-RELEASE-v5.0.0-RSI` (`NK-MS-20261106-HOLISTIC-CLEANSE-AND-DEAD-CODE-PURGE-v4.8.0-RSI` / `NK-MS-20261031-HOLISTIC-STRESS-AND-TEST-CONSOLIDATION-v4.7.0-RSI` / `NK-MS-20261025-INTRINSIC-VIBE-RSI-REMEDIATION` / `NK-MS-20261024-HOLISTIC-SANITATION-v4.5.0-RSI`)  
-> **Versione Target:** `v5.0.0-STE100-Unified` (`v4.8.0-STE100-Unified` / `v4.7.0-STE100-Unified` / `v4.5.1-STE100-Unified` / `v4.5.0-STE100-Unified` / `v4.4.0-STE100-Unified` / `v4.3.0-Super-Plan-Triad-RSI` / `v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified` Compatible)  
+> **Milestone Anchor ID:** `NK-MS-20261108-CLEAN-OPTIMIZED-CHECKPOINT-v5.2.0-RSI` (`NK-MS-20261108-EXTERNAL-ANTIBIAS-HARDENING-v5.1.1-RSI` / `NK-MS-20261108-LEAN-FASTBOOT-AND-TEST-CONSOLIDATION-v5.1.0-RSI` / `NK-MS-20261106-SOVEREIGN-CLEAN-SLATE-RELEASE-v5.0.0-RSI`)  
+> **Versione Target:** `v5.2.0-STE100-Unified` (`v5.2.0-RSI` / `v5.1.1-RSI` / `v5.1.0-Lean-Sovereign-RSI` / `v5.0.0-STE100-Unified` / `v4.8.0-STE100-Unified` / `v4.7.0-STE100-Unified` / `v3.0.0-STE100-Unified` Compatible)  
 > **Standard Linguistico:** ASD-STE100 Italiano Tecnico (`[RULE-STE100]`)  
 > **Stato Produzione:** 100% Sola Lettura (`[RULE-00]`)
 
 ---
 
-## 1. Albero Strutturale Canonico del Repository `NK-Hub` (`v5.0.0-STE100-Unified`)
+## 1. Albero Strutturale Canonico del Repository `NK-Hub` (`v5.2.0-STE100-Unified` / `v5.2.0-RSI`)
 
-L'albero seguente rappresenta la struttura release bonificata di `NK-Hub`. Le cartelle dei progetti esterni risiedono in `G:/Il mio Drive/Antigravity/NK_External_Projects/` (`BS-03`). La cartella duplicata `nk_tracking/episodic_memory/`, i file `.bak_*` e i report legacy sono stati rimossi. I `5` Sub-Agenti, i `16` Playbook e i `34` moduli (`36` file Python) sono in `nk_genome/nk_registry_manifest.json`.
+L'albero seguente rappresenta la struttura release consolidata di `NK-Hub`. Le cartelle dei progetti esterni risiedono in `G:/Il mio Drive/Antigravity/NK_External_Projects/` (`BS-03`). La cartella duplicata `nk_tracking/episodic_memory/`, i file `.bak_*` e gli `8` file di test storici ridondanti sono stati rimossi. I `5` Sub-Agenti, i `16` Playbook e i `34` moduli (`36` file Python) sono in `nk_genome/nk_registry_manifest.json`.
 
 ```text
 G:/Il mio Drive/Antigravity/NK_Hub/
 ├── .agents/
-│   ├── AGENTS.md                                    # Regolamento Master in ASD-STE100 (v5.0.0-STE100-Unified, formula Delta_k)
+│   ├── AGENTS.md                                    # Regolamento Master Compattato ASD-STE100 (v5.2.0-STE100-Unified, formula Delta_k)
 │   ├── hooks.json                                   # Hook del ciclo di vita (SessionStart, PostToolUse, Stop)
 │   ├── plugins/
 │   │   └── nk-gate/                                 # Plugin Hook Nativo (plugin.json e hooks.json map<string, HookSpec>)
 │   │       ├── plugin.json
 │   │       └── hooks.json
-│   ├── agents/                                      # 5 Sub-Agenti Esecutori Nativi Pre-Registrati (v5.0.0)
+│   ├── agents/                                      # 5 Sub-Agenti Esecutori Nativi Pre-Registrati (v5.2.0-STE100-Unified)
 │   │   ├── NK-Specifier-Agent/
 │   │   │   └── agent.md                             # Sub-Agente DOM-02 (Ideazione, UX/UI, Backend, Allineamento 4/4)
 │   │   ├── NK-Builder-Agent/
@@ -91,17 +91,18 @@ G:/Il mio Drive/Antigravity/NK_Hub/
 │               ├── prompt_templates.md              # [File Ausiliario 15/16: Template 1-12 con capsule epistemiche]
 │               └── saturation_thresholds.yaml       # [File Ausiliario 16/16: Soglie Dual-Profile standard vs argon]
 ├── .github/
+│   ├── README.md                                    # Presentazione Bilingue GitHub (v5.2.0-STE100-Unified, 93 test in 18 moduli)
 │   └── workflows/
-│       └── ci.yml                                   # Pipeline CI/CD aggiornata (253 Golden & Stress Tests, --verify)
+│       └── ci.yml                                   # Pipeline CI/CD aggiornata (93 Golden & Stress Tests in 18 moduli, --verify)
 ├── nk_genome/                                       # Tetralogia Sovrana 4/4 + Idea Canvas L0 + Indice O(1) + Changelog SSOT
-│   ├── idea_canvas.md                               # [L0] Idea Canvas preliminare (6 sezioni, SCAMPER, STORM, v5.0.0)
-│   ├── concept_map.md                               # [1/4] Visione Concettuale e Architettura v5.0.0-STE100-Unified
-│   ├── structural_tree.md                           # [2/4] Albero Strutturale Canonico v5.0.0 (5 Sub-Agenti, 16 Playbook, 253 Test)
-│   ├── implementation_plan.md                       # [3/4] Piano Esecutivo Atomico WP-V5-1..WP-V5-4 e Guardie GT-01..GT-14
-│   ├── repo_map.md                                  # [4/4] Snapshot AST Repo-Map a 4.000 token Argon (34 moduli + 24 moduli di test)
+│   ├── idea_canvas.md                               # [L0] Idea Canvas preliminare (6 sezioni, SCAMPER, STORM, v5.2.0-RSI)
+│   ├── concept_map.md                               # [1/4] Visione Concettuale e Architettura v5.2.0-STE100-Unified (v5.2.0-RSI)
+│   ├── structural_tree.md                           # [2/4] Albero Strutturale Canonico v5.2.0-RSI (5 Sub-Agenti, 16 Playbook, 93 Test in 18 Moduli)
+│   ├── implementation_plan.md                       # [3/4] Piano Esecutivo Atomico WP-CLEAN-1..WP-CLEAN-4 e Guardie GT-01..GT-14
+│   ├── repo_map.md                                  # [4/4] Snapshot AST Repo-Map a 4.000 token Argon (34 moduli + 18 moduli di test)
 │   ├── SKILL_INDEX.md                               # Indice Tassonomico Modulare O(1) per i 5 Domini DOM-01..DOM-05
-│   ├── nk_registry_manifest.json                    # Manifesto SSOT O(1) generato da nk_registry_indexer.py
-│   └── PATCH_NOTES.md                               # Single Source of Truth del Changelog in nk_genome/
+│   ├── nk_registry_manifest.json                    # Manifesto SSOT O(1) generato da nk_registry_indexer.py (invariante CRLF/LF)
+│   └── PATCH_NOTES.md                               # Single Source of Truth del Changelog in nk_genome/ (v5.2.0-RSI)
 ├── nk_tracking/                                     # Tracciamento, Telemetria, Memoria Episodica 3-Tier e Baseline Ratchet
 │   ├── active_context.md                            # Contesto Attivo Sessione e Handoff Passivo Template 12 Puro NK_Hub
 │   ├── anchor/
@@ -110,22 +111,23 @@ G:/Il mio Drive/Antigravity/NK_Hub/
 │   ├── memory_3tier/                                # Store Canonico a 3 Livelli per i 4 Domini (ARCH, SEC, OPS, DEVX)
 │   │   └── tier1_active_capsule.json                # Capsula attiva Tier-1 per Pre-Warming < 2ms
 │   ├── manifests/                                   # Manifesti Operativi dell'Hub
-│   ├── reports_and_briefs/                          # Report di Audit e Certificazione TAS Grounded v5.0.0
+│   ├── reports_and_briefs/                          # Report di Audit e Certificazione TAS Grounded v5.2.0-RSI
 │   │   ├── IB-20261106-82CC73.md                    # Intent Brief Sovereign Clean-Slate Release v5.0.0-STE100-Unified
-│   │   └── TAS_Report_NK_Hub_v5_0_0_20261106.md     # Report Certificazione TAS 6 Gate v5.0.0-STE100-Unified
-│   ├── oracle_lock.json                             # Sigillo Crittografico SHA-256 della Suite di Test ([RULE-ORACLE-LOCK])
-│   ├── quality_baseline.json                        # Ratchet di Non-Regressione (68 pavimento GT-13, 253 test, 100.0% pass rate)
+│   │   ├── TAS_Report_NK_Hub_v5_0_0_20261106.md     # Report Certificazione TAS 6 Gate v5.0.0-STE100-Unified
+│   │   └── TAS_Report_Clean_Checkpoint_v5_2_0_20261108.md # Report Certificazione Checkpoint Pulito e Ottimizzato v5.2.0-RSI
+│   ├── oracle_lock.json                             # Sigillo Crittografico SHA-256 dei 18 Moduli di Test ([RULE-ORACLE-LOCK])
+│   ├── quality_baseline.json                        # Ratchet di Non-Regressione (68 pavimento GT-13, 93 test in 18 moduli, 100.0% pass rate)
 │   └── rsi_telemetry.jsonl                          # Ledger Crittografico SHA-256 delle iterazioni RSI
 ├── scripts/                                         # 34 Moduli Indicizzati (36 File Python totali inclusi __init__.py e schemas/)
 │   ├── __init__.py                                  # [01] Package Marker
-│   ├── ast_guard_validator.py                       # [02] Validatore Statico AST (SASTConstructChecker, --stage-dir, --json)
+│   ├── ast_guard_validator.py                       # [02] Validatore Statico AST (SASTConstructChecker, 6 vettori SAST chiusi, --stage-dir)
 │   ├── ast_repo_mapper.py                           # [03] AST Repo-Mapper PageRank (fix serializzazione edges e GT-06)
 │   ├── async_heartbeat_signaler.py                  # [04] Demone Heartbeat e Watchdog 45s (fix timer last_beat_time U-22)
 │   ├── auto_heal_pipeline.py                        # [05] Pipeline Fast-Healing collegata a rsi_convergence_engine.py
 │   ├── dast_sandbox_runner.py                       # [06] Sandbox Runner Win32 Job Objects (trace ignoredirs e CLI)
 │   ├── deterministic_api_cache.py                   # [07] Cache SQLite WAL (fix connessione persistente BS-05)
 │   ├── env_capability_probe.py                      # [08] Probe Ambiente (fix core vs optional preservando total_probed GT-09)
-│   ├── external_project_scaffolder.py               # [09] Scaffolder Progetti Esterni (--target opzionale e blocco path interno)
+│   ├── external_project_scaffolder.py               # [09] Scaffolder Progetti Esterni (--target opzionale, rimosso dead branch)
 │   ├── healing_snapshot_rollback.py                 # [10] Gestore Snapshot e Rollback SHA-256 (fix snapshot_manifest.json U-23)
 │   ├── invisible_healing_loop.py                    # [11] Wrapper Compatibile collegato a auto_heal_pipeline.py e sbfl_engine.py
 │   ├── memory_3tier_engine.py                       # [12] Motore Memoria 3-Tier (isolamento backup tmp_path, guardia 0-byte e GT-05)
@@ -134,78 +136,72 @@ G:/Il mio Drive/Antigravity/NK_Hub/
 │   ├── nk_auto_inning.py                            # [15] Chiusura Inning (flag --transcript, --json e lettura JSON reale U-14)
 │   ├── nk_compliance_checker.py                     # [16] Verificatore Conformità (fix DDI 12 GT-03, path GT-08 e default 100 GT-10)
 │   ├── nk_context_sentry.py                         # [17] Sentinella Contesto (default 70/100 GT-01, MTU 2000 GT-04, profilo argon)
-│   ├── nk_hook_gate.py                              # [18] Gate Runtime Hook stdlib (probe, write-gate, fasttrack, integrity, stop-evidence)
-│   ├── nk_registry_indexer.py                       # [19] Indicizzatore Modulare O(1) (MANIFEST_VERSION 4.7.0 + RELEASE_VERSION 5.0.0)
-│   ├── nk_session_bootstrap.py                      # [20] Session Bootstrap Gate <50ms (filtro <env_capsule>, auto-profilo argon)
-│   ├── nk_session_handoff.py                        # [21] Generatore Handoff (lettura dinamica quality_baseline.json U-49)
+│   ├── nk_hook_gate.py                              # [18] Gate Runtime Hook stdlib (path con spazi, normalizzazione CRLF->LF SHA-256)
+│   ├── nk_registry_indexer.py                       # [19] Indicizzatore Modulare O(1) (normalizzazione CRLF->LF SHA-256, RELEASE_VERSION 5.2.0)
+│   ├── nk_session_bootstrap.py                      # [20] Session Bootstrap Gate <30ms (cache Fast-Stat 6 superfici e caching mtime intra-run)
+│   ├── nk_session_handoff.py                        # [21] Generatore Handoff (lettura dinamica quality_baseline.json e Path.home())
 │   ├── nk_swarm_messenger.py                        # [22] Formattatore Messaggi Swarm (taglio MSS 1800 char GT-04 e UTF-8)
-│   ├── nk_transcript_tools.py                       # [23] Strumenti Forensi Transcript, Oracle-Lock SHA-256 e Linter Prompt AP-1..13
+│   ├── nk_transcript_tools.py                       # [23] Strumenti Forensi Transcript, Oracle-Lock SHA-256 (CRLF->LF) e Linter Prompt
 │   ├── oracle_evaluator_l3.py                       # [24] Valutatore DOM L3 (void tag HTML5, FileNotFoundError e split path Windows)
 │   ├── platform_runner.py                           # [25] Esecutore Sottoprocessi UTF-8 (fix iniezione -u su stringhe BS-04)
-│   ├── preflight_health_check.py                    # [26] Diagnostica Manutenzione (fix falso positivo auto_fix BS-01 e --check-only)
-│   ├── quality_baseline_manager.py                  # [27] Gestore Ratchet Baseline (fix fail-closed su errore I/O BS-02 e exit 1)
-│   ├── rsi_convergence_engine.py                    # [28] Motore RSI Dual-Metric (Delta_k + Q(S_k), <yaml_metadata_card>, --vibe-check)
+│   ├── preflight_health_check.py                    # [26] Diagnostica Manutenzione (protezione .bak memory_3tier e --check-only)
+│   ├── quality_baseline_manager.py                  # [27] Gestore Ratchet Baseline (pavimento 68 GT-13, 93 test in 18 moduli, verifica oracle_lock)
+│   ├── rsi_convergence_engine.py                    # [28] Motore RSI Dual-Metric (Delta_k + Q(S_k), regex STE100 pre-compilate, --verify)
 │   ├── safe_cleanup_dev_servers.py                  # [29] Pulizia Dev Server (fix filtro psutil per CWD/cmdline U-13)
 │   ├── sbfl_engine.py                               # [30] Motore Matematico SBFL Ochiai/Tarantula/DStar (<80 tok payload + CLI)
 │   ├── sbfl_pytest_bridge.py                        # [31] Bridge Pytest SBFL (collegato a sbfl_engine.py e suspiciousness 1.0 GT-07)
-│   ├── vibe_sprint_router.py                        # [32] Router O(1) Mode A/B/C/D (--classify-prompt e SKILL_ROUTING_RULES)
-│   ├── win32_2pc_engine.py                          # [33] Motore Commit Atomico 2PC (cleanup __pycache__ e record_session_anchor_commit)
+│   ├── vibe_sprint_router.py                        # [32] Router O(1) Mode A/B/C/D (hardening bypass L0 e MODE_C_MAX_LOC == 150)
+│   ├── win32_2pc_engine.py                          # [33] Motore Commit Atomico 2PC (_atomic_write_bytes in rollback/recover e cleanup __pycache__)
 │   └── schemas/                                     # [34-36] Contratti Pydantic v2 e Dual Ledgers
 │       ├── __init__.py                              # [34] Esportazione Schemi
 │       ├── dual_ledgers.py                          # [35] TaskLedger e ProgressLedger (fix ctypes 64-bit e ERROR_ACCESS_DENIED U-25)
 │       └── nk_ipc_contracts.py                      # [36] Contratti IPC Strict (IPCPointerReturn, GoalFailureManifest, RSISessionReport)
-├── tests/                                           # Suite Consolidata Zero-Mock v5.0.0 (253 Golden e Stress Tests in 24 moduli di test, 100.0% PASS)
+├── tests/                                           # Suite Consolidata Zero-Mock v5.2.0-RSI (93 Golden & Stress Tests in 18 moduli, 100.0% PASS)
 │   ├── __init__.py
-│   ├── conftest.py                                  # Fixtures Pytest session-scoped aggiornate a v5.0.0
+│   ├── conftest.py                                  # Fixtures Pytest session-scoped aggiornate a v5.2.0-STE100-Unified
 │   ├── evals/
 │   │   └── skill_golden_eval_set.json               # Set di validazione L3 Meta-RSI per le 16 Skill
-│   ├── test_active_sentinel_suite.py                # [Protetto da GT-02 e GT-04]
-│   ├── test_ast_guard_validator.py                  # [Validazione AST, SASTConstructChecker e --allowed-mutations]
-│   ├── test_ast_repo_mapper.py                      # [Protetto da GT-06]
-│   ├── test_auto_heal_pipeline.py                   # [Protetto da GT-07]
-│   ├── test_context_sentry.py                       # [Protetto da GT-01]
-│   ├── test_core_platform_utilities.py              # [Suite consolidata 14 test utilità core e invisible_healing_loop.py]
-│   ├── test_dast_sandbox.py                         # [Validazione Shadow Sandbox e Referee PoC]
-│   ├── test_intrinsic_vibe_sandbox_stress.py        # [74 Stress Test Avversariali Protocolli Vibe Intrinseci S1..S5]
-│   ├── test_memory_3tier.py                         # [Protetto da GT-05]
-│   ├── test_nk_ecosystem_stress_opt5.py             # [Stress suite OPT-1..OPT-12]
-│   ├── test_nk_functional_certification_multilevel.py # [17 Test Funzionali ed E2E di Certificazione Multilivello WP18..WP20]
-│   ├── test_nk_registry_indexer.py                  # [Validazione Indice Modulare O(1) e Filtro 61 Skill]
-│   ├── test_phase2_3tier_stress_suite.py            # [Stress suite a 3 livelli L1/L2/L3 per i 5 Sub-Agenti Nativi]
-│   ├── test_quality_baseline_manager.py             # [Protetto da GT-13 e Ratchet 68 Golden Tests]
-│   ├── test_rsi_convergence_engine.py               # [Protetto da GT-11, GT-12 e canali TAS v4.0]
-│   ├── test_sbfl_engine.py                          # [Validazione SBFL Ochiai/Tarantula/DStar]
-│   ├── test_schemas_and_contracts.py                # [Validazione contratti Pydantic v2 strict]
-│   ├── test_super_plan_v6_triad.py                  # [Validazione Super Plan v6.0: nk_hook_gate, nk_transcript_tools, lint-prompt]
-│   ├── test_triad_epistemic_governance_v44.py       # [Validazione v4.4.0: Anti-Goodhart 100x, SAST-GAMING-D01..04, report-conflict, AP-8/9]
-│   ├── test_v460_competitive_integration_suite.py   # [Suite consolidata 30 test competitivi WP-0c..WP-4 v4.6.0]
-│   ├── test_v470_holistic_stress_suite.py           # [Suite avversariale 12 test permanenti S1..S6 v4.7.0]
-│   ├── test_vibe_sprint_router.py                   # [Validazione Mode A/B/C/D, Gate L0 e AST depth]
-│   ├── test_win32_2pc.py                            # [Validazione transazionale Win32 2PC]
+│   ├── test_active_sentinel_suite.py                # [01/18: Protetto da GT-02 e GT-04]
+│   ├── test_ast_guard_validator.py                  # [02/18: Validazione AST, 6 vettori SAST e --allowed-mutations]
+│   ├── test_ast_repo_mapper.py                      # [03/18: Protetto da GT-06]
+│   ├── test_auto_heal_pipeline.py                   # [04/18: Protetto da GT-07]
+│   ├── test_context_sentry.py                       # [05/18: Protetto da GT-01]
+│   ├── test_core_platform_utilities.py              # [06/18: Suite consolidata 14 test utilità core e load_nk_script_module]
+│   ├── test_dast_sandbox.py                         # [07/18: Validazione Shadow Sandbox e Referee PoC ottimizzata]
+│   ├── test_memory_3tier.py                         # [08/18: Protetto da GT-05]
+│   ├── test_nk_hook_and_transcript_governance.py    # [09/18: Suite consolidata 10 test nk_hook_gate, nk_transcript_tools, S1..S6 e Canary]
+│   ├── test_nk_registry_indexer.py                  # [10/18: Validazione Indice Modulare O(1) e Filtro 16 Skill]
+│   ├── test_quality_baseline_manager.py             # [11/18: Protetto da GT-13 e Ratchet 68 Golden Tests]
+│   ├── test_rsi_convergence_engine.py               # [12/18: Protetto da GT-11, GT-12 e canali TAS v4.0]
+│   ├── test_sbfl_engine.py                          # [13/18: Validazione SBFL Ochiai/Tarantula/DStar]
+│   ├── test_schemas_and_contracts.py                # [14/18: Validazione contratti Pydantic v2 strict]
+│   ├── test_vibe_sprint_router.py                   # [15/18: Validazione Mode A/B/C/D, Gate L0, AST depth e protocolli intrinseci]
+│   ├── test_win32_2pc.py                            # [16/18: Validazione transazionale Win32 2PC e compute_crc32]
+│   ├── conftest.py                                  # [17/18: Modulo di configurazione e loader condiviso load_nk_script_module]
 │   └── stress/
 │       ├── __init__.py
-│       └── test_real_sandbox_stress.py              # [Protetto da GT-01 e GT-03]
+│       └── test_real_sandbox_stress.py              # [18/18: Stress test reali in sandbox protetti da GT-01 e GT-03]
 ├── nk_docs_and_setup/                               # Documentazione Utente, Guide, Installer e Configurazione Workspace
-│   ├── 00_MAPPA_LIBRERIA_NK.md                      # Mappa strutturale deduplicata della libreria in ASD-STE100
-│   ├── README.md                                    # Documentazione Master EN (allineata a v5.0.0 e 253 Golden e Stress Tests)
+│   ├── 00_MAPPA_LIBRERIA_NK.md                      # Mappa strutturale deduplicata della libreria in ASD-STE100 (v5.2.0-STE100-Unified)
+│   ├── README.md                                    # Documentazione Master EN (allineata a v5.2.0-STE100-Unified e 93 test in 18 moduli)
 │   ├── README.it.md                                 # Documentazione Master IT (allineata 1:1 a README.md in ASD-STE100)
-│   ├── GUIDA_INSTALLAZIONE.md                       # Guida Setup Bilingue IT+EN aggiornata a v5.0.0-STE100-Unified
+│   ├── GUIDA_INSTALLAZIONE.md                       # Guida Setup Bilingue IT+EN aggiornata a v5.2.0-STE100-Unified (v5.2.0-RSI)
 │   ├── LICENSE                                      # Licenza del repository
-│   ├── install.ps1                                  # Installer PowerShell aggiornato a v5.0.0-STE100-Unified
-│   ├── install.sh                                   # Installer Bash aggiornato a v5.0.0-STE100-Unified
+│   ├── install.ps1                                  # Installer PowerShell aggiornato a v5.2.0-STE100-Unified (v5.2.0-RSI)
+│   ├── install.sh                                   # Installer Bash aggiornato a v5.2.0-STE100-Unified (v5.2.0-RSI)
 │   ├── requirements.txt                             # Dipendenze Core (pydantic>=2.7.0,<3.0.0, psutil>=5.9.8,<8.0.0, pytest>=8.2.0,<10.0.0)
 │   └── Antigravity.code-workspace                   # Configurazione Workspace IDE Multi-Root (NK_Hub + NK_External_Projects)
-├── pytest.ini                                       # Configurazione Pytest per i 253 test (245 baseline)
+├── pytest.ini                                       # Configurazione Pytest per i 93 Golden & Stress Tests in 18 moduli
 └── .gitignore                                       # Esclusioni Git (.staging/*, .wal/, scratch/*, NK_External_Projects/)
 ```
 
 ---
 
-## 2. Matrice Completa dei 34 Moduli Indicizzati in `scripts/` e dei 253 Golden e Stress Tests (`v5.0.0`)
+## 2. Matrice Completa dei 34 Moduli Indicizzati in `scripts/` e dei 93 Test (`v5.2.0-STE100-Unified` / `v5.2.0-RSI`)
 
-| # | Modulo Core (`scripts/`) | Intervento Chirurgico in `v5.0.0-STE100-Unified` | Guardia di Compatibilità | File di Test (`tests/`) |
+| # | Modulo Core (`scripts/`) | Intervento Chirurgico in `v5.2.0-RSI` (`WP-CLEAN-1..2`) | Guardia di Compatibilità | File di Test (`tests/`) |
 | :---: | :--- | :--- | :---: | :--- |
-| 1 | `ast_guard_validator.py` | Aggiunge `self.function_depth` (`U-20`), `--stage-dir`, `--allowed-mutations` e `SASTConstructChecker`. Blocca `PYTEST_CURRENT_TEST`, `currentframe` e `f_globals` (`WP16..WP20`). | Nessuna | `test_ast_guard_validator.py` |
+| 1 | `ast_guard_validator.py` | Chiude `6` vettori SAST AST (`JoinedStr`, `"".join`, `__builtins__`, `importlib`, `attrgetter`, `os.exec*`) e rimuove refusi e alias morti. | Nessuna | `test_ast_guard_validator.py` |
 | 2 | `ast_repo_mapper.py` | Salva e ricarica `edges` in `%TEMP%\nk_diagnostics\repo_map_cache.json`. Risolve archi cross-modulo e rimuove dead-code residuo (`WP-V5-1`). | **`GT-06`** (`0/256/512/1024`) | `test_ast_repo_mapper.py` |
 | 3 | `async_heartbeat_signaler.py` | Rimuove `self.last_beat_time = now` dal ramo `else:` di `_run_loop()` (`U-22`). Mappa i nomi dei thread in `dump_diagnostics()`. | Nessuna | `test_rsi_convergence_engine.py` |
 | 4 | `auto_heal_pipeline.py` | Evita snapshot inutili dopo l'ultimo tentativo fallito. Integra il calcolo RSI in `AutoHealSessionReport`. | Nessuna | `test_auto_heal_pipeline.py` |
@@ -216,17 +212,18 @@ G:/Il mio Drive/Antigravity/NK_Hub/
 | 13 | `nk_active_runtime_sentinel.py` | Preserva le soglie `60/85/100` nel profilo `standard` e aggiunge `--profile argon` (`120/180/250`). | **`GT-02`** (`60/85/100`) | `test_active_sentinel_suite.py` |
 | 14 | `nk_auto_inning.py` | Passa `["--transcript", args.transcript, "--json"]` a `nk_compliance_checker.py` e legge il vero `composite_score` (`U-14`). | Nessuna | `test_active_sentinel_suite.py` |
 | 16 | `nk_context_sentry.py` | Esclude `len(thinking)` in profilo `argon` (`150/250` step). Penalizza `send_message > 2000` solo sui ritorni dai sub-agenti (`U-02`). | **`GT-01`**, **`GT-04`** | `test_context_sentry.py` + `stress` |
-| 17 | `nk_hook_gate.py` | Implementa il gate runtime stdlib con `probe`, `write-gate`, `fasttrack`, `integrity` e `stop-evidence` (`WP15..WP20`). | Nessuna | `test_super_plan_v6_triad.py` |
-| 18 | `nk_registry_indexer.py` | Mantiene `MANIFEST_VERSION = "4.7.0-STE100-Unified"` e aggiunge `RELEASE_VERSION = "5.0.0-STE100-Unified"` (`WP-V5-1`). | **`GT-14`** | `test_nk_registry_indexer.py` |
-| 20 | `nk_session_handoff.py` | Legge `unit_tests_total` da `quality_baseline.json` (`68` pavimento `GT-13`, `253` test) e usa context manager UTF-8 (`U-49`). | Nessuna | `test_active_sentinel_suite.py` |
+| 17 | `nk_hook_gate.py` | Gestisce i path con spazi, blocca gli alias PowerShell di scrittura e normalizza `CRLF -> LF` in `_sha256_file` (`WP-CLEAN-2`). | Nessuna | `test_nk_hook_and_transcript_governance.py` |
+| 18 | `nk_registry_indexer.py` | Normalizza `CRLF -> LF` in `_compute_sha256`, rimuove il doppio `verify()` e aggiorna `RELEASE_VERSION` a `5.2.0-STE100-Unified`. | **`GT-14`** | `test_nk_registry_indexer.py` |
+| 19 | `nk_session_bootstrap.py` | Calcola la cache Fast-Stat su `6` superfici, memorizza `_get_root_mtime()` intra-run ed emette `ONBOARDING_BYPASS_VERIFIED`. | Nessuna | `test_core_platform_utilities.py` |
+| 20 | `nk_session_handoff.py` | Legge `unit_tests_total` da `quality_baseline.json` (`93` test in `18` moduli) e usa `Path.home()` senza path cablati. | Nessuna | `test_active_sentinel_suite.py` |
 | 21 | `nk_swarm_messenger.py` | Mantiene il taglio a `1.800` char (MSS), include `sender`/`recipient` e chiama `reconfigure_streams()`. | **`GT-04`** (`< 1800` char) | `test_active_sentinel_suite.py` |
-| 22 | `nk_transcript_tools.py` | Implementa `locate`, `compliance`, `evidence`, `oracle-lock`, `report-conflict` e `lint-prompt` (`WP15..WP20`). Onora `--conversation-id` e rileva `AP-8..AP-13`. | Nessuna | `test_triad_epistemic_governance_v44.py` |
-| 26 | `quality_baseline_manager.py` | Fallisce in modo sicuro su JSON corrotto senza sovrascrivere il file (`BS-02`). Protegge il pavimento di `68` Golden Tests (`GT-13`). | **`GT-13`** | `test_quality_baseline_manager.py` |
-| 27 | `rsi_convergence_engine.py` | Calcola $\Delta_k$ e $Q(S_k)$ includendo `+ 100 * D_k`, `poc_confirmed_exploits` e `semantic_drift_findings`. Applica `G1..G6` e `--verify`. | **`GT-11`**, **`GT-12`** | `test_rsi_convergence_engine.py` |
+| 22 | `nk_transcript_tools.py` | Normalizza `CRLF -> LF` in `_hash_target_files` (`oracle-lock`), onora `--conversation-id` e rileva `AP-8..AP-13`. | Nessuna | `test_nk_hook_and_transcript_governance.py` |
+| 26 | `quality_baseline_manager.py` | Verifica la coerenza con `oracle_lock.json`, rimuove il doppio `load_baseline()` e valida `93` test in `18` moduli (`GT-13`). | **`GT-13`** | `test_quality_baseline_manager.py` |
+| 27 | `rsi_convergence_engine.py` | Pre-compila le regex STE100, calcola $\Delta_k$ e $Q(S_k)$ con `+ 100 * D_k` e applica `G1..G6` e `--verify`. | **`GT-11`**, **`GT-12`** | `test_rsi_convergence_engine.py` |
 | 29 | `sbfl_engine.py` | Mantiene `OchiaiDiagnosticPayload.estimate_token_count() < 80` e aggiunge l'interfaccia CLI `__main__`. | Nessuna | `test_sbfl_engine.py` |
-| 30 | `sbfl_pytest_bridge.py` | Collega `sbfl_engine.py`, supporta spazi nei path Windows e garantisce `loc.suspiciousness == 1.0` (`U-19`). | **`GT-07`** (`< 320` char) | `test_auto_heal_pipeline.py` |
-| 31 | `vibe_sprint_router.py` | Calcola `max_depth` AST, supporta `Mode D`, il Gate L0 (`--meta-prompt-gate`), il bypass `STATE_HANDOFF_STANDBY` e rimuove dead-code (`WP-V5-1`). | Nessuna | `test_vibe_sprint_router.py` + `test_intrinsic_vibe_sandbox_stress.py` |
-| 32 | `win32_2pc_engine.py` | Pulisce `__pycache__` in `_cleanup_promoted_staging` e unifica `record_session_anchor_commit` nel flusso 2PC (`WP-V5-1`). | Nessuna | `test_win32_2pc.py` |
+| 30 | `sbfl_pytest_bridge.py` | Collega `sbfl_engine.py`, rimuove il doppio `min()` e garantisce `loc.suspiciousness == 1.0` (`U-19`). | **`GT-07`** (`< 320` char) | `test_auto_heal_pipeline.py` |
+| 31 | `vibe_sprint_router.py` | Calcola `max_depth` AST, blocca i falsi bypass L0 e verifica `MODE_C_MAX_LOC == 150` (`WP-ANTIBIAS-2`). | Nessuna | `test_vibe_sprint_router.py` |
+| 32 | `win32_2pc_engine.py` | Usa `_atomic_write_bytes` in `recover()` e `_rollback_batch()`, pulisce `__pycache__` e registra il commit in `session_anchor.jsonl`. | Nessuna | `test_win32_2pc.py` |
 | 33 | `schemas/dual_ledgers.py` | Dichiara `c_void_p` su `OpenProcess`/`CloseHandle` e gestisce `TaskLedger` e `ProgressLedger` (`U-25`). | Nessuna | `test_schemas_and_contracts.py` |
 
 ---
@@ -261,15 +258,14 @@ G:/Il mio Drive/Antigravity/NK_Hub/
 
 ---
 
-## 4. Target Architetturali Consolidati (`WP21`, `WP-C1..WP-C5` e `WP-V5-1..WP-V5-4` in `v5.0.0-STE100-Unified`)
+## 4. Target Architetturali Consolidati (`WP-CLEAN-1..WP-CLEAN-4` in `v5.2.0-STE100-Unified` / `v5.2.0-RSI`)
 
 * **Plugin Hook Nativo (`.agents/plugins/nk-gate/`):** Contiene `plugin.json` e `hooks.json` in schema puro `map<string, HookSpec>` senza alterare i `16` file ausiliari delle skill.
 * **Invariante 34 Moduli (`scripts/`):** Il runner A/B (`P-06`) risiede come sottocomando `--ab-benchmark` in `scripts/rsi_convergence_engine.py` e `scripts/quality_baseline_manager.py` mantenendo `34` script indicizzati.
 * **Isolamento Backup e Holdout (`%LOCALAPPDATA%`):** I backup `.bak_N` di `nk_tracking/` risiedono in `%LOCALAPPDATA%\nk_backups\memory_3tier\`, mentre i canary risiedono in `%LOCALAPPDATA%\nk_holdout\canary_v1.json`.
 
-### Moduli di Test Consolidati (`v5.0.0-STE100-Unified`)
-* `tests/test_v460_competitive_integration_suite.py`: `30` test competitivi `WP-0..WP-4` con `GAP-01` sotto `0.20s`.
-* `tests/test_core_platform_utilities.py`: `14` test utilita di piattaforma e `invisible_healing_loop.py`.
-* `tests/test_v470_holistic_stress_suite.py`: `12` test avversari permanenti `S1..S6` Zero-Mock.
-* `tests/test_intrinsic_vibe_sandbox_stress.py`: `74` test di stress sui protocolli intrinseci.
-* `tests/test_nk_functional_certification_multilevel.py`: `17` test di certificazione multilivello.
+### Moduli di Test Consolidati (`v5.2.0-STE100-Unified` / `v5.2.0-RSI`, `93` Golden & Stress Tests in `18` Moduli)
+* `tests/test_nk_hook_and_transcript_governance.py`: `10` test ortogonali su `nk_hook_gate.py`, `nk_transcript_tools.py`, `S1..S6` e Canary Holdout.
+* `tests/test_vibe_sprint_router.py`: `12` test Zero-Mock su routing `Mode A..D`, Gate L0 e protocolli intrinseci vettoriali.
+* `tests/test_core_platform_utilities.py`: `14` test utilità di piattaforma, bootstrap e `invisible_healing_loop.py`.
+* `15` moduli Core e Stress specializzati rimanenti (`test_active_sentinel_suite.py` .. `stress/test_real_sandbox_stress.py`): `57` test dedicati alle guardie `GT-01..GT-14`.

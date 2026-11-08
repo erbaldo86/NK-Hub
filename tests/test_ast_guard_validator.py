@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Suite di test unitari Zero-Mock per Static AST Guard Validator e Guardia GT-14 (v3.3.0).
+Suite di test unitari Zero-Mock per Static AST Guard Validator e Guardia GT-14 (v5.2.0-STE100-Unified).
 Modulo: tests/test_ast_guard_validator.py.
 Valida purezza sintattica, firme, annotazioni di tipo, scope, PEP 634/695, walrus e GT-14.
 """
@@ -156,13 +156,11 @@ def process_data(raw_items: list[str]) -> list[int]:
 
     def test_c2_c3_c4_c6_and_nested_scope_fixes(self):
         """5. Valida C2 (default posizionale), C3 (kwonly default), C4 (_helper), C6 (Optional/Union) e scope."""
-        # C2: aggiunta valore di default a parametro posizionale esistente
         pre_c2 = "def compute(a: int, b: int) -> int:\n    return a + b\n"
         post_c2 = "def compute(a: int, b: int = 10) -> int:\n    return a + b\n"
         rep_c2 = ASTGuardValidator.validate_code_edit(pre_c2, post_c2)
         self.assertTrue(rep_c2.is_valid, f"C2 failed: {rep_c2.violations}")
 
-        # C3: aggiunta nuovo parametro kwonly_args con default consentita, senza default bloccata
         pre_c3 = "def fetch(url: str) -> str:\n    return url\n"
         post_c3_ok = "def fetch(url: str, *, timeout: float = 5.0) -> str:\n    return url\n"
         rep_c3_ok = ASTGuardValidator.validate_code_edit(pre_c3, post_c3_ok)
@@ -178,7 +176,6 @@ def process_data(raw_items: list[str]) -> list[int]:
             )
         )
 
-        # C4: eliminazione helper privato _helper esente, ma __dunder__ o funzione pubblica bloccata
         pre_c4 = (
             "def _internal_helper(x: int) -> int:\n    return x + 1\n\n"
             "def public_api(x: int) -> int:\n    return x + 1\n"
@@ -198,7 +195,6 @@ def process_data(raw_items: list[str]) -> list[int]:
             )
         )
 
-        # C6: normalizzazione annotazioni equivalenti Optional[T] <-> T | None <-> Union[T, None]
         pre_c6 = (
             "from typing import Optional, List\n"
             "def parse(tag: Optional[str], items: List[int]) -> Optional[int]:\n"
@@ -212,7 +208,6 @@ def process_data(raw_items: list[str]) -> list[int]:
         rep_c6 = ASTGuardValidator.validate_code_edit(pre_c6, post_c6)
         self.assertTrue(rep_c6.is_valid, f"C6 failed: {rep_c6.violations}")
 
-        # Scope: variabile definita in funzione annidata non deve trapelare nello scope esterno
         leak_nested = (
             "def outer() -> int:\n"
             "    def inner() -> int:\n"
@@ -230,7 +225,6 @@ def process_data(raw_items: list[str]) -> list[int]:
             )
         )
 
-        # C7: user_grants non genera falso positivo SAST-GAMING-D04
         domain_grants_code = (
             "def has_many_permissions(user_grants: list) -> bool:\n"
             "    return len(user_grants) >= 12\n"
@@ -254,6 +248,40 @@ def process_data(raw_items: list[str]) -> list[int]:
         yaml_ok_code = "import yaml\ndef parse_y(d: str):\n    return yaml.load(d, Loader=yaml.SafeLoader)\n"
         rep_m09_ok = ASTGuardValidator.validate_code_edit(yaml_ok_code, yaml_ok_code)
         self.assertTrue(rep_m09_ok.is_valid)
+
+    def test_sast_evasion_vectors_and_global_nonlocal_scope(self):
+        """6. Valida il blocco dei 6 vettori di evasione SAST (B4.1), compile (MUT-02) e global/nonlocal (B4.2)."""
+        evasion_snippets = [
+            'def f():\n    return compile("x=1", "<str>", "exec")\n',
+            'def f():\n    return getattr(__builtins__, f"{\'ev\'}al")\n',
+            'def f():\n    return getattr(__builtins__, "".join(["ev", "al"]))\n',
+            'def f():\n    return __builtins__["eval"]\n',
+            'import builtins\ndef f():\n    return builtins.__dict__["exec"]\n',
+            'import importlib\ndef f():\n    return importlib.import_module("os")\n',
+            'import operator\ndef f():\n    return operator.attrgetter("eval")\n',
+            'import os\ndef f():\n    return os.execv("/bin/sh", ["sh"])\n',
+            'import os\ndef f():\n    return os.spawnv(0, "/bin/sh", ["sh"])\n',
+        ]
+        for snippet in evasion_snippets:
+            rep = ASTGuardValidator.validate_code_edit("", snippet)
+            self.assertFalse(rep.is_valid, f"Evasion not blocked for: {snippet}")
+            self.assertTrue(
+                any(v.violation_type == ViolationType.SAST_VIOLATION for v in rep.violations),
+                f"Missing SAST_VIOLATION for: {snippet}",
+            )
+
+        global_nonlocal_code = (
+            "def outer_fn() -> int:\n"
+            "    global GLOBAL_SHARED_STATE\n"
+            "    def inner_fn() -> int:\n"
+            "        nonlocal ENCLOSING_STATE\n"
+            "        return GLOBAL_SHARED_STATE + ENCLOSING_STATE\n"
+            "    return inner_fn()\n"
+        )
+        rep_gn = ASTGuardValidator.validate_code_edit(
+            global_nonlocal_code, global_nonlocal_code
+        )
+        self.assertTrue(rep_gn.is_valid, f"B4.2 global/nonlocal failed: {rep_gn.violations}")
 
 
 if __name__ == "__main__":

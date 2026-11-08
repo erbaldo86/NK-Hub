@@ -1859,7 +1859,7 @@ def main() -> None:
     except Exception:
         pass
 
-    parser = argparse.ArgumentParser(description="High-Density AST Repo-Map Engine v4.7.0-STE100-Unified")
+    parser = argparse.ArgumentParser(description="High-Density AST Repo-Map Engine v5.2.0-STE100-Unified")
     parser.add_argument("--repo-map", action="store_true", help="Genera e stampa la repo map")
     parser.add_argument("--root", default=".", help="Directory radice da analizzare")
     parser.add_argument("--max-tokens", type=int, default=None, help="Budget massimo di token")
@@ -1871,6 +1871,8 @@ def main() -> None:
 
     args = parser.parse_args()
     root_path = Path(args.root).resolve()
+    if args.root == "." and not (root_path / "scripts").is_dir() and (root_path / "NK_Hub" / "scripts").is_dir():
+        root_path = (root_path / "NK_Hub").resolve()
 
     if args.symbol:
         sub_res = query_symbol_subgraph(symbol_name=args.symbol, root=root_path)

@@ -328,6 +328,10 @@ _SHORT_CONFIRMATIONS: Set[str] = {
     "si",
     "sì",
     "procedi",
+    "procedi pure",
+    "procedi con il piano",
+    "procedi alla creazione dell implementation plan",
+    "procedi alla creazione dell'implementation plan",
     "confermo",
     "vai",
     "proceed",
@@ -345,11 +349,17 @@ _ANTI_LOOP_EXEMPT_PREFIXES: Tuple[str, ...] = (
     "ok procedi",
     "si procedi",
     "sì procedi",
+    "procedi pure",
+    "procedi con il piano",
     "procedi",
     "confermo",
     "vai",
     "proceed",
     "premi proceed",
+)
+_PLAN_CONFIRMATION_PREFIXES: Tuple[str, ...] = (
+    "procedi alla creazione dell implementation plan",
+    "procedi con il piano",
 )
 _ONBOARDING_TRIGGERS: Set[str] = {
     "avvia ambiente nk",
@@ -387,6 +397,46 @@ _DESTRUCTIVE_OR_WRITE_EXEMPT_BLOCKERS: Set[str] = {
     "aggiorna",
     "refactoring",
     "refactor",
+}
+_EXPLICIT_BYPASS_PHRASES: Tuple[str, ...] = (
+    "salta gate",
+    "disattiva prompt gate",
+)
+_ANALYTICAL_INTERROGATIVE_PREFIXES: Tuple[str, ...] = (
+    "analizza",
+    "verifica",
+    "controlla",
+    "spiega",
+    "perche",
+    "perché",
+    "dove",
+    "come",
+    "mostra",
+    "cerca",
+)
+_TECHNICAL_TASK_EXEMPT_BLOCKERS: Set[str] = {
+    "log",
+    "logs",
+    "bug",
+    "bugs",
+    "errore",
+    "errori",
+    "file",
+    "files",
+    "codice",
+    "script",
+    "scripts",
+    "test",
+    "tests",
+    "analisi",
+    "modulo",
+    "moduli",
+    "controlla",
+    "controllare",
+    "verifica",
+    "verificare",
+    "analizza",
+    "analizzare",
 }
 _VOICE_CORRECTION_MARKERS: Tuple[str, ...] = (
     "anzi no",
@@ -1285,7 +1335,12 @@ class VibeSprintRouter:
         salta_pat = re.compile(
             r"(?i)(?<!\bnon\s)(?<!\bsenza\s)(?<!\bvietato\s)(?<!\bmai\s)(?:^|\s)salta gate(?=\s|$|[.,;!?])"
         )
-        if salta_pat.search(masked):
+        masked_norm_words = re.sub(r"[,.;:!?\"']+", " ", masked.lower()).split()
+        starts_analytical_stt = bool(
+            masked_norm_words
+            and masked_norm_words[0] in _ANALYTICAL_INTERROGATIVE_PREFIXES
+        )
+        if not starts_analytical_stt and salta_pat.search(masked):
             bypass_requested = True
             masked = salta_pat.sub(" ", masked).strip()
 
@@ -1352,28 +1407,51 @@ class VibeSprintRouter:
         if is_passive_state_handoff(text):
             return True
         text_low = text.lower()
-        if "<env_capsule>" in text_low:
+        if text_low.startswith("<env_capsule>") or (
+            "<env_capsule>" in text_low and "</env_capsule>" in text_low
+        ):
             return True
         if re.search(
             r"(?:^\s*(?:!diretto|!raw)(?=\s|$|[.,;!?])|(?:^|\s)(?:!diretto|!raw)\s*[.,;!?]*$)",
             text_low,
         ):
             return True
-        for toggle_marker in ("salta gate", "disattiva prompt gate"):
-            if toggle_marker in text_low and not re.search(
-                rf"\b(?:non|senza|vietato|mai)\s+(?:\w+\s+){{0,3}}{re.escape(toggle_marker)}\b",
-                text_low,
-            ):
-                return True
         norm = re.sub(r"[,.;:!?\"']+", " ", text_low).strip()
         norm = re.sub(r"\s+", " ", norm)
+        norm_words = norm.split()
+        starts_with_analytical = bool(
+            norm_words and norm_words[0] in _ANALYTICAL_INTERROGATIVE_PREFIXES
+        ) or text_low.startswith(_ANALYTICAL_INTERROGATIVE_PREFIXES)
+        if not starts_with_analytical:
+            for toggle_marker in _EXPLICIT_BYPASS_PHRASES:
+                if toggle_marker in text_low and not re.search(
+                    rf"\b(?:non|senza|vietato|mai)\s+(?:\w+\s+){{0,3}}{re.escape(toggle_marker)}\b",
+                    text_low,
+                ):
+                    return True
         if norm in _SHORT_CONFIRMATIONS:
             return True
-        norm_words = norm.split()
+        if len(norm_words) <= 12 and norm.startswith(_PLAN_CONFIRMATION_PREFIXES):
+            if (
+                not any(
+                    w in _DESTRUCTIVE_OR_WRITE_EXEMPT_BLOCKERS for w in norm_words
+                )
+                and not any(
+                    w in _TECHNICAL_TASK_EXEMPT_BLOCKERS for w in norm_words
+                )
+                and not _has_imperative_write_keyword(norm)
+            ):
+                return True
         if len(norm_words) <= 5 and norm.startswith(_ANTI_LOOP_EXEMPT_PREFIXES):
-            if not any(
-                w in _DESTRUCTIVE_OR_WRITE_EXEMPT_BLOCKERS for w in norm_words
-            ) and not _has_imperative_write_keyword(norm):
+            if (
+                not any(
+                    w in _DESTRUCTIVE_OR_WRITE_EXEMPT_BLOCKERS for w in norm_words
+                )
+                and not any(
+                    w in _TECHNICAL_TASK_EXEMPT_BLOCKERS for w in norm_words
+                )
+                and not _has_imperative_write_keyword(norm)
+            ):
                 return True
         if norm in _ONBOARDING_TRIGGERS:
             return True
@@ -1484,10 +1562,22 @@ class VibeSprintRouter:
                 (
                     norm_clean in _SHORT_CONFIRMATIONS
                     or (
+                        len(norm_clean_words) <= 12
+                        and norm_clean.startswith(_PLAN_CONFIRMATION_PREFIXES)
+                        and not any(
+                            w in _DESTRUCTIVE_OR_WRITE_EXEMPT_BLOCKERS
+                            for w in norm_clean_words
+                        )
+                    )
+                    or (
                         len(norm_clean_words) <= 5
                         and norm_clean.startswith(_ANTI_LOOP_EXEMPT_PREFIXES)
                         and not any(
                             w in _DESTRUCTIVE_OR_WRITE_EXEMPT_BLOCKERS
+                            for w in norm_clean_words
+                        )
+                        and not any(
+                            w in _TECHNICAL_TASK_EXEMPT_BLOCKERS
                             for w in norm_clean_words
                         )
                     )

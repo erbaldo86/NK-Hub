@@ -52,7 +52,15 @@ jobs:
         run: |
           python scripts/ast_guard_validator.py --target all
 
-      - name: Run Core Platform Test Suite (245 Golden & Stress Tests)
+      - name: Run O(1) Registry Integrity Verification
+        run: |
+          python scripts/nk_registry_indexer.py --verify
+
+      - name: Run Epistemic Oracle Lock Verification
+        run: |
+          python scripts/nk_transcript_tools.py oracle-lock verify
+
+      - name: Run Core Platform Test Suite (93 Golden Tests in 18 modules, v5.2.0-RSI)
         run: |
           pip install pytest-github-actions-annotate-failures
           python -m pytest tests/ -v --tb=short --junitxml=pytest-results.xml

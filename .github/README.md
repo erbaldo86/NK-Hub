@@ -1,10 +1,10 @@
-# Nexus Keystone Hub (NK-Hub v5.0.0-STE100-Unified)
+# Nexus Keystone Hub (NK-Hub v5.2.0-STE100-Unified / v5.2.0-RSI)
 ## L'Ambiente di Sviluppo Multi-Agente Ordinato, Sicuro e Autonomo per Google Antigravity
 
-> 🌍 **Lingua / Language:** **[🇮🇹 Italiano (Qui sotto)](#-1-presentazione-veloce-in-90-secondi-lhook-perch%C3%A9-nasce-e-cosa-fa)** | **[🇬🇧 English Version (Below)](#-english-version--nexus-keystone-hub-nk-hub-v500-ste100-unified)** | **[📖 Guida Installazione ZIP](../nk_docs_and_setup/GUIDA_INSTALLAZIONE.md)** | **[🗺️ Mappa Libreria](../nk_docs_and_setup/00_MAPPA_LIBRERIA_NK.md)**
+> 🌍 **Lingua / Language:** **[🇮🇹 Italiano (Qui sotto)](#-1-presentazione-veloce-in-90-secondi-lhook-perch%C3%A9-nasce-e-cosa-fa)** | **[🇬🇧 English Version (Below)](#-english-version--nexus-keystone-hub-nk-hub-v520-ste100-unified)** | **[📖 Guida Installazione ZIP](../nk_docs_and_setup/GUIDA_INSTALLAZIONE.md)** | **[🗺️ Mappa Libreria](../nk_docs_and_setup/00_MAPPA_LIBRERIA_NK.md)**
 >
-> 📦 **SCARICA CON 1 CLICK L'AMBIENTE COMPLETO (`.ZIP` CON GUIDA INCLUSA):**  
-> 👉 **[Scarica NK_Hub_OneClick_Package.zip (Release Ufficiale v5.0.0-STE100-Unified)](https://github.com/erbaldo86/NK-Hub/releases/download/v5.0.0-STE100-Unified/NK_Hub_OneClick_Package.zip)** *(oppure [Download Diretto dal Repository](https://github.com/erbaldo86/NK-Hub/raw/main/nk_docs_and_setup/NK_Hub_OneClick_Package.zip))*
+> 📦 **SCARICA CON 1 CLICK L'AMBIENTE COMPLETO (`.ZIP` CON GUIDA INCLUSA, BUILD `2026-11-08`):**  
+> 👉 **[Scarica NK_Hub_OneClick_Package.zip (Release Ufficiale v5.2.0-STE100-Unified : 2026-11-08)](https://github.com/erbaldo86/NK-Hub/releases/download/v5.2.0-STE100-Unified/NK_Hub_OneClick_Package.zip)** *(oppure [Download Diretto dal Repository](https://github.com/erbaldo86/NK-Hub/raw/main/nk_docs_and_setup/NK_Hub_OneClick_Package.zip))*
 
 ---
 
@@ -40,7 +40,7 @@ Creare un programma con l'IA è facile nei primi minuti. Appena il progetto cres
 
 ## 📦 2. Guida Rapida all'Installazione (Per Chi Scarica lo ZIP con 1 Click)
 
-Il file **[NK_Hub_OneClick_Package.zip](https://github.com/erbaldo86/NK-Hub/releases/download/v5.0.0-STE100-Unified/NK_Hub_OneClick_Package.zip)** contiene già l'intera libreria pronta all'uso e la [GUIDA_INSTALLAZIONE.md](../nk_docs_and_setup/GUIDA_INSTALLAZIONE.md).
+Il file **[NK_Hub_OneClick_Package.zip](https://github.com/erbaldo86/NK-Hub/releases/download/v5.2.0-STE100-Unified/NK_Hub_OneClick_Package.zip)** (build aggiornata `v5.2.0-STE100-Unified`, `2026-11-08`) contiene l'intera libreria pronta all'uso e la [GUIDA_INSTALLAZIONE.md](../nk_docs_and_setup/GUIDA_INSTALLAZIONE.md).
 
 ### Installazione in 3 Passi Semplici
 1. **Estrai lo ZIP:** scarica `NK_Hub_OneClick_Package.zip` ed estrailo nella tua cartella di lavoro (ad esempio `Antigravity/`). Otterrai due cartelle pulite: `NK_Hub` e `NK_External_Projects`.
@@ -49,7 +49,7 @@ Il file **[NK_Hub_OneClick_Package.zip](https://github.com/erbaldo86/NK-Hub/rele
    cd NK_Hub
    .\nk_docs_and_setup\install.ps1
    ```
-   *(Su Linux/macOS esegui `./nk_docs_and_setup/install.sh`. Lo script installa i pacchetti da `nk_docs_and_setup/requirements.txt`, verifica l'indice in `< 1.0 ms` ed esegue i `253` test certificati).*
+   *(Su Linux/macOS esegui `./nk_docs_and_setup/install.sh`. Lo script installa i pacchetti da `nk_docs_and_setup/requirements.txt`, verifica l'indice in `< 1.0 ms` ed esegue i `93` test in `18` moduli).*
 3. **Accendi il Motore in Antigravity:** apri la cartella in Google Antigravity e scrivi in chat:
    ```text
    avvia ambiente nk
@@ -108,7 +108,7 @@ Se sei uno sviluppatore esperto o un architetto software, ecco i vantaggi di `NK
    * **Avvio Bootstrap Fast-Stat (`nk_session_bootstrap.py`):** `18..28 ms` (target `< 50 ms`).
    * **Verifica Registro O(1) con Cache `OPT-11` (`nk_registry_indexer.py --verify`):** `< 1.0 ms` in cache (`41.8 ms` cold).
    * **Lookup Tassonomico e Routing L0 (`vibe_sprint_router.py`):** `1.08..2.12 ms` (target `< 15 ms`).
-   * **Suite Completa di `253` Test Reali Zero-Mock (`245` baseline, `24` moduli in `tests/`):** `100.0% PASS` (`253/253`).
+   * **Suite Completa di `93` Golden & Stress Tests Zero-Mock (`18` moduli ad alta densità, `Mutation Score 100.0%`):** `100.0% PASS` (`93/93`).
 
 ---
 
@@ -185,7 +185,7 @@ Quando avvii l'ambiente con `"avvia ambiente nk"`, puoi richiamare direttamente 
 | **`[13]`** | [NK-Episodic-Memory-Engine](../.agents/skills/NK-Episodic-Memory-Engine/SKILL.md) | `DOM-05` | `NK-Scribe-Agent` | Gestisce la memoria a 3 livelli (`ARCH`, `SEC`, `OPS`, `DEVX`) e il recupero ibrido RRF. |
 | **`[14]`** | [NK-Session-Controller](../.agents/skills/NK-Session-Controller/SKILL.md) | `DOM-01` | Regista Principale | Supervisiona la sessione, il passaggio di consegne zero-amnesia e la convergenza RSI. |
 
-### 5.4 Architettura dei 34 Script del Motore (`scripts/`) e Suite di Test (`253/253 PASS`)
+### 5.4 Architettura dei 34 Script del Motore (`scripts/`) e Suite di Test (`93/93 PASS` in `18` Moduli)
 
 I `34` moduli indicizzati in `scripts/` (`36` file Python inclusi gli schemi IPC) sono raggruppati in 5 aree operative:
 1. **Avvio, Routing e Governance (`DOM-01`):** `nk_session_bootstrap.py`, `nk_registry_indexer.py`, `vibe_sprint_router.py`, `nk_hook_gate.py` e `win32_2pc_engine.py`. Include inoltre `nk_context_sentry.py`, `nk_active_runtime_sentinel.py`, `nk_compliance_checker.py` e `nk_swarm_messenger.py`.
@@ -193,43 +193,39 @@ I `34` moduli indicizzati in `scripts/` (`36` file Python inclusi gli schemi IPC
 3. **Costruzione, Riparazione e Cache (`DOM-03`):** `auto_heal_pipeline.py`, `healing_snapshot_rollback.py`, `invisible_healing_loop.py`, `platform_runner.py`, `safe_cleanup_dev_servers.py`, `deterministic_api_cache.py`, `async_heartbeat_signaler.py`.
 4. **Sicurezza, Sandbox e Convergenza RSI (`DOM-04`):** `ast_guard_validator.py`, `rsi_convergence_engine.py` e `nk_transcript_tools.py`. Include `dast_sandbox_runner.py`, `sbfl_engine.py`, `sbfl_pytest_bridge.py` e `oracle_evaluator_l3.py`.
 5. **Memoria, Baseline e Passaggio di Consegne (`DOM-05`):** `memory_3tier_engine.py`, `quality_baseline_manager.py`, `preflight_health_check.py` e `nk_session_handoff.py`. Include `nk_auto_inning.py`, `micro_hud_renderer.py` e i contratti in `scripts/schemas/`.
-6. **253 Test Reali Zero-Mock (`245` Baseline in `tests/`):** `24` moduli verificano ogni script, confine hardware, guardia SAST e rollback 2PC. La suite certifica il **`100.0%` (`253/253 PASS`)**.
+6. **93 Test Reali Zero-Mock (`18` Moduli in `tests/`):** verificano `34` script, `16` skill e `5` sub-agenti. La suite certifica il **`100.0%` (`93/93 PASS`, `Mutation Score 100.0%`)**.
 
 ---
 
-## 📈 6. Cosa Cambia dalla Versione 4 alla Release v5.0.0-STE100-Unified (I Miglioramenti Strutturali)
+## 📈 6. Patch Notes di Transizione (`Evoluzione da GitHub v5.0.0-STE100-Unified a Checkpoint v5.2.0-RSI : 2026-11-08`)
 
-La release `v5.0.0-STE100-Unified` rappresenta il consolidamento Clean-Slate dell'architettura rispetto alla serie `4.x`:
+Il checkpoint `v5.2.0-STE100-Unified` (`v5.2.0-RSI`, `2026-11-08`) consolida tre cicli evolutivi rispetto alla release `v5.0.0-STE100-Unified`:
 
-| Area Architetturale | Versione 4.x (`v4.7.0` / `v4.8.0`) | Release `v5.0.0-STE100-Unified` |
+| Area Architetturale | Release Precedente (`v5.0.0-STE100-Unified`) | Checkpoint Attuale (`v5.2.0-STE100-Unified` / `v5.2.0-RSI`) |
 | :--- | :--- | :--- |
-| **Suite di Test Permanenti** | `245` test di baseline con possibili attriti sui workspace temporanei | **`253/253 PASS` (`100.0%`)** su `24` moduli e `14` invarianti `GT-01..GT-14` |
-| **Backup Memoria a 3 Livelli** | Backup `.bak_N` condivisi nella cartella locale del motore | **Isolamento Crittografico (`ws_<sha256_12>`)** tra produzione e sandbox di test |
-| **Verifica Manifesto e Cache O(1)** | Verifica `Fast-Stat` in `~24.94..41.8 ms` e versione unica | **Separazione Schema vs Release** e verifica **`< 1.0 ms` in cache** su Google Drive |
-| **Igiene `.staging/` post-Commit** | Possibili cartelle `__pycache__` residue dopo i test in staging | **Auto-Pulizia Bytecode `.pyc`** integrata nel commit atomico `Win32 2PC` |
-| **Purezza AST e Telemetria** | Presenza di helper inutilizzati e vecchi report di progetti esterni | **Zero Dead-Code (`63/63 PASS`)** e `nk_tracking/` bonificato al `100%` |
-| **Allineamento Costituzionale** | Riferimenti di versione distribuiti tra `v4.6.0`, `v4.7.0` e `v4.8.0` | **Unificazione `1:1` a `v5.0.0`** su `16` skill, `5` sub-agenti, Genoma e pacchetto `.zip` |
+| **Suite di Test Permanenti** | `253` test (`245` Golden + `8` Stress) distribuiti in `24` moduli | **`93` Golden & Stress Tests ad alta densità in `18` moduli** (`-63%` overhead, `Mutation Score 100.0%`) |
+| **Hardening Anti-Bias (`v5.1.1-RSI`)** | Guardia SAST standard e Fast-Stat su mtime singolo | **Chiusura di `6` vettori SAST AST**, fix path con spazi in `nk_hook_gate.py` e cache Fast-Stat su `6` superfici |
+| **Ottimizzazione e Pulizia (`v5.2.0-RSI`)** | Presenza di loader duplicati nei test e regex compilate a runtime | **Zero dead-code**, regex STE100 pre-compilate, caching `mtime` intra-run e sottoprocessi di test accelerati |
+| **Invarianza CI Cross-OS (`CRLF`/`LF`)** | Sensibilità degli hash SHA-256 alle differenze `CRLF` vs `LF` su checkout CI | **Normalizzazione `CRLF -> LF`** in `nk_registry_indexer.py`, `nk_transcript_tools.py` e `nk_hook_gate.py` |
+| **Allineamento Costituzionale** | Riferimenti a `v5.0.0` e `253` test nei manuali e negli installer | **Unificazione `1:1` a `v5.2.0-RSI`** su `34` script, `16` skill, `5` sub-agenti, Tetralogia e pacchetto `.zip` |
 
-### I 6 Miglioramenti Strutturali nel Dettaglio
-1. **Suite Permanente al `100%` (`253/253 PASS` su `24` moduli):** elimina ogni regressione e copre i `14` invarianti `GT-01..GT-14`.
-2. **Isolamento Crittografico dei Backup Memoria (`ws_<sha256_12>`):** separa i backup di produzione dalle sandbox con guardia sui file vuoti.
-3. **Separazione Contratto Schema vs Release e Cache `O(1)` (`< 1.0 ms`):** distingue `MANIFEST_VERSION` e `RELEASE_VERSION` con verifica istantanea (`< 1 ms` vs `41.8 ms`).
-4. **Auto-Pulizia Bytecode `.pyc` nel Commit Atomico `Win32 2PC`:** rimuove le cartelle `__pycache__` e lascia `.staging/` immacolata (`.gitkeep`).
-5. **Zero Dead-Code (`63/63 PASS` su `ast_guard_validator.py`) e Bonifica `nk_tracking/`:** elimina i simboli morti in `scripts/` e rimuove i riferimenti esterni.
-6. **Unificazione Costituzionale `v5.0.0` ($\Delta_k = 0, Q = 100.0$):** allinea `1:1` le `16` skill, i `5` sub-agenti, il Genoma e `NK_Hub_OneClick_Package.zip`.
+### Dettaglio dell'Evoluzione da `v5.0.0-STE100-Unified` a `v5.2.0-RSI` (`2026-11-08`)
+1. **Consolidamento Lean (`v5.1.0-RSI`):** unifica `253` test in `93` test ad alta densità in `18` moduli (`-63%` overhead, `100%` copertura).
+2. **Hardening Anti-Bias Esterno (`v5.1.1-RSI`):** chiude `6` vettori SAST AST in `ast_guard_validator.py` e corregge i path con spazi in `nk_hook_gate.py`. Introduce la cache Fast-Stat composita su `6` superfici in `nk_session_bootstrap.py` e certifica `Mutation Score 5/5` (`100.0%`).
+3. **Checkpoint Ottimizzato (`v5.2.0-RSI`):** rimuove dead-code, pre-compila le regex STE100, memorizza `mtime` intra-run e velocizza i sottoprocessi di test. Garantisce inoltre l'invarianza `CRLF`/`LF` per GitHub Actions CI (`Lab NK Hub Continuous Verification`).
 
 ---
-*Nexus Keystone Hub (`v5.0.0-STE100-Unified`) | Certificato `253/253 PASS` (`245` Baseline) Zero-Mock | $\Delta_k = 0, Q(S_k) = 100.0$*
+*Nexus Keystone Hub (`v5.2.0-STE100-Unified` / `v5.2.0-RSI` : `2026-11-08`) | Certificato `93/93 PASS` (`18` Moduli, `Mutation Score 100.0%`) Zero-Mock | $\Delta_k = 0, Q(S_k) = 100.0$*
 
 ---
 
-# 🇬🇧 English Version : Nexus Keystone Hub (NK-Hub v5.0.0-STE100-Unified)
+# 🇬🇧 English Version : Nexus Keystone Hub (NK-Hub v5.2.0-STE100-Unified)
 ## The Organized, Safe, and Autonomous Multi-Agent Development Environment for Google Antigravity
 
 > 🌍 **Language / Lingua:** **[🇮🇹 Vai alla Versione Italiana](#-1-presentazione-veloce-in-90-secondi-lhook-perch%C3%A9-nasce-e-cosa-fa)** | **[📖 1-Click ZIP Install Guide](../nk_docs_and_setup/GUIDA_INSTALLAZIONE.md)** | **[🗺️ Library Map](../nk_docs_and_setup/00_MAPPA_LIBRERIA_NK.md)**
 >
-> 📦 **1-CLICK DOWNLOAD OF THE COMPLETE ENVIRONMENT (`.ZIP` WITH INSTALL GUIDE):**  
-> 👉 **[Download NK_Hub_OneClick_Package.zip (Official Release v5.0.0-STE100-Unified)](https://github.com/erbaldo86/NK-Hub/releases/download/v5.0.0-STE100-Unified/NK_Hub_OneClick_Package.zip)** *(or [Direct Download from Repository](https://github.com/erbaldo86/NK-Hub/raw/main/nk_docs_and_setup/NK_Hub_OneClick_Package.zip))*
+> 📦 **1-CLICK DOWNLOAD OF THE COMPLETE ENVIRONMENT (`.ZIP` WITH INSTALL GUIDE, BUILD `2026-11-08`):**  
+> 👉 **[Download NK_Hub_OneClick_Package.zip (Official Release v5.2.0-STE100-Unified : 2026-11-08)](https://github.com/erbaldo86/NK-Hub/releases/download/v5.2.0-STE100-Unified/NK_Hub_OneClick_Package.zip)** *(or [Direct Download from Repository](https://github.com/erbaldo86/NK-Hub/raw/main/nk_docs_and_setup/NK_Hub_OneClick_Package.zip))*
 
 ---
 
@@ -265,7 +261,7 @@ When you build software with AI (Vibe Coding), the first few minutes feel effort
 
 ## 📦 2. Quick Installation Guide (For 1-Click ZIP Users)
 
-The **[NK_Hub_OneClick_Package.zip](https://github.com/erbaldo86/NK-Hub/releases/download/v5.0.0-STE100-Unified/NK_Hub_OneClick_Package.zip)** archive includes the entire organized environment and the bilingual [GUIDA_INSTALLAZIONE.md](../nk_docs_and_setup/GUIDA_INSTALLAZIONE.md).
+The **[NK_Hub_OneClick_Package.zip](https://github.com/erbaldo86/NK-Hub/releases/download/v5.2.0-STE100-Unified/NK_Hub_OneClick_Package.zip)** archive (updated build `v5.2.0-STE100-Unified`, `2026-11-08`) includes the entire organized environment and the bilingual [GUIDA_INSTALLAZIONE.md](../nk_docs_and_setup/GUIDA_INSTALLAZIONE.md).
 
 ### Setup in 3 Easy Steps
 1. **Extract the ZIP:** download `NK_Hub_OneClick_Package.zip` and extract it into your main workspace folder (for example `Antigravity/`). You will see two clean folders: `NK_Hub` and `NK_External_Projects`.
@@ -274,7 +270,7 @@ The **[NK_Hub_OneClick_Package.zip](https://github.com/erbaldo86/NK-Hub/releases
    cd NK_Hub
    .\nk_docs_and_setup\install.ps1
    ```
-   *(On Linux/macOS run `./nk_docs_and_setup/install.sh`. The script installs dependencies from `nk_docs_and_setup/requirements.txt`, verifies the O(1) index in `< 1.0 ms`, and runs the `253` certified tests).*
+   *(On Linux/macOS run `./nk_docs_and_setup/install.sh`. The script installs `nk_docs_and_setup/requirements.txt`, verifies the O(1) index in `< 1.0 ms`, and runs `93` tests in `18` modules).*
 3. **Launch the Engine in Antigravity:** open the folder in Google Antigravity and type in chat:
    ```text
    start nk
@@ -320,7 +316,7 @@ If you are an experienced engineer wondering what `NK-Hub` adds over a standard 
 1. **Clean Physical Library Layout (`NK_Hub` + `NK_External_Projects` + `nk_docs_and_setup`):**
    Every file has a single physical copy and logical home. Manuals live in `nk_docs_and_setup/`, plans in `nk_genome/`, telemetry in `nk_tracking/`, scripts in `scripts/`, and user apps in `NK_External_Projects/`.
 2. **Hardware Separation Between Builders and Auditors (`GT-14`):**
-   The `5` Native Sub-Agents enforce strict YAML permissions: `NK-Security-DAST-Auditor` and `NK-RSI-Auditor` run with `enable_write_tools: false`, and all sub-agents enforce `enable_subagent_tools: false` (`RULE-01`).
+   The `5` Native Sub-Agents enforce strict YAML permissions. Auditors enforce `enable_write_tools: false` and all sub-agents enforce `enable_subagent_tools: false` (`RULE-01`).
 3. **1-Click L0 Gate & `Mode C` Fast-Bypass (`< 500 ms`, `-71.9%` Token Usage):**
    Before execution, the router compiles a strict Pydantic v2 contract (`MetaPromptGateContract`) with a `SHA-256` intent hash. Edits under `150` lines run via Fast-Bypass in `~65 ms`.
 4. **$100\times$ Epistemic Honesty & `SAST-GAMING-D01..D04` Static Guards:**
@@ -333,7 +329,7 @@ If you are an experienced engineer wondering what `NK-Hub` adds over a standard 
    * **Fast-Stat Session Bootstrap (`nk_session_bootstrap.py`):** `18..28 ms` (target `< 50 ms`).
    * **O(1) Registry Verification with `OPT-11` Cache (`nk_registry_indexer.py --verify`):** `< 1.0 ms` cached (`41.8 ms` cold).
    * **Taxonomic Lookup & L0 Routing (`vibe_sprint_router.py`):** `1.08..2.12 ms` (target `< 15 ms`).
-   * **Full Suite of `253` Real Zero-Mock Tests (`245` baseline, `24` modules in `tests/`):** `100.0% PASS` (`253/253`).
+   * **Full Suite of `93` Real Zero-Mock Golden & Stress Tests (`18` high-density modules, `Mutation Score 100.0%`):** `100.0% PASS` (`93/93`).
 
 ---
 
@@ -408,37 +404,33 @@ flowchart LR
 | **`[13]`** | [NK-Episodic-Memory-Engine](../.agents/skills/NK-Episodic-Memory-Engine/SKILL.md) | `DOM-05` | `NK-Scribe-Agent` | Manages 3-Tier episodic memory (`ARCH`, `SEC`, `OPS`, `DEVX`) and hybrid RRF recall. |
 | **`[14]`** | [NK-Session-Controller](../.agents/skills/NK-Session-Controller/SKILL.md) | `DOM-01` | Main Agent (Hub) | Supervises session lifecycle, zero-amnesia handoff, and Tensor-RSI convergence. |
 
-### 5.4 Overview of the 34 Indexed Python Modules (`scripts/`) & Certified Test Suite (`253/253 PASS`)
+### 5.4 Overview of the 34 Indexed Python Modules (`scripts/`) & Certified Test Suite (`93/93 PASS` across `18` Modules)
 
 1. **Governance, Routing & Atomic 2PC (`DOM-01`):** `nk_session_bootstrap.py`, `nk_registry_indexer.py`, `vibe_sprint_router.py`, `nk_hook_gate.py`, and `win32_2pc_engine.py`. Also includes `nk_context_sentry.py`, `nk_active_runtime_sentinel.py`, `nk_compliance_checker.py`, and `nk_swarm_messenger.py`.
 2. **Architecture & Project Scaffolding (`DOM-02`):** `external_project_scaffolder.py` (scaffolds isolated apps in `NK_External_Projects/`), `ast_repo_mapper.py` (PageRank AST mapper & `< 0.20s` `--symbol` query), `env_capability_probe.py`.
 3. **Build, Self-Healing & Caching (`DOM-03`):** `auto_heal_pipeline.py`, `healing_snapshot_rollback.py`, `invisible_healing_loop.py`, `platform_runner.py`, `safe_cleanup_dev_servers.py`, `deterministic_api_cache.py`, `async_heartbeat_signaler.py`.
 4. **Security, DAST Sandbox & Tensor-RSI (`DOM-04`):** `ast_guard_validator.py`, `rsi_convergence_engine.py`, and `nk_transcript_tools.py`. Also includes `dast_sandbox_runner.py`, `sbfl_engine.py`, `sbfl_pytest_bridge.py`, and `oracle_evaluator_l3.py`.
 5. **3-Tier Memory, Baseline & Handoff (`DOM-05`):** `memory_3tier_engine.py`, `quality_baseline_manager.py`, `preflight_health_check.py`, `nk_session_handoff.py`, `nk_auto_inning.py`, `micro_hud_renderer.py`, and Pydantic v2 contracts in `scripts/schemas/`.
-6. **253 Zero-Mock Tests (`245` Baseline in `tests/`):** `24` orthogonal test modules verify every script, sub-agent boundary, SAST guard, and 2PC rollback. The suite passes at **`253/253 PASS` (`100.0%`)**.
+6. **93 Zero-Mock Tests (`18` Modules in `tests/`):** verify `34` Python scripts, `16` skills, `5` sub-agents, SAST, and 2PC. The suite passes at **`93/93 PASS` (`100.0%`, `Mutation Score 100.0%`)**.
 
 ---
 
-## 📈 6. What Changed from Version 4 to Release v5.0.0-STE100-Unified (Structural Improvements)
+## 📈 6. Transition Patch Notes (`v5.0.0 -> v5.2.0-RSI Checkpoint`, `2026-11-08`)
 
-Release `v5.0.0-STE100-Unified` delivers the Clean-Slate consolidation of the framework over the `4.x` series:
+Checkpoint `v5.2.0-STE100-Unified` (`v5.2.0-RSI`, `2026-11-08`) delivers three major evolutionary milestones over the previous GitHub release (`v5.0.0-STE100-Unified`):
 
-| Architectural Area | Version 4.x (`v4.7.0` / `v4.8.0`) | Release `v5.0.0-STE100-Unified` |
+| Architectural Area | Previous GitHub Release (`v5.0.0-STE100-Unified`) | Current Checkpoint (`v5.2.0-STE100-Unified` / `v5.2.0-RSI`) |
 | :--- | :--- | :--- |
-| **Permanent Test Suite** | `245` baseline tests with occasional temp-workspace friction | **`253/253 PASS` (`100.0%`)** across `24` modules and `14` invariants `GT-01..GT-14` |
-| **3-Tier Memory Backups** | Shared `.bak_N` backups inside the local engine folder | **Cryptographic Isolation (`ws_<sha256_12>`)** between production and test sandboxes |
-| **Manifest & O(1) Cache** | `Fast-Stat` check in `~24.94..41.8 ms` with single version field | **Schema vs Release Separation** and **`< 1.0 ms` cached check** on Google Drive |
-| **Post-Commit `.staging/` Hygiene** | Possible leftover `__pycache__` folders after staging tests | **Automatic `.pyc` Bytecode Purge** inside `Win32 2PC` atomic commit |
-| **AST Purity & Telemetry** | Residual unused helpers and legacy external project reports | **Zero Dead-Code (`63/63 PASS`)** and `100%` sanitized `nk_tracking/` |
-| **Constitutional Alignment** | Version strings split across `v4.6.0`, `v4.7.0`, and `v4.8.0` | **1:1 `v5.0.0` Unification** across `16` skills, `5` sub-agents, Genome, and `.zip` bundle |
+| **Permanent Test Suite** | `253` tests (`245` Golden + `8` Stress) across `24` modules | **`93` high-density Golden & Stress Tests across `18` modules** (`-63%` overhead, `Mutation Score 100.0%`) |
+| **External Anti-Bias Hardening (`v5.1.1-RSI`)** | Standard SAST checks and single-surface Fast-Stat mtime | **Closed `6` AST SAST vectors**, fixed space-in-path handling in `nk_hook_gate.py`, and 6-surface Fast-Stat cache |
+| **Clean & Optimized Checkpoint (`v5.2.0-RSI`)** | Duplicate module loaders in tests and runtime regex compilation | **Zero dead-code**, pre-compiled STE100 regexes, intra-run `mtime` caching, and faster test subprocesses |
+| **Cross-OS CI EOL Invariance (`CRLF`/`LF`)** | SHA-256 drift when GitHub Actions checks out files with `LF` | **`CRLF -> LF` normalization** across `nk_registry_indexer.py`, `nk_transcript_tools.py`, and `nk_hook_gate.py` |
+| **Constitutional Alignment** | Version references split at `v5.0.0` and `253` tests | **1:1 `v5.2.0-RSI` unification** across `34` scripts, `16` skills, `5` sub-agents, Tetralogy, and `.zip` bundle |
 
-### The 6 Structural Improvements in Detail
-1. **`100%` Permanent Test Suite (`253/253 PASS` across `24` modules):** eliminates all regressions and covers the `14` invariants `GT-01..GT-14`.
-2. **Cryptographic Isolation of Memory Backups (`ws_<sha256_12>`):** separates production backups from test sandboxes and guards against `0`-byte overwrites.
-3. **Schema vs Release Separation & `O(1)` Cache (`< 1.0 ms`):** decouples `MANIFEST_VERSION` from `RELEASE_VERSION` with `< 1.0 ms` cached verification.
-4. **Automatic `.pyc` Bytecode Cleanup in `Win32 2PC` Atomic Commit:** purges `__pycache__` folders during promotion so `.staging/` stays immaculate.
-5. **Zero Dead-Code (`63/63 PASS` on `ast_guard_validator.py`) & `nk_tracking/` Sanitization:** removes dead symbols in `scripts/` and purges external project artifacts.
-6. **`v5.0.0` Constitutional Unification ($\Delta_k = 0, Q = 100.0$):** aligns `1:1` all `16` skills, `5` sub-agents, the Genome, and `NK_Hub_OneClick_Package.zip`.
+### Detailed Evolution from GitHub `v5.0.0-STE100-Unified` to Checkpoint `v5.2.0-RSI` (`2026-11-08`)
+1. **Lean Consolidation (`v5.1.0-RSI`):** consolidates `253` tests into `93` high-density tests in `18` modules (`-63%` overhead, `100%` coverage).
+2. **External Anti-Bias Hardening (`v5.1.1-RSI`):** closes `6` AST SAST vectors in `ast_guard_validator.py` and fixes paths with spaces in `nk_hook_gate.py`. Adds a 6-surface composite Fast-Stat cache in `nk_session_bootstrap.py` and achieves `Mutation Score 5/5` (`100.0%`).
+3. **Clean & Optimized Checkpoint (`v5.2.0-RSI`):** purges dead-code and test clutter, pre-compiles STE100 regexes, caches `mtime` intra-run, and speeds up test subprocesses. Guarantees `CRLF`/`LF` invariance for GitHub Actions CI (`Lab NK Hub Continuous Verification`).
 
 ---
-*Nexus Keystone Hub (`v5.0.0-STE100-Unified`) | Certified `253/253 PASS` (`245` Baseline) Zero-Mock | $\Delta_k = 0, Q(S_k) = 100.0$*
+*Nexus Keystone Hub (`v5.2.0-STE100-Unified` / `v5.2.0-RSI` : `2026-11-08`) | Certified `93/93 PASS` (`18` Modules, `Mutation Score 100.0%`) Zero-Mock | $\Delta_k = 0, Q(S_k) = 100.0$*

@@ -117,16 +117,29 @@ _CMD_WRITE_INDICATORS = (
     "rm ",
     "cp ",
     "mv ",
+    "sc ",
+    "ac ",
+    "ni ",
+    "ri ",
     "write_text",
     "write_bytes",
     "shutil.",
+    "os.open(",
+    "o_wronly",
+    "o_creat",
+    "o_rdwr",
+    "os.rename(",
+    "os.replace(",
     "os.replace",
+    ".replace(",
     "os.remove",
     "unlink(",
 )
 _CERT_RE = re.compile(r"(\bCONVERGED_OPTIMAL\b|\b\d+/\d+\s+PASS\b)", re.IGNORECASE)
 _OPEN_WRITE_RE = re.compile(
-    r"\bopen\s*\([^)]*(?:['\"][wax+][b+t]*['\"]|mode\s*=\s*['\"][wax+])|\bopen\s*\([^)]*\)\s*\.\s*write",
+    r"\bopen\s*\([^)]*(?:['\"][wax+][b+t]*['\"]|mode\s*=\s*['\"][wax+])"
+    r"|\bopen\s*\([^)]*\)\s*\.\s*write"
+    r"|\bos\.open\s*\([^)]*\b(?:os\.)?o_(?:wronly|creat|rdwr)\b",
     re.IGNORECASE,
 )
 _ENCODED_CMD_RE = re.compile(
@@ -209,7 +222,7 @@ def _resolve_conv_id(cli_id: Optional[str], payload: Dict[str, Any]) -> str:
 
 def _sha256_file(path: Path) -> str:
     """Calcola l'hash SHA-256 del file indicato."""
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
 
 
 def _extract_first_section(text: str) -> str:
@@ -280,6 +293,31 @@ def _is_valid_staging_path(cand: Path, project_root: Path) -> bool:
     return False
 
 
+_PROD_DIR_PREFIXES = (
+    "scripts/",
+    ".agents/",
+    "src_app/",
+    "tests/",
+    "nk_tracking/",
+    "nk_genome/",
+    "app/",
+    "src/",
+)
+_FS_PATH_PREFIX_RE = re.compile(
+    r"^(?:[a-zA-Z]:[/\\]|/|\\|\./|\.\\|\.\./|\.\.\\|"
+    r"(?:scripts|\.agents|nk_tracking|nk_genome|tests|\.staging|src_app|app|src|nk_external_projects)[/\\])",
+    re.IGNORECASE,
+)
+_SHELL_CMD_START_RE = re.compile(
+    r"^(?:[\"']?[^\s\"']*?(?:python(?:3)?|py|powershell|pwsh|cmd)(?:\.exe)?[\"']?(?:\s|$)|"
+    r"(?:out-file|set-content|add-content|tee-object|copy-item|move-item|new-item|"
+    r"remove-item|clear-content|rename-item|start-process|git)\b|"
+    r"(?:sc|ac|ni|ri|del|rm|cp|mv)\s|"
+    r"\[(?:system\.)?io\.file\]::)",
+    re.IGNORECASE,
+)
+
+
 def _sanitize_staged_tokens_in_cmd(cmd_low: str) -> str:
     """Rimuove dal comando shell i soli token che puntano legittimamente a .staging/ o %TEMP%."""
     def _repl(match: re.Match[str]) -> str:
@@ -287,7 +325,7 @@ def _sanitize_staged_tokens_in_cmd(cmd_low: str) -> str:
         if ".." in tok:
             return tok
         prefix = tok.split(".staging/", 1)[0]
-        if any(bad in prefix for bad in ("scripts/", ".agents/", "src_app/", "tests/")):
+        if any(bad in prefix for bad in _PROD_DIR_PREFIXES):
             return tok
         return " __staged_safe__ "
 
@@ -295,7 +333,15 @@ def _sanitize_staged_tokens_in_cmd(cmd_low: str) -> str:
         tok = match.group(0)
         if ".." in tok:
             return tok
-        return " __temp_safe__ "
+        norm_tok = tok.lstrip("./")
+        if norm_tok.startswith(("%temp%", "$env:temp", "/tmp/")):
+            return " __temp_safe__ "
+        for marker in ("appdata/local/temp", ".gemini/antigravity/brain/"):
+            if marker in norm_tok:
+                prefix = norm_tok.split(marker, 1)[0]
+                if not any(bad in prefix for bad in _PROD_DIR_PREFIXES):
+                    return " __temp_safe__ "
+        return tok
 
     sanitized = re.sub(
         r"(?:^|(?<=[\s\"'=]))[^\s\"';|&]*?\.staging/[^\s\"';|&]+",
@@ -303,7 +349,7 @@ def _sanitize_staged_tokens_in_cmd(cmd_low: str) -> str:
         cmd_low,
     )
     sanitized = re.sub(
-        r"(?:^|(?<=[\s\"'=]))[^\s\"';|&]*?(?:%temp%|appdata/local/temp|/temp/|nk_diagnostics|nk_sandbox_|scratch/)[^\s\"';|&]+",
+        r"(?:^|(?<=[\s\"'=]))[^\s\"';|&]*?(?:%temp%|\$env:temp|/tmp/|appdata/local/temp|\.gemini/antigravity/brain/)[^\s\"';|&]*",
         _repl_temp,
         sanitized,
     )
@@ -513,10 +559,20 @@ def _classify_protected_target(
     project_root: Path = _WORKSPACE_ROOT,
     strict_external: bool = False,
 ) -> Dict[str, Any]:
-    if not cmd and (" " in target or "-encodedcommand" in target.lower()):
-        cmd = target
-        target = ""
     """Classifica i target protetti (oracle_lock.json, scripts/, .agents/) e i comandi python -c multi-riga."""
+    target_str = str(target or "").strip()
+    if not cmd and target_str:
+        target_low = target_str.lower()
+        if (
+            "-encodedcommand" in target_low
+            or bool(_ENCODED_CMD_RE.search(target_str))
+            or (
+                not _FS_PATH_PREFIX_RE.match(target_str)
+                and bool(_SHELL_CMD_START_RE.match(target_str))
+            )
+        ):
+            cmd = target
+            target = ""
     cmd_str = str(cmd or "")
 
     if ("\n" in cmd_str or "\r" in cmd_str) and re.search(
@@ -555,7 +611,7 @@ def _classify_protected_target(
 
         if any(p in ("scripts", ".agents") for p in cand_parts_low):
             return {
-                "decision": "deny" if strict_external else "ask",
+                "decision": "deny",
                 "reason": "Direct write to scripts/ or .agents/ outside .staging/ is blocked; stage in .staging/ and promote via win32_2pc_engine.py.",
             }
 
@@ -587,7 +643,7 @@ def _classify_protected_target(
             and has_write_ind
         ):
             return {
-                "decision": "deny" if strict_external else "ask",
+                "decision": "deny",
                 "reason": "Direct shell write to scripts/ or .agents/ outside .staging/ is blocked; stage in .staging/ and promote via win32_2pc_engine.py.",
             }
 

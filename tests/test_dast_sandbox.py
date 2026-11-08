@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Suite di test unitari Zero-Mock per DAST Sandbox Runner e Line Tracer (v3.3.0).
+Suite di test unitari Zero-Mock per DAST Sandbox Runner e Line Tracer (v5.2.0-STE100-Unified).
 Modulo: tests/test_dast_sandbox.py.
 Valida ciclo di vita sandbox, trace.Trace, watchdog timeout/memory e taskkill /F /T.
 """
@@ -60,13 +60,13 @@ class TestDASTSandbox(unittest.IsolatedAsyncioTestCase):
         try:
             hang_code = "import time\nwhile True:\n    time.sleep(0.02)\n"
             sb.write_file("hang.py", hang_code)
-            cfg_timeout = SandboxConfig(timeout_sec=0.15, poll_interval_sec=0.01)
+            cfg_timeout = SandboxConfig(timeout_sec=0.12, poll_interval_sec=0.01)
             runner_timeout = DASTSandboxRunner(config=cfg_timeout)
             rep_to = await runner_timeout.run_in_sandbox(sb, [sys.executable, "hang.py"])
             self.assertTrue(rep_to.timed_out)
             self.assertFalse(rep_to.success)
 
-            mem_code = 'import time\nb = bytearray(b"X" * (70 * 1024 * 1024))\ntime.sleep(0.5)\n'
+            mem_code = 'import time\nb = bytearray(b"X" * (70 * 1024 * 1024))\ntime.sleep(0.2)\n'
             sb.write_file("mem.py", mem_code)
             cfg_mem = SandboxConfig(
                 timeout_sec=2.0, max_memory_mb=25.0, poll_interval_sec=0.01
@@ -88,7 +88,7 @@ class TestDASTSandbox(unittest.IsolatedAsyncioTestCase):
                 "time.sleep(5)\n"
             )
             sb.write_file("tree.py", tree_code)
-            config = SandboxConfig(timeout_sec=0.18, poll_interval_sec=0.01)
+            config = SandboxConfig(timeout_sec=0.15, poll_interval_sec=0.01)
             runner = DASTSandboxRunner(config=config)
             rep = await runner.run_in_sandbox(sb, [sys.executable, "tree.py"])
             self.assertTrue(rep.timed_out or not rep.success)

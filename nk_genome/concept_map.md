@@ -1,8 +1,8 @@
-# NK Genome: Concept Map e Master Brief (`v5.0.0-STE100-Unified` / `v4.8.0-STE100-Unified` / `v4.7.0-STE100-Unified` / `v4.5.1-STE100-Unified` / `v4.5.0-STE100-Unified` / `v4.4.0-STE100-Unified` / `v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified`)
+# NK Genome: Concept Map e Master Brief (`v5.2.0-STE100-Unified` / `v5.2.0-RSI` / `v5.1.1-RSI` / `v5.1.0-Lean-Sovereign-RSI` / `v5.0.0-STE100-Unified` / `v4.8.0-STE100-Unified` / `v4.7.0-STE100-Unified` / `v3.0.0-STE100-Unified`)
 
 > **Badge di Certificazione:** 🛡️ [NK-BRIEF-STATUS: AUDITED_AND_OPTIMIZED 🟢] | [RSI-CONVERGENCE: CONVERGED_OPTIMAL (Δ=0, Q=100.0) 🟢]  
-> **Milestone Anchor ID:** `NK-MS-20261106-SOVEREIGN-CLEAN-SLATE-RELEASE-v5.0.0-RSI` (`NK-MS-20261106-HOLISTIC-CLEANSE-AND-DEAD-CODE-PURGE-v4.8.0-RSI` / `NK-MS-20261031-HOLISTIC-STRESS-AND-TEST-CONSOLIDATION-v4.7.0-RSI` / `NK-MS-20261025-INTRINSIC-VIBE-RSI-REMEDIATION` / `NK-MS-20261024-HOLISTIC-SANITATION-v4.5.0-RSI`)  
-> **Versione Target:** `v5.0.0-STE100-Unified` (`v4.8.0-STE100-Unified` / `v4.7.0-STE100-Unified` / `v4.5.1-STE100-Unified` / `v4.5.0-STE100-Unified` / `v4.4.0-STE100-Unified` / `v4.3.0-Super-Plan-Triad-RSI` / `v4.0.0-Native-Swarm-Playbooks` / `v3.0.0-STE100-Unified` Compatible)  
+> **Milestone Anchor ID:** `NK-MS-20261108-CLEAN-OPTIMIZED-CHECKPOINT-v5.2.0-RSI` (`NK-MS-20261108-EXTERNAL-ANTIBIAS-HARDENING-v5.1.1-RSI` / `NK-MS-20261108-LEAN-FASTBOOT-AND-TEST-CONSOLIDATION-v5.1.0-RSI` / `NK-MS-20261106-SOVEREIGN-CLEAN-SLATE-RELEASE-v5.0.0-RSI`)  
+> **Versione Target:** `v5.2.0-STE100-Unified` (`v5.2.0-RSI` / `v5.1.1-RSI` / `v5.1.0-Lean-Sovereign-RSI` / `v5.0.0-STE100-Unified` / `v4.8.0-STE100-Unified` / `v4.7.0-STE100-Unified` / `v3.0.0-STE100-Unified` Compatible)  
 > **Standard Linguistico:** ASD-STE100 Italiano Tecnico (`[RULE-STE100]`)  
 > **Stato Produzione:** 100% Sola Lettura (`[RULE-00]`)
 
@@ -10,7 +10,7 @@
 
 ## 1. Visione Concettuale e Simbiosi con Gemini 4 Argon (High)
 
-L'architettura `v5.0.0-STE100-Unified` separa il Router O(1), i `5` Sub-Agenti Nativi e i `16` Playbook Procedurali (`[RULE-01]`). Il sistema trasforma Nexus Keystone in una piattaforma di miglioramento ricorsivo continuo (`[RULE-RSI]`). Questa architettura opera con **Gemini 4 Argon (High)** e protegge i `253` (`245` baseline) Golden e Stress Tests tramite `GT-01..GT-14`.
+L'architettura `v5.2.0-STE100-Unified` (`v5.2.0-RSI`) separa il Router O(1), i `5` Sub-Agenti Nativi e i `16` Playbook Procedurali (`[RULE-01]`). Il sistema trasforma Nexus Keystone in una piattaforma di miglioramento ricorsivo continuo (`[RULE-RSI]`). Questa architettura opera con **Gemini 4 Argon (High)** e protegge i `93` Golden & Stress Tests (`18` moduli, `>= 68` pavimento) tramite `GT-01..GT-14`.
 
 1. **Direttiva Linguistica Universale (`[RULE-STE100]`):**
    * Tutto l'ecosistema adotta lo standard **ASD-STE100 Italiano Tecnico**.
@@ -18,7 +18,7 @@ L'architettura `v5.0.0-STE100-Unified` separa il Router O(1), i `5` Sub-Agenti N
    * Tutte le regole usano la forma attiva, vocaboli univoci e zero incisi con trattini.
    * Il peso di `.agents/AGENTS.md` e `.agents/rules/anti_crash_rules.md` resta confinato entro il budget costituzionale.
 2. **Architettura Dual-Profile (`standard` vs `argon`) con Auto-Attivazione (`GT-01..GT-06`):**
-   * Le firme predefinite dei moduli Python mantengono le soglie `standard` (`70/100` step, `350` token Tier-1, `0/256/512/1024` token Repo-Map). Questa scelta protegge il pavimento costituzionale di `68` Golden Tests (`GT-13`) e i `253` (`245`) test totali in `24` moduli.
+   * Le firme predefinite dei moduli Python mantengono le soglie `standard` (`70/100` step, `350` token Tier-1, `0/256/512/1024` token Repo-Map). Questa scelta protegge il pavimento costituzionale di `68` Golden Tests (`GT-13`) e i `93` test ortogonali in `18` moduli.
    * Lo script `scripts/nk_session_bootstrap.py` imposta automaticamente `NK_MODEL_PROFILE=argon` nelle sessioni operative.
    * Il profilo `argon` esclude `len(thinking)` dal conteggio token e innalza le soglie a `150/250` step (`250k/500k` token).
 3. **Topologia 2-Tier Hub-and-Spoke e 5 Sub-Agenti Nativi (`U-01`, `MC-01`, `WP11`):**
@@ -49,7 +49,7 @@ L'architettura `v5.0.0-STE100-Unified` separa il Router O(1), i `5` Sub-Agenti N
    * Lo script `scripts/nk_hook_gate.py` presidia gli hook runtime con `write-gate`, `fasttrack`, `integrity` SHA-256 e `stop-evidence`.
    * Lo script `scripts/nk_transcript_tools.py` esegue `locate` senza fallback `st_mtime`, `compliance`, `evidence`, `oracle-lock` e `lint-prompt`.
    * Il validatore `ast_guard_validator.py` espone `validate_pydantic_catalog_records()` per il Pre-Flight Schema Grounding dei modelli Pydantic v2.
-   * La suite permanente integra `tests/test_super_plan_v6_triad.py` con zero regressioni sulle guardie `GT-01..GT-14`.
+   * La suite permanente integra `tests/test_nk_hook_and_transcript_governance.py` con zero regressioni sulle guardie `GT-01..GT-14`.
 9. **Anti-Goodharting SAST, Holdout Isolation e Multi-Level Stress Hardening (`WP16`, `NK-MS-20261024-ANTI-GOODHART-STRESS-v4.4.0-RSI`):**
    * Il validatore `ast_guard_validator.py` blocca `PYTEST_CURRENT_TEST`, `inspect.currentframe`, `sys._getframe`, `f_back`, `f_globals` e `f_locals` in `src_app/`.
    * Lo script `nk_session_bootstrap.py` supporta `--project-root` sui progetti esterni in `NK_External_Projects` consentendo `src_app/`.
@@ -60,7 +60,7 @@ L'architettura `v5.0.0-STE100-Unified` separa il Router O(1), i `5` Sub-Agenti N
     * L'architettura consolida `34` moduli indicizzati (`36` file Python totali) e i test permanenti Zero-Mock.
 11. **Protocolli Vibe Intrinseci, Cleanse Olistico e Certificazione Multilivello (`WP19..WP20`, `NK-MS-20261031-HOLISTIC-STRESS-AND-TEST-CONSOLIDATION-v4.7.0-RSI`):**
     * Il Gate L0 attiva autonomamente `INTRINSIC_GOAL`, `INTRINSIC_BOOST` e `INTRINSIC_PLAN` vietando i comandi slash manuali (`AP-10`).
-    * La suite permanente raggiunge `245/245 PASS` (`100.0%`) in `24` moduli con `WP1-WP20` completati.
+    * I protocolli intrinseci sono validati tramite test vettoriali Zero-Mock in `tests/test_vibe_sprint_router.py`.
 12. **Super Brief Unificato e Integrazione Competitiva Certificata (`WP21`, `NK-MS-20261031-HOLISTIC-STRESS-AND-TEST-CONSOLIDATION-v4.7.0-RSI`):**
     * Il plugin nativo `.agents/plugins/nk-gate/` attiva gli hook reali con schema `map<string, HookSpec>` preservando `.agents/hooks.json`.
     * Lo script `nk_hook_gate.py` corregge 8 difetti su filtro tool, traversal, chunk `PATCH_NOTES.md`, `run_command` e `stop-evidence`.
@@ -68,10 +68,14 @@ L'architettura `v5.0.0-STE100-Unified` separa il Router O(1), i `5` Sub-Agenti N
     * Il motore `rsi_convergence_engine.py` integra `--ab-benchmark` (`P-06`) mantenendo esattamente `34` script indicizzati in `scripts/`.
 13. **Holistic Cleanse e Dead-Code Purge (`WP-C1..WP-C5`, `NK-MS-20261106-HOLISTIC-CLEANSE-AND-DEAD-CODE-PURGE-v4.8.0-RSI`):**
     * Il sistema rimuove i rami morti `if False:` e tutti gli import e simboli inutilizzati nei `34` moduli in `scripts/`.
-    * L'architettura riallinea versioni, riferimenti documentali, registro O(1), `5` sub-agenti e `16` skill a `v4.8.0-STE100-Unified` (`245` test).
+    * L'architettura riallinea versioni, riferimenti documentali, registro O(1), `5` sub-agenti e `16` skill a `v4.8.0-STE100-Unified`.
 14. **Sovereign Clean-Slate Release (`WP-V5-1..WP-V5-4`, `NK-MS-20261106-SOVEREIGN-CLEAN-SLATE-RELEASE-v5.0.0-RSI`):**
-    * Il sistema certifica `253/253 PASS` in `24` moduli con guardia `0-byte` in `memory_3tier_engine.py` e doppia costante in `nk_registry_indexer.py`.
+    * Il sistema introduce la guardia `0-byte` in `memory_3tier_engine.py` e la doppia costante in `nk_registry_indexer.py`.
     * L'architettura unifica `win32_2pc_engine.py`, bonifica `nk_tracking/` (`active_context.md`, `TAS_Report_NK_Hub_v5_0_0_20261106.md`) e rigenera `NK_Hub_OneClick_Package.zip`.
+15. **Lean Fast-Boot, Hardening Anti-Bias e Checkpoint `v5.2.0-RSI` (`WP-LEAN-1..4`, `WP-ANTIBIAS-1..4`, `WP-CLEAN-1..4`):**
+    * Il bridge root `.agents/AGENTS.md`, `ONBOARDING_BYPASS_VERIFIED` e il `TTL=900s` riducono l'avvio di sessione a `< 30ms`.
+    * La suite consolida `93` Golden & Stress Tests in `18` moduli (`Mutation Score 100.0%`) e compatta `.agents/AGENTS.md`.
+    * Il checkpoint `v5.2.0-RSI` elimina dead-code, pre-compila le regex STE100, memorizza `mtime` intra-run e normalizza `CRLF -> LF` per GitHub Actions CI.
 
 ---
 
@@ -82,9 +86,9 @@ Il motore deterministico `scripts/rsi_convergence_engine.py` governa il ciclo di
 ```mermaid
 flowchart TD
     subgraph TETRALOGIA["Tetralogia Sovrana 4/4 (nk_genome/)"]
-        CM["1. concept_map.md (Visione v5.0.0-STE100-Unified)"]
-        ST["2. structural_tree.md (34 Script, 5 Sub-Agenti, 16 Playbook, 253 Test)"]
-        IP["3. implementation_plan.md (Piano Esecutivo WP-V5-1..WP-V5-4 e Guardie GT-01..14)"]
+        CM["1. concept_map.md (Visione v5.2.0-STE100-Unified / v5.2.0-RSI)"]
+        ST["2. structural_tree.md (34 Script, 5 Sub-Agenti, 16 Playbook, 93 Test in 18 Moduli)"]
+        IP["3. implementation_plan.md (Piano Esecutivo WP-CLEAN-1..WP-CLEAN-4 e Guardie GT-01..14)"]
         RM["4. repo_map.md (Mappa AST PageRank Pura senza Progetti Esterni)"]
     end
 
@@ -125,13 +129,13 @@ flowchart TD
    * **G3 (`Anti-Oscillation Guard`):** Salva gli hash SHA-256 in `visited_hashes` e blocca i cicli con `HALTED_CYCLE_DETECTED`.
    * **G4 (`Tamper-Evident Ledger`):** Registra ogni iterazione in `nk_tracking/rsi_telemetry.jsonl` con catena SHA-256 (`prev_hash` e `record_hash`).
    * **G5 (`Iteration Cap`):** Applica i limiti `K_max = 2` (`Mode C`), `3` (`Mode B`) e `4` (`Mode A`).
-   * **G6 (`Validatore CLI`):** Il flag `--verify` valida i `16` file ausiliari, i `68` Golden Tests, i `253` test e `[RULE-STE100]`.
+   * **G6 (`Validatore CLI`):** Il flag `--verify` valida `16` file ausiliari, `68` pavimento, `93` test in `18` moduli e `[RULE-STE100]`.
 
 ---
 
-## 3. Mappa delle 16 Skill Vocazionali e dei 16 File Ausiliari (`v5.0.0-STE100-Unified`)
+## 3. Mappa delle 16 Skill Vocazionali e dei 16 File Ausiliari (`v5.2.0-STE100-Unified` / `v5.2.0-RSI`)
 
-| Indice | Skill (`.agents/skills/`) | Ruolo nella Topologia 2-Tier e nel Loop RSI | Allineamento `v5.0.0` (`v3.0.0-STE100-Unified`) |
+| Indice | Skill (`.agents/skills/`) | Ruolo nella Topologia 2-Tier e nel Loop RSI | Allineamento `v5.2.0-RSI` (`v5.2.0-STE100-Unified` / `v5.0.0-STE100-Unified` / `v3.0.0-STE100-Unified`) |
 | :---: | :--- | :--- | :--- |
 | **L3** | **`NK-Master-Hub`** | Orchestratore Infrastrutturale e Committer 2PC | Preserva i nodi `[0]`..`[14]` e il footer a due vie (`GT-08`). Usa `ask_question` e `manage_task(Action="kill", TaskId="<id>")`. Elimina gli 8 file legacy in `scripts/` e `resources/`. |
 | **`[0]`** | **`NK-Ideator`** | Actor L0 per Sintesi Concettuale | Usa `/grill-me` e `ask_question`. Scrive `concept_map.md` e `idea_canvas.md`. Linka `resources/idea_canvas_template.md` (`01/16`). |
@@ -152,10 +156,10 @@ flowchart TD
 
 ---
 
-## 10. Architettura di Consolidamento e Resilienza v5.0.0 (`S1..S6` e Clean-Slate Release)
+## 10. Architettura di Consolidamento e Resilienza v5.2.0-STE100-Unified (`v5.2.0-RSI`)
 
-* **Write-Gate Blindato (`S1`):** `nk_hook_gate.py` blocca copie da `.staging/` a produzione, comment spoofing e scritture `.NET` dirette.
-* **Transazioni 2PC e Cleanup `__pycache__` (`S2`, `WP-V5-1`):** `win32_2pc_engine.py` applica `.deleted_files.json`, pulisce `__pycache__` in `_cleanup_promoted_staging` e unifica `record_session_anchor_commit`.
-* **Memoria Concorrente e Guardia 0-Byte (`S3, S4`, `WP-V5-1`):** `memory_3tier_engine.py` isola i backup concorrenti e blocca i file vuoti.
-* **Handoff Passivo Standby Puro (`WP-V5-3`):** `nk_session_handoff.py` e `active_context.md` mantengono il `Template 12` puro per `NK_Hub` senza riferimenti a `NK-Bandi`.
-* **Suite Olistica (`24` moduli, `253` test, `245` baseline):** La suite certifica `253/253 PASS` (`100.0%`) con `GAP-01` sotto `0.20s`.
+* **Write-Gate Blindato e SAST Anti-Bias (`S1`, `WP-ANTIBIAS-1..3`):** `nk_hook_gate.py` gestisce i path con spazi e `ast_guard_validator.py` chiude `6` vettori SAST AST.
+* **Transazioni 2PC Atomiche e Cleanup `__pycache__` (`S2`, `WP-ANTIBIAS-4`):** `win32_2pc_engine.py` usa `_atomic_write_bytes` in rollback/recovery e pulisce `__pycache__`.
+* **Invarianza EOL `CRLF`/`LF` per GitHub Actions CI (`WP-CLEAN-2`):** `nk_registry_indexer.py`, `nk_transcript_tools.py` e `nk_hook_gate.py` normalizzano `CRLF -> LF` nel calcolo SHA-256.
+* **Fast-Boot Composito e Caching `mtime` (`WP-CLEAN-1`):** `nk_session_bootstrap.py` emette `ONBOARDING_BYPASS_VERIFIED` e memorizza `_get_root_mtime()` per singola esecuzione.
+* **Suite Ortogonale (`18` moduli, `93` Golden & Stress Tests, `>= 68` pavimento):** La suite certifica `93/93 PASS` (`100.0%`, `Mutation Score 100.0%`).

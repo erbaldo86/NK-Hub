@@ -19,6 +19,7 @@ from __future__ import annotations
 import ast
 import builtins
 import difflib
+import sys
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
@@ -562,7 +563,18 @@ class ScopeIntegrityChecker(ast.NodeVisitor):
             elif isinstance(child, ast.ImportFrom):
                 for alias in child.names:
                     local_scope.add(alias.asname or alias.name)
+            elif isinstance(child, (ast.Global, ast.Nonlocal)):
+                for name in child.names:
+                    local_scope.add(name)
             stack.extend(ast.iter_child_nodes(child))
+
+    def visit_Global(self, node: ast.Global) -> None:
+        for name in node.names:
+            self.scope_stack[-1].add(name)
+
+    def visit_Nonlocal(self, node: ast.Nonlocal) -> None:
+        for name in node.names:
+            self.scope_stack[-1].add(name)
 
     def _extract_target_names(self, node: ast.AST, target_set: Set[str]) -> None:
         if isinstance(node, ast.Name):
@@ -744,6 +756,38 @@ class SASTConstructChecker(ast.NodeVisitor):
             right_s = self._eval_const_str_expr(node.right)
             if left_s is not None and right_s is not None:
                 return left_s + right_s
+        if isinstance(node, ast.JoinedStr):
+            parts: List[str] = []
+            for part in node.values:
+                if isinstance(part, ast.Constant) and isinstance(part.value, str):
+                    parts.append(part.value)
+                elif isinstance(part, ast.FormattedValue):
+                    val_s = self._eval_const_str_expr(part.value)
+                    if val_s is None:
+                        return None
+                    parts.append(val_s)
+                else:
+                    val_s = self._eval_const_str_expr(part)
+                    if val_s is None:
+                        return None
+                    parts.append(val_s)
+            return "".join(parts)
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "join"
+            and len(node.args) == 1
+            and isinstance(node.args[0], (ast.List, ast.Tuple, ast.Set))
+        ):
+            sep_s = self._eval_const_str_expr(node.func.value)
+            if sep_s is not None:
+                items: List[str] = []
+                for elt in node.args[0].elts:
+                    elt_s = self._eval_const_str_expr(elt)
+                    if elt_s is None:
+                        return None
+                    items.append(elt_s)
+                return sep_s.join(items)
         return None
 
     def visit_BinOp(self, node: ast.BinOp) -> None:
@@ -787,6 +831,46 @@ class SASTConstructChecker(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Subscript(self, node: ast.Subscript) -> None:
+        key_str = self._eval_const_str_expr(node.slice)
+        if key_str in (
+            "eval",
+            "exec",
+            "compile",
+            "__import__",
+            "open",
+            "system",
+            "popen",
+        ):
+            is_builtins_or_dict = False
+            if isinstance(node.value, ast.Name) and (
+                node.value.id in ("__builtins__", "builtins", "__dict__")
+                or self._imported_aliases.get(node.value.id)
+                in ("__builtins__", "builtins")
+            ):
+                is_builtins_or_dict = True
+            elif isinstance(node.value, ast.Attribute) and node.value.attr in (
+                "__dict__",
+                "__builtins__",
+            ):
+                is_builtins_or_dict = True
+            elif isinstance(
+                node.value, ast.Subscript
+            ) and self._eval_const_str_expr(node.value.slice) in (
+                "__builtins__",
+                "builtins",
+                "__dict__",
+            ):
+                is_builtins_or_dict = True
+            if is_builtins_or_dict:
+                self.violations.append(
+                    GuardViolation(
+                        violation_type=ViolationType.SAST_VIOLATION,
+                        symbol_name=key_str,
+                        line_number=node.lineno,
+                        column=node.col_offset,
+                        message=f"Unsafe subscript access '{key_str}' on __builtins__ or __dict__ detected.",
+                    )
+                )
         if not self.is_test_file and not self.is_self_validator:
             is_sys_modules = False
             if (
@@ -945,6 +1029,25 @@ class SASTConstructChecker(ast.NodeVisitor):
                 )
         self.generic_visit(node)
 
+    def _check_import_module_call(self, node: ast.Call) -> None:
+        if not node.args:
+            return
+        mod_arg = self._eval_const_str_expr(node.args[0])
+        if mod_arg and (
+            mod_arg in ("os", "subprocess", "pty", "shutil", "ctypes")
+            or mod_arg.strip().split(".")[0]
+            in ("os", "subprocess", "pty", "shutil", "ctypes", "sys", "inspect")
+        ):
+            self.violations.append(
+                GuardViolation(
+                    violation_type=ViolationType.SAST_VIOLATION,
+                    symbol_name="importlib.import_module",
+                    line_number=node.lineno,
+                    column=node.col_offset,
+                    message=f"Unsafe dynamic import 'importlib.import_module({mod_arg!r})' detected.",
+                )
+            )
+
     def visit_Call(self, node: ast.Call) -> None:
         func = node.func
         if isinstance(func, ast.Name):
@@ -959,6 +1062,31 @@ class SASTConstructChecker(ast.NodeVisitor):
                         message=f"Unsafe SAST construct '{func.id}()' detected.",
                     )
                 )
+            elif (
+                func.id == "import_module"
+                or resolved in ("importlib.import_module", "import_module")
+            ) and node.args:
+                self._check_import_module_call(node)
+            elif (
+                func.id == "attrgetter"
+                or resolved in ("operator.attrgetter", "attrgetter")
+            ) and node.args:
+                for ag_arg in node.args:
+                    attr_s = self._eval_const_str_expr(ag_arg)
+                    if attr_s and any(
+                        p in ("eval", "exec", "compile", "system", "popen", "__import__")
+                        for p in attr_s.split(".")
+                    ):
+                        self.violations.append(
+                            GuardViolation(
+                                violation_type=ViolationType.SAST_VIOLATION,
+                                symbol_name="operator.attrgetter",
+                                line_number=node.lineno,
+                                column=node.col_offset,
+                                message=f"Unsafe 'operator.attrgetter({attr_s!r})' detected.",
+                            )
+                        )
+                        break
             elif func.id == "__import__" and node.args:
                 mod_arg = self._eval_const_str_expr(node.args[0])
                 if mod_arg and mod_arg.split(".")[0] in (
@@ -1028,7 +1156,10 @@ class SASTConstructChecker(ast.NodeVisitor):
                             message="Unsafe path traversal in 'open()' detected.",
                         )
                     )
-            elif resolved in ("os.system", "os.popen"):
+            elif resolved in ("os.system", "os.popen") or (
+                resolved.startswith("os.")
+                and resolved.split(".", 1)[1].startswith(("exec", "spawn"))
+            ):
                 self.violations.append(
                     GuardViolation(
                         violation_type=ViolationType.SAST_VIOLATION,
@@ -1120,7 +1251,29 @@ class SASTConstructChecker(ast.NodeVisitor):
                                 message="Unsafe 'yaml.load()' without SafeLoader detected.",
                             )
                         )
-                elif base_mod == "os" and attr in ("system", "popen"):
+                elif base_mod == "importlib" and attr == "import_module" and node.args:
+                    self._check_import_module_call(node)
+                elif base_mod == "operator" and attr == "attrgetter" and node.args:
+                    for ag_arg in node.args:
+                        attr_s = self._eval_const_str_expr(ag_arg)
+                        if attr_s and any(
+                            p in ("eval", "exec", "compile", "system", "popen", "__import__")
+                            for p in attr_s.split(".")
+                        ):
+                            self.violations.append(
+                                GuardViolation(
+                                    violation_type=ViolationType.SAST_VIOLATION,
+                                    symbol_name="operator.attrgetter",
+                                    line_number=node.lineno,
+                                    column=node.col_offset,
+                                    message=f"Unsafe 'operator.attrgetter({attr_s!r})' detected.",
+                                )
+                            )
+                            break
+                elif base_mod == "os" and (
+                    attr in ("system", "popen")
+                    or attr.startswith(("exec", "spawn"))
+                ):
                     self.violations.append(
                         GuardViolation(
                             violation_type=ViolationType.SAST_VIOLATION,
@@ -1550,8 +1703,6 @@ class ASTGuardValidator:
                     )
                 )
 
-    _check_signature_preservation = _verify_signatures
-
 
 def _resolve_production_counterpart(py_file: Path, workspace_root: Path) -> Optional[Path]:
     """Individua il file di produzione corrispondente se py_file si trova in .staging/."""
@@ -1578,7 +1729,6 @@ def _resolve_production_counterpart(py_file: Path, workspace_root: Path) -> Opti
 def main() -> int:
     import argparse
     import json
-    import sys
 
     parser = argparse.ArgumentParser(description="Deterministic AST Guard Validator")
     parser.add_argument(
@@ -1754,6 +1904,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    import sys
-
     sys.exit(main())

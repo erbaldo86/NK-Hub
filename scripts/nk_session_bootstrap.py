@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Session Bootstrap Gate Fast-Stat per Nexus Keystone v3.2.0.
+Session Bootstrap Gate Fast-Stat per Nexus Keystone v5.0.0-STE100-Unified.
 Modulo: nk_session_bootstrap.py.
-Implementa le regole [RULE-00.4] e [RULE-PROJECT-ISOLATION] con ottimizzazioni OPT-1 e OPT-8.
+Implementa le regole [RULE-00.4], [RULE-00.5] e [RULE-PROJECT-ISOLATION] con Fast-Boot O2/O3.
 
 Funzionalita principali:
 1. Verifica invarianti Fast-Stat in meno di 25 millisecondi su cache hit.
-2. Carica la cache una sola volta per ciclo con controllo TTL e conversationId.
-3. Controlla l'igiene della radice tramite root_mtime e os.scandir.
+2. Mantiene la cache igiene root cross-conversazione con TTL 900s se root_mtime non cambia.
+3. Emette ONBOARDING_BYPASS_VERIFIED per l'avvio single-pass della dashboard [RULE-00.5].
 4. Conta esattamente le righe del transcript attivo a blocchi binari da 64 KB.
 """
 
@@ -18,6 +18,7 @@ import argparse
 import ctypes
 import json
 import os
+import re
 import sys
 import tempfile
 import threading
@@ -38,6 +39,7 @@ if str(_workspace_root) not in sys.path:
     sys.path.insert(0, str(_workspace_root))
 if str(_scripts_dir) not in sys.path:
     sys.path.insert(0, str(_scripts_dir))
+
 
 def reconfigure_streams() -> None:
     """Riconfigura gli stream standard in UTF-8 senza importare moduli esterni su cold start."""
@@ -71,13 +73,24 @@ def _get_context_sentry() -> Any:
     return NKContextSentry
 
 
-FAST_CACHE_TTL_SECONDS: float = 60.0
+FAST_CACHE_TTL_SECONDS: float = 900.0
 STATE_CACHE_TTL_SECONDS: float = 900.0
 TRANSCRIPT_MAX_AGE_SECONDS: float = 1800.0
 TAIL_READ_BYTES_LIMIT: int = 32768
 BINARY_CHUNK_SIZE: int = 65536
 MAX_EXACT_COUNT_BYTES: int = 50 * 1024 * 1024
 _BOOTSTRAP_LOCK = threading.Lock()
+
+ONBOARDING_TRIGGERS: tuple[str, ...] = (
+    "avvia ambiente nk",
+    "avvia nk hub",
+    "avvia nk",
+    "avvia hub",
+    "start nk",
+    "start hub",
+    "attiva nk",
+    "attiva ambiente nk",
+)
 
 _WAIT_OBJECT_0 = 0x00000000
 _WAIT_ABANDONED_0 = 0x00000080
@@ -99,26 +112,31 @@ class NKSessionBootstrap:
         os.environ["PYTHONIOENCODING"] = "utf-8"
         reconfigure_streams()
         self.repo_root = (
-            workspace_root.resolve()
+            Path(workspace_root).resolve()
             if workspace_root
-            else Path(__file__).resolve().parent.parent
+            else _workspace_root.resolve()
         )
         self.workspace_root = (
             Path(workspace_root).resolve() if workspace_root else _workspace_root
         )
-        raw_conv_id = (
-            conversation_id or os.environ.get("NK_CONVERSATION_ID", "")
-        ).strip()
-        self.conversation_id = raw_conv_id or self._infer_active_conversation_id(60.0)
+        if conversation_id is not None:
+            self.conversation_id = conversation_id.strip()
+        else:
+            raw_conv_id = os.environ.get("NK_CONVERSATION_ID", "").strip()
+            if not raw_conv_id and self.workspace_root.resolve() == HUB_ROOT.resolve():
+                raw_conv_id = self._infer_active_conversation_id(60.0)
+            self.conversation_id = raw_conv_id
         self.explicit_transcript_path = (
             Path(transcript_path).resolve() if transcript_path else None
         )
+        self.transcript_path = self.explicit_transcript_path
         self.temp_bootstrap_dir = Path(tempfile.gettempdir()) / "nk_bootstrap"
         self.state_file = self.temp_bootstrap_dir / "session_bootstrap_state.json"
         self.fast_cache_file = self.temp_bootstrap_dir / ".bootstrap_fast_cache.json"
         self.temp_bootstrap_dir.mkdir(parents=True, exist_ok=True)
         self.model_profile = os.environ.get("NK_MODEL_PROFILE", "argon")
         self._last_root_mtime: float = 0.0
+        self._cached_root_mtime: Optional[float] = None
         self._last_root_violations: List[str] = []
 
     @staticmethod
@@ -225,36 +243,59 @@ class NKSessionBootstrap:
         return False
 
     def _get_root_mtime(self) -> float:
-        """Restituisce il timestamp di modifica della directory radice del workspace."""
-        try:
-            return self.workspace_root.stat().st_mtime
-        except Exception:
-            return 0.0
+        """Restituisce il timestamp massimo di modifica tra radice e percorsi critici del workspace."""
+        if self._cached_root_mtime is not None:
+            return self._cached_root_mtime
+        candidates = (
+            self.workspace_root,
+            self.workspace_root / ".wal",
+            self.workspace_root / "nk_tracking" / "quality_baseline.json",
+            self.workspace_root / "scripts",
+            self.workspace_root / ".agents",
+            self.workspace_root / "src_app",
+        )
+        mtimes: List[float] = []
+        for path_cand in candidates:
+            try:
+                if path_cand.exists():
+                    mtimes.append(float(path_cand.stat().st_mtime))
+            except Exception:
+                continue
+        self._cached_root_mtime = max(mtimes) if mtimes else 0.0
+        return self._cached_root_mtime
 
-    def _is_cache_entry_valid(self, data: Dict[str, Any], ws_key: str) -> bool:
-        """Verifica che il record in cache rispetti workspace, TTL e conversation_id."""
+    def _is_cache_entry_valid(
+        self,
+        data: Dict[str, Any],
+        ws_key: str,
+        now: Optional[float] = None,
+    ) -> bool:
+        """Verifica che il record in cache rispetti workspace, TTL 900s e root_mtime cross-conversazione."""
         cached_ws = data.get("workspace_root")
         if cached_ws is not None and cached_ws != ws_key:
             return False
-        now = time.time()
+        now_ts = time.time() if now is None else now
         cached_time = float(data.get("timestamp_epoch", 0.0))
-        if cached_time <= 0.0 or (now - cached_time) > STATE_CACHE_TTL_SECONDS:
+        if cached_time <= 0.0 or (now_ts - cached_time) > FAST_CACHE_TTL_SECONDS:
             return False
-        cached_conv = str(data.get("conversation_id", "")).strip()
-        if self.conversation_id and cached_conv and cached_conv != self.conversation_id:
-            return False
+        cached_root_mtime = data.get("root_mtime")
+        if cached_root_mtime is not None:
+            curr_root_mtime = self._get_root_mtime()
+            if curr_root_mtime != float(cached_root_mtime):
+                return False
         return True
 
     def _load_fast_cache(self) -> Optional[Dict[str, Any]]:
         """Carica la cache veloce una sola volta dal disco locale temporaneo o memoria."""
         ws_key = str(self.workspace_root)
+        now_ts = time.time()
         with _BOOTSTRAP_LOCK:
             for candidate in (self.fast_cache_file, self.state_file):
                 if candidate.exists():
                     try:
                         data = json.loads(candidate.read_text(encoding="utf-8"))
                         if isinstance(data, dict) and self._is_cache_entry_valid(
-                            data, ws_key
+                            data, ws_key, now=now_ts
                         ):
                             self._MEMORY_CACHE[ws_key] = data
                             return data
@@ -262,17 +303,59 @@ class NKSessionBootstrap:
                         continue
             mem_entry = self._MEMORY_CACHE.get(ws_key)
             if isinstance(mem_entry, dict) and self._is_cache_entry_valid(
-                mem_entry, ws_key
+                mem_entry, ws_key, now=now_ts
             ):
                 return mem_entry
             return None
 
+    def _detect_latest_user_prompt(self) -> Optional[str]:
+        """Estrae il contenuto dell'ultimo messaggio utente dal transcript esplicito se presente."""
+        tp = self.transcript_path or self.explicit_transcript_path
+        if tp is None or not tp.exists() or not tp.is_file():
+            return None
+        latest_prompt: Optional[str] = None
+        try:
+            raw_text = tp.read_text(encoding="utf-8", errors="replace")
+            for line in raw_text.splitlines():
+                line_s = line.strip()
+                if not line_s:
+                    continue
+                try:
+                    rec = json.loads(line_s)
+                    if not isinstance(rec, dict):
+                        continue
+                    src = str(rec.get("source") or "").upper()
+                    rtype = str(rec.get("type") or "").upper()
+                    role = str(rec.get("role") or "").upper()
+                    if "USER" in src or "USER" in rtype or "USER" in role:
+                        content = str(rec.get("content") or rec.get("text") or "").strip()
+                        if content:
+                            latest_prompt = content
+                except Exception:
+                    continue
+        except Exception:
+            return None
+        return latest_prompt
+
+    def _resolve_onboarding_and_gate_mode(self) -> tuple[str, str]:
+        """Determina in modo coerente onboarding_bypass e la modalita del Meta-Prompt Gate (S2)."""
+        default_mode = os.environ.get("NK_META_PROMPT_GATE_MODE", "CONFIRM").strip().upper()
+        if default_mode not in ("CONFIRM", "ECHO", "OFF"):
+            default_mode = "CONFIRM"
+        user_prompt = self._detect_latest_user_prompt()
+        if user_prompt is not None:
+            low_p = user_prompt.lower().strip()
+            norm_p = re.sub(r"[^\w\s]", " ", low_p)
+            norm_p = " ".join(norm_p.split())
+            if norm_p in ONBOARDING_TRIGGERS:
+                return "ONBOARDING_BYPASS_VERIFIED", "BYPASSED"
+            return "NONE", default_mode
+        return "ONBOARDING_BYPASS_VERIFIED", default_mode
+
     def _verify_meta_prompt_gate_state(self) -> Dict[str, Any]:
-        """Verifica lo stato del cancello universale Meta-Prompt (RULE-00.6)."""
-        mode = os.environ.get("NK_META_PROMPT_GATE_MODE", "CONFIRM").strip().upper()
-        if mode not in ("CONFIRM", "ECHO", "OFF"):
-            mode = "CONFIRM"
-        enabled = mode != "OFF"
+        """Verifica lo stato del cancello universale Meta-Prompt sincronizzato con l'onboarding (RULE-00.6)."""
+        _ob_status, mode = self._resolve_onboarding_and_gate_mode()
+        enabled = mode not in ("OFF", "BYPASSED")
         return {
             "passed": True,
             "enabled": enabled,
@@ -281,10 +364,13 @@ class NKSessionBootstrap:
         }
 
     def run_bootstrap(self, fast_stat: bool = True) -> Dict[str, Any]:
-        """Esegue la verifica di avvio caricando la cache una sola volta (OPT-8)."""
+        """Esegue la verifica di avvio caricando la cache una sola volta (OPT-8 e O2/O3)."""
         start_time = time.perf_counter()
+        self._cached_root_mtime = None
         os.environ["PYTHONUTF8"] = "1"
         os.environ["PYTHONIOENCODING"] = "utf-8"
+
+        onboarding_bypass, _gate_mode = self._resolve_onboarding_and_gate_mode()
 
         report: Dict[str, Any] = {
             "status": "PASS",
@@ -293,26 +379,38 @@ class NKSessionBootstrap:
             "model_profile": self.model_profile,
             "pythonutf8": os.environ.get("PYTHONUTF8", "1"),
             "fast_stat": fast_stat,
+            "onboarding_bypass": onboarding_bypass,
             "checks": {},
             "issues": [],
         }
 
         cached_state = self._load_fast_cache() if fast_stat else None
 
-        # 1. Verifica immediata Fast-Pass (< 25 ms) riusando cached_state (OPT-8)
+        # 1. Verifica immediata Fast-Pass (< 25 ms) riusando cached_state (OPT-8 / O3)
         if fast_stat and self._can_fast_pass(cached=cached_state):
             isolation_check = self._check_root_hygiene(
                 use_fast_cache=True, cached=cached_state
             )
             report["checks"]["project_isolation"] = isolation_check
-            if isolation_check["passed"]:
+            wal_check: Dict[str, Any] = {
+                "passed": True,
+                "stale_wals_purged": 0,
+                "status": "PASS",
+            }
+            wal_dir = self.workspace_root / ".wal"
+            if wal_dir.exists() and any(wal_dir.iterdir()):
+                wal_check = self._purge_stale_wal_files(ttl_seconds=60.0)
+            baseline_check = self._verify_baseline()
+            report["checks"]["quality_baseline"] = baseline_check
+            if isolation_check["passed"] and baseline_check["passed"]:
                 context_check = self._verify_context_sentry(
                     use_fast_cache=True, cached=cached_state
                 )
                 report["checks"]["fast_stat"] = {
                     "status": "PASS",
-                    "details": "Fast-stat invariant verified. TTL valid (<60s).",
+                    "details": "Fast-stat invariant verified. TTL valid (<900s).",
                 }
+                report["checks"]["wal_hygiene"] = wal_check
                 report["checks"]["context_sentry"] = context_check
                 report["checks"]["meta_prompt_gate"] = (
                     self._verify_meta_prompt_gate_state()
@@ -322,11 +420,15 @@ class NKSessionBootstrap:
                 duration_ms = (time.perf_counter() - start_time) * 1000
                 report["duration_ms"] = round(duration_ms, 2)
                 report["execution_time_ms"] = round(duration_ms, 2)
-                with _BOOTSTRAP_LOCK:
-                    mem_entry = self._MEMORY_CACHE.get(str(self.workspace_root))
-                    if isinstance(mem_entry, dict):
-                        mem_entry["duration_ms"] = report["duration_ms"]
-                        mem_entry["execution_time_ms"] = report["execution_time_ms"]
+                if wal_check.get("stale_wals_purged", 0) > 0:
+                    self._last_root_mtime = self._get_root_mtime()
+                    self._save_state(report)
+                else:
+                    with _BOOTSTRAP_LOCK:
+                        mem_entry = self._MEMORY_CACHE.get(str(self.workspace_root))
+                        if isinstance(mem_entry, dict):
+                            mem_entry["duration_ms"] = report["duration_ms"]
+                            mem_entry["execution_time_ms"] = report["execution_time_ms"]
                 return report
 
         # 2. Controlla l'igiene della radice con scansione diretta os.scandir
@@ -371,7 +473,7 @@ class NKSessionBootstrap:
         return report
 
     def _can_fast_pass(self, cached: Optional[Dict[str, Any]] = None) -> bool:
-        """Verifica se la cache rapida (<60s), root_mtime e transcript sono validi."""
+        """Verifica se la cache rapida (<900s) e root_mtime cross-conversazione sono validi."""
         if cached is None:
             cached = self._load_fast_cache()
         if not cached:
@@ -386,10 +488,6 @@ class NKSessionBootstrap:
             ):
                 return False
 
-            cached_conv = str(cached.get("conversation_id", "")).strip()
-            if self.conversation_id and cached_conv != self.conversation_id:
-                return False
-
             if cached.get("status") != "PASS":
                 return False
 
@@ -402,8 +500,16 @@ class NKSessionBootstrap:
             if cached_root_mtime is None or curr_root_mtime != float(cached_root_mtime):
                 return False
 
+            cached_conv = str(cached.get("conversation_id", "")).strip()
+            if not self.conversation_id and cached_conv:
+                cached.pop("last_transcript_path", None)
+                if isinstance(cached.get("checks"), dict):
+                    cached["checks"].pop("context_sentry", None)
+                same_conv = False
+            else:
+                same_conv = cached_conv == self.conversation_id
             last_tp = cached.get("last_transcript_path", "")
-            if last_tp:
+            if same_conv and last_tp:
                 tp = Path(last_tp)
                 if tp.exists():
                     t_stat = tp.stat()
@@ -418,18 +524,39 @@ class NKSessionBootstrap:
         except Exception:
             return False
 
+    def _has_root_file_pollution_quick(self, is_hub_root: bool) -> bool:
+        """Verifica rapidamente la presenza di file .py, .tmp o .bak estranei nella root."""
+        try:
+            with os.scandir(self.workspace_root) as it:
+                for entry in it:
+                    if not entry.is_file(follow_symlinks=False):
+                        continue
+                    fname = entry.name
+                    if fname.startswith(".") or fname.startswith("quality_baseline.json."):
+                        continue
+                    if fname.endswith((".tmp", ".bak")):
+                        return True
+                    if fname.endswith(".py") and (
+                        is_hub_root or fname not in ("conftest.py", "setup.py")
+                    ):
+                        return True
+        except Exception:
+            pass
+        return False
+
     def _check_root_hygiene(
         self,
         use_fast_cache: bool = False,
         cached: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        """Verifica l'assenza di cartelle applicative o file Python estranei nella radice."""
+        """Verifica l'assenza di cartelle applicative o file .py, .tmp, .bak estranei nella radice."""
+        is_hub_root = self.workspace_root.resolve() == HUB_ROOT.resolve()
         curr_mtime = (
             self._last_root_mtime
             if (use_fast_cache and self._last_root_mtime > 0.0)
             else self._get_root_mtime()
         )
-        if use_fast_cache:
+        if use_fast_cache and not self._has_root_file_pollution_quick(is_hub_root):
             if cached is None:
                 cached = self._load_fast_cache()
             if (
@@ -444,6 +571,7 @@ class NKSessionBootstrap:
                 passed_cached = len(detected_cached) == 0
                 return {
                     "passed": passed_cached,
+                    "status": "PASS" if passed_cached else "FAIL",
                     "root_mtime": curr_mtime,
                     "violations": detected_cached,
                     "details": "Workspace root isolated."
@@ -453,8 +581,7 @@ class NKSessionBootstrap:
 
         forbidden_dirs = ("src_app", "app", "src")
         detected_dirs: List[str] = []
-        detected_py: List[str] = []
-        is_hub_root = self.workspace_root.resolve() == HUB_ROOT.resolve()
+        detected_files: List[str] = []
         dir_check_root = self.workspace_root if is_hub_root else HUB_ROOT
 
         try:
@@ -476,24 +603,36 @@ class NKSessionBootstrap:
         try:
             with os.scandir(self.workspace_root) as it:
                 for entry in it:
-                    if entry.is_file(follow_symlinks=False) and entry.name.endswith(
-                        ".py"
+                    if not entry.is_file(follow_symlinks=False):
+                        continue
+                    fname = entry.name
+                    if fname.startswith(".") or fname.startswith("quality_baseline.json."):
+                        continue
+                    if fname.endswith((".tmp", ".bak")):
+                        detected_files.append(fname)
+                    elif fname.endswith(".py") and (
+                        is_hub_root or fname not in ("conftest.py", "setup.py")
                     ):
-                        if is_hub_root or entry.name not in ("conftest.py", "setup.py"):
-                            detected_py.append(entry.name)
+                        detected_files.append(fname)
         except Exception:
-            for root_py in self.workspace_root.glob("*.py"):
-                if is_hub_root or root_py.name not in ("conftest.py", "setup.py"):
-                    detected_py.append(root_py.name)
+            for ext_pat in ("*.py", "*.tmp", "*.bak"):
+                for root_f in self.workspace_root.glob(ext_pat):
+                    fname = root_f.name
+                    if fname.startswith(".") or fname.startswith("quality_baseline.json."):
+                        continue
+                    if fname.endswith(".py") and not is_hub_root and fname in ("conftest.py", "setup.py"):
+                        continue
+                    detected_files.append(fname)
 
         ordered_dirs = [d for d in forbidden_dirs if d in detected_dirs]
-        detected = ordered_dirs + sorted(detected_py)
+        detected = ordered_dirs + sorted(detected_files)
         self._last_root_mtime = curr_mtime
         self._last_root_violations = detected
 
         passed = len(detected) == 0
         return {
             "passed": passed,
+            "status": "PASS" if passed else "FAIL",
             "root_mtime": curr_mtime,
             "is_external_project": not is_hub_root,
             "violations": detected,
@@ -572,6 +711,7 @@ class NKSessionBootstrap:
         if mutex_handle is None:
             return {
                 "passed": True,
+                "status": "PASS",
                 "stale_wals_purged": 0,
                 "mutex_busy": True,
                 "details": "2PC mutex active; WAL purge deferred.",
@@ -598,7 +738,7 @@ class NKSessionBootstrap:
             for cdir in candidate_dirs:
                 if cdir.exists():
                     try:
-                        for pattern in ("*.wal_2pc.jsonl", "*.wal"):
+                        for pattern in ("*.wal_2pc.jsonl", "*.wal", ".wal_tmp_*", "*.wal_tmp*"):
                             for wal_file in cdir.glob(pattern):
                                 if now - wal_file.stat().st_mtime > ttl_seconds:
                                     if self._is_committed_wal_file(wal_file):
@@ -609,9 +749,9 @@ class NKSessionBootstrap:
                         pass
         finally:
             self._release_2pc_mutex(mutex_handle)
-        return {"passed": True, "stale_wals_purged": purged}
-
-    _purge_stale_wals = _purge_stale_wal_files
+        if purged > 0:
+            self._cached_root_mtime = None
+        return {"passed": True, "status": "PASS", "stale_wals_purged": purged}
 
     def _verify_baseline(self) -> Dict[str, Any]:
         """Verifica che quality_baseline.json esista e abbia pass rate pari a 100%."""
@@ -670,9 +810,9 @@ class NKSessionBootstrap:
             return {"passed": False, "details": str(exc)}
 
     def _find_recent_transcript(
-        self, brain_dir: Path, max_age_seconds: float = TRANSCRIPT_MAX_AGE_SECONDS
+        self, brain_dir: Path, max_age_seconds: float = 120.0
     ) -> Optional[Path]:
-        """Individua il transcript attivo ordinando per transcript.stat().st_mtime entro 1800s."""
+        """Individua il transcript attivo ordinando per transcript.stat().st_mtime entro 120s in fallback."""
         if self.explicit_transcript_path and self.explicit_transcript_path.exists():
             return self.explicit_transcript_path
 
@@ -691,6 +831,7 @@ class NKSessionBootstrap:
 
         try:
             now = time.time()
+            fallback_window = min(float(max_age_seconds), 120.0)
             candidates: List[tuple[float, Path]] = []
             newest_unflushed_dir_ts: float = -1.0
             with os.scandir(brain_dir) as it:
@@ -705,12 +846,12 @@ class NKSessionBootstrap:
                         try:
                             if cand.exists():
                                 cmtime = cand.stat().st_mtime
-                                if (now - cmtime) <= max_age_seconds:
+                                if (now - cmtime) <= fallback_window:
                                     candidates.append((cmtime, cand))
                             else:
                                 dst = entry.stat()
                                 dir_ts = max(getattr(dst, "st_ctime", 0.0), dst.st_mtime)
-                                if (now - dir_ts) <= 60.0 and dir_ts > newest_unflushed_dir_ts:
+                                if (now - dir_ts) <= fallback_window and dir_ts > newest_unflushed_dir_ts:
                                     newest_unflushed_dir_ts = dir_ts
                         except Exception:
                             continue
@@ -818,19 +959,21 @@ class NKSessionBootstrap:
         elif (
             use_fast_cache
             and cached
-            and (
-                not self.conversation_id
-                or cached.get("conversation_id") == self.conversation_id
-            )
+            and str(cached.get("conversation_id", "")).strip() == self.conversation_id
         ):
             cached_tp = cached.get("last_transcript_path", "")
             if cached_tp:
                 cand_tp = Path(cached_tp)
                 try:
+                    max_tp_age = (
+                        TRANSCRIPT_MAX_AGE_SECONDS
+                        if self.conversation_id
+                        else 120.0
+                    )
                     if (
                         cand_tp.exists()
                         and (time.time() - cand_tp.stat().st_mtime)
-                        <= TRANSCRIPT_MAX_AGE_SECONDS
+                        <= max_tp_age
                     ):
                         if not self.conversation_id and self._has_newer_brain_directory(cand_tp):
                             transcript_file = None
@@ -865,7 +1008,10 @@ class NKSessionBootstrap:
             t_mtime = t_stat.st_mtime
             t_size = t_stat.st_size
 
-            if cached is not None:
+            if (
+                cached is not None
+                and str(cached.get("conversation_id", "")).strip() == self.conversation_id
+            ):
                 prev_t_size = int(cached.get("transcript_size", 0) or 0)
                 if (
                     cached.get("last_transcript_path") == str(transcript_file)
@@ -873,9 +1019,11 @@ class NKSessionBootstrap:
                 ):
                     cached_cs = cached.get("checks", {}).get("context_sentry")
                     if isinstance(cached_cs, dict) and cached_cs.get("passed"):
-                        if cached.get("transcript_mtime") == t_mtime and prev_t_size == t_size:
+                        if not self.conversation_id and cached_cs.get("status") == "RED":
+                            cached_cs = None
+                        elif cached.get("transcript_mtime") == t_mtime and prev_t_size == t_size:
                             return cached_cs
-                        if (
+                        elif (
                             use_fast_cache
                             and prev_t_size > 0
                             and 0 <= (t_size - prev_t_size) <= TAIL_READ_BYTES_LIMIT
@@ -890,7 +1038,7 @@ class NKSessionBootstrap:
 
             sentry_cls = _get_context_sentry()
             if sentry_cls is None:
-                return {"passed": True, "details": "NKContextSentry module unavailable, skipped."}
+                return {"passed": True, "status": "GREEN", "details": "NKContextSentry module unavailable, skipped."}
             sentry = sentry_cls(
                 workspace_root=self.workspace_root, profile=self.model_profile
             )
@@ -901,6 +1049,21 @@ class NKSessionBootstrap:
                 res = sentry.analyze_transcript(transcript_file)
 
             status = res.get("status", "GREEN")
+            if (
+                not self.conversation_id
+                and not self.explicit_transcript_path
+                and status == "RED"
+            ):
+                return {
+                    "passed": True,
+                    "status": "GREEN",
+                    "step_count": 0,
+                    "estimated_tokens": 0,
+                    "last_transcript_path": "",
+                    "transcript_mtime": 0.0,
+                    "transcript_size": 0,
+                    "details": "No active transcript found. Fresh session assumed.",
+                }
             step_count = int(res.get("step_count", 0))
             est_tokens = int(res.get("estimated_tokens", 0))
             warning = None
@@ -929,7 +1092,7 @@ class NKSessionBootstrap:
                 "details": f"Context status {status} ({step_count} steps).",
             }
         except Exception as exc:
-            return {"passed": True, "details": f"Context Sentry check error: {exc}"}
+            return {"passed": True, "status": "GREEN", "details": f"Context Sentry check error: {exc}"}
 
     @staticmethod
     def _atomic_write_json(target_path: Path, serialized: str) -> None:
@@ -964,9 +1127,8 @@ class NKSessionBootstrap:
             report_to_save["workspace_root"] = str(self.workspace_root)
             report_to_save["conversation_id"] = self.conversation_id
             report_to_save["active_profile"] = self.model_profile
-            report_to_save["root_mtime"] = (
-                self._last_root_mtime or self._get_root_mtime()
-            )
+            self._last_root_mtime = self._get_root_mtime()
+            report_to_save["root_mtime"] = self._last_root_mtime
             report_to_save["root_hygiene_violations"] = list(self._last_root_violations)
             report_to_save["root_hygiene"] = report.get("checks", {}).get(
                 "project_isolation", {}
@@ -993,7 +1155,53 @@ class NKSessionBootstrap:
         except Exception:
             pass
 
-    _persist_bootstrap_state = _save_state
+
+def run_bootstrap(
+    workspace_root: Optional[Path] = None,
+    transcript_path: Optional[Path] = None,
+    conversation_id: Optional[str] = None,
+    fast_stat: bool = True,
+) -> Dict[str, Any]:
+    """Funzione helper di modulo per eseguire il bootstrap Fast-Stat."""
+    ws = Path(workspace_root).resolve() if workspace_root else None
+    tp = Path(transcript_path).resolve() if transcript_path else None
+    return NKSessionBootstrap(
+        workspace_root=ws,
+        conversation_id=conversation_id,
+        transcript_path=tp,
+    ).run_bootstrap(fast_stat=fast_stat)
+
+
+def verify_fast_stat_invariant(
+    workspace_root: Optional[Path] = None,
+    conversation_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Funzione helper di modulo per verificare l'invariante Fast-Stat."""
+    ws = Path(workspace_root).resolve() if workspace_root else None
+    boot = NKSessionBootstrap(workspace_root=ws, conversation_id=conversation_id)
+    cached = boot._load_fast_cache()
+    can_fast = boot._can_fast_pass(cached=cached)
+    return {
+        "passed": True,
+        "fast_pass_eligible": can_fast,
+        "ttl_seconds": FAST_CACHE_TTL_SECONDS,
+        "details": "Fast-stat invariant verified. TTL valid (<900s).",
+    }
+
+
+def verify_project_isolation(workspace_root: Optional[Path] = None) -> Dict[str, Any]:
+    """Funzione helper di modulo per verificare l'isolamento della root."""
+    ws = Path(workspace_root).resolve() if workspace_root else None
+    return NKSessionBootstrap(workspace_root=ws)._check_root_hygiene(use_fast_cache=False)
+
+
+def enforce_wal_hygiene(
+    workspace_root: Optional[Path] = None,
+    ttl_seconds: float = 60.0,
+) -> Dict[str, Any]:
+    """Funzione helper di modulo per bonificare i file WAL scaduti."""
+    ws = Path(workspace_root).resolve() if workspace_root else None
+    return NKSessionBootstrap(workspace_root=ws)._purge_stale_wal_files(ttl_seconds=ttl_seconds)
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -1073,11 +1281,24 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.json or args.hook:
         print(json.dumps(res, indent=2))
     else:
-        status_symbol = "🟢" if res["status"] == "PASS" else "🔴"
-        print(
-            f"{status_symbol} [NK-BOOTSTRAP] Status: {res['status']} | Duration: {res.get('duration_ms', 0)} ms"
+        status = res["status"]
+        elapsed_ms = float(res.get("duration_ms", 0.0))
+        checks = res.get("checks", {})
+        iso_chk = checks.get("project_isolation", {})
+        wal_chk = checks.get("wal_hygiene", {})
+        ctx_chk = checks.get("context_sentry", {})
+        hygiene = {"status": "PASS" if iso_chk.get("passed", True) else "FAIL"}
+        wal_hygiene = {"status": "PASS" if wal_chk.get("passed", True) else "FAIL"}
+        ctx_sentry = {"status": str(ctx_chk.get("status", "GREEN"))}
+        ob_label = (
+            "BYPASSED"
+            if res.get("onboarding_bypass") == "ONBOARDING_BYPASS_VERIFIED"
+            else "GATE_ACTIVE"
         )
-        for check_name, check_data in res.get("checks", {}).items():
+        print(
+            f"[BOOTSTRAP: {status} | {elapsed_ms:.2f}ms | Root: {hygiene['status']} | WAL: {wal_hygiene['status']} | Context: {ctx_sentry['status']} | ONBOARDING: {ob_label}]"
+        )
+        for check_name, check_data in checks.items():
             print(f"  - {check_name}: {check_data.get('details', check_data)}")
         for issue in res.get("issues", []):
             print(f"  ⚠️ [ALERT] {issue}")

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Suite consolidata delle utilita core di piattaforma per Nexus Keystone v4.7.0-STE100-Unified.
+Suite consolidata delle utilita core di piattaforma per Nexus Keystone v5.2.0-STE100-Unified.
 Modulo: tests/test_core_platform_utilities.py.
 Unifica gli 8 micro-file di utilita e aggiunge 2 test Zero-Mock per invisible_healing_loop.py.
 """
@@ -10,46 +10,25 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
-import shutil
-import sqlite3
 import subprocess
 import sys
-import tempfile
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 
-from conftest import WORKSPACE_ROOT, load_nk_script_module
-
-
-# --- Sezione consolidata da tests/test_deterministic_api_cache.py ---
 _workspace_root = Path(__file__).resolve().parent.parent
 if _workspace_root.name == ".staging":
     _workspace_root = _workspace_root.parent
-if str(_workspace_root) not in sys.path:
-    sys.path.insert(0, str(_workspace_root))
+for _p in (_workspace_root / "tests", _workspace_root):
+    if _p.exists() and str(_p) not in sys.path:
+        sys.path.insert(0, str(_p))
 
+from conftest import load_nk_script_module
 
-def _load_cache_module():
-    """Carica il modulo deterministic_api_cache dando priorita a .staging/scripts."""
-    staging_target = (
-        _workspace_root / ".staging" / "scripts" / "deterministic_api_cache.py"
-    )
-    prod_target = _workspace_root / "scripts" / "deterministic_api_cache.py"
-    target = staging_target if staging_target.exists() else prod_target
-    spec = importlib.util.spec_from_file_location(
-        "deterministic_api_cache", str(target)
-    )
-    mod = importlib.util.module_from_spec(spec)
-    sys.modules["deterministic_api_cache"] = mod
-    spec.loader.exec_module(mod)
-    return mod
-
-
-cache_mod = _load_cache_module()
+cache_mod = load_nk_script_module("deterministic_api_cache")
 DeterministicApiCache = cache_mod.DeterministicApiCache
 
 
@@ -92,27 +71,7 @@ def test_api_cache_persistent_wal_connection_and_close(tmp_path: Path) -> None:
     assert cache._conn is None
 
 
-# --- Sezione consolidata da tests/test_env_capability_probe.py ---
-_workspace_root = Path(__file__).resolve().parent.parent
-if _workspace_root.name == ".staging":
-    _workspace_root = _workspace_root.parent
-if str(_workspace_root) not in sys.path:
-    sys.path.insert(0, str(_workspace_root))
-
-
-def _load_probe_module():
-    """Carica il modulo env_capability_probe dando priorita a .staging/scripts."""
-    staging_target = _workspace_root / ".staging" / "scripts" / "env_capability_probe.py"
-    prod_target = _workspace_root / "scripts" / "env_capability_probe.py"
-    target = staging_target if staging_target.exists() else prod_target
-    spec = importlib.util.spec_from_file_location("env_capability_probe", str(target))
-    mod = importlib.util.module_from_spec(spec)
-    sys.modules["env_capability_probe"] = mod
-    spec.loader.exec_module(mod)
-    return mod
-
-
-probe_mod = _load_probe_module()
+probe_mod = load_nk_script_module("env_capability_probe")
 probe_environment = probe_mod.probe_environment
 check_module_availability = probe_mod.check_module_availability
 STANDARD_MODULES_TO_PROBE = probe_mod.STANDARD_MODULES_TO_PROBE
@@ -142,26 +101,7 @@ def test_env_probe_core_vs_optional_separation_and_gt09_invariance() -> None:
     assert data["summary"]["status"] == "PASS"
 
 
-# --- Sezione consolidata da tests/test_external_scaffolder.py ---
-_workspace_root = Path(__file__).resolve().parent.parent
-if _workspace_root.name == ".staging":
-    _workspace_root = _workspace_root.parent
-if str(_workspace_root) not in sys.path:
-    sys.path.insert(0, str(_workspace_root))
-
-
-def _load_scaffolder_module():
-    staging_target = _workspace_root / ".staging" / "scripts" / "external_project_scaffolder.py"
-    prod_target = _workspace_root / "scripts" / "external_project_scaffolder.py"
-    target = staging_target if staging_target.exists() else prod_target
-    spec = importlib.util.spec_from_file_location("external_project_scaffolder", str(target))
-    mod = importlib.util.module_from_spec(spec)
-    sys.modules["external_project_scaffolder"] = mod
-    spec.loader.exec_module(mod)
-    return mod
-
-
-scaffolder_mod = _load_scaffolder_module()
+scaffolder_mod = load_nk_script_module("external_project_scaffolder")
 ExternalProjectScaffolder = scaffolder_mod.ExternalProjectScaffolder
 
 
@@ -193,27 +133,8 @@ def test_external_scaffolder_generates_full_ddd_and_tetralogy(tmp_path: Path) ->
     assert (ext_dir / "tests" / "test_ast_purity.py").exists()
 
 
-# --- Sezione consolidata da tests/test_oracle_l3_and_hud.py ---
-_workspace_root = Path(__file__).resolve().parent.parent
-if _workspace_root.name == ".staging":
-    _workspace_root = _workspace_root.parent
-if str(_workspace_root) not in sys.path:
-    sys.path.insert(0, str(_workspace_root))
-
-
-def _load_mod(name: str):
-    staging_target = _workspace_root / ".staging" / "scripts" / f"{name}.py"
-    prod_target = _workspace_root / "scripts" / f"{name}.py"
-    target = staging_target if staging_target.exists() else prod_target
-    spec = importlib.util.spec_from_file_location(name, str(target))
-    mod = importlib.util.module_from_spec(spec)
-    sys.modules[name] = mod
-    spec.loader.exec_module(mod)
-    return mod
-
-
-oracle_mod = _load_mod("oracle_evaluator_l3")
-hud_mod = _load_mod("micro_hud_renderer")
+oracle_mod = load_nk_script_module("oracle_evaluator_l3")
+hud_mod = load_nk_script_module("micro_hud_renderer")
 
 
 def test_oracle_l3_void_tags_windows_path_and_micro_hud(tmp_path: Path) -> None:
@@ -247,27 +168,7 @@ def test_oracle_l3_void_tags_windows_path_and_micro_hud(tmp_path: Path) -> None:
     assert ipc_state.progress_pct == 100.0
 
 
-# --- Sezione consolidata da tests/test_platform_runner.py ---
-_workspace_root = Path(__file__).resolve().parent.parent
-if _workspace_root.name == ".staging":
-    _workspace_root = _workspace_root.parent
-if str(_workspace_root) not in sys.path:
-    sys.path.insert(0, str(_workspace_root))
-
-
-def _load_runner_module():
-    """Carica il modulo platform_runner dando priorita a .staging/scripts."""
-    staging_target = _workspace_root / ".staging" / "scripts" / "platform_runner.py"
-    prod_target = _workspace_root / "scripts" / "platform_runner.py"
-    target = staging_target if staging_target.exists() else prod_target
-    spec = importlib.util.spec_from_file_location("platform_runner", str(target))
-    mod = importlib.util.module_from_spec(spec)
-    sys.modules["platform_runner"] = mod
-    spec.loader.exec_module(mod)
-    return mod
-
-
-runner_mod = _load_runner_module()
+runner_mod = load_nk_script_module("platform_runner")
 _normalize_python_command = runner_mod._normalize_python_command
 safe_subprocess_run = runner_mod.safe_subprocess_run
 reconfigure_streams = runner_mod.reconfigure_streams
@@ -316,34 +217,12 @@ def test_platform_runner_tree_kill_on_timeout_and_utf8() -> None:
         "-c",
         "import time; time.sleep(5)",
     ]
-    rc, _, stderr = safe_subprocess_run(spawn_tree_cmd, timeout=0.15)
+    rc, _, stderr = safe_subprocess_run(spawn_tree_cmd, timeout=0.12)
     assert rc == -1
     assert "timed out" in stderr.lower()
 
 
-# --- Sezione consolidata da tests/test_preflight_health_check.py ---
-_workspace_root = Path(__file__).resolve().parent.parent
-if _workspace_root.name == ".staging":
-    _workspace_root = _workspace_root.parent
-if str(_workspace_root) not in sys.path:
-    sys.path.insert(0, str(_workspace_root))
-
-
-def _load_preflight_module():
-    """Carica il modulo preflight_health_check dando priorita a .staging/scripts."""
-    staging_target = (
-        _workspace_root / ".staging" / "scripts" / "preflight_health_check.py"
-    )
-    prod_target = _workspace_root / "scripts" / "preflight_health_check.py"
-    target = staging_target if staging_target.exists() else prod_target
-    spec = importlib.util.spec_from_file_location("preflight_health_check", str(target))
-    mod = importlib.util.module_from_spec(spec)
-    sys.modules["preflight_health_check"] = mod
-    spec.loader.exec_module(mod)
-    return mod, target
-
-
-preflight_mod, _PREFLIGHT_SCRIPT = _load_preflight_module()
+preflight_mod = load_nk_script_module("preflight_health_check")
 PreflightHealthChecker = preflight_mod.PreflightHealthChecker
 
 
@@ -399,28 +278,8 @@ def test_preflight_corrupted_baseline_fails_even_with_autofix(
     ).exists()
 
 
-# --- Sezione consolidata da tests/test_safe_cleanup_dev_servers.py ---
-_workspace_root = Path(__file__).resolve().parent.parent
-if _workspace_root.name == ".staging":
-    _workspace_root = _workspace_root.parent
-if str(_workspace_root) not in sys.path:
-    sys.path.insert(0, str(_workspace_root))
-
-
-def _load_script_module(mod_name: str):
-    """Carica dinamicamente uno script da .staging/scripts o scripts/."""
-    staging_target = _workspace_root / ".staging" / "scripts" / f"{mod_name}.py"
-    prod_target = _workspace_root / "scripts" / f"{mod_name}.py"
-    target = staging_target if staging_target.exists() else prod_target
-    spec = importlib.util.spec_from_file_location(mod_name, str(target))
-    mod = importlib.util.module_from_spec(spec)
-    sys.modules[mod_name] = mod
-    spec.loader.exec_module(mod)
-    return mod
-
-
-cleanup_mod = _load_script_module("safe_cleanup_dev_servers")
-heartbeat_mod = _load_script_module("async_heartbeat_signaler")
+cleanup_mod = load_nk_script_module("safe_cleanup_dev_servers")
+heartbeat_mod = load_nk_script_module("async_heartbeat_signaler")
 is_target_workspace_process = cleanup_mod.is_target_workspace_process
 
 
@@ -482,15 +341,7 @@ def test_async_heartbeat_signaler_cli_once_and_cleanup_cli_json(
     assert '"status": "OK"' in out_cl
 
 
-# --- Sezione consolidata da tests/test_unified_onboarding_mandate.py ---
-_test_file = Path(__file__).resolve()
-if _test_file.parent.name == "tests" and _test_file.parent.parent.name == ".staging":
-    _repo_root = _test_file.parent.parent.parent
-else:
-    _repo_root = _test_file.parent.parent
-
-if str(_repo_root) not in sys.path:
-    sys.path.insert(0, str(_repo_root))
+_repo_root = _workspace_root
 
 
 def _resolve_doc(rel_path: str) -> Path:
@@ -567,9 +418,6 @@ def test_session_bootstrap_fast_stat_execution() -> None:
     assert isinstance(result, dict)
     assert result.get("status") == "PASS"
     assert "checks" in result
-
-
-# --- Sezione 9: Copertura diretta per scripts/invisible_healing_loop.py ---
 
 
 def test_invisible_healing_loop_should_retry_and_budget(tmp_path: Path) -> None:
@@ -671,3 +519,147 @@ def test_invisible_healing_loop_escalate_to_orchestrator(tmp_path: Path) -> None
     logged = json.loads(telemetry_file.read_text(encoding="utf-8").splitlines()[0])
     assert logged["final_status"] == "ESCALATED"
     assert logged["cycles_total"] == 2
+
+
+def test_session_bootstrap_fast_stat_pollution_baseline_wal_and_isolation(
+    tmp_path: Path,
+) -> None:
+    """Verifica B2.1, B2.2, B2.3 e MUT-03 su NKSessionBootstrap con cache Fast-Stat."""
+    boot_mod = load_nk_script_module("nk_session_bootstrap")
+    NKSessionBootstrap = boot_mod.NKSessionBootstrap
+
+    ws_root = tmp_path / "isolated_hub_ws"
+    for sub in ("nk_tracking", ".wal", "scripts", ".agents"):
+        (ws_root / sub).mkdir(parents=True, exist_ok=True)
+
+    baseline_file = ws_root / "nk_tracking" / "quality_baseline.json"
+    baseline_file.write_text(
+        json.dumps({"metrics": {"unit_tests_pass_pct": 100.0, "unit_tests_total": 100}}),
+        encoding="utf-8",
+    )
+
+    try:
+        boot = NKSessionBootstrap(workspace_root=ws_root, conversation_id="conv-alpha")
+        res_init = boot.run_bootstrap(fast_stat=False)
+        assert res_init["status"] == "PASS"
+
+        res_fast = boot.run_bootstrap(fast_stat=True)
+        assert res_fast["status"] == "PASS"
+        assert "fast_stat" in res_fast["checks"]
+
+        saved_mtime = boot._get_root_mtime()
+        tmp_polluter = ws_root / "rogue_artifact.tmp"
+        tmp_polluter.write_text("temp pollution", encoding="utf-8")
+        try:
+            os.utime(ws_root, (saved_mtime, saved_mtime))
+        except Exception:
+            pass
+
+        assert boot._has_root_file_pollution_quick(is_hub_root=False) is True
+        hygiene_fast = boot._check_root_hygiene(
+            use_fast_cache=True,
+            cached={
+                "root_mtime": boot._get_root_mtime(),
+                "timestamp_epoch": time.time(),
+                "root_hygiene_violations": [],
+            },
+        )
+        assert hygiene_fast["passed"] is False
+        assert hygiene_fast["status"] == "FAIL"
+        assert "rogue_artifact.tmp" in hygiene_fast["violations"]
+
+        res_polluted = boot.run_bootstrap(fast_stat=True)
+        assert res_polluted["status"] == "FAIL"
+        assert res_polluted["checks"]["project_isolation"]["passed"] is False
+
+        tmp_polluter.unlink(missing_ok=True)
+        res_reclean = boot.run_bootstrap(fast_stat=False)
+        assert res_reclean["status"] == "PASS"
+
+        stale_wal = ws_root / ".wal" / "expired_tx.wal"
+        stale_wal.write_text('{"state": "PREPARE"}', encoding="utf-8")
+        old_ts = time.time() - 180.0
+        os.utime(stale_wal, (old_ts, old_ts))
+
+        res_wal = boot.run_bootstrap(fast_stat=True)
+        assert res_wal["status"] == "PASS"
+        assert not stale_wal.exists()
+        assert res_wal["checks"]["wal_hygiene"]["stale_wals_purged"] >= 1
+
+        baseline_file.write_text(
+            json.dumps({"metrics": {"unit_tests_pass_pct": 50.0, "unit_tests_total": 100}}),
+            encoding="utf-8",
+        )
+        res_bad_base = boot.run_bootstrap(fast_stat=True)
+        assert res_bad_base["status"] == "FAIL"
+        assert res_bad_base["checks"]["quality_baseline"]["passed"] is False
+        assert res_bad_base["checks"]["quality_baseline"]["unit_pass_pct"] == 50.0
+
+        tp_err = tmp_path / "transcript_err.jsonl"
+        tp_err.write_text(
+            json.dumps(
+                {
+                    "source": "USER",
+                    "content": "Analizza il bug per cui avvia nk hub mostra un errore",
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        boot_ob_err = NKSessionBootstrap(
+            workspace_root=ws_root,
+            conversation_id="conv-ob-1",
+            transcript_path=tp_err,
+        )
+        assert boot_ob_err._resolve_onboarding_and_gate_mode() == ("NONE", "CONFIRM")
+
+        tp_ok = tmp_path / "transcript_ok.jsonl"
+        tp_ok.write_text(
+            json.dumps({"source": "USER", "content": "Avvia NK Hub!"}) + "\n",
+            encoding="utf-8",
+        )
+        boot_ob_ok = NKSessionBootstrap(
+            workspace_root=ws_root,
+            conversation_id="conv-ob-2",
+            transcript_path=tp_ok,
+        )
+        assert boot_ob_ok._resolve_onboarding_and_gate_mode() == (
+            "ONBOARDING_BYPASS_VERIFIED",
+            "BYPASSED",
+        )
+
+        baseline_file.write_text(
+            json.dumps({"metrics": {"unit_tests_pass_pct": 100.0, "unit_tests_total": 100}}),
+            encoding="utf-8",
+        )
+        fake_brain = tmp_path / "brain"
+        conv_old_logs = fake_brain / "conv-old-red" / ".system_generated" / "logs"
+        conv_old_logs.mkdir(parents=True, exist_ok=True)
+        tp_red = conv_old_logs / "transcript.jsonl"
+        tp_red.write_text(
+            "".join(
+                json.dumps({"step_index": i, "source": "USER", "content": "x" * 1200}) + "\n"
+                for i in range(260)
+            ),
+            encoding="utf-8",
+        )
+
+        boot_old = NKSessionBootstrap(
+            workspace_root=ws_root,
+            conversation_id="conv-old-red",
+            transcript_path=tp_red,
+        )
+        res_old = boot_old.run_bootstrap(fast_stat=False)
+        assert res_old["checks"]["context_sentry"]["status"] == "RED"
+
+        boot_anon = NKSessionBootstrap(workspace_root=ws_root, conversation_id="")
+        stale_300s = time.time() - 300.0
+        os.utime(tp_red, (stale_300s, stale_300s))
+        assert boot_anon._find_recent_transcript(fake_brain) is None
+
+        now_ts = time.time()
+        os.utime(tp_red, (now_ts, now_ts))
+        res_anon = boot_anon.run_bootstrap(fast_stat=True)
+        assert res_anon["checks"]["context_sentry"]["status"] != "RED"
+    finally:
+        NKSessionBootstrap(workspace_root=_repo_root).run_bootstrap(fast_stat=False)

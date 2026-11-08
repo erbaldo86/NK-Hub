@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Suite di test unitari Zero-Mock per Win32 Two-Phase Commit e Named Mutex Engine (v3.3.0).
+Suite di test unitari Zero-Mock per Win32 Two-Phase Commit e Named Mutex Engine (v5.2.0-STE100-Unified).
 Modulo: tests/test_win32_2pc.py.
 Valida acquisizione RAII, affinita thread, timeout, WAIT_ABANDONED, 2PC e concorrenza.
 """
@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -18,6 +19,7 @@ import threading
 import time
 import unittest
 import uuid
+import zlib
 
 CURRENT_DIR = Path(__file__).resolve().parent
 STAGING_DIR = CURRENT_DIR.parent
@@ -42,6 +44,7 @@ if str(WORKSPACE_ROOT) not in sys.path:
 if "win32_2pc_engine" in sys.modules:
     del sys.modules["win32_2pc_engine"]
 
+import win32_2pc_engine as _w2pc_mod
 from win32_2pc_engine import (
     TwoPhaseCommitEngine,
     TwoPhaseCommitError,
@@ -51,6 +54,8 @@ from win32_2pc_engine import (
     Win32NamedMutex,
     WriteAheadLogManager,
     _kernel32,
+    _verify_quality_baseline_ratchet,
+    compute_crc32,
     promote_staging_to_production,
 )
 
@@ -147,6 +152,12 @@ class TestWin322PCEngine(unittest.TestCase):
         self.assertEqual(verdict.verdict, "COMMIT")
         self.assertTrue(target_file.exists())
         self.assertEqual(target_file.read_text(encoding="utf-8"), content)
+        self.assertEqual(
+            compute_crc32(b"nexus-2pc-payload"),
+            zlib.crc32(b"nexus-2pc-payload") & 0xFFFFFFFF,
+        )
+        self.assertGreater(compute_crc32(b"nexus-2pc-payload"), 0)
+        self.assertNotEqual(compute_crc32(b"a"), compute_crc32(b"b"))
 
         tamper_file = self.test_dir / "target_tamper.txt"
         prep = self.engine.prepare(tamper_file, "Original Payload")
@@ -222,7 +233,6 @@ class TestWin322PCEngine(unittest.TestCase):
             "tampered",
         )
 
-        # Verifica che _shadow_swap_fallback pulisca sempre shadow_path in finally
         missing_src = self.test_dir / "non_existent_src.tmp"
         dst_shadow = self.test_dir / "dst_shadow.txt"
         self.engine.MAX_RETRIES = 1
@@ -230,14 +240,13 @@ class TestWin322PCEngine(unittest.TestCase):
         self.assertFalse(ok_swap)
         leftover_shadows = list(self.test_dir.glob(".shadow_*"))
         self.assertEqual(leftover_shadows, [])
-        # M15: CRC32 mismatch check during commit
+
         tgt_m15 = self.test_dir / "tgt_m15.txt"
         prep_m15 = self.engine.prepare(tgt_m15, b"m15_payload")
         bad_crc_prep = prep_m15.model_copy(update={"crc32": prep_m15.crc32 ^ 1})
         verd_m15 = self.engine.commit(bad_crc_prep)
         self.assertEqual(verd_m15.verdict, "ABORT")
 
-        # M16: Post-write SHA-256 verification on disk
         class _CorruptDiskEngine(TwoPhaseCommitEngine):
             def _execute_atomic_commit(self, s_path: Path, t_path: Path) -> bool:
                 t_path.write_bytes(b"corrupted_after_move")
@@ -249,17 +258,13 @@ class TestWin322PCEngine(unittest.TestCase):
         verd_m16 = eng_m16.commit(prep_m16)
         self.assertEqual(verd_m16.verdict, "ABORT")
 
-        # M17: quality_baseline pass_rate < 100.0 ratchet check
         dst_bl_m17 = self.test_dir / "dst_bl_m17.json"
         stg_bl_m17 = self.test_dir / "stg_bl_m17.json"
         dst_bl_m17.write_text('{"pass_rate": 90.0, "metrics": {"m": 1}}', encoding="utf-8")
         stg_bl_m17.write_text('{"pass_rate": 95.0, "metrics": {"m": 1}}', encoding="utf-8")
-        from win32_2pc_engine import _verify_quality_baseline_ratchet
         with self.assertRaises(TwoPhaseCommitError):
             _verify_quality_baseline_ratchet(dst_bl_m17, stg_bl_m17)
 
-        # M30: WriteAheadLogManager(wal_dir=None)._get_wal_path punta in tempfile.gettempdir()/nk_2pc_wal
-        import win32_2pc_engine as _w2pc_mod
         wal_m30 = WriteAheadLogManager(wal_dir=None)._get_wal_path(self.test_dir / "a.txt")
         self.assertIn("nk_2pc_wal", str(wal_m30))
         self.assertTrue(
@@ -268,8 +273,6 @@ class TestWin322PCEngine(unittest.TestCase):
             )
         )
 
-        # M35: _win_long_path esiste in win32_2pc_engine e gestisce i path lunghi
-        import os
         self.assertTrue(hasattr(_w2pc_mod, "_win_long_path"))
         long_target = self.test_dir / ("a" * 250) / "long_file.txt"
         long_res = str(_w2pc_mod._win_long_path(long_target))

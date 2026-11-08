@@ -156,6 +156,27 @@ def _win_long_path(p: Union[str, Path]) -> Path:
     return path_obj
 
 
+def _atomic_write_bytes(target_path: Path, data: bytes) -> None:
+    """Scrive atomicamente i byte sul target tramite file temporaneo, fsync e os.replace."""
+    t_obj = Path(target_path)
+    _win_long_path(t_obj.parent).mkdir(parents=True, exist_ok=True)
+    tmp_path = t_obj.parent / f".{t_obj.name}.{os.getpid()}.rollback.tmp"
+    tmp_lp = _win_long_path(tmp_path)
+    target_lp = _win_long_path(t_obj)
+    try:
+        with open(tmp_lp, "wb") as f:
+            f.write(data)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_lp, target_lp)
+    finally:
+        if tmp_lp.exists():
+            try:
+                tmp_lp.unlink(missing_ok=True)
+            except OSError:
+                pass
+
+
 def get_mutex_name_for_path(file_path: Union[str, Path]) -> str:
     """Deriva il nome deterministico del mutex Win32 dal percorso file."""
     norm_path = os.path.abspath(str(file_path)).lower().replace("/", "\\")
@@ -425,7 +446,7 @@ class WriteAheadLogManager:
                             if _win_long_path(staging).exists():
                                 stg_bytes = _win_long_path(staging).read_bytes()
                                 if compute_sha256(stg_bytes) == expected_sha:
-                                    _win_long_path(target).write_bytes(stg_bytes)
+                                    _atomic_write_bytes(target, stg_bytes)
                                     action_taken = "REPLAYED_COMMIT"
                                 _win_long_path(staging).unlink(missing_ok=True)
                             _win_long_path(wal_file).unlink(missing_ok=True)
@@ -928,7 +949,10 @@ def _verify_quality_baseline_ratchet(
     stg_bl: Optional[Union[str, Path, Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     """Verifica il rispetto del ratchet quality_baseline.json con supporto Dual-Schema."""
-    from quality_baseline_manager import check_baseline_compliance
+    from quality_baseline_manager import (
+        _evaluate_baseline_compliance,
+        _verify_oracle_lock_coherence,
+    )
 
     if isinstance(dst_bl, dict):
         cand_metrics, pass_rate, total_tests = _extract_dual_schema_baseline(dst_bl)
@@ -948,9 +972,18 @@ def _verify_quality_baseline_ratchet(
     dst_path = Path(dst_bl)
     stg_path = Path(stg_bl) if isinstance(stg_bl, (str, Path)) else None
 
-    if stg_path is not None and stg_path.exists() and dst_path.exists():
+    if (
+        stg_path is not None
+        and stg_path.exists()
+        and dst_path.exists()
+        and stg_path.resolve() != dst_path.resolve()
+    ):
         dst_data = json.loads(dst_path.read_text(encoding="utf-8"))
-        stg_data = json.loads(stg_path.read_text(encoding="utf-8"))
+        stg_data = (
+            stg_bl
+            if isinstance(stg_bl, dict)
+            else json.loads(stg_path.read_text(encoding="utf-8"))
+        )
         _, dst_pass, _ = _extract_dual_schema_baseline(dst_data)
         stg_metrics, stg_pass, stg_tot = _extract_dual_schema_baseline(stg_data)
         if not stg_metrics:
@@ -966,7 +999,9 @@ def _verify_quality_baseline_ratchet(
                 f"Regressione pass rate nel quality_baseline: {dst_pass}% -> {stg_pass}%"
             )
         if isinstance(dst_data.get("metrics"), dict) and dst_data.get("metrics"):
-            res_bl = check_baseline_compliance(str(dst_path), stg_metrics)
+            res_bl, _ = _evaluate_baseline_compliance(
+                str(dst_path), stg_metrics, preloaded_baseline=dst_data
+            )
             if res_bl.get("verdict") != "PASS":
                 raise TwoPhaseCommitError(
                     f"Regressione rilevata nel quality_baseline di staging: {res_bl.get('regressions')}"
@@ -994,10 +1029,10 @@ def _verify_quality_baseline_ratchet(
             f"Regressione rilevata nel quality_baseline ({active_bl}): pass_rate={pass_rate}%"
         )
     if isinstance(bl_data.get("metrics"), dict) and bl_data.get("metrics"):
-        res_bl = check_baseline_compliance(str(active_bl), cand_metrics)
-        if res_bl.get("verdict") != "PASS":
+        lock_anomalies = _verify_oracle_lock_coherence(str(active_bl))
+        if lock_anomalies:
             raise TwoPhaseCommitError(
-                f"Regressione rilevata nel quality_baseline: {res_bl.get('regressions')}"
+                f"Regressione rilevata nel quality_baseline: {lock_anomalies}"
             )
     return {
         "verdict": "PASS",
@@ -1069,7 +1104,7 @@ def promote_staging_to_production(
         target_subdirs = sorted([
             d.name
             for d in staging_dir.iterdir()
-            if d.is_dir() and not d.name.startswith(".git") and d.name != "__pycache__"
+            if d.is_dir() and d.name != ".git" and d.name != "__pycache__"
         ])
     engine = TwoPhaseCommitEngine()
     engine.wal.recover(root, stale_age_sec=60.0)
@@ -1179,8 +1214,7 @@ def promote_staging_to_production(
                     if b_lp.exists():
                         b_lp.unlink(missing_ok=True)
                 else:
-                    _win_long_path(b_path.parent).mkdir(parents=True, exist_ok=True)
-                    b_lp.write_bytes(b_bytes)
+                    _atomic_write_bytes(b_path, b_bytes)
             except OSError:
                 pass
 

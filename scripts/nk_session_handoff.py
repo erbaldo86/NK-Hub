@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Generatore della capsula di handoff e compilatore Template 11 e Template 12 per Nexus Keystone v4.8.0-STE100-Unified.
+Generatore della capsula di handoff e compilatore Template 11 e Template 12 per Nexus Keystone v5.2.0-STE100-Unified.
 Legge dinamicamente unit_tests_total da quality_baseline.json, persiste IB-<id>.md e compila handoff passivi o 2-Tier.
 """
 
@@ -18,7 +18,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-HANDOFF_VERSION = "4.8.0-STE100-Unified"
+HANDOFF_SCHEMA_VERSION = "5.2.0-STE100-Unified"
+HANDOFF_VERSION = HANDOFF_SCHEMA_VERSION
+VERSION = HANDOFF_SCHEMA_VERSION
 
 os.environ["PYTHONUTF8"] = "1"
 os.environ["PYTHONIOENCODING"] = "utf-8"
@@ -45,7 +47,7 @@ def _resolve_git_executable() -> str:
     if found:
         return found
     for candidate in (
-        "C:/Users/erbal/AppData/Local/Programs/Git/cmd/git.exe",
+        str(Path.home() / "AppData" / "Local" / "Programs" / "Git" / "cmd" / "git.exe"),
         "C:/Program Files/Git/cmd/git.exe",
     ):
         if Path(candidate).is_file():
@@ -633,7 +635,7 @@ def generate_active_context_view(
 def main(argv: Optional[List[str]] = None) -> int:
     """Genera i metadati di handoff e il prompt Template 12 o Template 11 per la sessione successiva."""
     parser = argparse.ArgumentParser(
-        description="Nexus Keystone Session Handoff & Template 11/12 Prompt Compiler v4.8.0-STE100-Unified"
+        description="Nexus Keystone Session Handoff & Template 11/12 Prompt Compiler v5.2.0-STE100-Unified"
     )
     parser.add_argument(
         "--transcript",

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Indicizzatore modulare O(1) e generatore del manifesto SSOT per Nexus Keystone v5.0.0-STE100-Unified.
+Indicizzatore modulare O(1) e generatore del manifesto SSOT per Nexus Keystone v5.2.0-STE100-Unified.
 Modulo: scripts/nk_registry_indexer.py.
 Mappa i cinque domini funzionali, le skill Hot-Swap e i trentaquattro moduli Python.
 """
@@ -504,9 +504,9 @@ TETRALOGY_FILENAMES: Tuple[str, ...] = (
 class NKRegistryIndexer:
     """Indicizzatore deterministico O(1) per skill, script, sub-agenti nativi e domini di Nexus Keystone."""
 
-    MANIFEST_VERSION: str = "4.7.0-STE100-Unified"
-    RELEASE_VERSION: str = "5.0.0-STE100-Unified"
-    MILESTONE_ID: str = "NK-MS-20261106-SOVEREIGN-CLEAN-SLATE-RELEASE-v5.0.0-RSI"
+    MANIFEST_VERSION: str = "5.2.0-STE100-Unified"
+    RELEASE_VERSION: str = "5.2.0-STE100-Unified"
+    MILESTONE_ID: str = "NK-MS-20261108-CLEAN-OPTIMIZED-CHECKPOINT-v5.2.0-RSI"
     NATIVE_AGENT_DOMAIN_MAP: Dict[str, str] = NATIVE_AGENT_DOMAIN_MAP
 
     def __init__(
@@ -561,7 +561,6 @@ class NKRegistryIndexer:
                 or not self.verify().get("passed")
             ):
                 self.sync(sync_staging=True)
-                self.verify()
 
     _HASH_CACHE: Dict[Tuple[str, int, int], str] = {}
     _META_CACHE: Dict[Tuple[str, int, int], Dict[str, Any]] = {}
@@ -663,22 +662,36 @@ class NKRegistryIndexer:
         if st.st_size > 256 and cache_key in NKRegistryIndexer._HASH_CACHE:
             return NKRegistryIndexer._HASH_CACHE[cache_key]
         hasher = hashlib.sha256()
-        hasher.update(file_path.read_bytes())
+        if file_path.suffix.lower() not in (
+            ".zip",
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".gif",
+            ".ico",
+            ".pdf",
+            ".whl",
+            ".exe",
+            ".dll",
+            ".pyd",
+        ):
+            raw = file_path.read_bytes().replace(b"\r\n", b"\n")
+        else:
+            raw = file_path.read_bytes()
+        hasher.update(raw)
         digest = hasher.hexdigest()
         NKRegistryIndexer._HASH_CACHE[cache_key] = digest
         return digest
 
     def _collect_priority_skills(self) -> Dict[str, Tuple[Path, os.stat_result]]:
         """Raccoglie la mappa skill_name -> (SKILL.md, stat) con una sola stat per skill."""
-        import os as _os
-
         resolved_map: Dict[str, Tuple[Path, os.stat_result]] = {}
         for base in (
             self.stage_dir / ".agents" / "skills",
             self.workspace_root / ".agents" / "skills",
         ):
             try:
-                with _os.scandir(base) as it:
+                with os.scandir(base) as it:
                     for entry in it:
                         if entry.name in resolved_map:
                             continue
@@ -695,12 +708,10 @@ class NKRegistryIndexer:
 
     def _collect_priority_scripts(self) -> Dict[str, Tuple[Path, os.stat_result]]:
         """Raccoglie la mappa script_name -> (Path, stat) a costo zero tramite os.scandir."""
-        import os as _os
-
         resolved_map: Dict[str, Tuple[Path, os.stat_result]] = {}
         for base in (self.stage_dir / "scripts", self.workspace_root / "scripts"):
             try:
-                with _os.scandir(base) as it:
+                with os.scandir(base) as it:
                     for entry in it:
                         if (
                             entry.is_file(follow_symlinks=False)
@@ -718,7 +729,7 @@ class NKRegistryIndexer:
                             and entry.name == "schemas"
                         ):
                             try:
-                                with _os.scandir(entry.path) as sit:
+                                with os.scandir(entry.path) as sit:
                                     for s_entry in sit:
                                         if (
                                             s_entry.is_file(follow_symlinks=False)
@@ -815,7 +826,7 @@ class NKRegistryIndexer:
         if st.st_size > 256 and cache_key in NKRegistryIndexer._META_CACHE:
             return NKRegistryIndexer._META_CACHE[cache_key]
 
-        raw_bytes = script_path.read_bytes()
+        raw_bytes = script_path.read_bytes().replace(b"\r\n", b"\n")
         sha256_hex = hashlib.sha256(raw_bytes).hexdigest()
         NKRegistryIndexer._HASH_CACHE[cache_key] = sha256_hex
 
@@ -908,7 +919,7 @@ class NKRegistryIndexer:
         for sk_name in sorted(skill_map.keys()):
             resolved, st = skill_map[sk_name]
             rel_path = f".agents/skills/{sk_name}/SKILL.md"
-            raw_bytes = resolved.read_bytes()
+            raw_bytes = resolved.read_bytes().replace(b"\r\n", b"\n")
             sha_hex = hashlib.sha256(raw_bytes).hexdigest()
             NKRegistryIndexer._HASH_CACHE[
                 (str(resolved), st.st_mtime_ns, st.st_size)
@@ -973,15 +984,13 @@ class NKRegistryIndexer:
         self,
     ) -> Dict[str, Tuple[Path, os.stat_result]]:
         """Raccoglie la mappa agent_name -> (agent.md, stat) dando priorita a .staging/."""
-        import os as _os
-
         resolved_map: Dict[str, Tuple[Path, os.stat_result]] = {}
         for base in (
             self.stage_dir / ".agents" / "agents",
             self.workspace_root / ".agents" / "agents",
         ):
             try:
-                with _os.scandir(base) as it:
+                with os.scandir(base) as it:
                     for entry in it:
                         if entry.name in resolved_map:
                             continue
@@ -1038,7 +1047,7 @@ class NKRegistryIndexer:
         for ag_name in sorted(agent_map.keys()):
             resolved, st = agent_map[ag_name]
             rel_path = f".agents/agents/{ag_name}/agent.md"
-            raw_bytes = resolved.read_bytes()
+            raw_bytes = resolved.read_bytes().replace(b"\r\n", b"\n")
             sha_hex = hashlib.sha256(raw_bytes).hexdigest()
             NKRegistryIndexer._HASH_CACHE[
                 (str(resolved), st.st_mtime_ns, st.st_size)
@@ -1369,15 +1378,13 @@ class NKRegistryIndexer:
 
     def scan_docs_and_setup(self) -> Dict[str, Dict[str, Any]]:
         """Indicizza i file documentali e di setup presenti in nk_docs_and_setup/."""
-        import os as _os
-
         docs_index: Dict[str, Dict[str, Any]] = {}
         for base in (
             self.workspace_root / "nk_docs_and_setup",
             self.stage_dir / "nk_docs_and_setup",
         ):
             try:
-                with _os.scandir(base) as it:
+                with os.scandir(base) as it:
                     for entry in it:
                         if entry.is_file(follow_symlinks=False):
                             fpath = Path(entry.path)
@@ -2222,7 +2229,7 @@ def generate_tas_certification_matrix(workspace_root: Optional[Path] = None) -> 
 def main(argv: Optional[Sequence[str]] = None) -> int:
     """Punto di ingresso CLI per l'indicizzatore modulare di Nexus Keystone."""
     parser = argparse.ArgumentParser(
-        description="Indicizzatore Modulare O(1) Nexus Keystone v5.0.0-STE100-Unified"
+        description="Indicizzatore Modulare O(1) Nexus Keystone v5.2.0-STE100-Unified"
     )
     parser.add_argument(
         "--sync",
@@ -2236,7 +2243,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     )
     parser.add_argument(
         "--verify",
+        "--check",
         action="store_true",
+        dest="verify",
         help="Verifica l'allineamento SHA-256 tra manifesto e file su disco",
     )
     parser.add_argument(

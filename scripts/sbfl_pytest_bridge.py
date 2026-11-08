@@ -269,7 +269,6 @@ class SBFLPytestBridge:
             n_ef = total_failed
         else:
             n_ef = min(total_failed, count)
-        n_ef = min(n_ef, total_failed)
 
         if passed_line_counts is not None:
             n_ep = passed_line_counts.get(

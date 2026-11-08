@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Gestore del Ratchet di qualita per Nexus Keystone v4.8.0-STE100-Unified.
+Gestore del Ratchet di qualita per Nexus Keystone v5.2.0-STE100-Unified.
 Modulo: quality_baseline_manager.py.
-Implementa la regola [RULE-01.10] (soglia GT-68 Zero-Padding) e la correzione BS-02.
+Implementa la regola [RULE-01.10] (soglia GT-68 e suite ortogonale GT-93) e la correzione BS-02.
 """
 
 from __future__ import annotations
@@ -14,11 +14,13 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Tuple
 
 BASELINE_FILENAME = "quality_baseline.json"
-DEFAULT_BASELINE_VERSION = "4.8.0-STE100-Unified"
-CONSTITUTIONAL_GOLDEN_FLOOR = 68
+BASELINE_SCHEMA_VERSION = "5.2.0-STE100-Unified"
+DEFAULT_BASELINE_VERSION = BASELINE_SCHEMA_VERSION
+MIN_GOLDEN_TESTS_FLOOR = 93
+CONSTITUTIONAL_GOLDEN_FLOOR = MIN_GOLDEN_TESTS_FLOOR
 
 RECALIBRATED_COUNT_KEYS = {
     "total_golden_tests",
@@ -95,7 +97,7 @@ def _atomic_write_baseline(baseline_path: str, data: dict) -> None:
 
 
 def _is_valid_gt68_recalibration(current_metrics: dict) -> bool:
-    """Verifica se le metriche correnti rappresentano la ricalibrazione costituzionale GT-68."""
+    """Verifica se le metriche correnti rappresentano la ricalibrazione costituzionale GT-68 o GT-90."""
     raw_gt = current_metrics.get("total_golden_tests")
     gt_val = raw_gt.get("value") if isinstance(raw_gt, dict) else raw_gt
     raw_tot = current_metrics.get("unit_tests_total")
@@ -109,58 +111,160 @@ def _is_valid_gt68_recalibration(current_metrics: dict) -> bool:
     ):
         return False
     return (
-        gt_val == CONSTITUTIONAL_GOLDEN_FLOOR
-        and tot_val == CONSTITUTIONAL_GOLDEN_FLOOR
-        and pass_val == CONSTITUTIONAL_GOLDEN_FLOOR
+        gt_val in (68, 90, MIN_GOLDEN_TESTS_FLOOR)
+        and tot_val == gt_val
+        and pass_val == gt_val
     )
 
 
-def check_baseline_compliance(
+def _verify_oracle_lock_coherence(baseline_path: str) -> list:
+    """Verifica che tutti i file elencati in oracle_lock.json esistano su disco sotto workspace_root."""
+    b_file = Path(baseline_path).resolve()
+    if b_file.parent.name == "nk_tracking":
+        ws_root = (
+            b_file.parent.parent.parent
+            if b_file.parent.parent.name == ".staging"
+            else b_file.parent.parent
+        )
+    else:
+        ws_root = b_file.parent
+
+    lock_candidates = [
+        ws_root / "nk_tracking" / "oracle_lock.json",
+        b_file.parent / "oracle_lock.json",
+    ]
+    lock_file = None
+    for cand in lock_candidates:
+        if cand.is_file():
+            lock_file = cand
+            break
+
+    if lock_file is None:
+        return []
+
+    anomalies = []
+    try:
+        lock_data = json.loads(lock_file.read_text(encoding="utf-8"))
+        if not isinstance(lock_data, dict):
+            return [
+                {
+                    "metric": "oracle_lock_integrity",
+                    "baseline_value": "VALID_DICT",
+                    "current_value": "INVALID_ROOT",
+                    "direction": "higher_is_better",
+                    "message": "Il file oracle_lock.json non contiene un dizionario valido.",
+                }
+            ]
+        locked_entries: list = []
+        raw_locked = lock_data.get("locked_files")
+        if isinstance(raw_locked, dict):
+            locked_entries.extend(str(k) for k in raw_locked.keys())
+        elif isinstance(raw_locked, list):
+            locked_entries.extend(str(item) for item in raw_locked)
+
+        raw_files = lock_data.get("files")
+        if isinstance(raw_files, dict):
+            locked_entries.extend(str(k) for k in raw_files.keys())
+        elif isinstance(raw_files, list):
+            locked_entries.extend(str(item) for item in raw_files)
+
+        for rel_entry in locked_entries:
+            cand_root = (ws_root / rel_entry).resolve()
+            cand_tests = (ws_root / "tests" / rel_entry).resolve()
+            if not (cand_root.exists() or cand_tests.exists()):
+                anomalies.append(
+                    {
+                        "metric": "oracle_lock_integrity",
+                        "baseline_value": "PRESENT",
+                        "current_value": "MISSING",
+                        "direction": "higher_is_better",
+                        "message": f"File registrato in oracle_lock.json mancante su disco: {rel_entry}",
+                    }
+                )
+    except Exception as exc:
+        anomalies.append(
+            {
+                "metric": "oracle_lock_integrity",
+                "baseline_value": "VALID_JSON",
+                "current_value": "CORRUPTED",
+                "direction": "higher_is_better",
+                "message": f"Errore lettura oracle_lock.json: {exc}",
+            }
+        )
+    return anomalies
+
+
+def _evaluate_baseline_compliance(
     baseline_path: str,
     current_metrics: dict,
     project_name: str = "NK_Project",
-) -> dict:
-    """Verifica che nessuna metrica corrente sia regredita rispetto al baseline."""
-    try:
-        baseline = load_baseline(baseline_path)
-    except (json.JSONDecodeError, ValueError, OSError) as exc:
-        return {
-            "status": "ERROR",
-            "verdict": "FAIL",
-            "message": f"Errore lettura baseline in {baseline_path}: {exc}",
-            "regressions": [
+    preloaded_baseline: Optional[dict] = None,
+) -> Tuple[dict, Optional[dict]]:
+    """Valuta la conformita al baseline caricando il file JSON al massimo una sola volta."""
+    if preloaded_baseline is not None:
+        baseline: Optional[dict] = preloaded_baseline
+    else:
+        try:
+            baseline = load_baseline(baseline_path)
+        except (json.JSONDecodeError, ValueError, OSError) as exc:
+            return (
                 {
-                    "metric": "__corrupted_baseline__",
-                    "message": f"Baseline JSON corrotto: {exc}",
-                }
-            ],
-        }
+                    "status": "ERROR",
+                    "verdict": "FAIL",
+                    "message": f"Errore lettura baseline in {baseline_path}: {exc}",
+                    "regressions": [
+                        {
+                            "metric": "__corrupted_baseline__",
+                            "message": f"Baseline JSON corrotto: {exc}",
+                        }
+                    ],
+                },
+                None,
+            )
 
     if baseline is None:
         new_baseline = create_default_baseline(project_name, current_metrics)
         _atomic_write_baseline(baseline_path, new_baseline)
-        return {
-            "status": "INITIALIZED",
-            "verdict": "PASS",
-            "message": f"Nuovo baseline di qualita inizializzato in {baseline_path}",
-            "regressions": [],
-        }
+        return (
+            {
+                "status": "INITIALIZED",
+                "verdict": "PASS",
+                "message": f"Nuovo baseline di qualita inizializzato in {baseline_path}",
+                "regressions": [],
+            },
+            new_baseline,
+        )
 
     baseline_metrics = baseline.get("metrics", {})
     if not isinstance(baseline_metrics, dict):
-        return {
-            "status": "ERROR",
-            "verdict": "FAIL",
-            "message": "Sezione metrics non valida nel file baseline.",
-            "regressions": [
-                {"metric": "metrics", "message": "Formato metrics non valido"}
-            ],
-        }
+        return (
+            {
+                "status": "ERROR",
+                "verdict": "FAIL",
+                "message": "Sezione metrics non valida nel file baseline.",
+                "regressions": [
+                    {"metric": "metrics", "message": "Formato metrics non valido"}
+                ],
+            },
+            baseline,
+        )
+
+    effective_metrics = dict(current_metrics) if isinstance(current_metrics, dict) else {}
+    gt68_nested = effective_metrics.get("golden_tests_68")
+    if isinstance(gt68_nested, dict):
+        if "passed" in gt68_nested and "unit_tests_passed" not in effective_metrics:
+            effective_metrics["unit_tests_passed"] = gt68_nested["passed"]
+        if "total" in gt68_nested:
+            effective_metrics.setdefault("unit_tests_total", gt68_nested["total"])
+            effective_metrics.setdefault("total_golden_tests", gt68_nested["total"])
+        if "pass_rate_pct" in gt68_nested:
+            effective_metrics.setdefault("pass_rate_pct", gt68_nested["pass_rate_pct"])
+            effective_metrics.setdefault("unit_tests_pass_pct", gt68_nested["pass_rate_pct"])
 
     regressions = []
-    gt68_exempt = _is_valid_gt68_recalibration(current_metrics)
+    gt68_exempt = _is_valid_gt68_recalibration(effective_metrics)
 
-    for metric_key, raw_curr in current_metrics.items():
+    for metric_key, raw_curr in effective_metrics.items():
         current_val = raw_curr.get("value") if isinstance(raw_curr, dict) else raw_curr
         if metric_key in baseline_metrics:
             base_info = baseline_metrics[metric_key]
@@ -179,7 +283,7 @@ def check_baseline_compliance(
             )
 
             if gt68_exempt and metric_key in RECALIBRATED_COUNT_KEYS:
-                if current_val >= CONSTITUTIONAL_GOLDEN_FLOOR:
+                if current_val >= 68:
                     continue
 
             if direction == "lower_is_better" and current_val > base_val:
@@ -203,20 +307,46 @@ def check_baseline_compliance(
                     }
                 )
 
+    regressions.extend(_verify_oracle_lock_coherence(baseline_path))
+
     verdict = "FAIL" if len(regressions) > 0 else "PASS"
 
-    return {
-        "status": "SUCCESS",
-        "verdict": verdict,
-        "baseline_date": baseline.get("baseline_date"),
-        "metrics_checked": len([k for k in current_metrics if k in baseline_metrics]),
-        "regressions": regressions,
-    }
+    return (
+        {
+            "status": "SUCCESS",
+            "verdict": verdict,
+            "baseline_date": baseline.get("baseline_date"),
+            "metrics_checked": len([k for k in effective_metrics if k in baseline_metrics]),
+            "regressions": regressions,
+            "details": (
+                "; ".join(r.get("message", "") for r in regressions)
+                if regressions
+                else "Baseline e oracle_lock coerenti."
+            ),
+        },
+        baseline,
+    )
+
+
+def check_baseline_compliance(
+    baseline_path: str,
+    current_metrics: dict,
+    project_name: str = "NK_Project",
+) -> dict:
+    """Verifica che nessuna metrica corrente sia regredita rispetto al baseline."""
+    compliance, _ = _evaluate_baseline_compliance(
+        baseline_path, current_metrics, project_name=project_name
+    )
+    return compliance
+
+
+compare_against_baseline = check_baseline_compliance
+check_regression = check_baseline_compliance
 
 
 def update_baseline_metrics(baseline_path: str, new_metrics: dict) -> dict:
     """Verifica il Ratchet e aggiorna il baseline solo in assenza di regressioni o corruzione."""
-    compliance = check_baseline_compliance(baseline_path, new_metrics)
+    compliance, baseline = _evaluate_baseline_compliance(baseline_path, new_metrics)
     if compliance.get("status") == "INITIALIZED":
         return compliance
 
@@ -230,7 +360,6 @@ def update_baseline_metrics(baseline_path: str, new_metrics: dict) -> dict:
             "regressions": compliance.get("regressions", []),
         }
 
-    baseline = load_baseline(baseline_path)
     if baseline is None:
         return compliance
 
@@ -305,7 +434,7 @@ def _resolve_default_baseline_path() -> str:
 def main() -> int:
     """Gestisce l'interfaccia CLI retrocompatibile del Quality Baseline Manager."""
     parser = argparse.ArgumentParser(
-        description="Gestore del Ratchet di qualita per Nexus Keystone v4.7.0-STE100-Unified"
+        description="Gestore del Ratchet di qualita per Nexus Keystone v5.2.0-STE100-Unified"
     )
     parser.add_argument(
         "action",

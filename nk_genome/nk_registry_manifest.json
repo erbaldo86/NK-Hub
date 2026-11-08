@@ -1,8 +1,8 @@
 {
-  "version": "4.7.0-STE100-Unified",
-  "release_version": "5.0.0-STE100-Unified",
-  "milestone_anchor_id": "NK-MS-20261106-SOVEREIGN-CLEAN-SLATE-RELEASE-v5.0.0-RSI",
-  "generated_at": "2026-11-06T20:21:36Z",
+  "version": "5.2.0-STE100-Unified",
+  "release_version": "5.2.0-STE100-Unified",
+  "milestone_anchor_id": "NK-MS-20261108-CLEAN-OPTIMIZED-CHECKPOINT-v5.2.0-RSI",
+  "generated_at": "2026-11-08T16:08:06Z",
   "summary": {
     "total_domains": 5,
     "total_skills": 16,
@@ -672,9 +672,9 @@
         "--stage-dir",
         "--target"
       ],
-      "loc": 1759,
-      "bytes": 72450,
-      "sha256": "58d372e4a4c08a9495afbb76a0e3c172a512a0850ab7990165dbcd9c6b6daac9",
+      "loc": 1907,
+      "bytes": 77758,
+      "sha256": "1a0c20de30b1fca30eb492f0a9c9ffc71b096ac44b31c720e3429a84a623ff56",
       "path": "scripts/ast_guard_validator.py",
       "source_layer": "production"
     },
@@ -694,9 +694,9 @@
         "--snapshot-out",
         "--symbol"
       ],
-      "loc": 1913,
-      "bytes": 76744,
-      "sha256": "b7b7b166c1e1151137761d71be28f52861bfe758cca9038c90678062f893e3ce",
+      "loc": 1915,
+      "bytes": 76911,
+      "sha256": "9f68fd4fab7bf31a4a9ecdce0b06552640c80d88ef95fa2b43d2ab008902299f",
       "path": "scripts/ast_repo_mapper.py",
       "source_layer": "production"
     },
@@ -752,8 +752,8 @@
         "--timeout"
       ],
       "loc": 1269,
-      "bytes": 46154,
-      "sha256": "95218fe5bded5b93c2fcd537b5692c2df9062dcde2086382be851de0bd8ee13f",
+      "bytes": 44982,
+      "sha256": "a482a77068834733796be3a51035fbb5294c23376342580117f1debca45d41b7",
       "path": "scripts/dast_sandbox_runner.py",
       "source_layer": "production"
     },
@@ -769,8 +769,8 @@
         "--stats"
       ],
       "loc": 299,
-      "bytes": 10490,
-      "sha256": "bad049f01f82194fbb5fccd6e188947a0b6782b29821a68953ef661a1128623c",
+      "bytes": 10191,
+      "sha256": "381cdec1971acaa77cceff49fa9bae2fa639a83040254a26e421c3d0ce0ed7ee",
       "path": "scripts/deterministic_api_cache.py",
       "source_layer": "production"
     },
@@ -803,9 +803,9 @@
         "--retrofit",
         "--target"
       ],
-      "loc": 330,
-      "bytes": 12337,
-      "sha256": "787e7a9c567eeaa1182eef7b63d3df1f2b99a1afa7613ba051c484118c189e6a",
+      "loc": 327,
+      "bytes": 11921,
+      "sha256": "ade5acd1f7e80fc59e0cc8b9442c8a0b32e2d778864924a2cd47dcdd96e27a82",
       "path": "scripts/external_project_scaffolder.py",
       "source_layer": "production"
     },
@@ -884,8 +884,8 @@
         "--percent"
       ],
       "loc": 302,
-      "bytes": 10905,
-      "sha256": "a0f671e5099ae39e929688d8eec7abb5f15039d10a56fdda50e2fd06331e5408",
+      "bytes": 10603,
+      "sha256": "360ce72a387b116b0dae6fe4f4c8af9a3cd7b2617a2f43e7eff6616fb5513db9",
       "path": "scripts/micro_hud_renderer.py",
       "source_layer": "production"
     },
@@ -977,9 +977,9 @@
         "--strict-external",
         "--target"
       ],
-      "loc": 1025,
-      "bytes": 40201,
-      "sha256": "89dde9b04aaf53b8f3f66e306f948ef15cd7744ed730f7ece8c491e96e22d7c1",
+      "loc": 1081,
+      "bytes": 41845,
+      "sha256": "f915f452d47914672c9178051cc897741a2d0989b2029027a0e15b3633db5339",
       "path": "scripts/nk_hook_gate.py",
       "source_layer": "production"
     },
@@ -987,9 +987,10 @@
       "name": "nk_registry_indexer.py",
       "domain_id": "DOM-01",
       "domain_name": "GOV_AND_ROUTING",
-      "description": "Indicizzatore modulare O(1) e generatore del manifesto SSOT per Nexus Keystone v5.0.0-STE100-Unified.",
+      "description": "Indicizzatore modulare O(1) e generatore del manifesto SSOT per Nexus Keystone v5.2.0-STE100-Unified.",
       "cli_flags": [
         "--apply-global-filter",
+        "--check",
         "--generate-tas-matrix",
         "--json",
         "--lookup",
@@ -999,9 +1000,9 @@
         "--sync-staging",
         "--verify"
       ],
-      "loc": 2356,
-      "bytes": 92418,
-      "sha256": "cca603a53db84cd339341c92bc651ecd85b08a0e6082c88cfe8278507c3f05db",
+      "loc": 2365,
+      "bytes": 92768,
+      "sha256": "a271770009ddb305c208c207da0ed1cb8c06fec298b4727d9e0884f09b5f0532",
       "path": "scripts/nk_registry_indexer.py",
       "source_layer": "production"
     },
@@ -1009,7 +1010,7 @@
       "name": "nk_session_bootstrap.py",
       "domain_id": "DOM-01",
       "domain_name": "GOV_AND_ROUTING",
-      "description": "Session Bootstrap Gate Fast-Stat per Nexus Keystone v3.2.0.",
+      "description": "Session Bootstrap Gate Fast-Stat per Nexus Keystone v5.0.0-STE100-Unified.",
       "cli_flags": [
         "--conversation-id",
         "--force-full",
@@ -1018,9 +1019,9 @@
         "--project-root",
         "--transcript"
       ],
-      "loc": 1089,
-      "bytes": 44314,
-      "sha256": "f3b92c59e661a16626e7acccb3b113ad6567e3c1136ace6e5bc50c713f93d058",
+      "loc": 1310,
+      "bytes": 54390,
+      "sha256": "b59652fe765ad202b4744e7f66f57ca08e6fce391398f1c12278e540f34bf2dc",
       "path": "scripts/nk_session_bootstrap.py",
       "source_layer": "production"
     },
@@ -1028,7 +1029,7 @@
       "name": "nk_session_handoff.py",
       "domain_id": "DOM-01",
       "domain_name": "GOV_AND_ROUTING",
-      "description": "Generatore della capsula di handoff e compilatore Template 11 e Template 12 per Nexus Keystone v4.8.0-STE100-Unified.",
+      "description": "Generatore della capsula di handoff e compilatore Template 11 e Template 12 per Nexus Keystone v5.2.0-STE100-Unified.",
       "cli_flags": [
         "--checkpoint-turn",
         "--compile-handoff-prompt",
@@ -1048,9 +1049,9 @@
         "--root",
         "--transcript"
       ],
-      "loc": 893,
-      "bytes": 36273,
-      "sha256": "bdafe7e0b14b97dc8ae01bf9e1f79ed71c91a0f1c8e452436e77aa3e22b5e5fe",
+      "loc": 895,
+      "bytes": 35491,
+      "sha256": "6502863a4208458a2c9154d082724e3dd3446ebb1580d1a04227d4ffdc9871b4",
       "path": "scripts/nk_session_handoff.py",
       "source_layer": "production"
     },
@@ -1095,9 +1096,9 @@
         "--text",
         "--transcript"
       ],
-      "loc": 860,
-      "bytes": 36385,
-      "sha256": "2180be471012c966cc91c220627db1b6fc9bcd52cc1622915928fda41fa3bbab",
+      "loc": 882,
+      "bytes": 37344,
+      "sha256": "bd4bbd15474bcd713b186b01d5b9235c3d7fb96c57c4bf1c0bd25d7ba3220a17",
       "path": "scripts/nk_transcript_tools.py",
       "source_layer": "production"
     },
@@ -1138,15 +1139,15 @@
       "name": "preflight_health_check.py",
       "domain_id": "DOM-05",
       "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
-      "description": "Diagnostica di manutenzione e auto-sanitizzazione per Nexus Keystone v4.8.0-STE100-Unified.",
+      "description": "Diagnostica di manutenzione e auto-sanitizzazione per Nexus Keystone v5.2.0-STE100-Unified.",
       "cli_flags": [
         "--check-only",
         "--json",
         "--root"
       ],
-      "loc": 593,
-      "bytes": 23747,
-      "sha256": "e474fbe2da80faca335d31a7b931d334708a0fea67ef140448bde42ee928e57d",
+      "loc": 596,
+      "bytes": 23849,
+      "sha256": "de4ca3a104c217560086a5e5e71494d2fc24fcd498bb5b4519c0397c2006b5a9",
       "path": "scripts/preflight_health_check.py",
       "source_layer": "production"
     },
@@ -1154,7 +1155,7 @@
       "name": "quality_baseline_manager.py",
       "domain_id": "DOM-05",
       "domain_name": "MEMORY_TELEMETRY_AND_DOCS",
-      "description": "Gestore del Ratchet di qualita per Nexus Keystone v4.8.0-STE100-Unified.",
+      "description": "Gestore del Ratchet di qualita per Nexus Keystone v5.2.0-STE100-Unified.",
       "cli_flags": [
         "--check",
         "--check-only",
@@ -1164,9 +1165,9 @@
         "--recalibrate",
         "--update"
       ],
-      "loc": 438,
-      "bytes": 14653,
-      "sha256": "7e9abc6742844ffafe78b59894d4a782878a433fc04765ec818d326fc40e4e61",
+      "loc": 567,
+      "bytes": 19631,
+      "sha256": "f6b823ea4df835643f2ecc52ba96eea649afaca932fb2edf94b89a200232e6c0",
       "path": "scripts/quality_baseline_manager.py",
       "source_layer": "production"
     },
@@ -1188,9 +1189,9 @@
         "--verify-canary",
         "--vibe-check"
       ],
-      "loc": 2125,
-      "bytes": 84002,
-      "sha256": "e0c0beb4422b9959c53f855cf8c6a10249be5c368b5e48f5ac8ab254e7e13d00",
+      "loc": 2137,
+      "bytes": 84351,
+      "sha256": "e4ea080aa4cda477b66b7fb4e73016ae0d4b61e4eb3508f6db805facb9b20189",
       "path": "scripts/rsi_convergence_engine.py",
       "source_layer": "production"
     },
@@ -1221,8 +1222,8 @@
         "--records-file"
       ],
       "loc": 534,
-      "bytes": 17738,
-      "sha256": "4a1dbe5a65748342a64c8d5af6e8f4fe5831da50ee67d8b21c7e394e4dbe4851",
+      "bytes": 17204,
+      "sha256": "cd8eadcf9af86d41dc9f1f6c85a21282d12fac613ef206672b8ff53d30e5b5be",
       "path": "scripts/sbfl_engine.py",
       "source_layer": "production"
     },
@@ -1237,9 +1238,9 @@
         "--target-file",
         "--test-cmd"
       ],
-      "loc": 373,
-      "bytes": 13643,
-      "sha256": "64e8531d9d129a76211b033de5cee7e76bd9e72b861dc49382ba8b051f468f1a",
+      "loc": 372,
+      "bytes": 13604,
+      "sha256": "dc324a2e09241e6aa21137e775ed2752c6dfb8f3edda2e51d978f682c8bb5eef",
       "path": "scripts/sbfl_pytest_bridge.py",
       "source_layer": "production"
     },
@@ -1250,8 +1251,8 @@
       "description": "Architettura Dual Ledgers per Nexus Keystone v3.0.0-STE100-Unified.",
       "cli_flags": [],
       "loc": 436,
-      "bytes": 15271,
-      "sha256": "e645a07f078f7cd333d7fdda017f6790d18f73444980e764c4aba95444901561",
+      "bytes": 14835,
+      "sha256": "7920b8b40d5d145c51738ec845f07d2390d49d9f92e07a3599094b22a5de9e5d",
       "path": "scripts/schemas/dual_ledgers.py",
       "source_layer": "production"
     },
@@ -1290,9 +1291,9 @@
         "--test",
         "--validate-generated-prompt"
       ],
-      "loc": 2677,
-      "bytes": 96974,
-      "sha256": "9de386b9004034d845da98e14ecd2cfb90e0f3522f44104938b6088f15c501d1",
+      "loc": 2767,
+      "bytes": 99749,
+      "sha256": "1e31e3f6d856fee291b7048eca82a6f31a5f637bd1604cc3489589da535b00be",
       "path": "scripts/vibe_sprint_router.py",
       "source_layer": "production"
     },
@@ -1311,9 +1312,9 @@
         "--staging-dir",
         "--verify-baseline"
       ],
-      "loc": 1383,
-      "bytes": 51021,
-      "sha256": "3cc80a130bb9ca4789dcc0e9108a9748571e4cca311b3bf2d8d21bb1ad13cdc5",
+      "loc": 1417,
+      "bytes": 51924,
+      "sha256": "0c8fd438f13417e297c07062785996b85f9d3fe2b8fef114a9c7409f913730bd",
       "path": "scripts/win32_2pc_engine.py",
       "source_layer": "production"
     }
@@ -1394,20 +1395,20 @@
     "00_MAPPA_LIBRERIA_NK.md": {
       "name": "00_MAPPA_LIBRERIA_NK.md",
       "relative_path": "nk_docs_and_setup/00_MAPPA_LIBRERIA_NK.md",
-      "size_bytes": 1990,
-      "sha256": "b496eeb7c5889c46d0b156873e2851c83887cebf12193a61dcad0fe9245ce560"
+      "size_bytes": 2140,
+      "sha256": "60e032fb9ef411ef51b7f4f398710af70ece67dbc4f3c0d0a0d488cca888fcb7"
     },
     "Antigravity.code-workspace": {
       "name": "Antigravity.code-workspace",
       "relative_path": "nk_docs_and_setup/Antigravity.code-workspace",
-      "size_bytes": 273,
-      "sha256": "1d6eb7aacdcde98815b842b63f820e2a2cf9aafcd3beb793a931ff79596340ee"
+      "size_bytes": 258,
+      "sha256": "99ff0dec43a778c11f96612340b88e1e7eebf074e8fe626aabf6989f2e60f36d"
     },
     "GUIDA_INSTALLAZIONE.md": {
       "name": "GUIDA_INSTALLAZIONE.md",
       "relative_path": "nk_docs_and_setup/GUIDA_INSTALLAZIONE.md",
-      "size_bytes": 7480,
-      "sha256": "5c606794d0eaa71b4ce848159d987d7a2c9c5ee7b46a27c509949d68c2974916"
+      "size_bytes": 7468,
+      "sha256": "cbe5c272372229ced63fca97799e78bc21ff6eeceba8ede6ad485b3bd713eed5"
     },
     "LICENSE": {
       "name": "LICENSE",
@@ -1418,32 +1419,32 @@
     "NK_Hub_OneClick_Package.zip": {
       "name": "NK_Hub_OneClick_Package.zip",
       "relative_path": "nk_docs_and_setup/NK_Hub_OneClick_Package.zip",
-      "size_bytes": 592240,
-      "sha256": "ef91da17cf38747725ea2f4ccd63de4e5b361d54c0ba65723e86a7fcb6169798"
+      "size_bytes": 551590,
+      "sha256": "782040f5eea6a19ef9e3b9cd201656a8d7fbe5065cb6aae5449765c4b071f0d2"
     },
     "README.it.md": {
       "name": "README.it.md",
       "relative_path": "nk_docs_and_setup/README.it.md",
-      "size_bytes": 22737,
-      "sha256": "7b23e3abfb6e6e1942b81d97843da4b70cc4c6479ada2e9ff2e25e4fe6d0bb69"
+      "size_bytes": 22520,
+      "sha256": "1ed6b89a717b7cee7465ef3254da7bec931d6ed3748e6b65c9760e6bdfee0bb2"
     },
     "README.md": {
       "name": "README.md",
       "relative_path": "nk_docs_and_setup/README.md",
-      "size_bytes": 22137,
-      "sha256": "91b7ac8926813841c348b940f93526741fe3bd898b668e6b7de45edf6c03f010"
+      "size_bytes": 21909,
+      "sha256": "b8cc271e148cc4055d5e1753443533e2a045fcf487dbe5e9f9848a6341cd54ae"
     },
     "install.ps1": {
       "name": "install.ps1",
       "relative_path": "nk_docs_and_setup/install.ps1",
-      "size_bytes": 2132,
-      "sha256": "5b0d24d1f017104407a3dce33ff0c9a57c66a1f264557bab4b873c73199aa06b"
+      "size_bytes": 2235,
+      "sha256": "25bb5dcd8f16c41339d75a5b6481506a77e19cc7480205d5f3d785f62d0d5428"
     },
     "install.sh": {
       "name": "install.sh",
       "relative_path": "nk_docs_and_setup/install.sh",
-      "size_bytes": 1601,
-      "sha256": "b3e3d9092712d5d6257aeefe7067c99b8d22af2f01494f104a2897dbb947c0fd"
+      "size_bytes": 1704,
+      "sha256": "8715f7cc495fa57df2411c4c60e32fcfaca8d8bcf0332b3471727fcff0022ebd"
     },
     "requirements.txt": {
       "name": "requirements.txt",

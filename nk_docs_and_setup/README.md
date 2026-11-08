@@ -1,10 +1,10 @@
-# Nexus Keystone Hub (NK-Hub v5.0.0-STE100-Unified)
+# Nexus Keystone Hub (NK-Hub v5.2.0-STE100-Unified / v5.2.0-RSI)
 ## The Organized, Safe, and Autonomous Multi-Agent Development Environment for Google Antigravity
 
 > 🌍 **Language / Lingua:** **[🇬🇧 English (Active)](README.md)** | **[🇮🇹 Versione Italiana](README.it.md)** | **[📖 1-Click ZIP Install Guide](GUIDA_INSTALLAZIONE.md)** | **[🗺️ Library Map](00_MAPPA_LIBRERIA_NK.md)**
 >
-> 📦 **1-CLICK DOWNLOAD OF THE COMPLETE ENVIRONMENT (`.ZIP` WITH INSTALL GUIDE):**  
-> 👉 **[Download NK_Hub_OneClick_Package.zip (Official Release v5.0.0-STE100-Unified)](https://github.com/erbaldo86/NK-Hub/releases/download/v5.0.0-STE100-Unified/NK_Hub_OneClick_Package.zip)** *(or [Direct Download from Repository](https://github.com/erbaldo86/NK-Hub/raw/main/nk_docs_and_setup/NK_Hub_OneClick_Package.zip))*
+> 📦 **1-CLICK DOWNLOAD OF THE COMPLETE ENVIRONMENT (`.ZIP` WITH INSTALL GUIDE, BUILD `2026-11-08`):**  
+> 👉 **[Download NK_Hub_OneClick_Package.zip (Official Release v5.2.0-STE100-Unified : 2026-11-08)](https://github.com/erbaldo86/NK-Hub/releases/download/v5.2.0-STE100-Unified/NK_Hub_OneClick_Package.zip)** *(or [Direct Download from Repository](https://github.com/erbaldo86/NK-Hub/raw/main/nk_docs_and_setup/NK_Hub_OneClick_Package.zip))*
 
 ---
 
@@ -40,7 +40,7 @@ When you build software with AI (Vibe Coding), the first few minutes feel effort
 
 ## 📦 2. Quick Installation Guide (For 1-Click ZIP Users)
 
-The **[NK_Hub_OneClick_Package.zip](https://github.com/erbaldo86/NK-Hub/releases/download/v5.0.0-STE100-Unified/NK_Hub_OneClick_Package.zip)** archive includes the entire organized environment and the bilingual [GUIDA_INSTALLAZIONE.md](GUIDA_INSTALLAZIONE.md).
+The **[NK_Hub_OneClick_Package.zip](https://github.com/erbaldo86/NK-Hub/releases/download/v5.2.0-STE100-Unified/NK_Hub_OneClick_Package.zip)** archive (updated build `v5.2.0-STE100-Unified`, `2026-11-08`) includes the entire organized environment and the bilingual [GUIDA_INSTALLAZIONE.md](GUIDA_INSTALLAZIONE.md).
 
 ### Setup in 3 Easy Steps
 1. **Extract the ZIP:** download `NK_Hub_OneClick_Package.zip` and extract it into your main workspace folder (for example `Antigravity/`). You will see two clean folders: `NK_Hub` and `NK_External_Projects`.
@@ -49,7 +49,7 @@ The **[NK_Hub_OneClick_Package.zip](https://github.com/erbaldo86/NK-Hub/releases
    cd NK_Hub
    .\nk_docs_and_setup\install.ps1
    ```
-   *(On Linux/macOS run `./nk_docs_and_setup/install.sh`. The script installs dependencies from `nk_docs_and_setup/requirements.txt`, verifies the O(1) index in `< 1.0 ms`, and runs the `253` certified tests).*
+   *(On Linux/macOS run `./nk_docs_and_setup/install.sh`. The script installs `nk_docs_and_setup/requirements.txt`, verifies the O(1) index in `< 1.0 ms`, and runs `93` tests in `18` modules).*
 3. **Launch the Engine in Antigravity:** open the folder in Google Antigravity and type in chat:
    ```text
    start nk
@@ -95,7 +95,7 @@ If you are an experienced engineer wondering what `NK-Hub` adds over a standard 
 1. **Clean Physical Library Layout (`NK_Hub` + `NK_External_Projects` + `nk_docs_and_setup`):**
    Every file has a single physical copy and logical home. Manuals live in `nk_docs_and_setup/`, plans in `nk_genome/`, telemetry in `nk_tracking/`, scripts in `scripts/`, and user apps in `NK_External_Projects/`.
 2. **Hardware Separation Between Builders and Auditors (`GT-14`):**
-   The `5` Native Sub-Agents enforce strict YAML permissions: `NK-Security-DAST-Auditor` and `NK-RSI-Auditor` run with `enable_write_tools: false`, and all sub-agents enforce `enable_subagent_tools: false` (`RULE-01`).
+   The `5` Native Sub-Agents enforce strict YAML permissions. Auditors enforce `enable_write_tools: false` and all sub-agents enforce `enable_subagent_tools: false` (`RULE-01`).
 3. **1-Click L0 Gate & `Mode C` Fast-Bypass (`< 500 ms`, `-71.9%` Token Usage):**
    Before execution, the router compiles a strict Pydantic v2 contract (`MetaPromptGateContract`) with a `SHA-256` intent hash. Edits under `150` lines run via Fast-Bypass in `~65 ms`.
 4. **$100\times$ Epistemic Honesty & `SAST-GAMING-D01..D04` Static Guards:**
@@ -108,7 +108,7 @@ If you are an experienced engineer wondering what `NK-Hub` adds over a standard 
    * **Fast-Stat Session Bootstrap (`nk_session_bootstrap.py`):** `18..28 ms` (target `< 50 ms`).
    * **O(1) Registry Verification with `OPT-11` Cache (`nk_registry_indexer.py --verify`):** `< 1.0 ms` cached (`41.8 ms` cold).
    * **Taxonomic Lookup & L0 Routing (`vibe_sprint_router.py`):** `1.08..2.12 ms` (target `< 15 ms`).
-   * **Full Suite of `253` Real Zero-Mock Tests (`245` baseline, `24` modules in `tests/`):** `100.0% PASS` (`253/253`).
+   * **Full Suite of `93` Real Zero-Mock Golden & Stress Tests (`18` modules in `tests/`, `Mutation Score 100.0%`):** `100.0% PASS` (`93/93 PASS`).
 
 ---
 
@@ -156,64 +156,60 @@ flowchart LR
 
 | Native Sub-Agent | Domain | Hardware Permissions (`GT-14`) | Role & Authorized Write Perimeter |
 | :--- | :---: | :--- | :--- |
-| **[NK-Specifier-Agent](.agents/agents/NK-Specifier-Agent/agent.md)** | `DOM-02` | `write: true`, `mcp: true` | Designs concepts, UX/UI systems, backend architectures, and plans inside `nk_genome/*`. |
-| **[NK-Builder-Agent](.agents/agents/NK-Builder-Agent/agent.md)** | `DOM-03` | `write: true`, `mcp: false` | Writes and heals Python backend, React/Next.js UI, and skills strictly inside `.staging/*`. |
-| **[NK-Security-DAST-Auditor](.agents/agents/NK-Security-DAST-Auditor/agent.md)** | `DOM-04` | **`write: false`** (Read-Only) | Runs SAST anti-gaming checks, DAST sandbox stress tests, Browser E2E checks, and SBFL RCA. |
-| **[NK-RSI-Auditor](.agents/agents/NK-RSI-Auditor/agent.md)** | `DOM-04` | **`write: false`** (Read-Only) | Verifies the 6 Cold Review Gates, Kahn DAG integrity, and mathematical convergence ($\Delta_k = 0$). |
-| **[NK-Scribe-Agent](.agents/agents/NK-Scribe-Agent/agent.md)** | `DOM-05` | `write: true`, `mcp: false` | Updates SSOT documentation, `repo_map.md`, `PATCH_NOTES.md`, and the 3-Tier memory store. |
+| **[NK-Specifier-Agent](../.agents/agents/NK-Specifier-Agent/agent.md)** | `DOM-02` | `write: true`, `mcp: true` | Designs concepts, UX/UI systems, backend architectures, and plans inside `nk_genome/*`. |
+| **[NK-Builder-Agent](../.agents/agents/NK-Builder-Agent/agent.md)** | `DOM-03` | `write: true`, `mcp: false` | Writes and heals Python backend, React/Next.js UI, and skills strictly inside `.staging/*`. |
+| **[NK-Security-DAST-Auditor](../.agents/agents/NK-Security-DAST-Auditor/agent.md)** | `DOM-04` | **`write: false`** (Read-Only) | Runs SAST anti-gaming checks, DAST sandbox stress tests, Browser E2E checks, and SBFL RCA. |
+| **[NK-RSI-Auditor](../.agents/agents/NK-RSI-Auditor/agent.md)** | `DOM-04` | **`write: false`** (Read-Only) | Verifies the 6 Cold Review Gates, Kahn DAG integrity, and mathematical convergence ($\Delta_k = 0$). |
+| **[NK-Scribe-Agent](../.agents/agents/NK-Scribe-Agent/agent.md)** | `DOM-05` | `write: true`, `mcp: false` | Updates SSOT documentation, `repo_map.md`, `PATCH_NOTES.md`, and the 3-Tier memory store. |
 
 ### 5.3 Catalog of the 16 Procedural Skill Playbooks (`.agents/skills/NK-*/SKILL.md`)
 
 | Node | Playbook Skill Name | Domain | Executing Sub-Agent | Procedural Responsibility |
 | :---: | :--- | :---: | :--- | :--- |
-| **Hub** | [NK-Master-Hub](.agents/skills/NK-Master-Hub/SKILL.md) | `DOM-01` | Main Agent (Hub) | Orchestrates 2-Tier routing, `oracle-lock` sealing, and final Win32 2PC promotion. |
-| **`[0]`** | [NK-Ideator](.agents/skills/NK-Ideator/SKILL.md) | `DOM-02` | `NK-Specifier-Agent` | Conceptual ideation (`idea_canvas.md`), SCAMPER analysis, and `tavily-mcp` discovery. |
-| **`[1]`** | [NK-App-UX-Architect](.agents/skills/NK-App-UX-Architect/SKILL.md) | `DOM-02` | `NK-Specifier-Agent` | UX/UI macro-architecture, 8px/HSL Design System, and interactive widgets. |
-| **`[2]`** | [NK-Backend-Architect](.agents/skills/NK-Backend-Architect/SKILL.md) | `DOM-02` | `NK-Specifier-Agent` | Backend DAG topology, Pydantic v2 contracts, OpenAPI 3.0, and `firebase-mcp-server`. |
-| **`[3]`** | [NK-Agent-Instruction-Forge](.agents/skills/NK-Agent-Instruction-Forge/SKILL.md) | `DOM-02` | `NK-Builder-Agent` | Authors and updates ASD-STE100 skills and agent definitions with `--sync`. |
-| **`[4]`** | [NK-Python-Async-Builder](.agents/skills/NK-Python-Async-Builder/SKILL.md) | `DOM-03` | `NK-Builder-Agent` | Builds async Python backends, SQLite WAL persistence, and self-healing loops in `.staging/`. |
-| **`[5]`** | [NK-Delta-Architect](.agents/skills/NK-Delta-Architect/SKILL.md) | `DOM-03` | `NK-Builder-Agent` | Builds Full-Stack apps, Frontend UIs (`React/Next/Tailwind`), and surgical refines. |
-| **`[6]`** | [NK-Security-Auditor](.agents/skills/NK-Security-Auditor/SKILL.md) | `DOM-04` | `NK-Security-DAST-Auditor` | Performs L1/L2/L3 static security audits and CoVe CLI flag verification. |
-| **`[7]`** | [NK-Oracle-Evaluator](.agents/skills/NK-Oracle-Evaluator/SKILL.md) | `DOM-04` | `NK-RSI-Auditor` | Evaluates Cold Review Gates 1-6, Blind Holdout Set B, and L3 HTML5 DOM compliance. |
-| **`[8]`** | [NK-Dynamic-Sandbox-StressTester](.agents/skills/NK-Dynamic-Sandbox-StressTester/SKILL.md) | `DOM-04` | `NK-Security-DAST-Auditor` | Runs isolated DAST sandbox stress tests and live Browser E2E via `chrome-devtools-mcp`. |
-| **`[9]`** | [NK-Bug-Diagnostic-Engine](.agents/skills/NK-Bug-Diagnostic-Engine/SKILL.md) | `DOM-04` | `NK-Security-DAST-Auditor` | Pinpoints root causes via SBFL Ochiai (`< 80` tokens) and filters false bug reports. |
-| **`[10]`** | [NK-Plan-Aligner](.agents/skills/NK-Plan-Aligner/SKILL.md) | `DOM-01` | `NK-Specifier-Agent` | Certifies 1:1 alignment across the 4 genome planning documents before build handoff. |
-| **`[11]`** | [NK-State-Router](.agents/skills/NK-State-Router/SKILL.md) | `DOM-01` | `NK-RSI-Auditor` | Verifies Kahn DAG topological order and detects SHA-256 file drift. |
-| **`[12]`** | [NK-Scribe](.agents/skills/NK-Scribe/SKILL.md) | `DOM-05` | `NK-Scribe-Agent` | Synchronizes SSOT documentation, AST `repo_map.md`, `PATCH_NOTES.md`, and Git releases. |
-| **`[13]`** | [NK-Episodic-Memory-Engine](.agents/skills/NK-Episodic-Memory-Engine/SKILL.md) | `DOM-05` | `NK-Scribe-Agent` | Manages 3-Tier episodic memory (`ARCH`, `SEC`, `OPS`, `DEVX`) and hybrid RRF recall. |
-| **`[14]`** | [NK-Session-Controller](.agents/skills/NK-Session-Controller/SKILL.md) | `DOM-01` | Main Agent (Hub) | Supervises session lifecycle, zero-amnesia handoff, and Tensor-RSI convergence. |
+| **Hub** | [NK-Master-Hub](../.agents/skills/NK-Master-Hub/SKILL.md) | `DOM-01` | Main Agent (Hub) | Orchestrates 2-Tier routing, `oracle-lock` sealing, and final Win32 2PC promotion. |
+| **`[0]`** | [NK-Ideator](../.agents/skills/NK-Ideator/SKILL.md) | `DOM-02` | `NK-Specifier-Agent` | Conceptual ideation (`idea_canvas.md`), SCAMPER analysis, and `tavily-mcp` discovery. |
+| **`[1]`** | [NK-App-UX-Architect](../.agents/skills/NK-App-UX-Architect/SKILL.md) | `DOM-02` | `NK-Specifier-Agent` | UX/UI macro-architecture, 8px/HSL Design System, and interactive widgets. |
+| **`[2]`** | [NK-Backend-Architect](../.agents/skills/NK-Backend-Architect/SKILL.md) | `DOM-02` | `NK-Specifier-Agent` | Backend DAG topology, Pydantic v2 contracts, OpenAPI 3.0, and `firebase-mcp-server`. |
+| **`[3]`** | [NK-Agent-Instruction-Forge](../.agents/skills/NK-Agent-Instruction-Forge/SKILL.md) | `DOM-02` | `NK-Builder-Agent` | Authors and updates ASD-STE100 skills and agent definitions with `--sync`. |
+| **`[4]`** | [NK-Python-Async-Builder](../.agents/skills/NK-Python-Async-Builder/SKILL.md) | `DOM-03` | `NK-Builder-Agent` | Builds async Python backends, SQLite WAL persistence, and self-healing loops in `.staging/`. |
+| **`[5]`** | [NK-Delta-Architect](../.agents/skills/NK-Delta-Architect/SKILL.md) | `DOM-03` | `NK-Builder-Agent` | Builds Full-Stack apps, Frontend UIs (`React/Next/Tailwind`), and surgical refines. |
+| **`[6]`** | [NK-Security-Auditor](../.agents/skills/NK-Security-Auditor/SKILL.md) | `DOM-04` | `NK-Security-DAST-Auditor` | Performs L1/L2/L3 static security audits and CoVe CLI flag verification. |
+| **`[7]`** | [NK-Oracle-Evaluator](../.agents/skills/NK-Oracle-Evaluator/SKILL.md) | `DOM-04` | `NK-RSI-Auditor` | Evaluates Cold Review Gates 1-6, Blind Holdout Set B, and L3 HTML5 DOM compliance. |
+| **`[8]`** | [NK-Dynamic-Sandbox-StressTester](../.agents/skills/NK-Dynamic-Sandbox-StressTester/SKILL.md) | `DOM-04` | `NK-Security-DAST-Auditor` | Runs isolated DAST sandbox stress tests and live Browser E2E via `chrome-devtools-mcp`. |
+| **`[9]`** | [NK-Bug-Diagnostic-Engine](../.agents/skills/NK-Bug-Diagnostic-Engine/SKILL.md) | `DOM-04` | `NK-Security-DAST-Auditor` | Pinpoints root causes via SBFL Ochiai (`< 80` tokens) and filters false bug reports. |
+| **`[10]`** | [NK-Plan-Aligner](../.agents/skills/NK-Plan-Aligner/SKILL.md) | `DOM-01` | `NK-Specifier-Agent` | Certifies 1:1 alignment across the 4 genome planning documents before build handoff. |
+| **`[11]`** | [NK-State-Router](../.agents/skills/NK-State-Router/SKILL.md) | `DOM-01` | `NK-RSI-Auditor` | Verifies Kahn DAG topological order and detects SHA-256 file drift. |
+| **`[12]`** | [NK-Scribe](../.agents/skills/NK-Scribe/SKILL.md) | `DOM-05` | `NK-Scribe-Agent` | Synchronizes SSOT documentation, AST `repo_map.md`, `PATCH_NOTES.md`, and Git releases. |
+| **`[13]`** | [NK-Episodic-Memory-Engine](../.agents/skills/NK-Episodic-Memory-Engine/SKILL.md) | `DOM-05` | `NK-Scribe-Agent` | Manages 3-Tier episodic memory (`ARCH`, `SEC`, `OPS`, `DEVX`) and hybrid RRF recall. |
+| **`[14]`** | [NK-Session-Controller](../.agents/skills/NK-Session-Controller/SKILL.md) | `DOM-01` | Main Agent (Hub) | Supervises session lifecycle, zero-amnesia handoff, and Tensor-RSI convergence. |
 
-### 5.4 Overview of the 34 Indexed Python Modules (`scripts/`) & Certified Test Suite (`253/253 PASS`)
+### 5.4 Overview of the 34 Indexed Python Modules (`scripts/`) & Certified Test Suite (`93/93 PASS` across `18` Modules)
 
 1. **Governance, Routing & Atomic 2PC (`DOM-01`):** `nk_session_bootstrap.py`, `nk_registry_indexer.py`, `vibe_sprint_router.py`, `nk_hook_gate.py`, and `win32_2pc_engine.py`. Also includes `nk_context_sentry.py`, `nk_active_runtime_sentinel.py`, `nk_compliance_checker.py`, and `nk_swarm_messenger.py`.
 2. **Architecture & Project Scaffolding (`DOM-02`):** `external_project_scaffolder.py` (scaffolds isolated apps in `NK_External_Projects/`), `ast_repo_mapper.py` (PageRank AST mapper & `< 0.20s` `--symbol` query), `env_capability_probe.py`.
 3. **Build, Self-Healing & Caching (`DOM-03`):** `auto_heal_pipeline.py`, `healing_snapshot_rollback.py`, `invisible_healing_loop.py`, `platform_runner.py`, `safe_cleanup_dev_servers.py`, `deterministic_api_cache.py`, `async_heartbeat_signaler.py`.
 4. **Security, DAST Sandbox & Tensor-RSI (`DOM-04`):** `ast_guard_validator.py`, `rsi_convergence_engine.py`, and `nk_transcript_tools.py`. Also includes `dast_sandbox_runner.py`, `sbfl_engine.py`, `sbfl_pytest_bridge.py`, and `oracle_evaluator_l3.py`.
 5. **3-Tier Memory, Baseline & Handoff (`DOM-05`):** `memory_3tier_engine.py`, `quality_baseline_manager.py`, `preflight_health_check.py`, `nk_session_handoff.py`, `nk_auto_inning.py`, `micro_hud_renderer.py`, and Pydantic v2 contracts in `scripts/schemas/`.
-6. **253 Zero-Mock Tests (`245` Baseline in `tests/`):** `24` orthogonal test modules verify every script, sub-agent boundary, SAST guard, and 2PC rollback. The suite passes at **`253/253 PASS` (`100.0%`)**.
+6. **93 Zero-Mock Tests (`18` Modules in `tests/`):** verify `34` Python scripts, `16` skills, `5` sub-agents, SAST, and 2PC. The suite passes at **`93/93 PASS` (`100.0%`, `Mutation Score 100.0%`)**.
 
 ---
 
-## 📈 6. What Changed from Version 4 to Release v5.0.0-STE100-Unified (Structural Improvements)
+## 📈 6. Patch Notes (`v5.0.0 -> v5.2.0-RSI Checkpoint`, `2026-11-08`)
 
-Release `v5.0.0-STE100-Unified` delivers the Clean-Slate consolidation of the framework over the `4.x` series:
+Checkpoint `v5.2.0-STE100-Unified` (`v5.2.0-RSI`, `2026-11-08`) consolidates three major evolutionary milestones over the previous `v5.0.0-STE100-Unified` release:
 
-| Architectural Area | Version 4.x (`v4.7.0` / `v4.8.0`) | Release `v5.0.0-STE100-Unified` |
+| Architectural Area | Previous Release (`v5.0.0-STE100-Unified`) | Current Checkpoint (`v5.2.0-STE100-Unified` / `v5.2.0-RSI`) |
 | :--- | :--- | :--- |
-| **Permanent Test Suite** | `245` baseline tests with occasional temp-workspace friction | **`253/253 PASS` (`100.0%`)** across `24` modules and `14` invariants `GT-01..GT-14` |
-| **3-Tier Memory Backups** | Shared `.bak_N` backups inside the local engine folder | **Cryptographic Isolation (`ws_<sha256_12>`)** between production and test sandboxes |
-| **Manifest & O(1) Cache** | `Fast-Stat` check in `~24.94..41.8 ms` with single version field | **Schema vs Release Separation** and **`< 1.0 ms` cached check** on Google Drive |
-| **Post-Commit `.staging/` Hygiene** | Possible leftover `__pycache__` folders after staging tests | **Automatic `.pyc` Bytecode Purge** inside `Win32 2PC` atomic commit |
-| **AST Purity & Telemetry** | Residual unused helpers and legacy external project reports | **Zero Dead-Code (`63/63 PASS`)** and `100%` sanitized `nk_tracking/` |
-| **Constitutional Alignment** | Version strings split across `v4.6.0`, `v4.7.0`, and `v4.8.0` | **1:1 `v5.0.0` Unification** across `16` skills, `5` sub-agents, Genome, and `.zip` bundle |
+| **Permanent Test Suite** | `253` baseline tests across `24` test modules | **`93` high-density Golden & Stress Tests across `18` modules** (`-63%` overhead, `Mutation Score 100.0%`) |
+| **External Anti-Bias Hardening (`v5.1.1-RSI`)** | Standard SAST checks and single-surface Fast-Stat mtime | **Closed `6` AST SAST vectors**, fixed space-in-path handling in `nk_hook_gate.py`, and 6-surface Fast-Stat cache |
+| **Clean & Optimized Checkpoint (`v5.2.0-RSI`)** | Duplicate module loaders in tests and runtime regex compilation | **Zero dead-code**, pre-compiled STE100 regexes, intra-run `mtime` caching, and faster test subprocesses |
+| **Cross-OS CI EOL Invariance (`CRLF`/`LF`)** | SHA-256 drift when GitHub Actions checks out files with `LF` | **`CRLF -> LF` normalization** across `nk_registry_indexer.py`, `nk_transcript_tools.py`, and `nk_hook_gate.py` |
+| **Constitutional Alignment** | Version strings at `v5.0.0` across manuals and installers | **1:1 `v5.2.0-RSI` unification** across `34` scripts, `16` skills, `5` sub-agents, Genome, and `.zip` bundle |
 
-### The 6 Structural Improvements in Detail
-1. **`100%` Permanent Test Suite (`253/253 PASS` across `24` modules):** eliminates all regressions and covers the `14` invariants `GT-01..GT-14`.
-2. **Cryptographic Isolation of Memory Backups (`ws_<sha256_12>`):** separates production backups from test sandboxes and guards against `0`-byte overwrites.
-3. **Schema vs Release Separation & `O(1)` Cache (`< 1.0 ms`):** decouples `MANIFEST_VERSION` from `RELEASE_VERSION` with `< 1.0 ms` cached verification.
-4. **Automatic `.pyc` Bytecode Cleanup in `Win32 2PC` Atomic Commit:** purges `__pycache__` folders during promotion so `.staging/` stays immaculate.
-5. **Zero Dead-Code (`63/63 PASS` on `ast_guard_validator.py`) & `nk_tracking/` Sanitization:** removes dead symbols in `scripts/` and purges external project artifacts.
-6. **`v5.0.0` Constitutional Unification ($\Delta_k = 0, Q = 100.0$):** aligns `1:1` all `16` skills, `5` sub-agents, the Genome, and `NK_Hub_OneClick_Package.zip`.
+### Detailed Changes (`v5.0.0 -> v5.2.0-RSI`, `2026-11-08`)
+1. **Lean Consolidation (`253 -> 93` Tests):** reduces overhead by `63%` while preserving `100%` coverage across `18` modules.
+2. **External Anti-Bias Hardening (`v5.1.1-RSI`):** closes `6` AST SAST evasion vectors and fixes paths with spaces in `nk_hook_gate.py`. Adds a 6-surface composite Fast-Stat cache in `nk_session_bootstrap.py` and achieves `Mutation Score 5/5` (`100.0%`).
+3. **Clean & Optimized Checkpoint (`v5.2.0-RSI`):** removes dead-code and test clutter, pre-compiles STE100 regexes, caches `mtime` intra-run, and speeds up test subprocesses. Guarantees `CRLF`/`LF` invariance for GitHub Actions CI (`Lab NK Hub Continuous Verification`).
 
 ---
-*Nexus Keystone Hub (`v5.0.0-STE100-Unified`) | Certified `253/253 PASS` (`245` Baseline) Zero-Mock | $\Delta_k = 0, Q(S_k) = 100.0$*
+*Nexus Keystone Hub (`v5.2.0-STE100-Unified` / `v5.2.0-RSI` : `2026-11-08`) | Certified `93/93 PASS` (`18` Modules, `Mutation Score 100.0%`) Zero-Mock | $\Delta_k = 0, Q(S_k) = 100.0$*

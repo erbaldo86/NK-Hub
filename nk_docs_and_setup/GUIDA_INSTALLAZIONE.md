@@ -1,15 +1,15 @@
-# Nexus Keystone Hub (NK-Hub v5.0.0-STE100-Unified)
+# Nexus Keystone Hub (NK-Hub v5.2.0-STE100-Unified / v5.2.0-RSI)
 ## 🇮🇹 Guida di Installazione dallo ZIP (1-Click) | 🇬🇧 1-Click ZIP Installation Guide
 
 > 🌍 **Lingua / Language:** **[🇮🇹 Italiano](#-guida-di-installazione-in-italiano-pacchetto-zip-1-click)** | **[🇬🇧 English](#-english-installation-guide-1-click-zip-package)** | **[🇮🇹 Presentazione Completa (README.it.md)](README.it.md)** | **[🇬🇧 Full Presentation (README.md)](README.md)**
 >
-> 📦 **Download 1-Click Pacchetto Completo (`.zip`):** **[Scarica NK_Hub_OneClick_Package.zip](https://github.com/erbaldo86/NK-Hub/releases/download/v5.0.0-STE100-Unified/NK_Hub_OneClick_Package.zip)** *(oppure [Download Diretto dal Repository](https://github.com/erbaldo86/NK-Hub/raw/main/nk_docs_and_setup/NK_Hub_OneClick_Package.zip))*
+> 📦 **Download 1-Click Pacchetto Completo (`.zip`, build `2026-11-08`):** **[Scarica NK_Hub_OneClick_Package.zip](https://github.com/erbaldo86/NK-Hub/releases/download/v5.2.0-STE100-Unified/NK_Hub_OneClick_Package.zip)** *(oppure [Download Diretto dal Repository](https://github.com/erbaldo86/NK-Hub/raw/main/nk_docs_and_setup/NK_Hub_OneClick_Package.zip))*
 
 ---
 
 # 🇮🇹 Guida di Installazione in Italiano (Pacchetto ZIP 1-Click)
 
-Questa guida spiega passo dopo passo come installare e avviare **Nexus Keystone Hub (`NK-Hub v5.0.0-STE100-Unified`)** partendo dal file **`NK_Hub_OneClick_Package.zip`**.
+Questa guida spiega passo dopo passo come installare e avviare **Nexus Keystone Hub (`NK-Hub v5.2.0-STE100-Unified` / `v5.2.0-RSI`)** partendo dal file **`NK_Hub_OneClick_Package.zip`**.
 Non serve alcuna configurazione manuale complessa: l'archivio contiene già la libreria ordinata e lo script automatico di installazione.
 
 ## 1. Requisiti Minimi
@@ -28,7 +28,7 @@ Quando apri `NK_Hub_OneClick_Package.zip`, trovi una libreria ordinata divisa in
 │   ├── 📁 nk_genome/                # Piani architetturali, indice O(1) e PATCH_NOTES.md
 │   ├── 📁 nk_tracking/              # Memoria a 3 livelli, telemetria RSI e sigillo dei test
 │   ├── 📁 scripts/                  # 34 moduli Python del motore (routing, sicurezza, 2PC)
-│   ├── 📁 tests/                    # 253 test reali Zero-Mock (baseline 245, in 24 moduli)
+│   ├── 📁 tests/                    # 93 test reali Zero-Mock ad alta densità in 18 moduli
 │   └── 📁 .agents/                  # 5 Sub-Agenti Nativi e 16 Playbook SKILL.md
 └── 📁 NK_External_Projects/         # Cartella dedicata a tutti i progetti creati con NK
 ```
@@ -50,13 +50,13 @@ cd NK_Hub
 **Cosa fa lo script automatico per te:**
 1. Controlla la presenza di Python e installa le librerie da `nk_docs_and_setup/requirements.txt`.
 2. Sincronizza e verifica l'indice O(1) con cache `Fast-Stat` in `< 1.0 ms`.
-3. Esegue i `253` test di sicurezza e qualità (`253/253 PASS`, baseline contrattuale `>= 245`).
+3. Esegue i `93` test di sicurezza e qualità in `18` moduli (`93/93 PASS`, `Mutation Score 100.0%`).
 
 **Cosa vedrai a schermo a fine installazione (Conferma che tutto è OK):**
 ```text
 🟢 [NK-REGISTRY-VERIFY] Status: VALID | Skills: 16 | Scripts: 34
-253 passed (245 baseline)
-[SUCCESS] Nexus Keystone Hub v5.0.0-STE100-Unified installato e certificato con successo!
+93 passed in 18 modules (Mutation Score 100.0%)
+[SUCCESS] Nexus Keystone Hub v5.2.0-STE100-Unified (v5.2.0-RSI) installato e certificato con successo!
 ```
 
 > **Alternativa Manuale (se preferisci lanciare i singoli comandi uno alla volta):**
@@ -74,13 +74,13 @@ cd NK_Hub
    ```text
    avvia ambiente nk
    ```
-3. In meno di `50 ms` apparirà il **Centro di Controllo a 15 Nodi (`[0]`..`[14]`)**: da quel momento puoi scrivere in italiano cosa vuoi creare o modificare.
+3. In meno di `50 ms` apparirà il **Centro di Controllo a 15 Nodi (`[0]`..`[14]`)**. Scrivi poi in italiano cosa vuoi creare o modificare.
 
 ---
 
 # 🇬🇧 English Installation Guide (1-Click ZIP Package)
 
-This guide explains step by step how to install and launch **Nexus Keystone Hub (`NK-Hub v5.0.0-STE100-Unified`)** from **`NK_Hub_OneClick_Package.zip`**.
+This guide explains step by step how to install and launch **Nexus Keystone Hub (`NK-Hub v5.2.0-STE100-Unified` / `v5.2.0-RSI`)** from **`NK_Hub_OneClick_Package.zip`**.
 No complex manual setup is required: the archive contains the organized library and automated installer scripts.
 
 ## 1. Minimum Requirements
@@ -99,7 +99,7 @@ When you extract `NK_Hub_OneClick_Package.zip`, you get a clean two-folder works
 │   ├── 📁 nk_genome/                # Architecture plans, O(1) manifest & PATCH_NOTES.md
 │   ├── 📁 nk_tracking/              # 3-Tier memory, RSI telemetry & test oracle lock
 │   ├── 📁 scripts/                  # 34 core Python modules (routing, security, 2PC)
-│   ├── 📁 tests/                    # 253 Zero-Mock tests (245 baseline) across 24 test modules
+│   ├── 📁 tests/                    # 93 Zero-Mock Golden & Stress tests across 18 test modules
 │   └── 📁 .agents/                  # 5 Native Sub-Agents & 16 SKILL.md Playbooks
 └── 📁 NK_External_Projects/         # Isolated folder for all applications built with NK
 ```
@@ -121,8 +121,8 @@ cd NK_Hub
 **What you will see on screen when setup finishes:**
 ```text
 🟢 [NK-REGISTRY-VERIFY] Status: VALID | Skills: 16 | Scripts: 34
-253 passed (245 baseline)
-[SUCCESS] Nexus Keystone Hub v5.0.0-STE100-Unified installed and certified!
+93 passed across 18 modules (Mutation Score 100.0%)
+[SUCCESS] Nexus Keystone Hub v5.2.0-STE100-Unified (v5.2.0-RSI) installed and certified!
 ```
 
 ### Step 3: Start the Environment in Google Antigravity
@@ -132,4 +132,4 @@ cd NK_Hub
    start nk
    ```
    *(or in Italian: `"avvia ambiente nk"`).*
-3. In under `50 ms`, the agent displays the **15-Node Control Dashboard (`[0]`..`[14]`)**: describe your goal in plain language or select a node number to begin.
+3. In under `50 ms`, the agent displays the **15-Node Control Dashboard (`[0]`..`[14]`)**. Describe your goal in plain language or select a node number to begin.

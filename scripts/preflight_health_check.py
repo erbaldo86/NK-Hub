@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Diagnostica di manutenzione e auto-sanitizzazione per Nexus Keystone v4.8.0-STE100-Unified.
+Diagnostica di manutenzione e auto-sanitizzazione per Nexus Keystone v5.2.0-STE100-Unified.
 Modulo: preflight_health_check.py.
 Implementa le regole [RULE-02.3.1] e [RULE-05.4], la correzione BS-01 e l'ottimizzazione OPT-10.
 
@@ -26,7 +26,8 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-DEFAULT_VERSION: str = "4.8.0-STE100-Unified"
+VERSION: str = "5.2.0-STE100-Unified"
+DEFAULT_VERSION: str = VERSION
 
 PRUNED_WALK_DIRS: Set[str] = {
     ".git",
@@ -466,6 +467,8 @@ class PreflightHealthChecker:
 
         if auto_fix and self.tracking_dir.exists():
             for bak_f in self.tracking_dir.rglob("*.bak*"):
+                if "memory_3tier" in bak_f.parts:
+                    continue
                 if bak_f.is_file() and safe_remove_file(bak_f):
                     pruned_files.append(
                         str(bak_f.relative_to(self.workspace_root))
@@ -562,7 +565,7 @@ class PreflightHealthChecker:
 def main() -> int:
     """Punto di ingresso CLI per il verificatore preflight di Nexus Keystone."""
     parser = argparse.ArgumentParser(
-        description="Pre-Flight Health Check & Auto-Sanitizer Nexus Keystone v4.7.0-STE100-Unified"
+        description="Pre-Flight Health Check & Auto-Sanitizer Nexus Keystone v5.2.0-STE100-Unified"
     )
     parser.add_argument(
         "--check-only",

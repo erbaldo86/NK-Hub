@@ -106,12 +106,9 @@ class ExternalProjectScaffolder:
         ]
 
         for d in dirs_to_create:
-            if not d.exists():
-                if not is_dry_run:
-                    d.mkdir(parents=True, exist_ok=True)
-                created_dirs.append(str(d))
-            else:
-                created_dirs.append(str(d))
+            if not d.exists() and not is_dry_run:
+                d.mkdir(parents=True, exist_ok=True)
+            created_dirs.append(str(d))
 
         def _write_file(rel_path: str, content: str) -> None:
             fpath = self.target_dir / rel_path

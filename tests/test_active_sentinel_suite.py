@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Suite di test Zero-Mock per Sentinel, Swarm Messenger, Handoff e Auto-Inning (v3.3.0).
+Suite di test Zero-Mock per Sentinel, Swarm Messenger, Handoff e Auto-Inning (v5.2.0-STE100-Unified).
 Modulo: tests/test_active_sentinel_suite.py.
 Valida le guardie GT-02 e GT-04 e l'esecuzione deterministica di handoff e auto-inning.
 """
@@ -22,7 +22,6 @@ if str(_workspace_root) not in sys.path:
     sys.path.insert(0, str(_workspace_root))
 
 from scripts import nk_auto_inning
-from scripts import nk_session_handoff
 from scripts.nk_active_runtime_sentinel import calculate_state, run_sentinel
 from scripts.nk_swarm_messenger import process_payload
 
