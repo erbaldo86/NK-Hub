@@ -29,7 +29,6 @@ jobs:
       PYTHONIOENCODING: "utf-8"
       PYTHONUTF8: "1"
       NK_MODEL_PROFILE: "generation"
-      COVERAGE_FILE: ${{ runner.temp }}/.coverage
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
     steps:
       - name: Configure Git Line Endings
@@ -87,8 +86,10 @@ jobs:
           python -B -u scripts/rsi_convergence_engine.py --verify --strict-verify --benchmark-suite tests/test_rsi_convergence_engine.py
 
       - name: Run Core Platform Test Suite with Branch Coverage (v1.0.0-Generation)
+        env:
+          COVERAGE_FILE: ${{ runner.temp }}/.coverage
         run: |
-          python -B -u -m pytest tests -p no:cacheprovider --cov=scripts --cov-branch --cov-fail-under=85 -q --junitxml="${{ runner.temp }}/pytest-results.xml"
+          python -B -u -m pytest tests -p no:cacheprovider --cov=scripts --cov-branch --cov-fail-under=85 -q --junitxml="$RUNNER_TEMP/pytest-results.xml"
 
       - name: Report Failing Tests Diagnostic
         if: failure()

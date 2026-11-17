@@ -360,7 +360,7 @@
     "../.github/ISSUE_TEMPLATE/bug_report.yml": "0f2d7f40f3a9b681257069c0e2db3bf199e595ee5f1e401ccf86928a03c94eda",
     "../.github/ISSUE_TEMPLATE/feature_request.yml": "0afb3b0f219d33b3da0b1b708996310f0146a9108adf9e2eb18cb827805174b3",
     "../.github/README.md": "de178a5c26ecc4906e11f65fa11cbe2c254316926d64d980970f55d0bc2b1997",
-    "../.github/workflows/ci.yml": "a455929c79dd3443eb0aefec57200e875ed36c268bba26fcfa98f77b89ec639b",
+    "../.github/workflows/ci.yml": "11b345b999932a4b486762103cbbd93fad52c797713fca65b77c70bcf28d5ddd",
     "../nk_genome/00_GENOME_INDEX.md": "368ac1ab2493ffa387a3a1f759e02e0a6ca1d44031f06dbad17cac8b37016005",
     "../nk_genome/concept_map.md": "bbf682246882ae032708db65180f400023f84c14379da9f15eadd37c56e241bf",
     "../nk_genome/idea_canvas.md": "50dabde5dfbe7cd774165832f6b4f9a19b733617b2ad0289c9ceed14067ec55d",
@@ -375,5 +375,5 @@
     "../nk_genome/modules/SYSTEM_GRAPHS_DAG_DSM_RTM_HEATMAP.md": "02b350571ca440013be4e1cca764ff3904e7f35db4e069ac2fe7a08de4335136",
     "../nk_genome/structural_tree.md": "5ed7cf2fef6f31fe6b92a64bf7db0e5ea834cf613fe51f629b580c4e2aa296e5"
   },
-  "combined_sha256": "02e73b125aa205bfde88f41c64d08afee989a3b7562739b1ad37cbf2602cd833"
+  "combined_sha256": "d820c08e015599341cbb7da1e4a37d6fceca8e5b5c2f32a655905ae73f5ac250"
 }
