@@ -333,7 +333,7 @@ def test_safe_cleanup_live_tcp_server_tree(tmp_path: Path) -> None:
 
     ready_flag, srv_script = srv_ws / "ready.txt", srv_ws / "mini_srv.py"
     srv_script.write_text(
-        f"import pathlib, socket, time\ns = socket.socket(socket.AF_INET, socket.SOCK_STREAM)\ns.bind(('127.0.0.1', {chosen_port}))\ns.listen(2)\npathlib.Path(r'{ready_flag}').write_text('1', encoding='utf-8')\ntime.sleep(10)\n",
+        f"import os, pathlib, socket, time\ns = socket.socket(socket.AF_INET, socket.SOCK_STREAM)\ns.bind(('127.0.0.1', {chosen_port}))\ns.listen(2)\npathlib.Path(r'{ready_flag}.tmp').write_text(str(os.getpid()), encoding='utf-8')\nos.replace(r'{ready_flag}.tmp', r'{ready_flag}')\ntime.sleep(10)\n",
         encoding="utf-8",
     )
     srv_proc = subprocess.Popen([sys.executable, "-B", str(srv_script)], cwd=str(srv_ws))
@@ -342,6 +342,7 @@ def test_safe_cleanup_live_tcp_server_tree(tmp_path: Path) -> None:
         while not ready_flag.exists() and time.perf_counter() < deadline:
             time.sleep(0.005)
         assert ready_flag.exists()
+        listener_pid = int(ready_flag.read_text(encoding="utf-8").strip())
         assert cleanup_mod.parse_ports_arg(None) == list(cleanup_mod.TARGET_PORTS)
         assert cleanup_mod.parse_ports_arg("8001, invalid, 99999, 8002, 8001") == [8001, 8002]
         assert cleanup_mod.parse_ports_arg([8010, 0, 8010]) == [8010]
@@ -349,8 +350,9 @@ def test_safe_cleanup_live_tcp_server_tree(tmp_path: Path) -> None:
         other_dir = tmp_path / "ExternalWorkspace"
         other_dir.mkdir()
         assert cleanup_mod.is_target_workspace_process(srv_proc.pid, workspace_root=tmp_path) is True
+        assert cleanup_mod.is_target_workspace_process(listener_pid, workspace_root=tmp_path) is True
         assert cleanup_mod.is_target_workspace_process(srv_proc.pid, workspace_root=other_dir) is False
-        assert srv_proc.pid in cleanup_mod.get_pids_listening_on_ports([chosen_port], workspace_root=srv_ws)
+        assert listener_pid in cleanup_mod.get_pids_listening_on_ports([chosen_port], workspace_root=srv_ws)
         assert cleanup_mod.run_cleanup(workspace_root=srv_ws, dry_run=False, as_json=False, ports=[chosen_port]) == 0
         srv_proc.wait(timeout=3.0)
     finally:

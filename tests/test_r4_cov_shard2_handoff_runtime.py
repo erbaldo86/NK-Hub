@@ -821,8 +821,8 @@ def test_safe_cleanup_dev_servers_cim_and_netstat_fallbacks(
     ready = ext_ws / "ready.flag"
     srv_py = ext_ws / "srv.py"
     srv_py.write_text(
-        f"import pathlib, socket, time\ns = socket.socket()\ns.bind(('127.0.0.1', {port}))\ns.listen(1)\n"
-        f"pathlib.Path(r'{ready}').write_text('1', encoding='utf-8')\ntime.sleep(10)\n",
+        f"import os, pathlib, socket, time\ns = socket.socket()\ns.bind(('127.0.0.1', {port}))\ns.listen(1)\n"
+        f"pathlib.Path(r'{ready}.tmp').write_text(str(os.getpid()), encoding='utf-8')\nos.replace(r'{ready}.tmp', r'{ready}')\ntime.sleep(10)\n",
         encoding="utf-8",
     )
     proc = subprocess.Popen([sys.executable, "-B", str(srv_py)], cwd=str(ext_ws))
@@ -831,11 +831,13 @@ def test_safe_cleanup_dev_servers_cim_and_netstat_fallbacks(
         while not ready.exists() and time.perf_counter() < deadline:
             time.sleep(0.01)
         assert ready.exists()
+        listener_pid = int(ready.read_text(encoding="utf-8").strip())
         monkeypatch.setattr(cm, "_HAS_PSUTIL", False)
         monkeypatch.setattr(cm, "psutil", None)
-        assert proc.pid in cm.scan_listening_port_range(port, port, workspace_root=ext_ws)
-        assert proc.pid in cm.get_pids_listening_on_ports([port], workspace_root=ext_ws)
+        assert listener_pid in cm.scan_listening_port_range(port, port, workspace_root=ext_ws)
+        assert listener_pid in cm.get_pids_listening_on_ports([port], workspace_root=ext_ws)
         assert cm.is_target_workspace_process(proc.pid, workspace_root=ext_ws) is True
+        assert cm.is_target_workspace_process(listener_pid, workspace_root=ext_ws) is True
         assert cm.run_cleanup(workspace_root=ext_ws, dry_run=True, as_json=False, ports=[port]) == 0
         assert cm.run_cleanup(workspace_root=ext_ws, dry_run=False, as_json=False, ports=[port]) == 0
         proc.wait(timeout=3.0)

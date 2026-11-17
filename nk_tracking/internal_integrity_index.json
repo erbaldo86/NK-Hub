@@ -1427,8 +1427,8 @@
     "tests/test_core_platform_utilities.py": {
       "kind": "test",
       "package": "tests",
-      "sha256": "a492142edd45eaac6affb8c28de8fd1b851eb1f28dc395afad5ec79c55406c30",
-      "loc": 729
+      "sha256": "9218f5653024bc8df82fd33ae9a8222c9f32be86f19ef38f66615682d7952800",
+      "loc": 731
     },
     "tests/test_dast_sandbox.py": {
       "kind": "test",
@@ -1505,14 +1505,14 @@
     "tests/test_r4_cov_shard2_handoff_runtime.py": {
       "kind": "test",
       "package": "tests",
-      "sha256": "f41284d7b3510749089cfb4ad3e64b6f9050254dd95138c8fdfded8761deb27d",
-      "loc": 1320
+      "sha256": "5633f3979d28bf26371c043739937f45c6490b8d7c437a371d0205db580fc40c",
+      "loc": 1322
     },
     "tests/test_r4_cov_shard3_engines_dast.py": {
       "kind": "test",
       "package": "tests",
-      "sha256": "93919860bd8949229d942a3ec08791dbf697a06b2a74afb84dfbbf4d14651100",
-      "loc": 1551
+      "sha256": "e7ed655208de554a3fc9afbb07bf721462ed62b1216084714526af18fc9978af",
+      "loc": 1552
     },
     "tests/test_rsi_convergence_engine.py": {
       "kind": "test",

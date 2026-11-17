@@ -13,7 +13,7 @@
     "test_auto_heal_pipeline.py": "d380e6e62bf91a1c9f6e9de9bf35711174756c4a580e9f853e30542470480afd",
     "test_autonomous_context_shield.py": "29d4c68265e6d5943aaf63887fc38500c1fec91bd51ea63588a4dca29f3ba4ff",
     "test_context_sentry.py": "eec7f6c9b5dbd5ad87bf31be1896dcc0d3f87ef8377ffdc65ddadd518a8303d7",
-    "test_core_platform_utilities.py": "a492142edd45eaac6affb8c28de8fd1b851eb1f28dc395afad5ec79c55406c30",
+    "test_core_platform_utilities.py": "9218f5653024bc8df82fd33ae9a8222c9f32be86f19ef38f66615682d7952800",
     "test_dast_sandbox.py": "df69b6fd8eba00c817b7b3d471d1a1e17b2f6a8ae44102f6fe87bfbffe19a85a",
     "test_generation_wave2.py": "cc1ca351f27ae3e8ff7bb6db0690097afc08caad1a3a14df9a660b4ba4650f69",
     "test_gt14_and_dsm.py": "e69dd30477e26a68619fb23b64af129071783058d1044fed3b3a4e232be88028",
@@ -26,8 +26,8 @@
     "test_nk_registry_indexer.py": "eadfcc449c68709c087c062bdc40b9b2cbcb1205f01709a63601609a6a1afcf5",
     "test_quality_baseline_manager.py": "17b486315f9aa1fb87be80927a08c39811faa326b0122c6ea81ebbdd758e3b1a",
     "test_r4_cov_shard1_hooks_sast.py": "cd9282f3f525391b2fe969f6147a99ef658cc8e002515db51861fe6a1f3e8854",
-    "test_r4_cov_shard2_handoff_runtime.py": "f41284d7b3510749089cfb4ad3e64b6f9050254dd95138c8fdfded8761deb27d",
-    "test_r4_cov_shard3_engines_dast.py": "93919860bd8949229d942a3ec08791dbf697a06b2a74afb84dfbbf4d14651100",
+    "test_r4_cov_shard2_handoff_runtime.py": "5633f3979d28bf26371c043739937f45c6490b8d7c437a371d0205db580fc40c",
+    "test_r4_cov_shard3_engines_dast.py": "e7ed655208de554a3fc9afbb07bf721462ed62b1216084714526af18fc9978af",
     "test_rsi_convergence_engine.py": "f5ef2a8e5c820a9e54b07cb2f1dd86c37578e4641df1b5f4f3af7b57d13c524c",
     "test_sbfl_engine.py": "b7c2d934f9961b64407ba0563e127ee177b04471dc71a9ede5409841fff4e813",
     "test_schemas_and_contracts.py": "dd3e7a2992ae777cbc227967ef688bb1eb2ea51761085a71f6ad72a5e1f9bdd0",
@@ -278,7 +278,7 @@
     "../scripts/env_capability_probe.py": "763921d9d5c89e8e16bf029b8b47e6c955917631845d342236d71a3626fcf29c",
     "../scripts/external_project_scaffolder.py": "52d1362e466add80080ea86d131f8b62f79cc8ad643b0b185d1f976b7f82845a",
     "../scripts/healing_snapshot_rollback.py": "c730f3f407120ebdda9211e559823a644fa7763c2304723696d071af9deb86b1",
-    "../scripts/invisible_healing_loop.py": "ddabf5f920056cc8405516a6fd5cd7045b4d4f33e34edf4425f97f6d1d6f7c32",
+    "../scripts/invisible_healing_loop.py": "56b6afc40f8b1aa6bbbbed76d771ddd8378b9303cedfa7697892ec1197a18a13",
     "../scripts/memory_3tier_engine.py": "852528be9fb258844b58f834619af1cbb246b3cc4da1cae904f6fb3ea496337c",
     "../scripts/micro_hud_renderer.py": "5a7d4e15b174cfab228828fb86db2eb966a146126874e1dd8e0ccd6e389638ef",
     "../scripts/nk_acs_fastguard.py": "d2264f7ceb42aabbba4c24bb48c966e3f971e4d275f32902dab1f525b6626fcb",
@@ -375,5 +375,5 @@
     "../nk_genome/modules/SYSTEM_GRAPHS_DAG_DSM_RTM_HEATMAP.md": "02b350571ca440013be4e1cca764ff3904e7f35db4e069ac2fe7a08de4335136",
     "../nk_genome/structural_tree.md": "5ed7cf2fef6f31fe6b92a64bf7db0e5ea834cf613fe51f629b580c4e2aa296e5"
   },
-  "combined_sha256": "d820c08e015599341cbb7da1e4a37d6fceca8e5b5c2f32a655905ae73f5ac250"
+  "combined_sha256": "446bbf195bc73dcdc2fa6065042665740bf99721a71d343355e9fb48becc5602"
 }

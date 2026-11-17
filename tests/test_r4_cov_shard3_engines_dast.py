@@ -803,8 +803,9 @@ def test_r4_s3_snapshot_rollback_and_invisible_loop(tmp_path: Path, monkeypatch:
     assert loop.result_model is _heal_mod.HealingResult
     hints = typing.get_type_hints(_inv_mod.InvisibleHealingLoop.run_cli_pipeline)
     hints_rec = typing.get_type_hints(_inv_mod.InvisibleHealingLoop._record_telemetry)
-    assert "return" in hints and "history" in hints_rec
-    assert _inv_mod.InvisibleHealingLoop._record_telemetry.__annotate__(2) is not None
+    assert hints.get("return") is _heal_mod.AutoHealSessionReport
+    assert hints_rec.get("return") is type(None) and "history" in hints_rec
+    assert loop._record_telemetry("r0", "t0", 0, "CLEAN", []) is None
     with monkeypatch.context() as mp:
         mp.setitem(sys.modules, "sbfl_engine", SimpleNamespace(SBFL_MAX_TOKEN_BUDGET=80))
         assert _inv_mod._load_lazy_symbol("SBFL_MAX_TOKEN_BUDGET") == 80

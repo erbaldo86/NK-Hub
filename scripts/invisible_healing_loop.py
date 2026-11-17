@@ -7,11 +7,13 @@ Delega slicing, budget SBFL, telemetria e pipeline a scripts/auto_heal_pipeline.
 Preserva integralmente tutte le firme pubbliche e gli attributi esportati.
 """
 
+from __future__ import annotations
+
 import argparse
 import importlib
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 _scripts_dir = Path(__file__).resolve().parent
 _root_dir = (
@@ -32,12 +34,6 @@ for _d in (
 if str(_scripts_dir) in sys.path:
     sys.path.remove(str(_scripts_dir))
 sys.path.insert(0, str(_scripts_dir))
-
-if TYPE_CHECKING:
-    from auto_heal_pipeline import (
-        AutoHealSessionReport,
-        HealingCycleLog,
-    )
 
 _DEFAULT_SBFL_MAX_TOKEN_BUDGET: int = 80
 _DEFAULT_MAX_HEALING_CYCLES: int = 3
@@ -85,6 +81,10 @@ def _load_lazy_symbol(name: str) -> Any:
     val = getattr(mod, name)
     globals()[name] = val
     return val
+
+
+AutoHealSessionReport = _load_lazy_symbol("AutoHealSessionReport")
+HealingCycleLog = _load_lazy_symbol("HealingCycleLog")
 
 
 def __dir__() -> List[str]:
@@ -170,25 +170,6 @@ class InvisibleHealingLoop:
             cycles_telemetry=[h.model_dump() for h in history],
         )
         self.telemetry_hook.record_run(rec)
-
-
-def _bind_lazy_annotate(fn: Callable[..., Any], symbols: Tuple[str, ...]) -> None:
-    """Risolve i simboli di annotazione lazy solo quando get_type_hints li richiede."""
-    orig_annotate = fn.__annotate__
-    if orig_annotate is None:
-        return
-
-    def _lazy_annotate(fmt: int) -> Dict[str, Any]:
-        if fmt == 1:
-            for sym in symbols:
-                _load_lazy_symbol(sym)
-        return orig_annotate(fmt)
-
-    fn.__annotate__ = _lazy_annotate
-
-
-_bind_lazy_annotate(InvisibleHealingLoop.run_cli_pipeline, ("AutoHealSessionReport",))
-_bind_lazy_annotate(InvisibleHealingLoop._record_telemetry, ("HealingCycleLog",))
 
 
 def main() -> int:
