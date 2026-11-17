@@ -212,7 +212,7 @@ def win32_atomic_replace(src_path: Path, dst_path: Path, max_retries: int = 8) -
         for attempt in range(max_retries):
             if k32.MoveFileExW(src_str, dst_str, flags):
                 return
-            err = ctypes.get_last_error() or k32.GetLastError()
+            err = (ctypes.get_last_error() if hasattr(ctypes, "get_last_error") else 0) or k32.GetLastError()
             if err in (ERROR_SHARING_VIOLATION, ERROR_ACCESS_DENIED, ERROR_LOCK_VIOLATION):
                 time_mod.sleep(random.uniform(0.010, min(0.080 * (1.6 ** attempt), 1.500)))
             else:

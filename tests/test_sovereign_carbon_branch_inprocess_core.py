@@ -251,7 +251,10 @@ def test_carbon_core_win32_2pc_rel_path_json_ratchet(tmp_path: Path) -> None:
             w2pc_mod._validate_win32_canonical_rel_path(bad_rel)
     assert w2pc_mod._validate_win32_canonical_rel_path("scripts\\sub\\ok.py") == "scripts/sub/ok.py"
     long_sub = tmp_path / ("d" * 120) / ("e" * 120) / "leaf.txt"
-    assert "\\\\?\\" in str(w2pc_mod._win_long_path(long_sub))
+    if os.name == "nt":
+        assert "\\\\?\\" in str(w2pc_mod._win_long_path(long_sub))
+    else:
+        assert w2pc_mod._win_long_path(long_sub) == long_sub
 
     jdir = tmp_path / "json_stg"
     jdir.mkdir(parents=True)

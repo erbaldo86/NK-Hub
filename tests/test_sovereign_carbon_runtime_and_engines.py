@@ -8,6 +8,7 @@ Modulo: tests/test_sovereign_carbon_runtime_and_engines.py.
 from __future__ import annotations
 
 import json
+import sys
 import time
 import zipfile
 from pathlib import Path
@@ -275,6 +276,18 @@ def test_runtime_sentinel_edge_branches_and_cli(
     red_tp = tmp_path / "red.jsonl"
     red_tp.write_text(json.dumps({"source": "MODEL", "input_tokens": 210000}) + "\n", encoding="utf-8")
     assert _call_main(act_mod, ["--transcript", str(red_tp), "--profile", "carbon", "--check"], monkeypatch) == 1
+    if sys.platform != "win32":
+        class _DummySentMutex:
+            def __init__(self, *_a: Any, **_kw: Any) -> None:
+                pass
+
+            def __enter__(self) -> bool:
+                return True
+
+            def __exit__(self, *_a: Any) -> None:
+                pass
+
+        monkeypatch.setattr(act_mod, "_SentinelNamedMutex", _DummySentMutex)
     monkeypatch.setattr(act_mod, "atomic_write_text", lambda *_a, **_k: (False, "disk_err"))
     with pytest.raises(OSError, match="disk_err"):
         act_mod._write_state_atomic_win32(str(tmp_path / "s.json"), {"steps": 1})
@@ -438,4 +451,3 @@ def test_dynamic_active_context_and_router_tiebreak_fixes(tmp_path: Path) -> Non
     assert r_ux["primary_agent"] == "NK-System-Architect"
     r_tet = router.classify_prompt_intent("Implementa funzione async leggendo implementation_plan.md")
     assert r_tet["primary_agent"] != "NK-Oracle-Evaluator"
-

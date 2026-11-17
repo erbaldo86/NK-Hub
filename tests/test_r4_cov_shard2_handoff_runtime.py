@@ -596,6 +596,7 @@ def test_vibe_router_transcript_discovery_and_cli_prompt(
     for k in ("NK_TRANSCRIPT_PATH", "ANTIGRAVITY_TRANSCRIPT_PATH", "NK_CONVERSATION_ID", "ANTIGRAVITY_CONVERSATION_ID"):
         monkeypatch.delenv(k, raising=False)
     monkeypatch.setenv("USERPROFILE", str(tmp_path))
+    monkeypatch.setenv("HOME", str(tmp_path))
 
     brain = tmp_path / ".gemini" / "antigravity" / "brain"
     (brain / "not_a_dir.txt").parent.mkdir(parents=True)

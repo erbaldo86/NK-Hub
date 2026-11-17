@@ -491,6 +491,29 @@ def test_dual_ledgers_stale_claim_and_lock_lifecycle(
     lk._claim_stale_lock(os.getpid(), ("__corrupt__", 1))
     assert not lock_path.exists()
 
+    lock_path.write_text("", encoding="utf-8")
+    lk._claim_stale_lock(os.getpid(), (999999, "old", 0.0))
+    assert lock_path.exists()
+    lk._claim_stale_lock(os.getpid(), ("__corrupt__", 1))
+    assert not lock_path.exists()
+
+    lock_path.write_text("[]", encoding="utf-8")
+    lk._claim_stale_lock(os.getpid(), (999999, "old", 0.0))
+    assert not lock_path.exists()
+
+    reap_p = lock_path.with_name(f".{lock_path.name}.reap")
+    reap_p.write_text("", encoding="utf-8")
+    lk._claim_stale_lock(os.getpid(), ("__corrupt__", 1))
+    assert reap_p.exists()
+    old_reap = time.time() - 10.0
+    os.utime(reap_p, (old_reap, old_reap))
+    lk._claim_stale_lock(os.getpid(), ("__corrupt__", 1))
+    assert not reap_p.exists()
+
+    with monkeypatch.context() as mp:
+        mp.setattr(_DL_MOD.os, "open", lambda *_a, **_kw: (_ for _ in ()).throw(OSError("reap_io")))
+        lk._claim_stale_lock(os.getpid(), ("__corrupt__", 1))
+
     with monkeypatch.context() as mp:
         mp.setattr(_DL_MOD.os, "write", lambda _fd, _b: 0)
         with pytest.raises(OSError):
@@ -1007,7 +1030,10 @@ def test_nk_hook_gate_path_safety_temp_reparse_and_whitelist(
         "py c:/u/appdata/local/temp/x.py scripts/appdata/local/temp/y.py"
     )
     assert "__temp_safe__" in san and "scripts/appdata/local/temp/y.py" in san
-    assert _hg_path_safety._is_whitelisted_outside_staging(Path("c:/u/.gemini/antigravity/brain/conv/a.md"), tmp_path) is True
+    assert _hg_path_safety._is_whitelisted_outside_staging(
+        Path("c:/u/.gemini/antigravity/brain/conv/a.md") if os.name == "nt" else Path("/u/.gemini/antigravity/brain/conv/a.md"),
+        tmp_path,
+    ) is True
     assert _hg_path_safety._is_whitelisted_outside_staging(Path(tempfile.gettempdir()) / "x.txt", tmp_path) is True
     assert _hg_path_safety._is_whitelisted_outside_staging(tmp_path, tmp_path) is False
     assert _hg_path_safety._is_whitelisted_outside_staging(tmp_path / "nk_sandbox_1" / "f.py", tmp_path) is True
@@ -1034,7 +1060,9 @@ def test_nk_hook_gate_target_classifier_redirs_and_overrides(
 
     assert _hg_target_cls._classify_redirection_target_violation(".staging/ok.py", tmp_path) is None
     assert _hg_target_cls._classify_redirection_target_violation("nk_diagnostics/ok.log", tmp_path) is None
-    assert _hg_target_cls._classify_redirection_target_violation("c:/outside_x/ok.log", tmp_path) is None
+    assert _hg_target_cls._classify_redirection_target_violation(
+        "c:/outside_x/ok.log" if os.name == "nt" else "/outside_x/ok.log", tmp_path
+    ) is None
     assert _hg_target_cls._classify_non_redirection_write_targets("Set-Content -Path .staging/a.py", tmp_path) is None
     assert _hg_target_cls._classify_non_redirection_write_targets("Set-Content -Path scripts/a.py", tmp_path)["decision"] == "deny"
 
@@ -1552,6 +1580,7 @@ def test_nk_acs_fastguard_stdin_pipes_and_reparse_fallbacks(
     os.close(w_fd)
     with os.fdopen(r_fd, "r", encoding="utf-8") as p_in:
         with monkeypatch.context() as mp:
+            mp.setattr(_FG_MOD.sys, "platform", "win32")
             mp.setattr(_FG_MOD.sys, "stdin", p_in)
             mp.setattr(_FG_MOD, "_win32_stdin_ready", lambda _fd: False)
             assert _FG_MOD._read_stdin_safe() == ""

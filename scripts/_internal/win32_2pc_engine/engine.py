@@ -225,7 +225,8 @@ class TwoPhaseCommitEngine:
         k32 = _consts._get_active_kernel32()
         for attempt in range(self.MAX_RETRIES):
             if k32 is not None:
-                ctypes.set_last_error(0)
+                if hasattr(ctypes, "set_last_error"):
+                    ctypes.set_last_error(0)
                 res = k32.MoveFileExW(src_w, dst_w, flags)
                 if res:
                     return True

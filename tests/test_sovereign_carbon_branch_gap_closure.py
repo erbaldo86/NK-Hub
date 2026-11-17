@@ -51,13 +51,19 @@ def test_carbon_inprocess_exact_branch_gap_closure(
     """Chiude i rami residui su Win32 2PC long-path, validazione percorsi e pre-image rollback."""
     del isolated_nk_env
     assert str(w2pc_mod._win_long_path("\\\\?\\C:\\abc")).startswith("\\\\?\\")
-    assert str(w2pc_mod._win_long_path("C:\\" + ("a" * 245))).startswith("\\\\?\\")
-    with monkeypatch.context() as mp_smb:
-        def _raise_smb(*_args: Any, **_kwargs: Any) -> Path:
-            raise OSError("smb_disabled_in_test")
+    long_c = "C:\\" + ("a" * 245)
+    long_unc = "\\\\srv\\share\\" + ("b" * 245)
+    if os.name == "nt":
+        assert str(w2pc_mod._win_long_path(long_c)).startswith("\\\\?\\")
+        with monkeypatch.context() as mp_smb:
+            def _raise_smb(*_args: Any, **_kwargs: Any) -> Path:
+                raise OSError("smb_disabled_in_test")
 
-        mp_smb.setattr(Path, "resolve", _raise_smb)
-        assert "UNC" in str(w2pc_mod._win_long_path("\\\\srv\\share\\" + ("b" * 245)))
+            mp_smb.setattr(Path, "resolve", _raise_smb)
+            assert "UNC" in str(w2pc_mod._win_long_path(long_unc))
+    else:
+        assert w2pc_mod._win_long_path(long_c) == Path(long_c)
+        assert w2pc_mod._win_long_path(long_unc) == Path(long_unc)
     with pytest.raises(OSError):
         w2pc_mod._replace_with_retry(
             tmp_path / "no_s", tmp_path / "no_d", retries=2, delay_sec=0.001
@@ -576,7 +582,7 @@ def test_carbon_gap_bootstrap_fastpass_hook_stdin_and_rsi_scan(
     with monkeypatch.context() as mp_unc:
         mp_unc.setattr(os.path, "realpath", os.path.abspath)
         unc_p = hook_mod._canonical_path("\\\\?\\UNC\\127.0.0.1\\no_share_nk\\sub\\f.txt")
-        assert str(unc_p).startswith("\\\\127.0.0.1")
+        assert str(unc_p).replace("/", "\\").startswith("\\\\127.0.0.1")
     deep_p = hook_mod._canonical_path("\\\\?\\" + str(tmp_path / "deep" / "f.txt"))
     assert "\\\\?\\" not in str(deep_p) and deep_p.name == "f.txt"
 

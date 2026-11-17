@@ -37,6 +37,7 @@ _qbm_mod = load_script_by_relpath("quality_baseline_manager", "scripts/quality_b
 @pytest.mark.fast
 def test_r4_s3_dast_win32_job_and_thread_fallbacks(monkeypatch: Any) -> None:
     """Copre rami di errore Win32 JobObject e Thread32 in dast_sandbox_runner."""
+    _ = _dast_mod._create_kill_on_close_job
     with monkeypatch.context() as mp:
         mp.setattr(_dast_mod.sys, "platform", "linux")
         assert _dast_mod._create_kill_on_close_job() is None
@@ -130,6 +131,7 @@ def test_r4_s3_dast_job_subprocess_and_kill_fallbacks(tmp_path: Path, monkeypatc
             wait=lambda timeout=None: 0,
         )
     with monkeypatch.context() as mp:
+        mp.setattr(_dast_mod.sys, "platform", "win32")
         mp.setattr(_dast_mod.subprocess, "Popen", _fake_popen)
         mp.setattr(_dast_mod, "_create_kill_on_close_job", lambda: None)
         res_nojob = _dast_mod._run_job_isolated_subprocess(["cmd"], tmp_path, {}, 2.0)

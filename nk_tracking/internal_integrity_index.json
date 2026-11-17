@@ -287,7 +287,7 @@
     "scripts/_internal/memory_3tier_engine/models.py": {
       "kind": "internal",
       "package": "memory_3tier_engine",
-      "sha256": "61a574d54492a24b751bdf2e41d0389fa4173434abeb6616a2ad3390dd0a3ea2",
+      "sha256": "483011c21747d70ed75cabebead7102000b0aed229fb7b2ec26970a203b19dab",
       "loc": 339
     },
     "scripts/_internal/memory_3tier_engine/search_bm25_dense.py": {
@@ -401,8 +401,8 @@
     "scripts/_internal/nk_common/ledger_lock_io.py": {
       "kind": "internal",
       "package": "nk_common",
-      "sha256": "4cacd67465702a5756a9bbb9594192e9a5976505f42e729002095258d4600b27",
-      "loc": 271
+      "sha256": "cb0b3116c6c07639e4a2f44b97388a918bfaf32e320787d17be167e43d4d1604",
+      "loc": 285
     },
     "scripts/_internal/nk_common/ledger_runtime.py": {
       "kind": "internal",
@@ -1277,8 +1277,8 @@
     "scripts/_internal/win32_2pc_engine/engine.py": {
       "kind": "internal",
       "package": "win32_2pc_engine",
-      "sha256": "c9dc5ec9448d1dd3fdffde10f80a953e48b28fa96eb5eced8118b253ae337464",
-      "loc": 354
+      "sha256": "4706e9432a248d57b1d2629e025372fd4fcea58ab6c0c6820655df2b9d7556e8",
+      "loc": 355
     },
     "scripts/_internal/win32_2pc_engine/guards_ratchet.py": {
       "kind": "internal",
@@ -1499,20 +1499,20 @@
     "tests/test_r4_cov_shard1_hooks_sast.py": {
       "kind": "test",
       "package": "tests",
-      "sha256": "cd9282f3f525391b2fe969f6147a99ef658cc8e002515db51861fe6a1f3e8854",
-      "loc": 1773
+      "sha256": "812b6826bb68e2fd4dea1b509d63ca1f129089c6e5726d06d56a903b1a37c3d1",
+      "loc": 1802
     },
     "tests/test_r4_cov_shard2_handoff_runtime.py": {
       "kind": "test",
       "package": "tests",
-      "sha256": "5633f3979d28bf26371c043739937f45c6490b8d7c437a371d0205db580fc40c",
-      "loc": 1322
+      "sha256": "895c4269eb8058aefd6c209d1e41f2ec9eb1080c064dbb9ff79cabe3dd03ef22",
+      "loc": 1323
     },
     "tests/test_r4_cov_shard3_engines_dast.py": {
       "kind": "test",
       "package": "tests",
-      "sha256": "e7ed655208de554a3fc9afbb07bf721462ed62b1216084714526af18fc9978af",
-      "loc": 1552
+      "sha256": "a36ee22ba68cce0187f3b6ec6d988c5c1c4c246d33b2d63c1fc6f40d9aa67525",
+      "loc": 1554
     },
     "tests/test_rsi_convergence_engine.py": {
       "kind": "test",
@@ -1553,14 +1553,14 @@
     "tests/test_sovereign_carbon_branch_gap_closure.py": {
       "kind": "test",
       "package": "tests",
-      "sha256": "c8daba1160d19e3fb3282d5460ea94ab380386241adca6cafbe569299bd7be20",
-      "loc": 677
+      "sha256": "863ca1f22c1142a035efb420e06356d707bff8bf53ec78901ec02858b733a5a7",
+      "loc": 683
     },
     "tests/test_sovereign_carbon_branch_inprocess_core.py": {
       "kind": "test",
       "package": "tests",
-      "sha256": "87f9d9ba0e7ed3650131bbec9dfc389cd96022d609cb99995185210d93f515d9",
-      "loc": 1602
+      "sha256": "e6e45593a42e0bb403344b382b287b566c9b33ba61cd186bafe1288294c8a820",
+      "loc": 1605
     },
     "tests/test_sovereign_carbon_branch_inprocess_promotion.py": {
       "kind": "test",
@@ -1589,8 +1589,8 @@
     "tests/test_sovereign_carbon_runtime_and_engines.py": {
       "kind": "test",
       "package": "tests",
-      "sha256": "842f0cafa82bb1251e9a48e3d5beb32f72f0debbe005d14ac229c2264757dbcd",
-      "loc": 441
+      "sha256": "a010d6ef4c8d8263be91e9e5931144e7db4ef0add5cff63197c04114889fb763",
+      "loc": 453
     },
     "tests/test_sovereign_carbon_security_and_2pc.py": {
       "kind": "test",

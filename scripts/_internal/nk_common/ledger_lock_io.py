@@ -77,7 +77,7 @@ class PIDFileLock:
                 pid,
             )
             if not handle or handle == INVALID_HANDLE_VALUE:
-                err = ctypes.get_last_error() or k32.GetLastError()
+                err = (ctypes.get_last_error() if hasattr(ctypes, "get_last_error") else 0) or k32.GetLastError()
                 if err == ERROR_ACCESS_DENIED:
                     return True
                 return False
@@ -99,39 +99,53 @@ class PIDFileLock:
                 return False
 
     def _claim_stale_lock(self, current_pid: int, obs_key: Tuple[Any, ...]) -> None:
-        """Tenta il recupero atomico di un lock stantio/corrotto tramite os.rename senza gara ABA."""
-        claim_path = self.lock_file.with_name(
-            f".{self.lock_file.name}.stale.{current_pid}.{uuid.uuid4().hex[:8]}"
-        )
+        """Serializza il recupero di un lock stantio o corrotto tramite sidecar reap atomico."""
+        del current_pid
+        reap_path = self.lock_file.with_name(f".{self.lock_file.name}.reap")
+        open_flags = os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, "O_BINARY", 0)
         try:
-            os.rename(str(self.lock_file), str(claim_path))
-        except FileNotFoundError:
+            reap_fd = os.open(str(reap_path), open_flags, 0o600)
+        except FileExistsError:
+            try:
+                grace = max(2.0, min(float(self.stale_timeout_sec), 5.0))
+                if (time.time() - reap_path.stat().st_mtime) > grace:
+                    reap_path.unlink(missing_ok=True)
+            except OSError:
+                pass
             return
         except OSError:
             return
 
+        os.close(reap_fd)
         try:
-            c_raw = claim_path.read_text(encoding="utf-8")
-            c_data = json.loads(c_raw) if c_raw.strip() else None
-            if isinstance(c_data, dict):
-                c_pid = int(c_data.get("pid", 0))
-                c_nonce = str(c_data.get("nonce", ""))
-                c_time = float(c_data.get("timestamp", 0.0))
-                c_key: Tuple[Any, ...] = (c_pid, c_nonce, c_time)
-                is_live_fresh = (
-                    self._is_pid_alive(c_pid)
-                    and (time.time() - c_time) <= self.stale_timeout_sec
-                )
-                if c_key != obs_key and is_live_fresh:
-                    try:
-                        os.rename(str(claim_path), str(self.lock_file))
-                    except OSError:
-                        pass
-        except (ValueError, json.JSONDecodeError, TypeError, OSError):
-            pass
+            try:
+                raw_cur = self.lock_file.read_text(encoding="utf-8")
+            except OSError:
+                return
+            if not raw_cur.strip() and obs_key[0] != "__corrupt__":
+                return
+            if raw_cur.strip():
+                try:
+                    c_data = json.loads(raw_cur)
+                    if isinstance(c_data, dict):
+                        c_pid = int(c_data.get("pid", 0))
+                        c_time = float(c_data.get("timestamp", 0.0))
+                        c_key: Tuple[Any, ...] = (c_pid, str(c_data.get("nonce", "")), c_time)
+                        if (
+                            c_key != obs_key
+                            and self._is_pid_alive(c_pid)
+                            and (time.time() - c_time) <= self.stale_timeout_sec
+                        ):
+                            return
+                except (ValueError, json.JSONDecodeError, TypeError):
+                    pass
+            try:
+                self.lock_file.unlink(missing_ok=True)
+            except OSError:
+                pass
         finally:
             try:
-                claim_path.unlink(missing_ok=True)
+                reap_path.unlink(missing_ok=True)
             except OSError:
                 pass
 
