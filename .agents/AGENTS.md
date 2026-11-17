@@ -1,107 +1,113 @@
-# Regolamento di Sistema: Ecosistema Antigravity (Nexus Keystone v5.2.0-STE100-Unified / v5.0.0-STE100-Unified / v4.8.0-STE100-Unified / v4.7.0-STE100-Unified / v3.0.0-STE100-Unified Compatible)
+# Regolamento di Sistema: Ecosistema Antigravity (NK Hub Generation v1.0.0-Generation)
 
-> **Ambito:** Regole vincolanti del workspace per tutti gli agenti, i sub-agenti e i nodi NK.  
-> **Versione:** `v5.2.0-STE100-Unified` (`v5.2.0-RSI`, `v5.0.0-STE100-Unified`, `v4.8.0-STE100-Unified`, `v3.0.0-STE100-Unified` Compatible, `[RULE-STE100]`, `[RULE-RSI]`, `GT-01..GT-14`, `93/93` in `18` moduli e `68` Golden Tests).  
-> **Milestone Anchor:** `NK-MS-20261108-CLEAN-OPTIMIZED-CHECKPOINT-v5.2.0-RSI`.
+> **Ambito:** Costituzione vincolante per tutti gli agenti, sub-agenti e nodi di `NK_Hub`.  
+> **Versione:** `v1.0.0-Generation` (`11` skill, `6` sub-agenti foglia, `[RULE-STE100]`, `[RULE-RSI]`, `GT-01..GT-14`, soglie in `nk_tracking/quality_baseline.json`).  
+> **Milestone Anchor:** `NK-GEN-1.0.0`.
 
 ---
 
 ## 0. Hard Execution Gate e Direttiva Linguistica
 
 ### [RULE-PROJECT-ISOLATION] EXTERNAL_PROJECT_DIRECTORY_MANDATE
-* Nessun agente crea codice applicativo (`src_app/`, `app/`, `src/`) dentro `NK-Hub`.
-* Ogni nuovo progetto risiede in una cartella esterna autonoma (`G:/Il mio Drive/Antigravity/NK_External_Projects/<Nome>/`).
-* L'agente inizializza ogni progetto esterno tramite `scripts/external_project_scaffolder.py`.
+* Nessun agente crea codice applicativo (`src_app/`, `app/`, `src/`) dentro `NK_Hub`.
+* Ogni nuovo progetto esterno risiede in `<WorkspaceRoot>/NK_External_Projects/<Nome>/`.
+* L'agente inizializza i progetti esterni con `python -u NK_Hub/scripts/external_project_scaffolder.py --name <Nome> --target <Path>`.
 
 ### [RULE-00.4] SESSION_BOOTSTRAP_GATE
-* L'agente esegue `scripts/nk_session_bootstrap.py` come primo passo di ogni sessione.
-* La verifica `Fast-Stat` completa il controllo in meno di `120` ms (`< 30` ms su cache hit cross-conversazione `TTL 900s`).
-* Lo script pulisce i file `.wal` scaduti, verifica la root, emette `ONBOARDING_BYPASS_VERIFIED` e imposta `NK_MODEL_PROFILE=argon`.
-* Nessuna operazione procede se il bootstrap restituisce `FAIL`.
+* L'agente esegue `python -u NK_Hub/scripts/nk_session_bootstrap.py` all'inizio di ogni sessione.
+* La verifica `Fast-Stat` termina in meno di `120` ms (`< 30` ms su cache `TTL 900s`).
+* Lo script pulisce `.wal`, valida la root, imposta `NK_MODEL_PROFILE=generation` (compatibile `carbon`) e blocca tutto su `FAIL`.
 
 ### [RULE-00.5] UNIFIED_ONBOARDING_DASHBOARD_MANDATE
-* I trigger di avvio sono: `"avvia ambiente nk"`, `"avvia nk hub"`, `"avvia nk"`, `"avvia hub"`, `"start nk"`, `"start hub"`, `"attiva nk"`, `"attiva ambiente nk"`.
-* Quando l'utente invia un trigger di avvio, l'agente esegue un singolo passo CLI:
-  1. Esegue il controllo `Fast-Stat` con `scripts/nk_session_bootstrap.py` in meno di `120` ms verificando `ONBOARDING_BYPASS_VERIFIED`.
-  2. Mostra subito la Master Dashboard a 15 nodi (`[0]` fino a `[14]`) definita in `NK-Master-Hub/SKILL.md`.
-  3. Include in calce la guida con `Modalità Diretta` (`[0]`..`[14]`) e `Modalità Goal-Driven` in linguaggio naturale.
+* Trigger Legacy: `"avvia ambiente nk"`, `"avvia nk hub"`, `"avvia nk"`, `"avvia hub"`, `"start nk"`, `"start hub"`, `"attiva nk"`, `"attiva ambiente nk"`.
+* Trigger Generation: `"avvia generation"`, `"avvia nk generation"`, `"avvia nk hub generation"`, `"avvia ambiente generation"`, `"start generation"`, `"start nk generation"`, `"attiva generation"`, `"attiva ambiente generation"`.
+* Su trigger di avvio l'agente esegue `Fast-Stat` in meno di `120` ms verificando `ONBOARDING_BYPASS_VERIFIED`.
+* L'agente mostra subito la Dashboard a 10 nodi (`[0]` fino a `[9]`) di `NK-Orchestrator/SKILL.md`.
+* In calce espone sempre `Modalità Diretta` (`[0]`..`[9]`) e `Modalità Goal-Driven` in linguaggio naturale.
 
-### [RULE-00.6] / [RULE-00.7] / [RULE-01.11] / [RULE-01.12] META_PROMPT_GATE_AND_INTRINSIC_PROTOCOLS
-* L'agente esegue `scripts/vibe_sprint_router.py --meta-prompt-gate` (`CONFIRM`) su ogni nuovo prompt utente non esente.
-* Lo Specchio Concettuale L0 articola sempre tre sezioni nel campo `content`: Intenzione (`R1..Rn`), Come farlo e Regole.
-* Nessun agente stampa il blocco interno `[META-PROMPT L0]` come quarto passaggio o invoca `ask_question` con `content` vuoto.
-* Su `AWAIT_CONFIRM`, l'agente richiede conferma 1-Click tramite `ask_question` prima di eseguire il task.
-* Dopo la conferma L0, l'agente prepara il Brief e richiede conferma su `nk_genome/implementation_plan.md` (`RequestFeedback: true`).
-* Il Gate L0 e il `Template 11` attivano autonomamente `INTRINSIC_GOAL` (`/goal`), `INTRINSIC_BOOST` (`/boost`) e `INTRINSIC_PLAN` (`/plan`, `/implementation`).
-* Nessun agente chiede all'utente di digitare manualmente `/goal`, `/boost`, `/plan` o `/implementation` (`AP-10`).
-* L'agente valida ogni prompt generato con `scripts/nk_transcript_tools.py lint-prompt` prima della consegna all'utente.
-* Le esenzioni anti-loop coprono conferme (`ok`, `procedi`, `Proceed`), `[0]..[14]`, `<env_capsule>`, `!diretto` (`L0_GATE_ONLY`) e trigger di avvio.
-* Gli handoff `Template 12` (`PASSIVE_SESSION_STATE_HANDOFF`) attivano `STATE_HANDOFF_STANDBY` in sola lettura, vietando task autonomi (`AP-12`) e piste (`AP-13`).
+### [RULE-00.6] / [RULE-00.7] / [RULE-01.11] / [RULE-01.12] META_PROMPT_GATE_AND_FAST_BYPASS
+* Su ogni nuovo prompt non esente esegui `python -u NK_Hub/scripts/vibe_sprint_router.py --meta-prompt-gate --prompt "<testo>"`.
+* **Re-Trigger L0 Incrementale:** Se approvi un piano aggiungendo requisiti, riesegui `--meta-prompt-gate` e mostra lo Specchio L0.
+* Lo Specchio Concettuale L0 espone tre sezioni: Intenzione (`R1..Rn`), Come farlo e Regole.
+* Su `AWAIT_CONFIRM` richiedi conferma 1-Click, poi il Brief e `nk_genome/implementation_plan.md` (`RequestFeedback: true`).
+* Attiva intrinsecamente `INTRINSIC_GOAL`, `INTRINSIC_BOOST` e `INTRINSIC_PLAN` senza chiedere comandi slash manuali (`AP-10`).
+* Valida i prompt generati con `python -u NK_Hub/scripts/nk_transcript_tools.py lint-prompt --file <path>` prima della consegna.
+* Esenzioni anti-loop: conferme brevi (`ok`, `procedi`, `Proceed`), `[0]..[9]`, `<env_capsule>`, `!diretto` e trigger d'avvio.
+* **Fast-Bypass `Mode D` e `Mode C`:** `Mode D` opera in sola lettura immediata senza overhead 2PC. `Mode C` (`<= 150` LOC, `max_depth <= 1`) applica modifiche snelle in `.staging/` con `--vibe-check`.
+* Il `Template 12` (`PASSIVE_SESSION_STATE_HANDOFF`) attiva `STATE_HANDOFF_STANDBY` in sola lettura vietando `AP-12` e `AP-13`.
 
-### [RULE-00] / [RULE-00.1] / [RULE-00.2] / [RULE-00.3] ZERO_UNAUTHORIZED_WRITE_AND_STAGING_MANDATE
-* Nessun agente modifica i file di produzione senza autorizzazione; ogni modifica al codice avviene dentro `.staging/` o `%TEMP%\nk_sandbox_*\`.
-* I nodi Specifier e Auditor operano in sola lettura sulla produzione e scrivono solo in `nk_genome/` e `nk_tracking/reports_and_briefs/`.
-* Il commit finale richiede la promozione atomica tramite `scripts/win32_2pc_engine.py`, seguita dalla sincronizzazione documentale di `NK-Scribe`.
+### [RULE-00] / [RULE-00.1] / [RULE-00.2] / [RULE-00.3] STAGING_AND_2PC_MANDATE
+* Ogni modifica al codice avviene esclusivamente in `.staging/` o `nk_sandbox_*` nella directory temporanea di sistema con `PYTHONDONTWRITEBYTECODE=1`.
+* Usa solo i tool nativi (`read_file`, `write_file`, `edit_file`, `run_command`) con burst controllato (< 4 scritture simultanee).
+* Il commit finale usa `python -u NK_Hub/scripts/win32_2pc_engine.py --promote-staging --repo-root "<root>" --milestone "<id>"`, seguito da `NK-Scribe-Memory`.
 
-### [RULE-STE100] ASD_STE100_TECHNICAL_ITALIAN_MANDATE
-* Tutti i file `.md`, le docstring, i commenti, i commit e le risposte usano l'italiano tecnico ASD-STE100.
-* Ogni frase operativa contiene al massimo 20 parole, usa la forma attiva e vieta i trattini d'inciso spaziati.
+### [RULE-STE100] LINEE_GUIDA_CHIAREZZA_TECNICA_ADVISORY
+* I file `.md` italiani, le docstring, i commenti e le risposte seguono le linee guida di chiarezza ASD-STE100.
+* Preferisci frasi attive brevi (`<= 20` parole) senza trattini spaziati. I controlli emettono solo warning non bloccanti su compliance e RSI (`--strict` opt-in).
 
 ---
 
-## 1. Topologia 2-Tier, Protocollo CRV 4.0, Onestà Epistemica e Motore RSI
+## 1. Topologia 2-Tier, Protocollo Dual-Execution (`GT-14`), Onestà Epistemica e RSI
 
 ### [RULE-REACTIVE-SILENCE] / [RULE-01.9] ANTI_POLLING_AND_HEARTBEAT_MANDATE
-* Nessun agente esegue cicli di polling con `manage_task(Action="status")` o `manage_subagents(Action="list")`.
-* Durante l'attesa di sub-agenti asincroni, l'orchestratore imposta `schedule(DurationSeconds=180, TimerCondition="any")` e cede il turno.
-* I task oltre `60` secondi emettono un heartbeat ogni `45` secondi con `scripts/async_heartbeat_signaler.py` in `%TEMP%\nk_diagnostics\`.
+* Nessun agente esegue polling in ciclo su `manage_task` o sui sub-agenti attivi.
+* Durante l'attesa asincrona imposta `schedule(DurationSeconds=180, TimerCondition="any")` e cedi subito il turno.
+* Oltre `60` secondi emetti l'heartbeat ogni `45` secondi con `python -u NK_Hub/scripts/async_heartbeat_signaler.py --task-id <id>`.
 
-### [RULE-01] / [RULE-01.7] UNIVERSAL_DDI_MANDATE (Topologia 2-Tier Hub-and-Spoke)
-* `NK-Master-Hub` governa il DAG di Kahn e il commit 2PC; `NK-Session-Controller` governa l'Auto-Brief FSM a 5 turni e i 6 Gate.
-* L'Orchestratore registra Builder e Scribe con `define_subagent(Name="<Role>-Worker", EnableWriteTools=True, EnableSubagentTools=False)`.
-* Gli Auditor (`NK-Security-DAST-Auditor`, `NK-RSI-Auditor`) mantengono `EnableWriteTools=False` in sola lettura (`GT-14`).
-* Il Fast-Track consente fino a `12` chiamate dirette consecutive (`<= 8` letture da `800` righe e `<= 4` comandi).
-* Ogni delega ai sub-agenti include `<env_capsule>` con `python -m pytest` e vieta one-liner `python -c` multi-riga.
+### [RULE-01] / [RULE-01.7] TOPOLOGIA_2TIER_AND_DUAL_EXECUTION (`GT-14`)
+* `NK-Orchestrator` governa il DAG di Kahn, l'FSM a 5 turni e il commit 2PC in topologia piatta 2-Tier.
+* Registra i `6` sub-agenti foglia (`NK-Arch-Specifier`, `NK-Specifier-Agent`, `NK-Builder-Agent`, `NK-Security-DAST-Auditor`, `NK-RSI-Auditor`, `NK-Scribe-Agent`) con `enable_subagent_tools=false` e `enable_mcp_tools=false`.
+* Solo `DOM-01 Orchestrator-Direct` invoca i built-in `browser`, `research` e `image-generator`, vietando `python -c` multilinea.
+* **Protocollo `Dual-Execution` (`GT-14`):** Gli Auditor read-only usano `read_file` e `send_message`. La ricerca locale RO (`grep_search`, `find_by_name`, `list_dir`) resta ammessa solo se il runtime la espone. Restano vietati `run_command`, `write_file`, `edit_file`, `search_web` e i tool MCP. L'Orchestratore esegue le sonde CLI salvando i JSON in `nk_diagnostics/` nella directory temporanea di sistema.
 
 ### [RULE-EVIDENCE] / [RULE-DATA-PROVENANCE] / [RULE-ORACLE-LOCK] / [RULE-EPISTEMIC-HONESTY]
-* Ogni certificazione `PASS` o `CONVERGED_OPTIMAL` richiede un comando reale con `exit code 0` nello stesso turno (`[RULE-EVIDENCE]`).
-* Ogni record di dominio richiede `source_url` reale ed `evidence_quote` verificabile (`[RULE-DATA-PROVENANCE]`).
-* Prima della Fase 3, l'Orchestratore congela i test in `nk_tracking/oracle_lock.json` senza rivelare l'Holdout Set ai Builder (`[RULE-ORACLE-LOCK]`).
-* La matrice `100x` assegna `+100` al fix reale, `0` a `report-conflict` (`HALT_EPISTEMIC_CONFLICT`) e `-10.000` al test-gaming (`PYTEST_CURRENT_TEST`, `currentframe()`, `len(grants)`).
+* Ogni verdetto `PASS` o `CONVERGED_OPTIMAL` richiede un'esecuzione reale con `exit code 0` nello stesso turno.
+* Ogni record esterno richiede `source_url` reale ed `evidence_quote` verificabile (`[RULE-DATA-PROVENANCE]`).
+* Prima della build congela i test con `python -u NK_Hub/scripts/nk_transcript_tools.py oracle-lock freeze` (`[RULE-ORACLE-LOCK]`).
+* Matrice `100x`: `+100` al fix reale, `0` a `report-conflict` (`HALT_EPISTEMIC_CONFLICT`), `-10.000` al test-gaming (`PYTEST_CURRENT_TEST`, `currentframe()`, `len(grants)`).
 
-### [RULE-SWARM-HYGIENE] / [RULE-08] SWARM_MESSAGE_HYGIENE_MANDATE
-* Nessun sub-agente invia messaggi `send_message` superiori a `1.800` caratteri netti (`2.000` MTU), salvando i report lunghi su disco.
+### [RULE-SWARM-HYGIENE] / [RULE-08] / [RULE-01.1] / [RULE-01.10] / [RULE-01.2] / [RULE-01.3]
+* Ogni `send_message` resta sotto `1.800` caratteri netti (`2.000` MTU), salvando i report lunghi su disco.
+* Macro-Fasi CRV: 1) Build `.staging/`, 2) Dual-Execution Audit Read-Only, 3) Commit 2PC, 4) Teardown sandbox.
+* Mantieni intatti tutti i test Zero-Mock (`100.0%` pass rate, pavimento `93`, zero `MagicMock`, soglie in `nk_tracking/quality_baseline.json`).
+* Prima delle modifiche ferma i server attivi con `python -u NK_Hub/scripts/safe_cleanup_dev_servers.py --workspace-root "<root>"`.
 
-### [RULE-01.1] / [RULE-01.8] PROTOCOLLO CRV 4.0 E TASSONOMIA VIBE CODING
-* **Macro-Fasi CRV 4.0:** 1) Build in `.staging/` (`ast_guard_validator.py`, `auto_heal_pipeline.py`), 2) Audit Read-Only, 3) Commit 2PC, 4) Teardown sandbox.
-* **Tassonomia:** `Mode C` (`<= 150` LOC Fast-Sprint), `Mode B` (CRV Lite bugfix), `Mode A` (Sovereign 5 turni), `Mode D` (Discovery Read-Only).
+### [RULE-01.13] / [RULE-01.14] / [RULE-RSI] / [RULE-02.5] / [RULE-02.8] / [RULE-03] / [RULE-05.1] / [RULE-05.2]
+* La Sovereign Pentad `4+1` comprende `concept_map.md`, `structural_tree.md`, `implementation_plan.md`, `repo_map.md` e `nk_genome/modules/`; sincronizza l'indice O(1) con `python -u NK_Hub/scripts/nk_registry_indexer.py --sync`.
+* `NK_Hub/scripts/rsi_convergence_engine.py` calcola `Delta_k(p)` e la fitness `Q(S_k)` fino alla convergenza `Delta_k == 0` e `Q(S_k) == 100.0`.
+* Il Builder esegue Two-Stage Grounding con `read_file` (`<= 800` righe) su `implementation_plan.md` (Stage A) e sui target (Stage B).
+* Alla guardia (`70` step `standard`, `150` `generation`/`carbon`) raccomanda `/compact` nella UI host ed esegui `python -u NK_Hub/scripts/nk_session_handoff.py --compile-handoff-prompt`.
+* I 5 turni FSM sono Draft, Attack Swarm, Refine, 1:1 Align e Final Handoff. `nk_genome/PATCH_NOTES.md` funge da changelog SSOT. `NK_Hub/scripts/memory_3tier_engine.py` gestisce `ARCH`, `SEC`, `OPS` e `DEVX` (`350` tok `standard`, `1.200` `generation`/`carbon`).
 
-### [RULE-01.10] PERMANENT_TEST_SUITE_MANDATE (Golden Tests Ratchet)
-* Nessun agente degrada la suite di `93` Golden Tests Zero-Mock in `18` moduli (pavimento `68` test) in `tests/`.
-* `nk_tracking/quality_baseline.json` blocca ogni commit se il pass rate scende sotto il `100.0%`.
-
-### [RULE-01.13] / [RULE-01.14] TETRALOGIA SOVRANA 4/4 E REGISTRO O(1)
-* La Tetralogia Sovrana comprende `concept_map.md`, `structural_tree.md`, `implementation_plan.md` e `repo_map.md` (aggiornata con `scripts/ast_repo_mapper.py`).
-* L'agente risolve e sincronizza le skill in tempo O(1) tramite `nk_genome/nk_registry_manifest.json` e `scripts/nk_registry_indexer.py --sync`.
-
-### [RULE-01.2] / [RULE-01.3] ZERO_MOCK_AND_SAFE_CLEANUP_MANDATE
-* Nessun agente usa `MagicMock` o `unittest.mock`; i test usano fixture reali e `scripts/deterministic_api_cache.py` (SQLite WAL).
-* Prima di modificare il codice, l'agente ferma i server attivi con `scripts/safe_cleanup_dev_servers.py`.
-
-### [RULE-RSI] / [RULE-RSI.1] CONTINUOUS_TENSOR_RSI_CONVERGENCE_MANDATE
-* Ogni ciclo converge tramite `scripts/rsi_convergence_engine.py` sui profili `VIBE_SPRINT_MICRO_RSI`, `CODE_RSI`, `SPEC_RSI`, `UI_UX_RSI` e `STE100_RSI`.
-* Il motore calcola $\Delta_k(p) = 100 D_k + 20 E_{\text{PoC},k} + w_{\text{SAST}}^{(p)}\text{SAST}_k + 12 D_{\text{sem},k} + w_{\text{test}}^{(p)}(T_{\text{fail},k} + C_k) + w_H^{(p)}H_k + w_M^{(p)}M_k + w_L^{(p)}L_k + w_G^{(p)}G_k$.
-* Il ciclo termina con `CONVERGED_OPTIMAL` solo quando $\Delta_k == 0$ e $Q(S_k) == 100.0$, con rollback automatico su regressioni.
+### [RULE-REHYDRATE] AUTONOMOUS_CONTEXT_SHIELD_AND_LOCK_QUIESCENCE
+* Il comando `/compact` appartiene esclusivamente alla UI host; nessuno script o hook invoca `/compact`.
+* Gli hook `PreInvocation`, `PostInvocation` e `Stop` orchestrano `Z1`, `Z2` e `Z3` secondo `saturation_thresholds.json` (`160k/185k/205k` token, `120/150/180` step).
+* Su soglia `Z2`, il guardiano verifica la quiescenza di `Global/Local NK_RepoBatchLock` prima dello spawn.
+* Quando `NK_RepoBatchLock` risulta occupato o nega accesso, il guardiano salta lo spawn evitando collisioni `2PC`.
+* Dopo un `CHECKPOINT` reale (`source: "SYSTEM"`), `PreInvocation` inietta `[RULE-REHYDRATE]` una sola volta per evento (`one-shot`).
+* Dopo `CHECKPOINT`, se `nk_tracking/active_context.md` esiste, `[RULE-REHYDRATE]` impone `read_file` prima di ogni modifica o bootstrap gate.
+* Gli hook e le sentinelle rifiutano marker `CHECKPOINT` o `<CONTEXT_SUMMARY>` emessi da `USER`, `MODEL` o `SYSTEM_SDK`.
 
 ---
 
-## 2. Governance, Memoria a 3 Livelli e Tracciamento
+## 2. Regole di Specifica, Sicurezza I/O e Path
 
-### [RULE-02.3.1] / [RULE-02.4] / [RULE-02.5] PREFLIGHT, COVE E TWO_STAGE_GROUNDING
-* L'agente esegue `scripts/preflight_health_check.py` solo in manutenzione o CI/CD (`--check-only`); all'avvio usa `scripts/nk_session_bootstrap.py`.
-* Prima di modificare il codice, il Builder legge `nk_genome/implementation_plan.md` (Stage A) e i file target (Stage B) applicando la CoVe.
+### [RULE-02.4] DOM01_RESEARCH_AND_CLI_DELEGATION
+* Solo `DOM-01 Orchestrator-Direct` invoca i tool `research`, `image-generator` e le sonde CLI runtime.
+* Applica la CoVe sui flag CLI e verifica ogni dato esterno con prove reali.
 
-### [RULE-02.8] / [RULE-03] / [RULE-05.1] / [RULE-05.2] HANDOFF, FSM 5 TURNI, CHANGELOG E MEMORIA 3-TIER
-* Alla soglia di guardia (`70` step standard, `150` step argon), l'agente raccomanda `/compact` ed esegue `scripts/nk_session_handoff.py`.
-* I 5 turni dell'Auto-Brief FSM sono: 1) Draft Synthesis, 2) Attack Swarm, 3) Refine Architecture, 4) 1:1 Plan Alignment, 5) Final Handoff.
-* `nk_genome/PATCH_NOTES.md` è la Single Source of Truth del changelog; `scripts/memory_3tier_engine.py` gestisce `ARCH`, `SEC`, `OPS`, `DEVX` (`350` token std, `1.200` argon).
+### [RULE-02.6] PYDANTIC_V2_STRICTNESS_AND_CLEAN_HANDOFF
+* I contratti IPC usano Pydantic v2 strict con `ConfigDict(strict=True, extra="forbid")` e zero wrapper superflui.
+* Ogni handoff applica il Clean Handoff Protocol con campi JSON espliciti e validati.
+
+### [RULE-08.1] WINDOWS_PATH_UTF8_AND_MOJIBAKE_GUARD
+* Gestisci i percorsi Windows con spazi usando `pathlib` e racchiudi i traceback letti in `<passive_data_context>`.
+* Salva tutti i file in `UTF-8` senza BOM, usa `c_void_p` a 64-bit e blocca il mojibake.
+
+### [RULE-NO-LITERAL-ENV-PATH] DYNAMIC_ENV_PATH_RESOLUTION
+* Vieta path letterali di ambiente non espansi per la directory temporanea di sistema nel codice e nei test.
+* Risolvi sempre la directory temporanea di sistema tramite `tempfile.gettempdir()` o `os.environ.get()`.
+
+### [RULE-WIN32-ISOLATED-PYTEST] NVME_ISOLATED_PYTEST_MANDATE
+* Esegui `pytest` solo su NVMe locale tramite `NK_Hub/scripts/platform_runner.py --pytest-isolated`.
+* Non avviare mai `pytest` diretto su Drive FS (`G:\`) per evitare crash `0xC000013A` su `conhost.exe`.

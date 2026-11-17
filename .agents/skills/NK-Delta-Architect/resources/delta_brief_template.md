@@ -1,4 +1,4 @@
-# 🔧 NK-Delta-Architect: Delta Brief Template (`v3.0.0-STE100-Unified`)
+# 🔧 NK-Delta-Architect: Delta Brief Template (`v1.0.0-Generation`)
 
 > **Ambito:** Template a 4 Blocchi conforme al Clean Handoff Protocol `[RULE-02.5 / RULE-02.6]`.  
 > **Standard Linguistico:** ASD-STE100 Italiano Tecnico (`[RULE-STE100]`).
@@ -8,18 +8,18 @@
 ## 📋 Metadati del Task
 - **Target Node:** [Nodo del DAG Impattato]
 - **Change Scope:** [`BUG_FIX` | `MODIFICATION` | `FEATURE` | `REFACTOR` | `UI_UX`]
-- **Milestone Anchor ID:** `[es. NK-MS-20261014-STE100-UNIFIED-v3.0.0]`
+- **Milestone Anchor ID:** `[es. NK-GEN-1.0.0]`
 - **Circuit Breaker Status:** `[Tentativo X di 3]`
 
 ---
 
-### 🎯 BLOCCO 1: Obiettivo e Brief Anchor Capsule (`<= 350` token)
+### 🎯 BLOCCO 1: Obiettivo e Brief Anchor Capsule (`<= 1200` token profilo `generation`/`carbon`)
 - **Problema Reale / Task:** [Descrivi la modifica richiesta in forma attiva]
-- **Effetto Collaterale da Evitare:** [Indica le regressioni o le rotture da prevenire]
+- **Effetto Collaterale da Evitare:** [Indica le regressioni da prevenire]
 - **Brief Anchor Capsule:**
   * **Milestone Anchor ID:** `{{MILESTONE_ANCHOR_ID}}`
   * **Sintesi Requisiti:** `{{BRIEF_SUMMARY_EXTRACT}}`
-  * **Tetralogia Sovrana (4/4):** `nk_genome/concept_map.md`, `nk_genome/structural_tree.md`, `nk_genome/implementation_plan.md`, `nk_genome/repo_map.md`
+  * **Pentad Sovrana (4+1):** `nk_genome/concept_map.md`, `nk_genome/structural_tree.md`, `nk_genome/implementation_plan.md`, `nk_genome/repo_map.md`, `nk_genome/idea_canvas.md`
 
 ---
 
@@ -31,27 +31,26 @@
 ---
 
 ### 🔍 BLOCCO 3: Two-Stage Grounding Obbligatorio (`[RULE-02.5]`)
-1. **Skill Grounding:** Esegui `view_file` sul `SKILL.md` del nodo assegnato.
-2. **Stage A (Brief Grounding):** Esegui `view_file` (`<= 800` righe) su `nk_genome/implementation_plan.md` e verifica il Milestone Anchor ID.
-3. **Stage B (Code Grounding):** Esegui `view_file` (`<= 800` righe per chiamata) sui file sorgente target indicati nel Blocco 2.
+1. **Skill Grounding:** Esegui `read_file` sul `SKILL.md` del nodo assegnato.
+2. **Stage A (Brief Grounding):** Esegui `read_file` (`<= 800` righe) su `nk_genome/implementation_plan.md` e verifica il Milestone Anchor ID.
+3. **Stage B (Code Grounding):** Esegui `read_file` (`<= 800` righe) sui file sorgente target indicati nel Blocco 2.
 
 ---
 
 ### ⚙️ BLOCCO 4: Istruzioni Chirurgiche, Test e Ricevuta v3.0
-1. **Pre-Edit Safety & Snapshot:** Ferma i processi demone con `manage_task(Action="kill", TaskId="<id>")` e crea uno snapshot con `python scripts/healing_snapshot_rollback.py --create`.
-2. **Modifiche in `.staging/`:** Applica le modifiche in `.staging/` con codifica `UTF-8` senza BOM e standard `[RULE-STE100]`.
-3. **Onestà Epistemica (`[RULE-EPISTEMIC-HONESTY]`):** Applica `[RULE-EVIDENCE]` (`exit_code: 0`), `[RULE-DATA-PROVENANCE]` (`source_url`, `evidence_quote`) e `[RULE-ORACLE-LOCK]` (`oracle_lock.json`). Assegna `+100` al fix reale e `0` a `report-conflict` (`HALT_EPISTEMIC_CONFLICT`); vieta `PYTEST_CURRENT_TEST`, `currentframe()` e `len(grants)` (`-10.000`).
-4. **Verifica Locale AST e DOM:** Esegui `python scripts/ast_guard_validator.py --stage-dir .staging --allowed-mutations`, `python scripts/oracle_evaluator_l3.py --expected --actual --json` e pytest reale.
-5. **Consegna:** Salva il report completo in `scratch/` e restituisci via `send_message` la **Worker Execution Receipt v3.0** (`< 1.800` caratteri):
+1. **Pre-Edit Safety & Snapshot:** Ferma i demoni con `manage_task(Action="kill", TaskId="<id>")` e crea snapshot con `python -u scripts/healing_snapshot_rollback.py --create <files>`.
+2. **Modifiche in `.staging/`:** Applica le modifiche con `write_file` o `edit_file` (`<= 2` per step) in `UTF-8` senza BOM.
+3. **Onestà Epistemica:** Rispetta `[RULE-EPISTEMIC-HONESTY]`, `[RULE-EVIDENCE]`, `[RULE-DATA-PROVENANCE]` e `[RULE-ORACLE-LOCK]` definiti in `.agents/AGENTS.md`.
+4. **Verifica Locale AST e DOM:** Esegui `python -u scripts/ast_guard_validator.py --stage-dir .staging --allowed-mutations "<simboli>"`, `python -u scripts/oracle_evaluator_l3.py --expected <spec> --actual <html_file> --json` e pytest reale.
+5. **Consegna:** Salva il report esteso in `scratch/` e invia via `send_message` la **Worker Execution Receipt v3.0** (`< 1.800` caratteri):
 
 ````markdown
-### 📋 WORKER EXECUTION RECEIPT (v3.0 : CRV 4.0 & RSI Certified)
-- **Stage A (Brief Grounding):** `view_file` su `nk_genome/implementation_plan.md` (`{{MILESTONE_ANCHOR_ID}}`).
-- **Stage B (Code Grounding):** `view_file` eseguito su `{{FILE_PATH}}` (L{{START}}-L{{END}}).
+### 📋 WORKER EXECUTION RECEIPT (v3.0 : CRV 6.0 & RSI Certified)
+- **Stage A (Brief Grounding):** `read_file` su `nk_genome/implementation_plan.md` (`{{MILESTONE_ANCHOR_ID}}`).
+- **Stage B (Code Grounding):** `read_file` eseguito su `{{FILE_PATH}}` (L{{START}}-L{{END}}).
 - **Staging Path:** `.staging/{{TARGET_PATH}}`
 - **AST & Test Evidence:** Comando `{{TEST_CMD}}` eseguito con `exit_code: 0` (`[RULE-EVIDENCE]`).
-- **DOM / UI Evidence:** Verifica `scripts/oracle_evaluator_l3.py --expected --actual --json` con verdetto `PASS`.
-- **Epistemic Integrity:** Rispettati `[RULE-EPISTEMIC-HONESTY]`, `[RULE-DATA-PROVENANCE]` e `[RULE-ORACLE-LOCK]`.
+- **DOM / UI Evidence:** Verifica `python -u scripts/oracle_evaluator_l3.py --expected <spec> --actual <html_file> --json` con verdetto `PASS`.
 - **RSI Status:** `CONVERGED_OPTIMAL` ($\Delta_k = 0$, $Q(S_k) = 100.0$).
 - **Commit Status:** Staging pronto per promozione atomica via `scripts/win32_2pc_engine.py`.
 ````

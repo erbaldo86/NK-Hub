@@ -1,7 +1,7 @@
-# Regole di Rigetto Falsi Bug (NK-Bug-Diagnostic-Engine : v3.0.0-STE100-Unified)
+# Regole di Rigetto Falsi Bug (NK-Bug-Diagnostic-Engine : v1.0.0-Generation)
 rejection_rules:
   - rule: "Nuovo requisito non specificato"
-    condition: "Il comportamento richiesto non compare nella Tetralogia Sovrana in nk_genome/"
+    condition: "Il comportamento richiesto non compare nella Pentad Sovrana 4+1 in nk_genome/"
     action: "Reject as FEATURE_REQUEST"
   - rule: "Modifica estetica UI/UX"
     condition: "La segnalazione richiede una variazione visiva non prevista da concept_map.md"

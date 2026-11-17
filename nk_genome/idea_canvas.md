@@ -1,52 +1,51 @@
-# 💡 Idea Canvas L0: Nexus Keystone (`v5.0.0-STE100-Unified` / `v4.8.0-STE100-Unified` / `v4.7.0-STE100-Unified` / `v4.5.1-STE100-Unified` / `v4.5.0-STE100-Unified` / `v3.1.0-Tensor-RSI`)
-
-> **Badge di Certificazione:** 🛡️ `[NK-BRIEF-STATUS: AUDITED_AND_CONVERGED 🟢]` | `[RSI-CONVERGENCE: CONVERGED_OPTIMAL (Δ3=0, Q=100.0) 🟢]`  
-> **Milestone Anchor ID:** `NK-MS-20261106-SOVEREIGN-CLEAN-SLATE-RELEASE-v5.0.0-RSI` (`NK-MS-20261106-HOLISTIC-CLEANSE-AND-DEAD-CODE-PURGE-v4.8.0-RSI` / `NK-MS-20261031-HOLISTIC-STRESS-AND-TEST-CONSOLIDATION-v4.7.0-RSI` / `NK-MS-20261024-HOLISTIC-SANITATION-v4.5.0-RSI` / `NK-MS-20261015-TENSOR-RSI-v3.1.0`)  
-> **Versione Target:** `v5.0.0-STE100-Unified` (`v4.8.0-STE100-Unified` / `v4.7.0-STE100-Unified` / `v4.5.1-STE100-Unified` / `v4.5.0-STE100-Unified` / `v4.4.0-STE100-Unified` / `v3.0.0-STE100-Unified` / `v3.1.0-Tensor-RSI` Compatible)  
-> **Standard Linguistico:** ASD-STE100 Italiano Tecnico (`[RULE-STE100]`, frasi `<= 20` parole)
-
+---
+title: "Idea Canvas: NK Hub Generation"
+version: "1.0.0-Generation"
+tier: "Tier-1"
+profile: "generation"
+standard: "ASD-STE100"
 ---
 
-## 1. Concetto Base
-- **Sintesi Progetto:** Nexus Keystone integra Tensor-RSI 2D, `34` moduli (`36` file Python) e `253` (`245`) test (`68` `GT-13`, `WP-V5-1..WP-V5-4`).
-- **Problema Reale:** La metrica RSI unica penalizza le skill documentali e rallenta i micro-task su `24` moduli.
-- **Soluzione Tecnica:** Il sistema introduce `4` livelli verticali (`L0..L3`), `5` profili in `RSIProfileRegistry` e la propagazione capillare Anti-Menzogna al `100%`.
+# `Idea Canvas`: Visione e Requisiti EARS (`v1.0.0-Generation`)
 
-## 2. Analisi di Mercato e Benchmark (`[1]`)
-- **Utenti Target:** Architetti AI, sviluppatori Python asincroni e revisori SAST/DAST su Google Antigravity.
-- **Concorrenti Analizzati:** I framework multi-agente generici usano mock fragili, loop infiniti e regole prolisse.
-- **Vantaggio Competitivo:** Il sistema garantisce commit atomico Win32 2PC, pre-warming in `< 2 ms` e convergenza $\Delta_k = 0$.
+## 1. Identita, Problema e Visione `Generation-Native`
 
-## 3. Valutazione Multi-Prospettiva e Rischi (`[2]`, `[3]`, `[4]`)
-- **Prospettiva STORM UX:** La barra Micro-HUD UTF-8 e il flag `--vibe-check` assicurano feedback immediato sotto `500 ms`.
-- **Prospettiva STORM Security:** Gli Auditor in `L0` restano in sola lettura (`GT-14`) ed esportano vettori JSON in `%TEMP%\nk_diagnostics\`.
-- **Prospettiva STORM Performance:** La cache SQLite WAL persistente e il Capsule Pre-Warming azzerano la latenza su Google Drive.
-- **Frizioni User Journey:** Il comando `/grill-me` e i `9` slash command nativi eliminano ogni configurazione manuale.
-- **Rischi Infrastrutturali:** Il Named Mutex Win32 a 64-bit previene race condition e lock `[WinError 32]` durante il commit.
+`NK Hub Generation` attua un sistema multi-agente deterministico per Windows e Drive FS.
+Il profilo `generation` con alias `carbon` estende il contesto operativo senza errori di saturazione.
+Il modello `3-Tier` elimina il carico monolitico al Turno `0` e preserva i moduli Python.
+La `Pentad Sovrana 4+1` separa i pilastri concettuali stabili (`Why`) dalla topologia `AST` (`What`).
+I contatori live di `11` skill, `6` sub-agenti nativi e `10` nodi risiedono in [quality_baseline.json](../nk_tracking/quality_baseline.json).
 
-## 4. Registro Pivot
-- **Data e ID Pivot:** `2026-10-15` (`PIVOT-TENSOR-RSI-v3.1.0`), `2026-10-24` (`PIVOT-HOLISTIC-SANITATION-v4.5.0`) e `2026-11-06` (`PIVOT-CLEAN-SLATE-RELEASE-v5.0.0`).
-- **Causa Tecnica del Blocco:** Le skill documentali subivano penalità fitness e mancava la propagazione capillare Anti-Menzogna su `.agents/`.
-- **Rettifica Adottata:** `[RULE-00.6]` e `[RULE-EPISTEMIC-HONESTY]` uniscono tracciabilità `R1..Rn`, `stop-evidence` e incentivi asimmetrici `100x` (`+ 100 \cdot D_k`).
-- **Arbitrato Terza Parte:** Integra conferma 1-Click `ask_question`, firma `intent_hash_sha256`, parser morfologico STT, `report-conflict` e protezione `WP8.4`.
+## 2. Pilastri Ingegneristici Invarianti
 
-## 5. Matrice SCAMPER
-- **S (Substitute):** Sostituisci il parsing manuale `sys.argv` con `argparse` retrocompatibile in `quality_baseline_manager.py` (`GT-13`).
-- **C (Combine):** Combina `VibeSprintRouter` con il normalizzatore vocale L0 (`MetaPromptGateContract`) attivo di default su ogni input.
-- **A (Adapt):** Adatta il recall RRF ibrido con espansione query e persistenza su disco in `tier1_active_capsule.json`.
-- **M (Modify):** Modifica `verify_ste100_compliance()` impostando `max_sentence_words = 20` e saltando il frontmatter YAML `---`.
-- **P (Put to another use):** Riutilizza l'AST di `scripts/*.py` per verificare i flag CLI documentati nei `SKILL.md` (`EXT-07`).
-- **E (Eliminate):** Elimina rami morti, import inutilizzati e residui `__pycache__` durante la promozione `.staging/` dentro `scripts/`.
-- **R (Reverse):** Inverti il flusso iniziale ponendo la conferma del Meta-Prompt concettuale prima dell'eventuale `implementation_plan.md`.
+| ID | Pilastro | Meccanismo Principale | Modulo Attuatore | Vincolo Chiave |
+| :--- | :--- | :--- | :--- | :--- |
+| `PIL-01` | Confinamento I/O | Scritture in `.staging/` e promozione atomica | `scripts/win32_2pc_engine.py` | Named Mutex (`[RULE-00]`) |
+| `PIL-02` | Topologia `2-Tier` | Unico Hub `DOM-01` e `6` foglie | `scripts/vibe_sprint_router.py` | Zero sub-orchestratori |
+| `PIL-03` | Isolamento App | Progetti utente fuori da `NK_Hub/` | `scripts/external_project_scaffolder.py` | Target `NK_External_Projects/` |
+| `PIL-04` | Processi e Pytest | Runner UTF-8 detached su NVMe `%TEMP%` | `scripts/platform_runner.py` | `[RULE-WIN32-ISOLATED-PYTEST]` |
+| `PIL-05` | Onesta Epistemica | Holdout lock e blocco `HALT_EPISTEMIC_CONFLICT` | `scripts/nk_transcript_tools.py` | Evidenza reale verificabile |
 
-## 6. Decisione di Handoff verso L3
-- **Stato Canvas:** `APPROVED`
-- **Nodo Destinatario:** `NK-App-UX-Architect` e `NK-Plan-Aligner` (Tetralogia Sovrana 4/4 in `nk_genome/`).
+## 3. Requisiti EARS Non Volatili (`v1.0.0-Generation`)
 
----
+* **R1:** `IL SISTEMA DEVE` esporre al Turno `0` un solo indice `Tier-0` entro `950` token stimati.
+* **R2:** `IL SISTEMA DEVE` mantenere ogni file della `Pentad Sovrana 4+1` entro `1.100` token senza contatori transitori.
+* **R3:** `QUANDO` gli hook girano sotto `python -S`, `IL SISTEMA DEVE` leggere `saturation_thresholds.json` via `json` stdlib.
+* **R4:** `MENTRE` opera il profilo `generation` con alias `carbon`, `IL SISTEMA DEVE` applicare soglie `160k/185k/205k` token e `120/150/180` step.
+* **R5:** `QUANDO` sessioni parallele usano Drive FS, `IL SISTEMA DEVE` isolare lo stato in `nk_tracking/sessions/<conversation_id>/`.
+* **R6:** `QUANDO` esegue suite `pytest` su Windows, `IL SISTEMA DEVE` isolare il mirror su NVMe locale via `--pytest-isolated`.
+* **R7:** `SE` uno script usa path temp letterali non espansi, `IL SISTEMA DEVE` bloccarlo con `[RULE-NO-LITERAL-ENV-PATH]`.
+* **R8:** `QUANDO` riceve un prompt `Mode D` o `"procedi*"`, `IL SISTEMA DEVE` attivare `Single-Gate` senza conferme doppie.
+* **R9:** `IL SISTEMA DEVE` separare `NK-Arch-Specifier` read-only `GT-14` dal writer confinato `NK-Specifier-Agent`.
+* **R10:** `IL SISTEMA DEVE` garantire grafo Python aciclico (`C_k = 0`), zero classi duplicate e file `<= 500` LOC.
+* **R11:** `IL SISTEMA DEVE` supportare `.md`/`.json` in `scripts/oracle_evaluator_l3.py` senza override silenziosi in `scripts/rsi_convergence_engine.py`.
 
-## 9. Consolidamento v5.0.0 e Stress Olistico S1..S6
+## 4. Target Architetturali `SSOT` (`Non Volatili`)
 
-* **Batterie Avversarie (`S1..S6`):** Il sistema neutralizza esfiltrazione `.staging/`, bypass PowerShell `.NET`, corruzione JSON e race condition su memoria.
-* **Suite Consolidata (`24` moduli):** I `18` micro-file storici confluiscono in `3` suite coese con `253` (`245` baseline) test Zero-Mock.
-* **Copertura Totale (`34/34` script):** Ogni modulo in `scripts/` possiede test diretti dedicati incluso `invisible_healing_loop.py`.
+| ID | Ambito Target | Specifica `v1.0.0-Generation` | Verifica Deterministica |
+| :--- | :--- | :--- | :--- |
+| `SLA-01` | Budget Contesto | `Tier-0 <= 950`, `Tier-1 <= 1.100`, memory `tier1 <= 1.200` tok | `scripts/ast_repo_mapper.py` |
+| `SLA-02` | Topologia Moduli | Zero cicli Tarjan (`C_k = 0`) e file `<= 500` LOC | `scripts/ast_guard_validator.py` |
+| `SLA-03` | Suite e Copertura | Metriche live misurate in [quality_baseline.json](../nk_tracking/quality_baseline.json) | `scripts/quality_baseline_manager.py` |
+| `SLA-04` | Sigillo Integrita | Copertura multi-root verificata su [oracle_lock.json](../nk_tracking/oracle_lock.json) | `scripts/nk_transcript_tools.py` |
+| `SLA-05` | Convergenza RSI | Stato `Delta_k = 0` certificato da bundle `GT-14` unificato | `scripts/rsi_convergence_engine.py` |

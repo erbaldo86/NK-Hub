@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Cache locale deterministica Tier-0 in SQLite WAL per Nexus Keystone v3.0.0-STE100-Unified.
+Cache locale deterministica Tier-0 in SQLite WAL per NK Hub Generation 1.0.0-Generation.
 Mantiene una connessione persistente per istanza per evitare il churn dei file WAL.
 """
 
@@ -64,6 +64,9 @@ class DeterministicApiCache:
         self._init_db()
         atexit.register(self.close)
 
+    _SQLITE_MAX_RETRIES = 5
+    _SQLITE_BASE_DELAY_SEC = 0.025
+
     def _open_persistent_connection(self) -> sqlite3.Connection:
         """Apre o restituisce la connessione SQLite WAL persistente dell'istanza."""
         if self._conn is None:
@@ -72,11 +75,34 @@ class DeterministicApiCache:
                 timeout=10.0,
                 check_same_thread=False,
             )
-            conn.execute("PRAGMA journal_mode = WAL;")
-            conn.execute("PRAGMA synchronous = NORMAL;")
-            conn.execute("PRAGMA busy_timeout = 5000;")
+            try:
+                conn.execute("PRAGMA busy_timeout = 10000;")
+                for attempt in range(self._SQLITE_MAX_RETRIES):
+                    try:
+                        conn.execute("PRAGMA journal_mode = WAL;")
+                        conn.execute("PRAGMA synchronous = NORMAL;")
+                        break
+                    except sqlite3.OperationalError:
+                        if attempt + 1 >= self._SQLITE_MAX_RETRIES:
+                            raise
+                        time.sleep(self._SQLITE_BASE_DELAY_SEC * (attempt + 1))
+            except Exception:
+                conn.close()
+                raise
             self._conn = conn
         return self._conn
+
+    def _run_with_sqlite_retry(self, op_fn: Any) -> Any:
+        """Esegue un'operazione SQLite con retry automatico su sqlite3.OperationalError."""
+        for attempt in range(self._SQLITE_MAX_RETRIES):
+            try:
+                with self._connection() as conn:
+                    return op_fn(conn)
+            except sqlite3.OperationalError:
+                if attempt + 1 >= self._SQLITE_MAX_RETRIES:
+                    raise
+                time.sleep(self._SQLITE_BASE_DELAY_SEC * (attempt + 1))
+        return None
 
     @contextmanager
     def _connection(self) -> Iterator[sqlite3.Connection]:
@@ -104,7 +130,7 @@ class DeterministicApiCache:
 
     def _init_db(self) -> None:
         """Inizializza la tabella e l'indice della cache SQLite."""
-        with self._connection() as conn:
+        def _op(conn: sqlite3.Connection) -> None:
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS api_cache (
@@ -122,6 +148,8 @@ class DeterministicApiCache:
             conn.execute(
                 "CREATE INDEX IF NOT EXISTS idx_endpoint ON api_cache(endpoint);"
             )
+
+        self._run_with_sqlite_retry(_op)
 
     @staticmethod
     def compute_hash(
@@ -150,7 +178,7 @@ class DeterministicApiCache:
         req_hash = self.compute_hash(endpoint, method, params, body)
         now = time.time()
 
-        with self._connection() as conn:
+        def _op(conn: sqlite3.Connection) -> Optional[Tuple[int, str, Dict[str, str]]]:
             cur = conn.execute(
                 """
                 SELECT status_code, response_body, response_headers, created_at
@@ -177,6 +205,8 @@ class DeterministicApiCache:
             headers = json.loads(headers_json) if headers_json else {}
             return (status_code, resp_body, headers)
 
+        return self._run_with_sqlite_retry(_op)
+
     def set(
         self,
         endpoint: str,
@@ -192,7 +222,7 @@ class DeterministicApiCache:
         headers_json = json.dumps(headers or {})
         now = time.time()
 
-        with self._connection() as conn:
+        def _op(conn: sqlite3.Connection) -> None:
             conn.execute(
                 """
                 INSERT INTO api_cache (
@@ -216,33 +246,42 @@ class DeterministicApiCache:
                     now,
                 ),
             )
+
+        self._run_with_sqlite_retry(_op)
         return req_hash
 
     def health_check(self) -> bool:
         """Verifica l'accessibilita del database e lo stato della modalita WAL."""
         try:
-            with self._connection() as conn:
+            def _op(conn: sqlite3.Connection) -> bool:
                 cur = conn.execute("PRAGMA journal_mode;")
                 mode = cur.fetchone()[0]
-                return mode.lower() == "wal"
+                return str(mode).lower() == "wal"
+
+            return bool(self._run_with_sqlite_retry(_op))
         except Exception:
             return False
 
     def clear(self) -> int:
         """Svuota tutte le voci presenti nella cache."""
-        with self._connection() as conn:
+        def _op(conn: sqlite3.Connection) -> int:
             cur = conn.execute("DELETE FROM api_cache;")
-            return cur.rowcount
+            return int(cur.rowcount)
+
+        return int(self._run_with_sqlite_retry(_op) or 0)
 
     def get_stats(self) -> Dict[str, Any]:
         """Restituisce le statistiche correnti della cache SQLite WAL."""
-        with self._connection() as conn:
+        def _op(conn: sqlite3.Connection) -> Tuple[int, int]:
             cur = conn.execute(
                 "SELECT COUNT(*), COALESCE(SUM(hit_count), 0) FROM api_cache;"
             )
             row = cur.fetchone()
-            entries = int(row[0]) if row else 0
-            total_hits = int(row[1]) if row else 0
+            entries_cnt = int(row[0]) if row else 0
+            hits_cnt = int(row[1]) if row else 0
+            return entries_cnt, hits_cnt
+
+        entries, total_hits = self._run_with_sqlite_retry(_op)
         return {
             "entries": entries,
             "total_hits": total_hits,
@@ -255,7 +294,7 @@ def main() -> int:
     """Interfaccia CLI per la cache deterministica Tier-0."""
     reconfigure_streams()
     parser = argparse.ArgumentParser(
-        description="Nexus Keystone Tier-0 Deterministic Local API Cache"
+        description="NK Hub Generation 1.0.0-Generation Tier-0 Deterministic Local API Cache"
     )
     parser.add_argument("--health", action="store_true", help="Verifica stato WAL")
     parser.add_argument("--clear", action="store_true", help="Svuota la cache")

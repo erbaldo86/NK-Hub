@@ -1,137 +1,138 @@
 {
-  "schema_version": "3.1.0-Tensor-RSI",
-  "updated_at": 1794154075.9914997,
-  "profile": "standard",
-  "token_cap": 350,
+  "schema_version": "1.0.0-Generation",
+  "updated_at": 1794883853.693931,
+  "profile": "generation",
+  "token_cap": 1200,
   "domains": {
     "01_Bug_Diagnostics": {
-      "total_tokens": 0,
-      "context": "",
-      "items": []
-    },
-    "02_Development_Patterns": {
-      "total_tokens": 276,
-      "context": "[ep_1793971370_0838d1] Release v4.8.0-STE100-Unified Remediation & Lean Token Optimization: Completati WP-O1..WP-O6 con 35/35 mutanti comportamentali uccisi (100%), fix nk_compliance_checker JSON args, AST cache RSI, default WAL in %TEMP% e matrice TAS automatica.\n[ep_1793385126_20d64f] Release Gate 1 v4.6.0 Unified: Completati WP-0c, WP-0a, WP-0b, WP-0d, WP-1a e WP-1b con 224 test verdi e backup esterni.\n[ep_1793051625_6821ee] NK-Bandi Release v1.3.0 Sovereign: Promossi 5 nuovi moduli <=250 LOC (plain_language_explainer, colloquial_advisor_lexicon, deep_card_enricher, guided_wizard, subpage_grant_discoverer). 113 moduli totali, 156/156 Golden Tests PASS.\n[ep_1792345022_b49991] Checkpoint Release v4.0.0 Cold Trial: Certificata la release v4.0.0-Native-Swarm-Playbooks con 10/10 sul router O(1), 15 fix RSI, rimozione scorie legacy e 86 test in 7.08s.\n[ep_1792344119_4d452a] Zero-Bias Cold Trial v4.0.0 Native Swarm: Risolte 15 frizioni a freddo su router O(1), lookup multi-skill, motore RSI, flag CLI e 2PC.",
+      "total_tokens": 129,
+      "context": "[EP-GEN-BUG-002] Eliminazione doppia esecuzione hook tramite plugin nk-gate: Centralizza hooks.json esclusivamente in .agents/plugins/nk-gate/hooks.json con python -S -B -u e usa scripts/sbfl_pytest_bridge.py per diagnosi Ochiai in .staging/.\n[EP-GEN-BUG-001] Runner Pytest isolato su NVMe %TEMP% anti-0xC000013A: Esegui pytest solo su mirror NVMe in %TEMP% tramite scripts/platform_runner.py --pytest-isolated --overlay-staging evitando crash 0xC000013A su Drive FS.",
       "items": [
         {
-          "key": "ep_1792344119_4d452a",
-          "value": "Zero-Bias Cold Trial v4.0.0 Native Swarm: Risolte 15 frizioni a freddo su router O(1), lookup multi-skill, motore RSI, flag CLI e 2PC.",
+          "key": "EP-GEN-BUG-001",
+          "value": "Runner Pytest isolato su NVMe %TEMP% anti-0xC000013A: Esegui pytest solo su mirror NVMe in %TEMP% tramite scripts/platform_runner.py --pytest-isolated --overlay-staging evitando crash 0xC000013A su Drive FS.",
           "priority": 3,
-          "estimated_tokens": 46
+          "estimated_tokens": 61
         },
         {
-          "key": "ep_1792345022_b49991",
-          "value": "Checkpoint Release v4.0.0 Cold Trial: Certificata la release v4.0.0-Native-Swarm-Playbooks con 10/10 sul router O(1), 15 fix RSI, rimozione scorie legacy e 86 test in 7.08s.",
+          "key": "EP-GEN-BUG-002",
+          "value": "Eliminazione doppia esecuzione hook tramite plugin nk-gate: Centralizza hooks.json esclusivamente in .agents/plugins/nk-gate/hooks.json con python -S -B -u e usa scripts/sbfl_pytest_bridge.py per diagnosi Ochiai in .staging/.",
           "priority": 4,
-          "estimated_tokens": 60
-        },
-        {
-          "key": "ep_1793051625_6821ee",
-          "value": "NK-Bandi Release v1.3.0 Sovereign: Promossi 5 nuovi moduli <=250 LOC (plain_language_explainer, colloquial_advisor_lexicon, deep_card_enricher, guided_wizard, subpage_grant_discoverer). 113 moduli totali, 156/156 Golden Tests PASS.",
-          "priority": 5,
-          "estimated_tokens": 51
-        },
-        {
-          "key": "ep_1793385126_20d64f",
-          "value": "Release Gate 1 v4.6.0 Unified: Completati WP-0c, WP-0a, WP-0b, WP-0d, WP-1a e WP-1b con 224 test verdi e backup esterni.",
-          "priority": 6,
-          "estimated_tokens": 51
-        },
-        {
-          "key": "ep_1793971370_0838d1",
-          "value": "Release v4.8.0-STE100-Unified Remediation & Lean Token Optimization: Completati WP-O1..WP-O6 con 35/35 mutanti comportamentali uccisi (100%), fix nk_compliance_checker JSON args, AST cache RSI, default WAL in %TEMP% e matrice TAS automatica.",
-          "priority": 7,
           "estimated_tokens": 68
         }
       ]
     },
-    "03_Ideation_and_Decisions": {
-      "total_tokens": 59,
-      "context": "[ep_1792607110_f1f08c] WP13 Super Meta-Prompt Gate Unified: Unificati i piani Opus, Argon e Terza Parte nel Gate L0 ALWAYS-ON con R1..Rn, FSM 5 stati, split CamelCase STT primaLa, esclusione sostantivi -zione e conferma 1-Click ask_question.",
+    "02_Development_Patterns": {
+      "total_tokens": 105,
+      "context": "[EP-GEN-DEV-002] Bootstrap Fast-Stat TTL 900s e SQLite WAL persistente: Mantieni la cache Fast-Stat in scripts/nk_session_bootstrap.py con igiene WAL automatica e una sola connessione SQLite WAL in deterministic_api_cache.py.\n[EP-GEN-DEV-001] Promozione atomica Win32 2PC con manifesto .deleted_files.json: Esegui ogni modifica in .staging/ con PYTHONDONTWRITEBYTECODE=1 e promuovi atomicamente tramite scripts/win32_2pc_engine.py sotto Named Mutex e PIDFileLock.",
       "items": [
         {
-          "key": "ep_1792607110_f1f08c",
-          "value": "WP13 Super Meta-Prompt Gate Unified: Unificati i piani Opus, Argon e Terza Parte nel Gate L0 ALWAYS-ON con R1..Rn, FSM 5 stati, split CamelCase STT primaLa, esclusione sostantivi -zione e conferma 1-Click ask_question.",
+          "key": "EP-GEN-DEV-001",
+          "value": "Promozione atomica Win32 2PC con manifesto .deleted_files.json: Esegui ogni modifica in .staging/ con PYTHONDONTWRITEBYTECODE=1 e promuovi atomicamente tramite scripts/win32_2pc_engine.py sotto Named Mutex e PIDFileLock.",
           "priority": 3,
-          "estimated_tokens": 59
+          "estimated_tokens": 52
+        },
+        {
+          "key": "EP-GEN-DEV-002",
+          "value": "Bootstrap Fast-Stat TTL 900s e SQLite WAL persistente: Mantieni la cache Fast-Stat in scripts/nk_session_bootstrap.py con igiene WAL automatica e una sola connessione SQLite WAL in deterministic_api_cache.py.",
+          "priority": 4,
+          "estimated_tokens": 53
+        }
+      ]
+    },
+    "03_Ideation_and_Decisions": {
+      "total_tokens": 127,
+      "context": "[EP-GEN-IDEA-002] Separazione Dual-Execution GT-14 per gli Auditor read-only: Orchestrator-Direct genera telemetria diagnostica JSON via emit_gt14_bundle mentre NK-Arch-Specifier, NK-Security-DAST-Auditor e NK-RSI-Auditor operano con write:false.\n[EP-GEN-IDEA-001] Profilo nativo generation e 16 trigger di onboarding: Attiva NK_MODEL_PROFILE=generation con fallback carbon, soglie ACS 160k/185k/205k token, 120/150/180 step, Tier-1 a 1200 token e 16 shortcut di avvio.",
+      "items": [
+        {
+          "key": "EP-GEN-IDEA-001",
+          "value": "Profilo nativo generation e 16 trigger di onboarding: Attiva NK_MODEL_PROFILE=generation con fallback carbon, soglie ACS 160k/185k/205k token, 120/150/180 step, Tier-1 a 1200 token e 16 shortcut di avvio.",
+          "priority": 3,
+          "estimated_tokens": 61
+        },
+        {
+          "key": "EP-GEN-IDEA-002",
+          "value": "Separazione Dual-Execution GT-14 per gli Auditor read-only: Orchestrator-Direct genera telemetria diagnostica JSON via emit_gt14_bundle mentre NK-Arch-Specifier, NK-Security-DAST-Auditor e NK-RSI-Auditor operano con write:false.",
+          "priority": 4,
+          "estimated_tokens": 66
         }
       ]
     },
     "04_Governance_and_Rules": {
-      "total_tokens": 160,
-      "context": "[ep_1794154075_d0ef96] Checkpoint v5.2.0-RSI Clean & Optimized Release: Checkpoint v5.2.0-RSI: rimozione scorie e dead code, ottimizzazione regex e mtime, invarianza CRLF/LF su SHA-256 per GitHub Actions CI.\n[ep_1794148358_367bf3] External Anti-Bias Audit & Tensor-RSI Hardening v5.1.1-RSI: Risolti i 5 cluster di bias del creatore (CL-01..CL-05): path-with-spaces in nk_hook_gate, cache multi-percorso in nk_session_bootstrap, asserzioni mode e bypass L0 in vibe_sprint_router, 6 vettori SAST in ast_guard_validator, atomic write in win32_2pc_engine. 93/93 Golden Tests PASS e Mutation Score 5/5 (100%).",
+      "total_tokens": 113,
+      "context": "[EP-GEN-GOV-002] Standard sintattico ASD-STE100 Italiano e Genoma 3-Tier: Valida ogni documento della Pentad Sovrana 4+1 e PATCH_NOTES.md con frasi attive sotto 20 parole e zero trattini spaziati prima del commit 2PC.\n[EP-GEN-GOV-001] Sigillo oracle_lock.json e divieto assoluto di test-gaming: Proteggi tests/, scripts/ e .agents/ con scripts/nk_transcript_tools.py oracle-lock verify e segnala conflitti reali tramite report-conflict.",
       "items": [
         {
-          "key": "ep_1794154075_d0ef96",
-          "value": "Checkpoint v5.2.0-RSI Clean & Optimized Release: Checkpoint v5.2.0-RSI: rimozione scorie e dead code, ottimizzazione regex e mtime, invarianza CRLF/LF su SHA-256 per GitHub Actions CI.",
-          "priority": 5,
-          "estimated_tokens": 56
+          "key": "EP-GEN-GOV-001",
+          "value": "Sigillo oracle_lock.json e divieto assoluto di test-gaming: Proteggi tests/, scripts/ e .agents/ con scripts/nk_transcript_tools.py oracle-lock verify e segnala conflitti reali tramite report-conflict.",
+          "priority": 3,
+          "estimated_tokens": 57
         },
         {
-          "key": "ep_1794148358_367bf3",
-          "value": "External Anti-Bias Audit & Tensor-RSI Hardening v5.1.1-RSI: Risolti i 5 cluster di bias del creatore (CL-01..CL-05): path-with-spaces in nk_hook_gate, cache multi-percorso in nk_session_bootstrap, asserzioni mode e bypass L0 in vibe_sprint_router, 6 vettori SAST in ast_guard_validator, atomic write in win32_2pc_engine. 93/93 Golden Tests PASS e Mutation Score 5/5 (100%).",
-          "priority": 3,
-          "estimated_tokens": 104
+          "key": "EP-GEN-GOV-002",
+          "value": "Standard sintattico ASD-STE100 Italiano e Genoma 3-Tier: Valida ogni documento della Pentad Sovrana 4+1 e PATCH_NOTES.md con frasi attive sotto 20 parole e zero trattini spaziati prima del commit 2PC.",
+          "priority": 4,
+          "estimated_tokens": 56
         }
       ]
     }
   },
   "lessons": [
     {
-      "domain": "02_Development_Patterns",
-      "key": "ep_1792344119_4d452a",
-      "lesson": "[ep_1792344119_4d452a] Zero-Bias Cold Trial v4.0.0 Native Swarm: Risolte 15 frizioni a freddo su router O(1), lookup multi-skill, motore RSI, flag CLI e 2PC.",
+      "domain": "01_Bug_Diagnostics",
+      "key": "EP-GEN-BUG-001",
+      "lesson": "[EP-GEN-BUG-001] Runner Pytest isolato su NVMe %TEMP% anti-0xC000013A: Esegui pytest solo su mirror NVMe in %TEMP% tramite scripts/platform_runner.py --pytest-isolated --overlay-staging evitando crash 0xC000013A su Drive FS.",
       "priority": 3,
-      "estimated_tokens": 46
+      "estimated_tokens": 61
     },
     {
-      "domain": "02_Development_Patterns",
-      "key": "ep_1792345022_b49991",
-      "lesson": "[ep_1792345022_b49991] Checkpoint Release v4.0.0 Cold Trial: Certificata la release v4.0.0-Native-Swarm-Playbooks con 10/10 sul router O(1), 15 fix RSI, rimozione scorie legacy e 86 test in 7.08s.",
+      "domain": "01_Bug_Diagnostics",
+      "key": "EP-GEN-BUG-002",
+      "lesson": "[EP-GEN-BUG-002] Eliminazione doppia esecuzione hook tramite plugin nk-gate: Centralizza hooks.json esclusivamente in .agents/plugins/nk-gate/hooks.json con python -S -B -u e usa scripts/sbfl_pytest_bridge.py per diagnosi Ochiai in .staging/.",
       "priority": 4,
-      "estimated_tokens": 60
-    },
-    {
-      "domain": "02_Development_Patterns",
-      "key": "ep_1793051625_6821ee",
-      "lesson": "[ep_1793051625_6821ee] NK-Bandi Release v1.3.0 Sovereign: Promossi 5 nuovi moduli <=250 LOC (plain_language_explainer, colloquial_advisor_lexicon, deep_card_enricher, guided_wizard, subpage_grant_discoverer). 113 moduli totali, 156/156 Golden Tests PASS.",
-      "priority": 5,
-      "estimated_tokens": 51
-    },
-    {
-      "domain": "02_Development_Patterns",
-      "key": "ep_1793385126_20d64f",
-      "lesson": "[ep_1793385126_20d64f] Release Gate 1 v4.6.0 Unified: Completati WP-0c, WP-0a, WP-0b, WP-0d, WP-1a e WP-1b con 224 test verdi e backup esterni.",
-      "priority": 6,
-      "estimated_tokens": 51
-    },
-    {
-      "domain": "02_Development_Patterns",
-      "key": "ep_1793971370_0838d1",
-      "lesson": "[ep_1793971370_0838d1] Release v4.8.0-STE100-Unified Remediation & Lean Token Optimization: Completati WP-O1..WP-O6 con 35/35 mutanti comportamentali uccisi (100%), fix nk_compliance_checker JSON args, AST cache RSI, default WAL in %TEMP% e matrice TAS automatica.",
-      "priority": 7,
       "estimated_tokens": 68
     },
     {
+      "domain": "02_Development_Patterns",
+      "key": "EP-GEN-DEV-001",
+      "lesson": "[EP-GEN-DEV-001] Promozione atomica Win32 2PC con manifesto .deleted_files.json: Esegui ogni modifica in .staging/ con PYTHONDONTWRITEBYTECODE=1 e promuovi atomicamente tramite scripts/win32_2pc_engine.py sotto Named Mutex e PIDFileLock.",
+      "priority": 3,
+      "estimated_tokens": 52
+    },
+    {
+      "domain": "02_Development_Patterns",
+      "key": "EP-GEN-DEV-002",
+      "lesson": "[EP-GEN-DEV-002] Bootstrap Fast-Stat TTL 900s e SQLite WAL persistente: Mantieni la cache Fast-Stat in scripts/nk_session_bootstrap.py con igiene WAL automatica e una sola connessione SQLite WAL in deterministic_api_cache.py.",
+      "priority": 4,
+      "estimated_tokens": 53
+    },
+    {
       "domain": "03_Ideation_and_Decisions",
-      "key": "ep_1792607110_f1f08c",
-      "lesson": "[ep_1792607110_f1f08c] WP13 Super Meta-Prompt Gate Unified: Unificati i piani Opus, Argon e Terza Parte nel Gate L0 ALWAYS-ON con R1..Rn, FSM 5 stati, split CamelCase STT primaLa, esclusione sostantivi -zione e conferma 1-Click ask_question.",
+      "key": "EP-GEN-IDEA-001",
+      "lesson": "[EP-GEN-IDEA-001] Profilo nativo generation e 16 trigger di onboarding: Attiva NK_MODEL_PROFILE=generation con fallback carbon, soglie ACS 160k/185k/205k token, 120/150/180 step, Tier-1 a 1200 token e 16 shortcut di avvio.",
       "priority": 3,
-      "estimated_tokens": 59
+      "estimated_tokens": 61
+    },
+    {
+      "domain": "03_Ideation_and_Decisions",
+      "key": "EP-GEN-IDEA-002",
+      "lesson": "[EP-GEN-IDEA-002] Separazione Dual-Execution GT-14 per gli Auditor read-only: Orchestrator-Direct genera telemetria diagnostica JSON via emit_gt14_bundle mentre NK-Arch-Specifier, NK-Security-DAST-Auditor e NK-RSI-Auditor operano con write:false.",
+      "priority": 4,
+      "estimated_tokens": 66
     },
     {
       "domain": "04_Governance_and_Rules",
-      "key": "ep_1794154075_d0ef96",
-      "lesson": "[ep_1794154075_d0ef96] Checkpoint v5.2.0-RSI Clean & Optimized Release: Checkpoint v5.2.0-RSI: rimozione scorie e dead code, ottimizzazione regex e mtime, invarianza CRLF/LF su SHA-256 per GitHub Actions CI.",
-      "priority": 5,
+      "key": "EP-GEN-GOV-001",
+      "lesson": "[EP-GEN-GOV-001] Sigillo oracle_lock.json e divieto assoluto di test-gaming: Proteggi tests/, scripts/ e .agents/ con scripts/nk_transcript_tools.py oracle-lock verify e segnala conflitti reali tramite report-conflict.",
+      "priority": 3,
+      "estimated_tokens": 57
+    },
+    {
+      "domain": "04_Governance_and_Rules",
+      "key": "EP-GEN-GOV-002",
+      "lesson": "[EP-GEN-GOV-002] Standard sintattico ASD-STE100 Italiano e Genoma 3-Tier: Valida ogni documento della Pentad Sovrana 4+1 e PATCH_NOTES.md con frasi attive sotto 20 parole e zero trattini spaziati prima del commit 2PC.",
+      "priority": 4,
       "estimated_tokens": 56
-    },
-    {
-      "domain": "04_Governance_and_Rules",
-      "key": "ep_1794148358_367bf3",
-      "lesson": "[ep_1794148358_367bf3] External Anti-Bias Audit & Tensor-RSI Hardening v5.1.1-RSI: Risolti i 5 cluster di bias del creatore (CL-01..CL-05): path-with-spaces in nk_hook_gate, cache multi-percorso in nk_session_bootstrap, asserzioni mode e bypass L0 in vibe_sprint_router, 6 vettori SAST in ast_guard_validator, atomic write in win32_2pc_engine. 93/93 Golden Tests PASS e Mutation Score 5/5 (100%).",
-      "priority": 3,
-      "estimated_tokens": 104
     }
   ]
 }

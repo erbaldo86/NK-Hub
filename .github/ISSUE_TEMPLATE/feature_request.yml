@@ -1,11 +1,11 @@
 name: 🚀 Feature Request
-description: Suggest a new capability or enhancement for Lab NK Hub
+description: Suggest a new capability or enhancement for NK Hub Generation v1.0.0-Generation
 labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
-        We welcome proposals for new vocational skills, speed modes, or sandboxing improvements.
+        We welcome proposals for new skills, `generation` profile optimizations, or sandboxing improvements in `NK Hub Generation v1.0.0-Generation`.
   - type: textarea
     id: problem-or-need
     attributes:
@@ -17,6 +17,6 @@ body:
     id: proposed-solution
     attributes:
       label: Proposed Solution
-      description: Describe the solution you'd like to see implemented.
+      description: Describe the solution you would like to see implemented.
     validations:
       required: true

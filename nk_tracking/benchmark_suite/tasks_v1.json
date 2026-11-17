@@ -1,6 +1,6 @@
 {
   "suite_id": "nk_ab_benchmark_v1",
-  "version": "1.0.0",
+  "version": "1.0.0-Generation",
   "total_tasks": 12,
   "tasks": [
     {
@@ -104,7 +104,7 @@
     },
     {
       "task_id": "AB-12",
-      "title": "Guardia Context Sentry con soglie standard 70/100 e Argon 150/250",
+      "title": "Guardia Context Sentry con soglie standard 70/100 e Generation/Carbon 150/250",
       "module": "scripts/nk_context_sentry.py",
       "check_type": "context_sentry_thresholds",
       "expected": 70,

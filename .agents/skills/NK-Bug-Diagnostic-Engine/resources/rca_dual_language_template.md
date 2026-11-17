@@ -1,6 +1,6 @@
-# 🐞 Report Root Cause Analysis (RCA Dual-Language : `v3.0.0-STE100-Unified`)
+# 🐞 Report Root Cause Analysis (RCA Dual-Language : `v1.0.0-Generation`)
 
-> **Nodo Autore:** `NK-Bug-Diagnostic-Engine` (`100% Sola Lettura [RULE-00.1]`).  
+> **Nodo Autore:** `NK-Bug-Diagnostic-Engine` (`100% Sola Lettura [RULE-00.1]`, `GT-14`).  
 > **Standard Linguistico:** ASD-STE100 Italiano Tecnico (`[RULE-STE100]`).
 
 ---
@@ -20,4 +20,4 @@
   {{COMPACT_TRACEBACK}}
   ```
 - **Istruzione Chirurgica per `.staging/`:** [Indica la modifica esatta richiesta al Builder]
-- **Comando Pytest di Verifica:** `python -m pytest {{TEST_FILE}} -q`
+- **Comando Pytest di Verifica:** `python -B -m pytest {{TEST_FILE}} -q`

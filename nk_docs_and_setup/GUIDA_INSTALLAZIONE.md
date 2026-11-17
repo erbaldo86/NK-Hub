@@ -1,135 +1,72 @@
-# Nexus Keystone Hub (NK-Hub v5.2.0-STE100-Unified / v5.2.0-RSI)
-## 🇮🇹 Guida di Installazione dallo ZIP (1-Click) | 🇬🇧 1-Click ZIP Installation Guide
+# Guida Rapida all'Installazione 1-Click (`NK Hub Generation v1.0.0-Generation`)
 
-> 🌍 **Lingua / Language:** **[🇮🇹 Italiano](#-guida-di-installazione-in-italiano-pacchetto-zip-1-click)** | **[🇬🇧 English](#-english-installation-guide-1-click-zip-package)** | **[🇮🇹 Presentazione Completa (README.it.md)](README.it.md)** | **[🇬🇧 Full Presentation (README.md)](README.md)**
->
-> 📦 **Download 1-Click Pacchetto Completo (`.zip`, build `2026-11-08`):** **[Scarica NK_Hub_OneClick_Package.zip](https://github.com/erbaldo86/NK-Hub/releases/download/v5.2.0-STE100-Unified/NK_Hub_OneClick_Package.zip)** *(oppure [Download Diretto dal Repository](https://github.com/erbaldo86/NK-Hub/raw/main/nk_docs_and_setup/NK_Hub_OneClick_Package.zip))*
+> **Versione Pacchetto:** `v1.0.0-Generation`  
+> **Milestone Anchor ID:** `NK-GEN-1.0.0`  
+> **Profilo Modello Predefinito:** `NK_MODEL_PROFILE=generation` (fallback `carbon`)  
+> **Download Diretto ZIP:** **[Scarica NK_Hub_OneClick_Package.zip](https://github.com/erbaldo86/NK-Hub/raw/main/nk_docs_and_setup/NK_Hub_OneClick_Package.zip)**  
+> **Manuali Collegati:** **[🇮🇹 README Italiano](README.it.md)** | **[🇬🇧 English README](README.md)** | **[🗺️ Mappa Libreria](00_MAPPA_LIBRERIA_NK.md)** | **[📋 Patch Notes](../nk_genome/PATCH_NOTES.md)**
 
 ---
 
-# 🇮🇹 Guida di Installazione in Italiano (Pacchetto ZIP 1-Click)
+## 1. Requisiti di Sistema
 
-Questa guida spiega passo dopo passo come installare e avviare **Nexus Keystone Hub (`NK-Hub v5.2.0-STE100-Unified` / `v5.2.0-RSI`)** partendo dal file **`NK_Hub_OneClick_Package.zip`**.
-Non serve alcuna configurazione manuale complessa: l'archivio contiene già la libreria ordinata e lo script automatico di installazione.
+* **Sistema Operativo:** Windows 10/11, Linux oppure macOS.
+* **Runtime Python:** Python `3.11+` (`3.12` consigliato) disponibile nel `PATH`.
+* **Ambiente IDE:** Google Antigravity 2.0 (compatibile con workspace VS Code tramite [`Antigravity.code-workspace`](Antigravity.code-workspace)).
 
-## 1. Requisiti Minimi
-* **Sistema Operativo:** Windows 10 o Windows 11 a 64-bit (oppure Linux/macOS).
-* **Python:** versione `3.11`, `3.12` o `3.14` installata nel computer.
-* **Ambiente di Sviluppo:** **Google Antigravity** (IDE o CLI).
+---
 
-## 2. Cosa Trovi Dentro il Pacchetto ZIP
-Quando apri `NK_Hub_OneClick_Package.zip`, trovi una libreria ordinata divisa in due sole cartelle principali:
-```text
-📦 Archivio Estratto (dentro la tua cartella di lavoro Antigravity/)
-├── 📄 GUIDA_INSTALLAZIONE.md        # Questa guida rapida subito pronta alla lettura
-├── 📄 00_MAPPA_LIBRERIA_NK.md       # Mappa descrittiva di tutte le cartelle
-├── 📁 NK_Hub/                       # Motore principale dell'ambiente Nexus Keystone
-│   ├── 📁 nk_docs_and_setup/        # Manuali (README), installer (install.ps1/.sh) e workspace
-│   ├── 📁 nk_genome/                # Piani architetturali, indice O(1) e PATCH_NOTES.md
-│   ├── 📁 nk_tracking/              # Memoria a 3 livelli, telemetria RSI e sigillo dei test
-│   ├── 📁 scripts/                  # 34 moduli Python del motore (routing, sicurezza, 2PC)
-│   ├── 📁 tests/                    # 93 test reali Zero-Mock ad alta densità in 18 moduli
-│   └── 📁 .agents/                  # 5 Sub-Agenti Nativi e 16 Playbook SKILL.md
-└── 📁 NK_External_Projects/         # Cartella dedicata a tutti i progetti creati con NK
-```
+## 2. Installazione in 3 Passi
 
-## 3. Installazione Guidata in 3 Passi Semplici
+### Passo 1: Scarica ed Estrai il Pacchetto ZIP
+Scarica **[NK_Hub_OneClick_Package.zip](https://github.com/erbaldo86/NK-Hub/raw/main/nk_docs_and_setup/NK_Hub_OneClick_Package.zip)** ed estrailo nella cartella principale di lavoro (ad esempio `Antigravity/`). Otterrai tre cartelle ordinate:
+* `.agents/` contiene il bridge di scoperta immediata zero-discovery (`AGENTS.md`, `plugins.json`, `skills.json`).
+* `NK_Hub/` ospita il motore multi-agente `v1.0.0-Generation` con `Pentad Sovrana 4+1`, `11` skill e `6` sub-agenti nativi `GT-14`.
+* `NK_External_Projects/` ospita tutte le applicazioni esterne create dall'utente.
 
-### Passo 1: Estrai il File ZIP
-1. Crea o apri la tua cartella di lavoro principale (ad esempio `Antigravity`).
-2. Estrai tutto il contenuto di `NK_Hub_OneClick_Package.zip` al suo interno.
+### Passo 2: Esegui lo Script di Installazione Automatica
+Apri il terminale dentro `NK_Hub/` ed esegui l'installer corrispondente al tuo sistema operativo.
 
-### Passo 2: Lancia l'Installazione Automatica
-Apri il terminale **PowerShell** dentro la cartella `NK_Hub` ed esegui questi due comandi:
+**Su Windows (PowerShell):**
 ```powershell
 cd NK_Hub
 .\nk_docs_and_setup\install.ps1
 ```
-*(Su Linux o macOS esegui: `cd NK_Hub && chmod +x nk_docs_and_setup/install.sh && ./nk_docs_and_setup/install.sh`).*
 
-**Cosa fa lo script automatico per te:**
-1. Controlla la presenza di Python e installa le librerie da `nk_docs_and_setup/requirements.txt`.
-2. Sincronizza e verifica l'indice O(1) con cache `Fast-Stat` in `< 1.0 ms`.
-3. Esegue i `93` test di sicurezza e qualità in `18` moduli (`93/93 PASS`, `Mutation Score 100.0%`).
-
-**Cosa vedrai a schermo a fine installazione (Conferma che tutto è OK):**
-```text
-🟢 [NK-REGISTRY-VERIFY] Status: VALID | Skills: 16 | Scripts: 34
-93 passed in 18 modules (Mutation Score 100.0%)
-[SUCCESS] Nexus Keystone Hub v5.2.0-STE100-Unified (v5.2.0-RSI) installato e certificato con successo!
+**Su Linux o macOS (Bash):**
+```bash
+cd NK_Hub
+bash ./nk_docs_and_setup/install.sh
 ```
+*(In alternativa esegui `chmod +x ./nk_docs_and_setup/install.sh && ./nk_docs_and_setup/install.sh`.)*
 
-> **Alternativa Manuale (se preferisci lanciare i singoli comandi uno alla volta):**
-> ```powershell
-> cd NK_Hub
-> pip install -r nk_docs_and_setup/requirements.txt
-> python -u scripts/nk_session_bootstrap.py
-> python -u scripts/nk_registry_indexer.py --verify
-> python -u -m pytest tests/ -q
-> ```
+Lo script imposta `PYTHONDONTWRITEBYTECODE=1`, `PYTHONUTF8=1` e `NK_MODEL_PROFILE=generation` (o `carbon`). Installa [`requirements.txt`](requirements.txt), sincronizza `../.agents/AGENTS.md` da [`root_bridge_AGENTS.md`](root_bridge_AGENTS.md) ed esegue `--verify` e `--strict-verify`.
 
-### Passo 3: Avvia l'Ambiente in Google Antigravity
-1. Apri **Google Antigravity** sulla cartella (oppure fai doppio click su `NK_Hub/nk_docs_and_setup/Antigravity.code-workspace`).
-2. Scrivi nella chat:
-   ```text
-   avvia ambiente nk
-   ```
-3. In meno di `50 ms` apparirà il **Centro di Controllo a 15 Nodi (`[0]`..`[14]`)**. Scrivi poi in italiano cosa vuoi creare o modificare.
+### Passo 3: Apri il Workspace e Avvia `NK Hub Generation`
+Apri [`nk_docs_and_setup/Antigravity.code-workspace`](Antigravity.code-workspace) in Google Antigravity 2.0. Scrivi in chat uno dei `16` trigger di avvio (`8` legacy + `8` `Generation`):
+* **Trigger legacy (`8`):** `"avvia ambiente nk"`, `"avvia nk hub"`, `"avvia nk"`, `"avvia hub"`, `"start nk"`, `"start hub"`, `"attiva nk"`, `"attiva ambiente nk"`.
+* **Trigger Generation (`8`):** `"avvia generation"`, `"avvia nk generation"`, `"avvia nk hub generation"`, `"avvia ambiente generation"`, `"start generation"`, `"start nk generation"`, `"attiva generation"`, `"attiva ambiente generation"`.
+
+In `~31-46 ms` si apre la **Dashboard a `10` Nodi (`[0]`..`[9]`)** pronta all'uso.
 
 ---
 
-# 🇬🇧 English Installation Guide (1-Click ZIP Package)
+## 3. Diagnostica Rapida Post-Installazione (`--strict-verify` & Pytest NVMe)
 
-This guide explains step by step how to install and launch **Nexus Keystone Hub (`NK-Hub v5.2.0-STE100-Unified` / `v5.2.0-RSI`)** from **`NK_Hub_OneClick_Package.zip`**.
-No complex manual setup is required: the archive contains the organized library and automated installer scripts.
+Per verificare l'integrità completa dell'installazione esegui i comandi seguenti dalla cartella `NK_Hub/`:
 
-## 1. Minimum Requirements
-* **Operating System:** Windows 10 or Windows 11 64-bit (or Linux/macOS).
-* **Python:** version `3.11`, `3.12`, or `3.14` installed on your computer.
-* **Agent IDE:** **Google Antigravity** (IDE or CLI).
-
-## 2. What Is Inside the ZIP Package
-When you extract `NK_Hub_OneClick_Package.zip`, you get a clean two-folder workspace layout:
-```text
-📦 Extracted Archive (inside your Antigravity/ workspace folder)
-├── 📄 GUIDA_INSTALLAZIONE.md        # This quick installation guide
-├── 📄 00_MAPPA_LIBRERIA_NK.md       # Complete directory map
-├── 📁 NK_Hub/                       # Core Nexus Keystone engine
-│   ├── 📁 nk_docs_and_setup/        # Manuals (README), installers (install.ps1/.sh) & workspace
-│   ├── 📁 nk_genome/                # Architecture plans, O(1) manifest & PATCH_NOTES.md
-│   ├── 📁 nk_tracking/              # 3-Tier memory, RSI telemetry & test oracle lock
-│   ├── 📁 scripts/                  # 34 core Python modules (routing, security, 2PC)
-│   ├── 📁 tests/                    # 93 Zero-Mock Golden & Stress tests across 18 test modules
-│   └── 📁 .agents/                  # 5 Native Sub-Agents & 16 SKILL.md Playbooks
-└── 📁 NK_External_Projects/         # Isolated folder for all applications built with NK
-```
-
-## 3. 3-Step Guided Setup
-
-### Step 1: Extract the ZIP Archive
-1. Open or create your main workspace directory (for example `Antigravity`).
-2. Extract the entire contents of `NK_Hub_OneClick_Package.zip` into that folder.
-
-### Step 2: Run the Automated Installer
-Open **PowerShell** inside the `NK_Hub` folder and run:
 ```powershell
-cd NK_Hub
-.\nk_docs_and_setup\install.ps1
+$env:PYTHONDONTWRITEBYTECODE="1"
+$env:PYTHONUTF8="1"
+$env:NK_MODEL_PROFILE="generation"
+python -B -u scripts/preflight_health_check.py --check-only
+python -B -u scripts/nk_session_bootstrap.py
+python -B -u scripts/nk_registry_indexer.py --verify
+python -B -u scripts/ast_guard_validator.py --target all
+python -B -u scripts/nk_transcript_tools.py oracle-lock verify
+python -B -u scripts/rsi_convergence_engine.py --verify --strict-verify
+python -B -u scripts/platform_runner.py --pytest-isolated
 ```
-*(On Linux or macOS run: `cd NK_Hub && chmod +x nk_docs_and_setup/install.sh && ./nk_docs_and_setup/install.sh`).*
 
-**What you will see on screen when setup finishes:**
-```text
-🟢 [NK-REGISTRY-VERIFY] Status: VALID | Skills: 16 | Scripts: 34
-93 passed across 18 modules (Mutation Score 100.0%)
-[SUCCESS] Nexus Keystone Hub v5.2.0-STE100-Unified (v5.2.0-RSI) installed and certified!
-```
-
-### Step 3: Start the Environment in Google Antigravity
-1. Open **Google Antigravity** (or double-click `NK_Hub/nk_docs_and_setup/Antigravity.code-workspace`).
-2. Type in the chat:
-   ```text
-   start nk
-   ```
-   *(or in Italian: `"avvia ambiente nk"`).*
-3. In under `50 ms`, the agent displays the **15-Node Control Dashboard (`[0]`..`[14]`)**. Describe your goal in plain language or select a node number to begin.
+Su Linux o macOS esegui la stessa sequenza sostituendo `$env:CHIAVE="VALORE"` con `export CHIAVE="VALORE"`.
+Su Windows `scripts/platform_runner.py --pytest-isolated` clona il codice in `%TEMP%` su NVMe. Questo evita crash `0xC000013A` su Drive FS (`[RULE-WIN32-ISOLATED-PYTEST]`). Certifica così `513` test Zero-Mock (`41` moduli `test_*.py`, `45` `.py`, `89.32%` branch, `94.39%` statement, `92.89%` combined).

@@ -1,24 +1,25 @@
 {
-  "_version": "5.2.0-STE100-Unified",
-  "project": "NK_Project",
-  "baseline_date": "2026-08-20T22:45:00.000000",
-  "last_updated": "2026-11-08T17:05:00.000000",
+  "_version": "1.0.0-Generation",
+  "project": "NK_Hub",
+  "baseline_date": "2026-11-17T00:00:00.000000",
+  "last_updated": "2026-11-17T03:50:00.000000",
+  "coverage_scope": "scripts_true_branch_coverage_pytest_cov",
   "metrics": {
     "skills_audited": {
-      "value": 16,
+      "value": 11,
       "direction": "higher_is_better"
     },
     "total_golden_tests": {
-      "value": 93,
+      "value": 513,
       "direction": "higher_is_better",
-      "description": "Numero totale di Golden Tests ortogonali nella suite permanente (93 test in 18 moduli in v5.2.0-STE100-Unified)"
+      "description": "Totale Golden Tests ortogonali nella suite permanente v1.0.0-Generation"
     },
     "unit_tests_total": {
-      "value": 93,
+      "value": 513,
       "direction": "higher_is_better"
     },
     "unit_tests_passed": {
-      "value": 93,
+      "value": 513,
       "direction": "higher_is_better"
     },
     "unit_tests_pass_pct": {
@@ -32,6 +33,28 @@
     "pass_rate_percent": {
       "value": 100.0,
       "direction": "higher_is_better"
+    },
+    "branch_coverage_pct": {
+      "value": 89.32,
+      "direction": "higher_is_better"
+    },
+    "true_branch_coverage_pct": {
+      "value": 89.32,
+      "direction": "higher_is_better"
+    },
+    "statement_coverage_pct": {
+      "value": 94.39,
+      "direction": "higher_is_better"
+    },
+    "combined_coverage_pct": {
+      "value": 92.89,
+      "direction": "higher_is_better"
+    },
+    "pytest_duration_s": {
+      "value": 76.75,
+      "unit": "s",
+      "threshold_max": 120.0,
+      "direction": "lower_is_better"
     },
     "stress_test_concurrency_pass": {
       "value": 4,
@@ -87,6 +110,7 @@
     },
     "autonomous_healing_speed_ms": {
       "value": 450.0,
+      "unit": "ms",
       "direction": "lower_is_better"
     },
     "stress_test_40_dual_passed": {
@@ -132,283 +156,43 @@
       "direction": "higher_is_better"
     },
     "harness_token_overhead_pct": {
-      "value": 8.5,
+      "value": 5.75,
       "unit": "%",
       "direction": "lower_is_better"
+    },
+    "failed_tests": {
+      "value": 0,
+      "direction": "lower_is_better"
+    },
+    "tests_skipped": {
+      "value": 0,
+      "direction": "higher_is_better"
     }
   },
   "ratchet_rule": "no_metric_may_worsen",
   "history": [
     {
-      "timestamp": "2026-09-23T21:12:41.174982",
+      "timestamp": "2026-11-17T03:50:00.000000",
+      "milestone": "NK-GEN-1.0.0",
       "metrics": {
-        "unit_tests_total": 78,
-        "unit_tests_passed": 78,
-        "unit_tests_pass_pct": 100.0
-      }
-    },
-    {
-      "timestamp": "2026-09-24T15:15:00.377047",
-      "metrics": {
-        "unit_tests_total": 79,
-        "unit_tests_passed": 79,
-        "unit_tests_pass_pct": 100.0
-      }
-    },
-    {
-      "timestamp": "2026-10-14T20:50:00.000000",
-      "metrics": {
-        "unit_tests_total": 100,
-        "unit_tests_passed": 100,
-        "unit_tests_pass_pct": 100.0,
-        "rsi_convergence_score": 100.0,
-        "rsi_residual_delta": 0
-      }
-    },
-    {
-      "timestamp": "2026-10-15T14:50:00.000000",
-      "metrics": {
-        "total_golden_tests": 108,
-        "unit_tests_total": 108,
-        "unit_tests_passed": 108,
-        "unit_tests_pass_pct": 100.0,
-        "pass_rate_percent": 100.0,
-        "stress_test_concurrency_pass": 4,
-        "rsi_convergence_score": 100.0,
-        "rsi_residual_delta": 0
-      }
-    },
-    {
-      "timestamp": "2026-10-17T02:43:00.000000",
-      "metrics": {
-        "total_golden_tests": 123,
-        "unit_tests_total": 123,
-        "unit_tests_passed": 123,
-        "unit_tests_pass_pct": 100.0,
-        "pass_rate_percent": 100.0,
-        "stress_test_concurrency_pass": 4,
-        "rsi_convergence_score": 100.0,
-        "rsi_residual_delta": 0
-      }
-    },
-    {
-      "timestamp": "2026-10-17T03:30:00.000000",
-      "metrics": {
-        "total_golden_tests": 68,
-        "unit_tests_total": 68,
-        "unit_tests_passed": 68,
+        "skills_audited": 11,
+        "total_golden_tests": 513,
+        "unit_tests_total": 513,
+        "unit_tests_passed": 513,
         "unit_tests_pass_pct": 100.0,
         "pass_rate_pct": 100.0,
         "pass_rate_percent": 100.0,
-        "stress_test_concurrency_pass": 4,
+        "failed_tests": 0,
+        "tests_skipped": 0,
+        "branch_coverage_pct": 89.32,
+        "true_branch_coverage_pct": 89.32,
+        "statement_coverage_pct": 94.39,
+        "combined_coverage_pct": 92.89,
+        "pytest_duration_s": 76.75,
         "rsi_convergence_score": 100.0,
-        "rsi_residual_delta": 0
+        "rsi_residual_delta": 0,
+        "sast_critical_violations": 0
       }
-    },
-    {
-      "timestamp": "2026-10-17T12:35:00.000000",
-      "metrics": {
-        "total_golden_tests": 74,
-        "unit_tests_total": 74,
-        "unit_tests_passed": 74,
-        "unit_tests_pass_pct": 100.0,
-        "pass_rate_pct": 100.0,
-        "pass_rate_percent": 100.0,
-        "stress_test_concurrency_pass": 4,
-        "rsi_convergence_score": 100.0,
-        "rsi_residual_delta": 0
-      }
-    },
-    {
-      "timestamp": "2026-10-18T12:14:00.000000",
-      "metrics": {
-        "total_golden_tests": 86,
-        "unit_tests_total": 86,
-        "unit_tests_passed": 86,
-        "unit_tests_pass_pct": 100.0,
-        "pass_rate_pct": 100.0,
-        "pass_rate_percent": 100.0,
-        "stress_test_concurrency_pass": 4,
-        "rsi_convergence_score": 100.0,
-        "rsi_residual_delta": 0
-      }
-    },
-    {
-      "timestamp": "2026-10-18T19:35:00.000000",
-      "metrics": {
-        "total_golden_tests": 86,
-        "unit_tests_total": 86,
-        "unit_tests_passed": 86,
-        "unit_tests_pass_pct": 100.0,
-        "pass_rate_pct": 100.0,
-        "pass_rate_percent": 100.0,
-        "stress_test_concurrency_pass": 4,
-        "rsi_convergence_score": 100.0,
-        "rsi_residual_delta": 0
-      }
-    },
-    {
-      "timestamp": "2026-10-24T12:00:00.000000",
-      "metrics": {
-        "total_golden_tests": 98,
-        "unit_tests_total": 98,
-        "unit_tests_passed": 98,
-        "unit_tests_pass_pct": 100.0,
-        "pass_rate_pct": 100.0,
-        "pass_rate_percent": 100.0,
-        "stress_test_concurrency_pass": 4,
-        "rsi_convergence_score": 100.0,
-        "rsi_residual_delta": 0
-      }
-    },
-    {
-      "timestamp": "2026-10-24T15:10:00.000000",
-      "metrics": {
-        "total_golden_tests": 108,
-        "unit_tests_total": 108,
-        "unit_tests_passed": 108,
-        "unit_tests_pass_pct": 100.0,
-        "pass_rate_pct": 100.0,
-        "pass_rate_percent": 100.0,
-        "stress_test_concurrency_pass": 4,
-        "rsi_convergence_score": 100.0,
-        "rsi_residual_delta": 0
-      }
-    },
-    {
-      "timestamp": "2026-10-24T15:30:00.000000",
-      "metrics": {
-        "total_golden_tests": 115,
-        "unit_tests_total": 115,
-        "unit_tests_passed": 115,
-        "golden_test_pass_pct": 100.0,
-        "unit_tests_pass_pct": 100.0,
-        "pass_rate_pct": 100.0,
-        "pass_rate_percent": 100.0,
-        "stress_test_concurrency_pass": 4,
-        "rsi_convergence_score": 100.0,
-        "rsi_residual_delta": 0
-      }
-    },
-    {
-      "timestamp": "2026-10-25T14:53:00.000000",
-      "metrics": {
-        "total_golden_tests": 191,
-        "unit_tests_total": 191,
-        "unit_tests_passed": 191,
-        "golden_test_pass_pct": 100.0,
-        "unit_tests_pass_pct": 100.0,
-        "pass_rate_pct": 100.0,
-        "pass_rate_percent": 100.0,
-        "stress_test_concurrency_pass": 4,
-        "rsi_convergence_score": 100.0,
-        "rsi_residual_delta": 0
-      }
-    },
-    {
-      "timestamp": "2026-10-25T15:35:00.000000",
-      "metrics": {
-        "total_golden_tests": 206,
-        "unit_tests_total": 206,
-        "unit_tests_passed": 206,
-        "golden_test_pass_pct": 100.0,
-        "unit_tests_pass_pct": 100.0,
-        "pass_rate_pct": 100.0,
-        "pass_rate_percent": 100.0,
-        "stress_test_concurrency_pass": 4,
-        "rsi_convergence_score": 100.0,
-        "rsi_residual_delta": 0
-      }
-    },
-    {
-      "timestamp": "2026-10-31T03:30:00.000000",
-      "version": "4.7.0-STE100-Unified",
-      "metrics": {
-        "total_golden_tests": 245,
-        "unit_tests_total": 245,
-        "unit_tests_passed": 245,
-        "golden_test_pass_pct": 100.0,
-        "unit_tests_pass_pct": 100.0,
-        "pass_rate_pct": 100.0,
-        "pass_rate_percent": 100.0,
-        "stress_test_concurrency_pass": 4,
-        "rsi_convergence_score": 100.0,
-        "rsi_residual_delta": 0
-      }
-    },
-    {
-      "timestamp": "2026-11-06T00:55:21.834190",
-      "metrics": {
-        "total_golden_tests": 245,
-        "unit_tests_total": 245,
-        "unit_tests_passed": 245,
-        "unit_tests_pass_pct": 100.0,
-        "pass_rate_pct": 100.0,
-        "pass_rate_percent": 100.0
-      }
-    },
-    {
-      "timestamp": "2026-11-06T18:50:00Z",
-      "milestone_id": "NK-MS-20261106-SOVEREIGN-CLEAN-SLATE-RELEASE-v5.0.0-RSI",
-      "version": "5.0.0-STE100-Unified",
-      "unit_tests_total": 245,
-      "unit_tests_passed": 245,
-      "active_pytest_items": 253,
-      "pass_rate_pct": 100.0,
-      "notes": "Consolidamento sovrano Clean-Slate v5.0.0-STE100-Unified: 34 script, 16 skill, 5 sub-agenti nativi e 253/253 PASS Zero-Mock."
-    },
-    {
-      "timestamp": "2026-11-08T00:35:00Z",
-      "milestone_id": "NK-MS-20261108-LEAN-FASTBOOT-AND-TEST-CONSOLIDATION-v5.1.0-RSI",
-      "version": "5.0.0-STE100-Unified",
-      "metrics": {
-        "total_golden_tests": 90,
-        "unit_tests_total": 90,
-        "unit_tests_passed": 90,
-        "unit_tests_pass_pct": 100.0,
-        "pass_rate_pct": 100.0,
-        "pass_rate_percent": 100.0
-      },
-      "active_pytest_items": 90,
-      "notes": "Consolidamento ortogonale da 253 a 90 Golden Tests in 17 moduli con 100% copertura 34 script."
-    },
-    {
-      "timestamp": "2026-11-08T15:30:00Z",
-      "milestone_id": "NK-MS-20261108-EXTERNAL-ANTIBIAS-HARDENING-v5.1.1-RSI",
-      "version": "5.0.0-STE100-Unified",
-      "metrics": {
-        "total_golden_tests": 93,
-        "unit_tests_total": 93,
-        "unit_tests_passed": 93,
-        "unit_tests_pass_pct": 100.0,
-        "pass_rate_pct": 100.0,
-        "pass_rate_percent": 100.0
-      },
-      "active_pytest_items": 93,
-      "notes": "Audit esterno anti-bias e hardening Tensor-RSI (CL-01..CL-05): 93/93 Golden Tests PASS, Mutation Score 5/5 (100%)."
-    },
-    {
-      "timestamp": "2026-11-08T17:05:00Z",
-      "milestone_id": "NK-MS-20261108-CLEAN-OPTIMIZED-CHECKPOINT-v5.2.0-RSI",
-      "version": "5.2.0-STE100-Unified",
-      "metrics": {
-        "total_golden_tests": 93,
-        "unit_tests_total": 93,
-        "unit_tests_passed": 93,
-        "unit_tests_pass_pct": 100.0,
-        "pass_rate_pct": 100.0,
-        "pass_rate_percent": 100.0
-      },
-      "active_pytest_items": 93,
-      "notes": "Checkpoint v5.2.0-STE100-Unified: rimozione scorie e dead code, ottimizzazione performance, invarianza CRLF/LF per GitHub Actions CI e 93/93 PASS."
     }
-  ],
-  "total_golden_tests": 93,
-  "_milestone_id": "NK-MS-20261108-CLEAN-OPTIMIZED-CHECKPOINT-v5.2.0-RSI",
-  "total_tests": 93,
-  "passed_tests": 93,
-  "_release_version": "5.2.0-STE100-Unified",
-  "_milestone": "NK-MS-20261108-CLEAN-OPTIMIZED-CHECKPOINT-v5.2.0-RSI",
-  "_updated": "2026-11-08",
-  "active_pytest_items": 93
+  ]
 }

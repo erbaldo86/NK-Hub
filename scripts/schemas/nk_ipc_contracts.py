@@ -1,14 +1,19 @@
 # -*- coding: utf-8 -*-
 """
-Contratti IPC e schemi Pydantic v2 per Nexus Keystone v3.2.0-STE100-Unified.
-Tutti i modelli applicano la validazione rigorosa e supportano Mode A/B/C/D (OPT-11b).
+Contratti IPC e schemi Pydantic v2 per NK Hub Generation 1.0.0-Generation.
+Tutti i modelli applicano la validazione rigorosa e supportano Mode A, B, C e D.
 """
 
+from __future__ import annotations
+
+import json
+import math
 import time
 from typing import Any, Dict, List, Literal, Optional, Tuple
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
+CONTRACTS_SCHEMA_VERSION: str = "1.0.0-Generation"
 ExecutionModeLiteral = Literal["mode_a", "mode_b", "mode_c", "mode_d", "verify"]
 MetaPromptFSMStateLiteral = Literal[
     "IDLE",
@@ -17,11 +22,17 @@ MetaPromptFSMStateLiteral = Literal[
     "CONFIRMED",
     "BYPASSED",
 ]
-MetaPromptGateModeLiteral = Literal["CONFIRM", "ECHO", "OFF", "BYPASS"]
+MetaPromptGateModeLiteral = Literal[
+    "CONFIRM",
+    "ECHO",
+    "OFF",
+    "BYPASS",
+    "SINGLE_GATE_MODE_D",
+]
 
 
 class MetaPromptGateContract(BaseModel):
-    """Contratto IPC per il Livello 0 del Super Meta-Prompt Gate (WP13)."""
+    """Contratto IPC per il Livello 0 del Meta-Prompt Gate."""
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -66,17 +77,65 @@ class IPCPointerReturn(BaseModel):
     mime_type: str = "application/octet-stream"
 
 
+FaultCandidate = Tuple[str, float]
+
+
 class OchiaiDiagnosticPayload(BaseModel):
-    """Contratto diagnostico Ochiai per la localizzazione dei guasti sotto 80 token."""
+    """Payload diagnostico ad alta densita garantito sotto la soglia di 80 token."""
 
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
-    component_id: str
-    ochiai_score: float
-    failed_tests: int
-    passed_tests: int
-    total_failed: int
-    rank: int
+    top_fault: str = Field(
+        description="Identificativo dell'istruzione con massima sospettosita Ochiai"
+    )
+    ochiai_score: float = Field(ge=0.0, le=1.0)
+    spectrum_tuple: Tuple[int, int, int, int] = Field(
+        description="(n_ef, n_ep, n_nf, n_np)"
+    )
+    top_candidates: List[FaultCandidate] = Field(
+        description="Lista di (statement, score) per le prime istruzioni sospette",
+        max_length=5,
+    )
+    flaky_filtered_count: int = Field(ge=0, default=0)
+
+    @field_validator("spectrum_tuple", mode="before")
+    @classmethod
+    def _coerce_spectrum_tuple(cls, val: Any) -> Any:
+        """Converte list JSON in tuple preservando la validazione strict sugli elementi."""
+        if isinstance(val, list):
+            return tuple(val)
+        return val
+
+    @field_validator("top_candidates", mode="before")
+    @classmethod
+    def _coerce_top_candidates(cls, val: Any) -> Any:
+        """Converte coppie list JSON in tuple preservando la validazione strict sugli elementi."""
+        if not isinstance(val, list):
+            return val
+        return [tuple(item) if isinstance(item, list) else item for item in val]
+
+    def to_compact_json(self) -> str:
+        """Restituisce la rappresentazione JSON compatta escapata (< 80 token)."""
+        payload_dict: Dict[str, Any] = {
+            "flt": self.top_fault,
+            "och": round(self.ochiai_score, 4),
+            "spec": [
+                self.spectrum_tuple[0],
+                self.spectrum_tuple[1],
+                self.spectrum_tuple[2],
+                self.spectrum_tuple[3],
+            ],
+            "top": [
+                [stmt, round(score, 4)] for stmt, score in self.top_candidates
+            ],
+            "flk": self.flaky_filtered_count,
+        }
+        return json.dumps(payload_dict, separators=(",", ":"), ensure_ascii=False)
+
+    def estimate_token_count(self) -> int:
+        """Stima il conteggio dei token sulla base della lunghezza in caratteri."""
+        payload = self.to_compact_json()
+        return math.ceil(len(payload) / 3.2)
 
 
 class TwoPhaseCommitPrepare(BaseModel):
@@ -119,7 +178,7 @@ class MicroUIHUDState(BaseModel):
 
 
 class RootCauseAnalysis(BaseModel):
-    """Metadati RCA per blocchi di esecuzione non presidiata (Protocollo C3)."""
+    """Metadati RCA per blocchi di esecuzione non presidiata."""
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -154,7 +213,7 @@ class GoalFailureManifest(BaseModel):
         default="https://json-schema.org/draft/2020-12/schema",
         alias="$schema",
     )
-    manifest_version: str = "1.0.0"
+    manifest_version: str = CONTRACTS_SCHEMA_VERSION
     timestamp: float
     session_id: str
     milestone_anchor_id: str
@@ -170,7 +229,7 @@ class GoalFailureManifest(BaseModel):
 
 
 class RoutingIntentContract(BaseModel):
-    """Contratto di classificazione del routing per Mode A, B, C e D (OPT-11b)."""
+    """Contratto di classificazione del routing per Mode A, B, C e D."""
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -183,13 +242,13 @@ class RoutingIntentContract(BaseModel):
 
 
 class RSIDefectVector(BaseModel):
-    """Vettore dei difetti allineato a rsi_convergence_engine (OPT-11b)."""
+    """Vettore dei difetti allineato a rsi_convergence_engine."""
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
     sast_critical: int = Field(default=0, ge=0)
     tests_failed: int = Field(default=0, ge=0)
-    tests_passed: int = Field(default=100, ge=0)
+    tests_passed: int = Field(default=0, ge=0)
     tests_total: int = Field(default=0, ge=0)
     contract_violations: int = Field(default=0, ge=0)
     high_findings: int = Field(default=0, ge=0)
@@ -198,28 +257,29 @@ class RSIDefectVector(BaseModel):
     doc_drift: int = Field(default=0, ge=0)
     poc_confirmed_exploits: int = Field(default=0, ge=0)
     semantic_drift_findings: int = Field(default=0, ge=0)
+    hallucinated_refs: int = Field(default=0, ge=0)
     deception_gaming_count: int = Field(default=0, ge=0)
     measured_components: List[str] = Field(default_factory=list)
     unmeasured_components: List[str] = Field(default_factory=list)
 
     def effective_totals(self) -> Tuple[int, int]:
-        """Restituisce la coppia (tests_passed, tests_total) normalizzata."""
+        """Restituisce la coppia (tests_passed, tests_total) normalizzata senza default sintetici."""
         if self.tests_total > 0:
             return self.tests_passed, self.tests_total
         computed_total = self.tests_passed + self.tests_failed
         if computed_total > 0:
             return self.tests_passed, computed_total
-        return 100, 100
+        return 0, 0
 
 
 class RSIIterationRecord(BaseModel):
-    """Singolo record crittografico di iterazione per il ledger RSI (OPT-11b)."""
+    """Singolo record crittografico di iterazione per il ledger RSI."""
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
     session_id: str = "RSI-DEFAULT"
     iteration: int = Field(ge=0)
-    mode: Literal["mode_a", "mode_b", "mode_c", "mode_d", "verify"] = "mode_a"
+    mode: str = "mode_a"
     defects: RSIDefectVector = Field(default_factory=RSIDefectVector)
     delta_k: int = Field(default=0, ge=0)
     fitness_q: float = Field(default=100.0, ge=0.0, le=100.0)
@@ -237,28 +297,18 @@ class RSIIterationRecord(BaseModel):
             return val
         if isinstance(val, dict):
             return RSIDefectVector(**val)
-        if hasattr(val, "model_dump"):
-            try:
-                from rsi_convergence_engine import RSIDefectVector as _EngineDefect
-            except Exception:
-                try:
-                    from scripts.rsi_convergence_engine import (
-                        RSIDefectVector as _EngineDefect,
-                    )
-                except Exception:
-                    _EngineDefect = None  # type: ignore[assignment]
-            if _EngineDefect is not None and isinstance(val, _EngineDefect):
-                return RSIDefectVector(**val.model_dump())
+        if hasattr(val, "model_dump") and type(val).__name__ == "RSIDefectVector":
+            return RSIDefectVector(**val.model_dump())
         return val
 
 
 class RSISessionReport(BaseModel):
-    """Rapporto finale di convergenza RSI con supporto esplicito a mode_d (OPT-11b)."""
+    """Rapporto finale di convergenza RSI con supporto esplicito a mode_d."""
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
     session_id: str
-    mode: Literal["mode_a", "mode_b", "mode_c", "mode_d", "verify"] = "mode_a"
+    mode: str = "mode_a"
     max_iterations: int = Field(default=4, ge=1)
     iterations_used: int = Field(default=0, ge=0)
     converged: bool = True
@@ -283,22 +333,11 @@ class RSISessionReport(BaseModel):
                 coerced.append(item)
             elif isinstance(item, dict):
                 coerced.append(RSIIterationRecord(**item))
-            elif hasattr(item, "model_dump"):
-                try:
-                    from rsi_convergence_engine import (
-                        RSIIterationRecord as _EngineRecord,
-                    )
-                except Exception:
-                    try:
-                        from scripts.rsi_convergence_engine import (
-                            RSIIterationRecord as _EngineRecord,
-                        )
-                    except Exception:
-                        _EngineRecord = None  # type: ignore[assignment]
-                if _EngineRecord is not None and isinstance(item, _EngineRecord):
-                    coerced.append(RSIIterationRecord(**item.model_dump()))
-                else:
-                    coerced.append(item)
+            elif (
+                hasattr(item, "model_dump")
+                and type(item).__name__ == "RSIIterationRecord"
+            ):
+                coerced.append(RSIIterationRecord(**item.model_dump()))
             else:
                 coerced.append(item)
         return coerced

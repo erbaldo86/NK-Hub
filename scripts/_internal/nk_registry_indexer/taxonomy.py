@@ -1,0 +1,285 @@
+"""Tassonomia domini, whitelist skill e costanti SSOT per NKRegistryIndexer."""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any, Dict, Set, Tuple
+
+from _internal.nk_common.paths import resolve_scripts_dir, resolve_workspace_root
+
+_SCRIPT_DIR = Path(resolve_scripts_dir(__file__))
+_DEFAULT_WORKSPACE_ROOT = Path(resolve_workspace_root(__file__))
+DEFAULT_GLOBAL_CONFIG_DIR = Path.home() / ".gemini" / "config"
+
+DOMAIN_TAXONOMY: Dict[str, Dict[str, Any]] = {
+    "DOM-01": {
+        "domain_id": "DOM-01",
+        "name": "GOV_AND_ROUTING",
+        "title": "Governance, Routing & Transactional Commit",
+        "description": "Governa il bootstrap, il routing Mode A/B/C/D, il commit atomico 2PC e i contratti IPC.",
+        "primary_skill": "NK-Orchestrator",
+        "skills": [
+            "NK-Orchestrator",
+        ],
+        "scripts": [
+            "nk_session_bootstrap.py",
+            "vibe_sprint_router.py",
+            "win32_2pc_engine.py",
+            "preflight_health_check.py",
+            "nk_swarm_messenger.py",
+            "nk_registry_indexer.py",
+            "nk_hook_gate.py",
+            "nk_acs_fastguard.py",
+            "schemas/dual_ledgers.py",
+            "schemas/nk_ipc_contracts.py",
+        ],
+        "keywords": [
+            "governance",
+            "routing",
+            "router",
+            "bootstrap",
+            "2pc",
+            "commit",
+            "handoff",
+            "session",
+            "swarm",
+            "plan",
+            "dag",
+            "kahn",
+            "index",
+            "registry",
+            "manifest",
+            "orchestra",
+            "schemas",
+            "ledgers",
+        ],
+    },
+    "DOM-02": {
+        "domain_id": "DOM-02",
+        "name": "IDEATION_AND_ARCH",
+        "title": "Ideation, Discovery & System Architecture",
+        "description": "Gestisce discovery analitica Mode D, ideazione L0, architettura UI/UX, backend e skill.",
+        "primary_skill": "NK-Ideator",
+        "skills": [
+            "NK-Ideator",
+            "NK-System-Architect",
+        ],
+        "scripts": [
+            "ast_repo_mapper.py",
+            "external_project_scaffolder.py",
+            "env_capability_probe.py",
+        ],
+        "keywords": [
+            "discovery",
+            "benchmark",
+            "ricerca",
+            "esplora",
+            "censimento",
+            "mappatura",
+            "ideazione",
+            "scamper",
+            "ux",
+            "ui",
+            "design",
+            "frontend",
+            "backend",
+            "openapi",
+            "architettura",
+            "scaffold",
+            "repo_map",
+            "probe",
+        ],
+    },
+    "DOM-03": {
+        "domain_id": "DOM-03",
+        "name": "BUILD_AND_HEAL",
+        "title": "Async Building, Surgical Refactor & Fast-Healing",
+        "description": "Costruisce codice Python asincrono in staging ed esegue il loop di auto-riparazione.",
+        "primary_skill": "NK-Python-Async-Builder",
+        "skills": [
+            "NK-Python-Async-Builder",
+            "NK-Delta-Architect",
+            "NK-Agent-Instruction-Forge",
+        ],
+        "scripts": [
+            "auto_heal_pipeline.py",
+            "healing_snapshot_rollback.py",
+            "invisible_healing_loop.py",
+            "platform_runner.py",
+            "deterministic_api_cache.py",
+            "safe_cleanup_dev_servers.py",
+            "async_heartbeat_signaler.py",
+        ],
+        "keywords": [
+            "build",
+            "builder",
+            "implementa",
+            "sviluppa",
+            "codice",
+            "async",
+            "pydantic",
+            "delta",
+            "refactor",
+            "modifica",
+            "heal",
+            "healing",
+            "rollback",
+            "snapshot",
+            "cache",
+            "sqlite",
+            "runner",
+            "cleanup",
+            "heartbeat",
+        ],
+    },
+    "DOM-04": {
+        "domain_id": "DOM-04",
+        "name": "AUDIT_DAST_AND_RCA",
+        "title": "Security Audit, DAST Sandbox, SBFL RCA & RSI Convergence",
+        "description": "Esegue audit SAST/DAST in sola lettura, diagnosi SBFL Ochiai e convergenza Tensor-RSI.",
+        "primary_skill": "NK-Security-Auditor",
+        "skills": [
+            "NK-Security-Auditor",
+            "NK-Oracle-Evaluator",
+            "NK-Dynamic-Sandbox-StressTester",
+            "NK-Bug-Diagnostic-Engine",
+        ],
+        "scripts": [
+            "ast_guard_validator.py",
+            "dast_sandbox_runner.py",
+            "oracle_evaluator_l3.py",
+            "sbfl_engine.py",
+            "sbfl_pytest_bridge.py",
+            "rsi_convergence_engine.py",
+            "nk_transcript_tools.py",
+        ],
+        "keywords": [
+            "audit",
+            "security",
+            "sicurezza",
+            "sast",
+            "dast",
+            "sandbox",
+            "stress",
+            "oracle",
+            "valuta",
+            "bug",
+            "diagnosi",
+            "rca",
+            "sbfl",
+            "ochiai",
+            "rsi",
+            "convergenza",
+            "ast_guard",
+            "exploit",
+            "vulnerabilita",
+        ],
+    },
+    "DOM-05": {
+        "domain_id": "DOM-05",
+        "name": "MEMORY_TELEMETRY_AND_DOCS",
+        "title": "3-Tier Memory, Runtime Telemetry, Hygiene & Documentation",
+        "description": "Gestisce memoria episodica 3-Tier, sentinelle di contesto, igiene preflight e documentazione SSOT.",
+        "primary_skill": "NK-Scribe-Memory",
+        "skills": [
+            "NK-Scribe-Memory",
+        ],
+        "scripts": [
+            "memory_3tier_engine.py",
+            "micro_hud_renderer.py",
+            "nk_active_runtime_sentinel.py",
+            "nk_auto_inning.py",
+            "nk_compliance_checker.py",
+            "nk_context_sentry.py",
+            "nk_session_handoff.py",
+            "quality_baseline_manager.py",
+        ],
+        "keywords": [
+            "memory",
+            "memoria",
+            "episodic",
+            "recall",
+            "telemetry",
+            "telemetria",
+            "hud",
+            "sentinel",
+            "sentinella",
+            "inning",
+            "compliance",
+            "sentry",
+            "context",
+            "preflight",
+            "health",
+            "baseline",
+            "ratchet",
+            "scribe",
+            "documentazione",
+            "changelog",
+        ],
+    },
+}
+
+NATIVE_AGENT_DOMAIN_MAP: Dict[str, str] = {
+    "NK-Arch-Specifier": "DOM-02",
+    "NK-Specifier-Agent": "DOM-02",
+    "NK-Builder-Agent": "DOM-03",
+    "NK-Security-DAST-Auditor": "DOM-04",
+    "NK-RSI-Auditor": "DOM-04",
+    "NK-Scribe-Agent": "DOM-05",
+}
+
+FORBIDDEN_PHANTOM_MCP_TOOLS: Tuple[str, ...] = (
+    "call_mcp_tool",
+    "list_resources",
+    "read_resource",
+)
+
+CRIT01_FORBIDDEN_TOOLS: Tuple[str, ...] = (
+    "search_web",
+    "generate_image",
+    "invoke_subagent",
+    "schedule",
+    "call_mcp_tool",
+    "list_resources",
+    "read_resource",
+)
+
+_EXCLUDED_SUBPROCESS_FLAGS: Set[str] = {
+    "--porcelain",
+    "--tb=short",
+    "--version",
+    "--quiet",
+    "--short",
+}
+
+TETRALOGY_FILENAMES: Tuple[str, ...] = (
+    "concept_map.md",
+    "structural_tree.md",
+    "implementation_plan.md",
+    "repo_map.md",
+)
+
+GCP_DATA_SKILLS: Tuple[str, ...] = (
+    "bigquery-data-transfer-service",
+    "building-data-apps",
+    "data-autocleaning",
+    "dataform-bigquery",
+    "dbt-bigquery",
+    "developing-with-bigquery",
+    "discovering-gcp-data-assets",
+    "gcloud-auth-verification",
+    "gcp-composer-troubleshooting",
+    "gcp-data-pipelines",
+    "gcp-dataflow",
+    "gcp-pipeline-orchestration",
+    "gcp-pipeline-resource-provisioning",
+    "gcp-spark",
+    "notebook-guidance",
+)
+
+DEV_UTILITY_SKILLS: Tuple[str, ...] = (
+    "accidental-data-loss-prevention",
+    "managing-python-dependencies",
+    "ml-best-practices",
+    "skill-repair",
+)

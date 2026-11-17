@@ -10,6 +10,30 @@
     }
   ],
   "settings": {
-    "python.defaultInterpreterPath": "C:\\Python314\\python.exe"
+    "python.defaultInterpreterPath": "python",
+    "terminal.integrated.env.windows": {
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PYTHONUTF8": "1",
+      "PYTHONIOENCODING": "utf-8",
+      "PYTHONUNBUFFERED": "1",
+      "NK_MODEL_PROFILE": "generation",
+      "NK_MODEL_PROFILE_FALLBACK": "carbon"
+    },
+    "terminal.integrated.env.linux": {
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PYTHONUTF8": "1",
+      "PYTHONIOENCODING": "utf-8",
+      "PYTHONUNBUFFERED": "1",
+      "NK_MODEL_PROFILE": "generation",
+      "NK_MODEL_PROFILE_FALLBACK": "carbon"
+    },
+    "terminal.integrated.env.osx": {
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PYTHONUTF8": "1",
+      "PYTHONIOENCODING": "utf-8",
+      "PYTHONUNBUFFERED": "1",
+      "NK_MODEL_PROFILE": "generation",
+      "NK_MODEL_PROFILE_FALLBACK": "carbon"
+    }
   }
 }

@@ -1,11 +1,11 @@
 name: 🐛 Bug Report
-description: Report a reproducible issue or unexpected behavior in Lab NK Hub
+description: Report a reproducible issue or unexpected behavior in NK Hub Generation v1.0.0-Generation
 labels: ["bug", "triage"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to report an issue! Before opening, please run `python scripts/preflight_health_check.py` to ensure your local environment is healthy.
+        Thanks for reporting an issue! Before opening, please run `python -B -u scripts/preflight_health_check.py --check-only` to verify your local `v1.0.0-Generation` environment.
   - type: textarea
     id: what-happened
     attributes:
@@ -20,15 +20,15 @@ body:
       description: Steps to reproduce the behavior.
       placeholder: |
         1. Run command '...'
-        2. Invocate skill '...'
-        3. See error '...'
+        2. Invoke skill '...'
+        3. Observe error '...'
     validations:
       required: true
   - type: textarea
     id: environment
     attributes:
       label: Environment & OS
-      description: OS version, Python version, and execution environment.
-      placeholder: Windows 11, Python 3.11/3.14, Google Antigravity / Claude
+      description: OS version, Python version, NK_MODEL_PROFILE, and IDE environment.
+      placeholder: Windows 11, Python 3.12, NK_MODEL_PROFILE=generation, Google Antigravity 2.0
     validations:
       required: true

@@ -1,21 +1,17 @@
-# Contesto Attivo Nexus Keystone
+# Contesto Operativo Attivo NK Hub Generation
 
-- **Versione:** `v5.0.0-STE100-Unified`
-- **Milestone:** `NK-MS-20261106-SOVEREIGN-CLEAN-SLATE-RELEASE-v5.0.0-RSI`
-- **Profilo Budget:** `standard` (limite `350` token)
-- **Stato Corrente:** Release `v5.0.0-STE100-Unified` certificata con `253/253 PASS` (`245` baseline contrattuale) e zero drift SHA-256.
+## Stato Corrente della Sessione
+1. **Versione Attiva:** `1.0.0-Generation`.
+2. **Profilo Modello:** `generation`.
+3. **Milestone Attivo:** `NK-GEN-1.0.0`.
+4. **Ultimo Turno FSM:** `1` con stato `PASS`.
+5. **Baseline Test:** `513` test con pass rate `100.0%`.
 
-## Ultimo Evento Anchor
+## Regole Operative Prioritarie
+1. Esegui tutte le modifiche esclusivamente nella directory `.staging/`.
+2. Valida ogni modifica con `ast_guard_validator.py` prima della promozione.
+3. Verifica la convergenza matematica con `rsi_convergence_engine.py`.
+4. Promuovi i file in produzione tramite `win32_2pc_engine.py`.
 
-- **Timestamp:** `2026-11-06T18:50:00Z`
-- **Nodo:** `NK-Master-Hub`
-- **Azione:** `SYNC` (`OK`)
-- **Target:** `nk_genome/nk_registry_manifest.json`
-- **Dettaglio:** Promozione atomica Win32 2PC e consolidamento Clean-Slate `v5.0.0-STE100-Unified`.
-
-## Capsule Attive Tier 1
-
-- **ARCH:** `3` episodi attivi in memoria.
-- **SEC:** `1` episodi attivi in memoria.
-- **OPS:** `1` episodi attivi in memoria.
-- **DEVX:** `1` episodi attivi in memoria.
+## Delta & Stato Operativo Corrente
+- **File in .staging/:** nessuno.

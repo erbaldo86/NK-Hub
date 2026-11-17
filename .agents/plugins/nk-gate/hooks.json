@@ -4,29 +4,17 @@
     "SessionStart": [
       {
         "type": "command",
-        "command": "if exist scripts\\nk_hook_gate.py (python -u scripts/nk_hook_gate.py session-start --event SessionStart --native-contract --shadow) else if exist ..\\scripts\\nk_hook_gate.py (python -u ../scripts/nk_hook_gate.py session-start --event SessionStart --native-contract --shadow) else (python -u ../../../scripts/nk_hook_gate.py session-start --event SessionStart --native-contract --shadow)",
+        "command": "python -S -B -u ../../../scripts/nk_hook_gate.py session-start --event SessionStart --native-contract",
         "timeout": 5
       }
     ],
     "PreToolUse": [
       {
-        "matcher": "write_file|edit_file|write_to_file|replace_file_content|multi_replace_file_content|run_command",
+        "matcher": "write_file|edit_file|notebook_edit|write_to_file|replace_file_content|multi_replace_file_content|run_command|call_mcp_tool",
         "hooks": [
           {
             "type": "command",
-            "command": "if exist scripts\\nk_hook_gate.py (python -u scripts/nk_hook_gate.py write-gate --event PreToolUse --native-contract --shadow) else if exist ..\\scripts\\nk_hook_gate.py (python -u ../scripts/nk_hook_gate.py write-gate --event PreToolUse --native-contract --shadow) else (python -u ../../../scripts/nk_hook_gate.py write-gate --event PreToolUse --native-contract --shadow)",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "if exist scripts\\nk_hook_gate.py (python -u scripts/nk_hook_gate.py fasttrack --event PostToolUse --native-contract --shadow) else if exist ..\\scripts\\nk_hook_gate.py (python -u ../scripts/nk_hook_gate.py fasttrack --event PostToolUse --native-contract --shadow) else (python -u ../../../scripts/nk_hook_gate.py fasttrack --event PostToolUse --native-contract --shadow)",
+            "command": "python -S -B -u ../../../scripts/nk_hook_gate.py write-gate --event PreToolUse --native-contract",
             "timeout": 5
           }
         ]
@@ -35,14 +23,21 @@
     "PreInvocation": [
       {
         "type": "command",
-        "command": "if exist scripts\\nk_hook_gate.py (python -u scripts/nk_hook_gate.py fasttrack --event PreInvocation --native-contract --shadow) else if exist ..\\scripts\\nk_hook_gate.py (python -u ../scripts/nk_hook_gate.py fasttrack --event PreInvocation --native-contract --shadow) else (python -u ../../../scripts/nk_hook_gate.py fasttrack --event PreInvocation --native-contract --shadow)",
+        "command": "python -S -B -u ../../../scripts/nk_acs_fastguard.py --event PreInvocation --native-contract",
+        "timeout": 5
+      }
+    ],
+    "PostInvocation": [
+      {
+        "type": "command",
+        "command": "python -S -B -u ../../../scripts/nk_acs_fastguard.py --event PostInvocation --native-contract",
         "timeout": 5
       }
     ],
     "Stop": [
       {
         "type": "command",
-        "command": "if exist scripts\\nk_hook_gate.py (python -u scripts/nk_hook_gate.py stop-evidence --event Stop --native-contract --shadow) else if exist ..\\scripts\\nk_hook_gate.py (python -u ../scripts/nk_hook_gate.py stop-evidence --event Stop --native-contract --shadow) else (python -u ../../../scripts/nk_hook_gate.py stop-evidence --event Stop --native-contract --shadow)",
+        "command": "python -S -B -u ../../../scripts/nk_hook_gate.py stop-evidence --event Stop --native-contract --enforce-stop",
         "timeout": 5
       }
     ]

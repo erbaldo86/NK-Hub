@@ -1,6 +1,6 @@
-# 💡 Idea Canvas Template (NK-Ideator L0 : `v3.0.0-STE100-Unified`)
+# 💡 Idea Canvas Template (NK-Ideator L0 : `v1.0.0-Generation`)
 
-> **Destinazione:** `nk_genome/idea_canvas.md` (Deroga L0 pre-Tetralogia `[RULE-00]`).  
+> **Destinazione:** `nk_genome/idea_canvas.md` (Deroga L0 pre-Pentad `[RULE-00]`).  
 > **Standard Linguistico:** ASD-STE100 Italiano Tecnico (`[RULE-STE100]`).
 
 ---
@@ -36,4 +36,4 @@
 
 ## 6. Decisione di Handoff verso L3
 - **Stato Canvas:** [`DRAFT` | `VALIDATING` | `APPROVED`]
-- **Nodo Destinatario:** `NK-App-UX-Architect` (Generazione Tetralogia Sovrana 4/4 in `nk_genome/`)
+- **Nodo Destinatario:** `NK-System-Architect` (Generazione Pentad Sovrana 4+1 in `nk_genome/`)

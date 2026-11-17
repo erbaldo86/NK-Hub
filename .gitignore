@@ -17,18 +17,20 @@ __pycache__/
 # Progetti Esterni e Cartelle Temporanee Isolate ([RULE-PROJECT-ISOLATION])
 NK_External_Projects/
 NK_Hub/
-Output Business Keystone/
-Antigravity model/
-google-docs-mcp/
-System_Documentation/
-fonti/
 scratch/
 test_scratch/
 data/
 
-# Temp / Logs
+# Temp / Logs / Runtime
 *.log
 *.bak*
+nk_tracking/sessions/
+nk_tracking/session_bootstrap_state.json
+nk_tracking/dast_last_report.json
+.coverage
+.coverage.*
+coverage.xml
+pytest-results.xml
 
 # Large Binaries & Generated Artifacts
 *.zip

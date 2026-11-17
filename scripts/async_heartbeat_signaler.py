@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Demone di battito asincrono e watchdog anti-blocco per Nexus Keystone v3.0.0-STE100-Unified.
+Demone di battito asincrono e watchdog anti-blocco per NK Hub Generation 1.0.0-Generation.
 Emette impulsi ogni 15s e salva dump diagnostici in %TEMP%/nk_diagnostics/ se lo step supera 45s.
 """
 
@@ -18,11 +18,19 @@ import traceback
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-if hasattr(sys.stdout, "reconfigure"):
-    try:
-        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    except Exception:
-        pass
+_SCRIPT_DIR = Path(__file__).resolve().parent
+if str(_SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPT_DIR))
+if _SCRIPT_DIR.parent.name == ".staging" and (_SCRIPT_DIR / "_internal").is_dir():
+    import _internal as _stg_internal_pkg
+
+    _stg_int_str = str(_SCRIPT_DIR / "_internal")
+    if _stg_int_str not in _stg_internal_pkg.__path__:
+        _stg_internal_pkg.__path__.insert(0, _stg_int_str)
+
+from _internal.nk_common.paths import reconfigure_streams  # noqa: E402
+
+reconfigure_streams()
 
 DEFAULT_CADENCE_SEC = 15.0
 DEFAULT_WATCHDOG_SEC = 45.0
@@ -155,7 +163,8 @@ def run_standalone_test() -> int:
     time.sleep(0.7)
     signaler.stop()
 
-    assert signaler.pulse_count >= 3, f"Expected >= 3 pulses, got {signaler.pulse_count}"
+    if signaler.pulse_count < 3:
+        raise RuntimeError(f"Expected >= 3 pulses, got {signaler.pulse_count}")
     print(f"Heartbeat Signaler test PASS: {signaler.pulse_count} pulses emitted.")
     return 0
 
@@ -163,7 +172,7 @@ def run_standalone_test() -> int:
 def main() -> int:
     """Interfaccia CLI per il demone di battito asincrono e watchdog."""
     parser = argparse.ArgumentParser(
-        description="Demone di battito asincrono e watchdog per Nexus Keystone"
+        description="Demone di battito asincrono e watchdog per NK Hub Generation 1.0.0-Generation"
     )
     parser.add_argument(
         "--task-id",

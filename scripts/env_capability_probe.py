@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Sonda deterministica delle capacita dell'ambiente per Nexus Keystone v3.0.0-STE100-Unified.
+Sonda deterministica delle capacita dell'ambiente per NK Hub Generation 1.0.0-Generation.
 Separa i moduli core dell'Hub dai moduli opzionali mantenendo invariato total_probed (GT-09).
 """
 
@@ -30,14 +30,8 @@ if str(_workspace_root) not in sys.path:
 if str(_scripts_dir) not in sys.path:
     sys.path.insert(0, str(_scripts_dir))
 
-try:
-    from platform_runner import reconfigure_streams
-except ImportError:
-    try:
-        from scripts.platform_runner import reconfigure_streams
-    except ImportError:
-        def reconfigure_streams() -> None:
-            pass
+from _internal.nk_common.io import atomic_write_json
+from _internal.nk_common.paths import reconfigure_streams
 
 STANDARD_MODULES_TO_PROBE: List[str] = [
     "sqlite3",
@@ -235,7 +229,7 @@ def format_human_readable(data: Dict[str, Any]) -> str:
     """Formatta i risultati della sonda in un rapporto testuale leggibile."""
     lines: List[str] = [
         "=" * 80,
-        "NEXUS KEYSTONE - ENVIRONMENT CAPABILITY PROBE",
+        "NK HUB GENERATION: ENVIRONMENT CAPABILITY PROBE (1.0.0-Generation)",
         "=" * 80,
         f"Timestamp:   {data.get('timestamp')}",
         f"Python:      {data['python']['version'].split()[0]} ({data['python']['implementation']})",
@@ -277,7 +271,7 @@ def main() -> int:
     """Punto di ingresso CLI per la sonda delle capacita di ambiente."""
     reconfigure_streams()
     parser = argparse.ArgumentParser(
-        description="Nexus Keystone Environment Capability Probe",
+        description="NK Hub Generation 1.0.0-Generation Environment Capability Probe",
     )
     parser.add_argument(
         "--json",
@@ -316,8 +310,14 @@ def main() -> int:
 
     if args.export:
         export_path = Path(args.export)
-        export_path.parent.mkdir(parents=True, exist_ok=True)
-        export_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+        ok, err_msg = atomic_write_json(
+            export_path,
+            report,
+            indent=2,
+            ensure_ascii=True,
+        )
+        if not ok:
+            raise OSError(f"Esportazione fallita su {export_path}: {err_msg}")
         if not args.json:
             print(f"[EXPORT] Report successfully written to: {export_path}")
 

@@ -1,0 +1,27 @@
+{
+  "checkpoint_id": "NK-HUB-GEN-1.0.0",
+  "version": "1.0.0-Generation",
+  "created_at": "2026-11-17T02:50:00Z",
+  "milestone_anchor_id": "NK-GEN-1.0.0",
+  "model_profile": "generation",
+  "rsi_profile": "ste100_rsi",
+  "governance": {
+    "plugin_manifest": ".agents/plugins.json",
+    "active_hooks_file": ".agents/plugins/nk-gate/hooks.json",
+    "staging_confinement": true,
+    "dual_execution_gt14": true,
+    "oracle_lock_enforced": true
+  },
+  "metrics_summary": {
+    "skills_total": 11,
+    "native_subagents_total": 6,
+    "indexed_scripts_total": 37,
+    "total_script_py_files": 260,
+    "test_modules_total": 41,
+    "test_files_total": 45,
+    "golden_tests_passed": 513,
+    "pytest_suite_sec": 59.34,
+    "oracle_lock_files_count": 367,
+    "oracle_lock_combined_sha256": "218d017470d4aa3c706d0b9a4bd0ffc739f9f178b7bd690f8cfd5ba94065e84b"
+  }
+}

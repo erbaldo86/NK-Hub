@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Renderer telemetrico Micro-HUD per Nexus Keystone v3.0.0-STE100-Unified.
+Renderer telemetrico Micro-HUD per NK Hub Generation 1.0.0-Generation.
 Allinea HUDState con MicroUIHUDState e supporta il fallback ASCII e le metriche RSI.
 """
 
@@ -8,28 +8,71 @@ from __future__ import annotations
 
 import argparse
 import sys
+import threading
 import time
-from typing import Dict, List, Literal, Optional, Sequence
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Sequence
+
+
+def _build_cli_parser() -> argparse.ArgumentParser:
+    """Costruisce il parser CLI senza importare Pydantic."""
+    parser = argparse.ArgumentParser(
+        description="NK Hub Generation 1.0.0-Generation Real-Time Micro-HUD Stream Renderer"
+    )
+    parser.add_argument("--percent", type=int, default=100)
+    parser.add_argument("--mutex", type=str, default="UNLOCKED")
+    parser.add_argument("--agent", type=str, default="NK-Orchestrator")
+    parser.add_argument("--domain", type=str, default="DEVX")
+    parser.add_argument("--ascii", action="store_true")
+    parser.add_argument("--json", action="store_true")
+    return parser
+
+
+if __name__ == "__main__" and any(a in ("-h", "--help") for a in sys.argv[1:]):
+    _build_cli_parser().parse_args()
+    raise SystemExit(0)
+
 from pydantic import BaseModel, ConfigDict, Field
 
-try:
-    from platform_runner import reconfigure_streams
-except ImportError:
-    try:
-        from scripts.platform_runner import reconfigure_streams
-    except ImportError:
-        def reconfigure_streams() -> None:
-            pass
+_scripts_dir = Path(__file__).resolve().parent
+if str(_scripts_dir) not in sys.path:
+    sys.path.insert(0, str(_scripts_dir))
+if _scripts_dir.parent.name == ".staging" and (_scripts_dir / "_internal").is_dir():
+    import _internal as _stg_internal_pkg
 
-try:
+    _stg_int_str = str(_scripts_dir / "_internal")
+    if _stg_int_str not in _stg_internal_pkg.__path__:
+        _stg_internal_pkg.__path__.insert(0, _stg_int_str)
+
+from _internal.nk_common.constants import VERSION  # noqa: E402
+from _internal.nk_common.paths import reconfigure_streams  # noqa: E402
+
+if TYPE_CHECKING:
     from schemas.nk_ipc_contracts import MicroUIHUDState
-except ImportError:
-    try:
-        from scripts.schemas.nk_ipc_contracts import MicroUIHUDState
-    except ImportError:
-        MicroUIHUDState = None
+else:
+    MicroUIHUDState: Any = Any
+
+_IPC_HUD_LOCK = threading.Lock()
+_CACHED_MICRO_UI_HUD_STATE: Any = None
 
 
+def _get_micro_ui_hud_state_cls() -> Any:
+    """Carica pigramente MicroUIHUDState da schemas.nk_ipc_contracts."""
+    global _CACHED_MICRO_UI_HUD_STATE
+    if _CACHED_MICRO_UI_HUD_STATE is not None:
+        return _CACHED_MICRO_UI_HUD_STATE
+    with _IPC_HUD_LOCK:
+        if _CACHED_MICRO_UI_HUD_STATE is not None:
+            return _CACHED_MICRO_UI_HUD_STATE
+        try:
+            from schemas.nk_ipc_contracts import MicroUIHUDState as _hud_cls
+        except ImportError:
+            from scripts.schemas.nk_ipc_contracts import MicroUIHUDState as _hud_cls
+        _CACHED_MICRO_UI_HUD_STATE = _hud_cls
+        return _CACHED_MICRO_UI_HUD_STATE
+
+
+HUD_DEFAULT_VERSION: str = VERSION
 GateStatus = Literal["PASSED", "RUNNING", "FAILED", "PENDING", "BLOCKED", "SKIPPED"]
 MutexStatus = Literal["LOCKED", "UNLOCKED", "ACQUIRING", "STALE_RECOVERED"]
 
@@ -80,7 +123,7 @@ class HUDState(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    version: str = "v3.0"
+    version: str = HUD_DEFAULT_VERSION
     progress_percent: int = Field(default=0, ge=0, le=100)
     bar_width: int = Field(default=10, ge=5, le=50)
     gates: List[GateEntry] = Field(default_factory=list)
@@ -99,7 +142,7 @@ class MicroHUDRenderer:
 
     def __init__(
         self,
-        version: str = "v3.0",
+        version: str = HUD_DEFAULT_VERSION,
         default_gates: Optional[Sequence[str]] = ("G1", "G2", "G3", "G4", "G5"),
         bar_width: int = 10,
         ascii_mode: Optional[bool] = None,
@@ -176,7 +219,8 @@ class MicroHUDRenderer:
         if self.state.tier1_tokens_used is not None:
             metrics["tier1_tokens_used"] = float(self.state.tier1_tokens_used)
 
-        return MicroUIHUDState(
+        hud_cls = _get_micro_ui_hud_state_cls()
+        return hud_cls(
             session_id=session_id,
             hud_status=hud_status,
             active_task=active_task,
@@ -273,15 +317,7 @@ class MicroHUDRenderer:
 def main() -> int:
     """Interfaccia CLI per il renderer telemetrico Micro-HUD."""
     reconfigure_streams()
-    parser = argparse.ArgumentParser(
-        description="Nexus Keystone Real-Time Micro-HUD Stream Renderer"
-    )
-    parser.add_argument("--percent", type=int, default=100)
-    parser.add_argument("--mutex", type=str, default="UNLOCKED")
-    parser.add_argument("--agent", type=str, default="NK-Master-Hub")
-    parser.add_argument("--domain", type=str, default="DEVX")
-    parser.add_argument("--ascii", action="store_true")
-    parser.add_argument("--json", action="store_true")
+    parser = _build_cli_parser()
     args = parser.parse_args()
 
     renderer = MicroHUDRenderer(ascii_mode=args.ascii if args.ascii else None)

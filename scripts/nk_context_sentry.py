@@ -1,456 +1,108 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Sentinella del contesto e motore anti-saturazione per Nexus Keystone v3.2.0.
+Sentinella del contesto e motore anti-saturazione per NK Hub Generation 1.0.0-Generation.
 Modulo: nk_context_sentry.py.
-Implementa le regole [RULE-01] e [RULE-SWARM-HYGIENE] con le guardie GT-01, GT-04 e OPT-7.
-
-Funzionalita principali:
-1. Valuta lo stato del contesto con architettura Dual-Profile (standard vs argon).
-2. Mantiene le soglie predefinite 70/100 step (80k/120k token) per il profilo standard (GT-01).
-3. Attiva le soglie 150/250 step (250k/500k token senza thinking) per il profilo argon.
-4. Rileva actual_context_tokens (WARN >= 150k, RED >= 200k prima della compattazione a 273k).
+@domain_id: DOM-05
 """
 
 from __future__ import annotations
 
-import argparse
-import json
-import os
-import re
+import importlib
+import pkgutil
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-_scripts_dir = Path(__file__).resolve().parent
-_workspace_root = _scripts_dir.parent
-if _scripts_dir.name == "scripts" and _scripts_dir.parent.name == ".staging":
-    _workspace_root = _scripts_dir.parent.parent
-elif _scripts_dir.name == ".staging":
-    _workspace_root = _scripts_dir.parent
-if str(_workspace_root) not in sys.path:
-    sys.path.insert(0, str(_workspace_root))
+_SCRIPT_DIR = Path(__file__).resolve().parent
+_PROD_SCRIPTS = (
+    _SCRIPT_DIR.parent.parent / "scripts"
+    if _SCRIPT_DIR.parent.name == ".staging"
+    else _SCRIPT_DIR
+)
+for _p in (_PROD_SCRIPTS, _SCRIPT_DIR):
+    if _p.is_dir() and str(_p) not in sys.path:
+        sys.path.insert(0, str(_p))
+if _SCRIPT_DIR != _PROD_SCRIPTS and (_SCRIPT_DIR / "_internal" / "nk_common").is_dir():
+    import _internal as _stg_int, _internal.nk_common as _stg_nkc
 
-try:
-    from scripts.platform_runner import reconfigure_streams
-except ImportError:
-    try:
-        from platform_runner import reconfigure_streams
-    except ImportError:
-        def reconfigure_streams() -> None:
-            pass
+    _stg_int.__path__ = pkgutil.extend_path(_stg_int.__path__, "_internal")
+    _stg_nkc.__path__ = pkgutil.extend_path(_stg_nkc.__path__, "_internal.nk_common")
+    _stg_nkc_dir = str(_SCRIPT_DIR / "_internal" / "nk_common")
+    if isinstance(_stg_nkc.__path__, list):
+        if _stg_nkc_dir in _stg_nkc.__path__:
+            _stg_nkc.__path__.remove(_stg_nkc_dir)
+        _stg_nkc.__path__.insert(0, _stg_nkc_dir)
+
+from _internal.nk_common.facade_boot import init_nk_facade  # noqa: E402
+
+init_nk_facade(__file__, pkg="nk_context_sentry")
+
+_LAZY_EXPORT_MAP: Dict[str, tuple[str, str]] = {
+    "NKContextSentry": ("_internal.nk_context_sentry.cli", "NKContextSentry"),
+    "main": ("_internal.nk_context_sentry.cli", "main"),
+    "SWARM_MSG_MSS_CAP": ("_internal.nk_context_sentry.thresholds_proxy", "SWARM_MSG_MSS_CAP"),
+    "SWARM_MSG_HARD_CAP": ("_internal.nk_context_sentry.thresholds_proxy", "SWARM_MSG_HARD_CAP"),
+    "STANDARD_GREEN_STEP_THRESHOLD": ("_internal.nk_context_sentry.thresholds_proxy", "STANDARD_GREEN_STEP_THRESHOLD"),
+    "STANDARD_RED_STEP_THRESHOLD": ("_internal.nk_context_sentry.thresholds_proxy", "STANDARD_RED_STEP_THRESHOLD"),
+    "STANDARD_GREEN_TOKEN_THRESHOLD": ("_internal.nk_context_sentry.thresholds_proxy", "STANDARD_GREEN_TOKEN_THRESHOLD"),
+    "STANDARD_RED_TOKEN_THRESHOLD": ("_internal.nk_context_sentry.thresholds_proxy", "STANDARD_RED_TOKEN_THRESHOLD"),
+    "GENERATION_GREEN_STEP_THRESHOLD": ("_internal.nk_context_sentry.thresholds_proxy", "GENERATION_GREEN_STEP_THRESHOLD"),
+    "GENERATION_RED_STEP_THRESHOLD": ("_internal.nk_context_sentry.thresholds_proxy", "GENERATION_RED_STEP_THRESHOLD"),
+    "GENERATION_GREEN_TOKEN_THRESHOLD": ("_internal.nk_context_sentry.thresholds_proxy", "GENERATION_GREEN_TOKEN_THRESHOLD"),
+    "GENERATION_RED_TOKEN_THRESHOLD": ("_internal.nk_context_sentry.thresholds_proxy", "GENERATION_RED_TOKEN_THRESHOLD"),
+    "GENERATION_ACTUAL_WARN_TOKENS": ("_internal.nk_context_sentry.thresholds_proxy", "GENERATION_ACTUAL_WARN_TOKENS"),
+    "GENERATION_ACTUAL_RED_TOKENS": ("_internal.nk_context_sentry.thresholds_proxy", "GENERATION_ACTUAL_RED_TOKENS"),
+    "CARBON_GREEN_STEP_THRESHOLD": ("_internal.nk_context_sentry.thresholds_proxy", "CARBON_GREEN_STEP_THRESHOLD"),
+    "CARBON_RED_STEP_THRESHOLD": ("_internal.nk_context_sentry.thresholds_proxy", "CARBON_RED_STEP_THRESHOLD"),
+    "CARBON_GREEN_TOKEN_THRESHOLD": ("_internal.nk_context_sentry.thresholds_proxy", "CARBON_GREEN_TOKEN_THRESHOLD"),
+    "CARBON_RED_TOKEN_THRESHOLD": ("_internal.nk_context_sentry.thresholds_proxy", "CARBON_RED_TOKEN_THRESHOLD"),
+    "CARBON_ACTUAL_WARN_TOKENS": ("_internal.nk_context_sentry.thresholds_proxy", "CARBON_ACTUAL_WARN_TOKENS"),
+    "CARBON_ACTUAL_RED_TOKENS": ("_internal.nk_context_sentry.thresholds_proxy", "CARBON_ACTUAL_RED_TOKENS"),
+    "ARGON_ACTUAL_WARN_TOKENS": ("_internal.nk_context_sentry.thresholds_proxy", "ARGON_ACTUAL_WARN_TOKENS"),
+    "ARGON_ACTUAL_RED_TOKENS": ("_internal.nk_context_sentry.thresholds_proxy", "ARGON_ACTUAL_RED_TOKENS"),
+    "PLATFORM_COMPACTION_TOKEN_LIMIT": ("_internal.nk_context_sentry.thresholds_proxy", "PLATFORM_COMPACTION_TOKEN_LIMIT"),
+    "COMPACTION_SUMMARY_MARKER": ("_internal.nk_context_sentry.thresholds_proxy", "COMPACTION_SUMMARY_MARKER"),
+    "HIGH_CAPACITY_PROFILES": ("_internal.nk_context_sentry.thresholds_proxy", "HIGH_CAPACITY_PROFILES"),
+    "CONTEXT_BACKSCAN_CHUNK_BYTES": ("_internal.nk_context_sentry.thresholds_proxy", "CONTEXT_BACKSCAN_CHUNK_BYTES"),
+    "CONTEXT_MAX_SCAN_BYTES": ("_internal.nk_context_sentry.thresholds_proxy", "CONTEXT_MAX_SCAN_BYTES"),
+    "_UNTRUSTED_COMPACTION_SOURCES": ("_internal.nk_context_sentry.thresholds_proxy", "_UNTRUSTED_COMPACTION_SOURCES"),
+    "_UNTRUSTED_COMPACTION_TYPES": ("_internal.nk_context_sentry.thresholds_proxy", "_UNTRUSTED_COMPACTION_TYPES"),
+    "_get_thresholds_data": ("_internal.nk_context_sentry.thresholds_proxy", "_get_thresholds_data"),
+    "_contains_compaction_marker": ("_internal.nk_context_sentry.thresholds_proxy", "_contains_compaction_marker"),
+    "load_saturation_thresholds": ("_internal.nk_context_sentry.thresholds_proxy", "load_saturation_thresholds"),
+    "_safe_pos_int": ("_internal.nk_context_sentry.thresholds_proxy", "_safe_pos_int"),
+    "reconfigure_streams": ("_internal.nk_context_sentry.thresholds_proxy", "reconfigure_streams"),
+    "_workspace_root": ("_internal.nk_context_sentry.thresholds_proxy", "_workspace_root"),
+    "locate_transcript": ("_internal.nk_transcript_tools.locate_and_compliance", "locate_transcript"),
+}
 
 
-SWARM_MSG_MSS_CAP: int = 1800
-SWARM_MSG_HARD_CAP: int = 2000
-ARGON_ACTUAL_WARN_TOKENS: int = 150_000
-ARGON_ACTUAL_RED_TOKENS: int = 200_000
-PLATFORM_COMPACTION_TOKEN_LIMIT: int = 273_000
+def __getattr__(name: str) -> Any:
+    """Risolve pigramente soglie e simboli del pacchetto _internal/nk_context_sentry."""
+    if name in ("_THRESHOLDS_DATA", "_PROFILES_DATA", "_STD_CS", "_CARB_CS", "_GEN_CS"):
+        proxy = importlib.import_module("_internal.nk_context_sentry.thresholds_proxy")
+        return proxy.get_lazy_threshold_attr(name)
+    target = _LAZY_EXPORT_MAP.get(name)
+    if target is not None:
+        mod = importlib.import_module(target[0])
+        val = getattr(mod, target[1])
+        globals()[name] = val
+        return val
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
-class NKContextSentry:
-    """Sentinella deterministica del contesto con supporto Dual-Profile e soglia MSS."""
-
-    GREEN_STEP_THRESHOLD = 70
-    RED_STEP_THRESHOLD = 100
-    ARGON_GREEN_STEP_THRESHOLD = 150
-    ARGON_RED_STEP_THRESHOLD = 250
-    ARGON_ACTUAL_WARN_TOKENS = ARGON_ACTUAL_WARN_TOKENS
-    ARGON_ACTUAL_RED_TOKENS = ARGON_ACTUAL_RED_TOKENS
-    SWARM_MSG_MSS_CAP = SWARM_MSG_MSS_CAP
-    SWARM_MSG_HARD_CAP = SWARM_MSG_HARD_CAP
-
-    def __init__(
-        self,
-        workspace_root: Optional[Path] = None,
-        profile: Optional[str] = None,
-    ):
-        reconfigure_streams()
-        self.workspace_root = (
-            Path(workspace_root).resolve() if workspace_root else _workspace_root
-        )
-        if profile is not None:
-            self.profile = profile.lower().strip()
-        else:
-            self.profile = (
-                os.environ.get("NK_MODEL_PROFILE", "standard").lower().strip()
-            )
-
-    @staticmethod
-    def estimate_tokens(text: str) -> int:
-        """Stima il numero di token con rapporto medio di 4 caratteri per token."""
-        if not text:
-            return 0
-        return max(1, len(text) // 4)
-
-    @staticmethod
-    def format_head_tail(
-        traceback_text: str, head_chars: int = 400, tail_chars: int = 800
-    ) -> str:
-        """Comprime i traceback lunghi preservando l'inizio (causa) e la fine (effetto)."""
-        if not traceback_text:
-            return ""
-        if len(traceback_text) <= (head_chars + tail_chars + 50):
-            return traceback_text
-        head = traceback_text[:head_chars].strip()
-        tail = traceback_text[-tail_chars:].strip()
-        return f"{head}\n\n[... TRUNCATED BY NK-CONTEXT-SENTRY HEAD-TAIL FALLBACK ...]\n\n{tail}"
-
-    @staticmethod
-    def _extract_actual_tokens_from_record(data: Dict[str, Any]) -> Optional[int]:
-        """Estrae actual_context_tokens dai metadati di uno step del transcript se presente."""
-        for key in (
-            "actual_context_tokens",
-            "context_tokens",
-            "prompt_tokens",
-            "input_tokens",
-        ):
-            val = data.get(key)
-            if isinstance(val, int) and val > 0:
-                return val
-        for sub_key in ("metadata", "usage", "token_usage", "context_window"):
-            sub = data.get(sub_key)
-            if isinstance(sub, dict):
-                for key in (
-                    "actual_context_tokens",
-                    "context_tokens",
-                    "prompt_tokens",
-                    "input_tokens",
-                    "total_tokens",
-                ):
-                    val = sub.get(key)
-                    if isinstance(val, int) and val > 0:
-                        return val
-        return None
-
-    def get_traffic_light_status(
-        self,
-        step_count: int,
-        estimated_tokens: int,
-        profile: Optional[str] = None,
-        actual_context_tokens: Optional[int] = None,
-    ) -> Dict[str, Any]:
-        """Calcola lo stato semaforico in base a step, token stimati, token reali e profilo."""
-        active_profile = (profile or self.profile or "standard").lower().strip()
-        if actual_context_tokens is not None and actual_context_tokens < 0:
-            actual_context_tokens = 0
-        if active_profile == "argon":
-            green_steps = self.ARGON_GREEN_STEP_THRESHOLD
-            red_steps = self.ARGON_RED_STEP_THRESHOLD
-            green_tokens = 250000
-            red_tokens = 500000
-        else:
-            green_steps = self.GREEN_STEP_THRESHOLD
-            red_steps = self.RED_STEP_THRESHOLD
-            green_tokens = 80000
-            red_tokens = 120000
-
-        if step_count < green_steps and estimated_tokens < green_tokens:
-            status = "GREEN"
-            recommendation = "Nominal execution. Context is lean and responsive."
-        elif step_count < red_steps and estimated_tokens < red_tokens:
-            status = "YELLOW"
-            recommendation = (
-                "Warning: Context saturation nearing threshold. Delegate heavy tasks to subagents."
-            )
-        else:
-            status = "RED"
-            recommendation = (
-                "Critical saturation (503 risk): Execute /compact or nk_session_handoff.py."
-            )
-
-        if (
-            active_profile == "argon"
-            and actual_context_tokens is not None
-            and actual_context_tokens > 0
-        ):
-            if actual_context_tokens >= self.ARGON_ACTUAL_RED_TOKENS:
-                status = "RED"
-                recommendation = (
-                    "Critical saturation (503 risk): Execute /compact or nk_session_handoff.py."
-                )
-            elif (
-                actual_context_tokens >= self.ARGON_ACTUAL_WARN_TOKENS
-                and status != "RED"
-            ):
-                status = "WARN"
-                recommendation = (
-                    "Warning: Context saturation nearing threshold. Delegate heavy tasks to subagents."
-                )
-
-        result: Dict[str, Any] = {
-            "status": status,
-            "step_count": step_count,
-            "estimated_tokens": estimated_tokens,
-            "profile": active_profile,
-            "recommendation": recommendation,
-        }
-        if actual_context_tokens is not None:
-            result["actual_context_tokens"] = actual_context_tokens
-        return result
-
-    @staticmethod
-    def is_background_task_message(data: Dict[str, Any], content: str) -> bool:
-        """Verifica se il record appartiene a un task asincrono di sistema in background."""
-        sender = str(data.get("sender") or data.get("sender_id") or "").lower()
-        if "task-" in sender or "task_id" in sender:
-            return True
-        if "task" in data and isinstance(data.get("task"), (dict, str)):
-            return True
-
-        content_lower = content.lower()
-        if "finished with result" in content_lower:
-            return True
-        if "sender=" in content_lower and (
-            "task-" in content_lower or "task_id" in content_lower
-        ):
-            return True
-        if 'task id "' in content_lower or "task id '" in content_lower:
-            return True
-        return False
-
-    def inspect(self, transcript_path: Path) -> Dict[str, Any]:
-        """Ispeziona il transcript e restituisce il rapporto completo."""
-        return self.analyze_transcript(transcript_path)
-
-    def analyze_transcript(
-        self,
-        transcript_path: Path,
-        profile: Optional[str] = None,
-        actual_context_tokens: Optional[int] = None,
-    ) -> Dict[str, Any]:
-        """Analizza transcript.jsonl e calcola metriche di contesto e conformita."""
-        transcript_path = Path(transcript_path).resolve()
-        active_profile = (profile or self.profile or "standard").lower().strip()
-        if actual_context_tokens is not None and actual_context_tokens < 0:
-            actual_context_tokens = 0
-
-        if not transcript_path.exists():
-            return {
-                "status": "ERROR",
-                "details": f"Transcript file not found: {transcript_path}",
-                "step_count": 0,
-                "estimated_tokens": 0,
-            }
-
-        steps_count = 0
-        non_empty_lines = 0
-        total_chars = 0
-        detected_actual_tokens: Optional[int] = actual_context_tokens
-        chars_by_source: Dict[str, int] = {}
-        tool_counts: Dict[str, int] = {}
-        swarm_hygiene_violations: List[Dict[str, Any]] = []
-        swarm_mss_warnings: List[Dict[str, Any]] = []
-        consecutive_direct_audit_tools = 0
-        max_consecutive_direct_audit = 0
-
-        with open(transcript_path, "r", encoding="utf-8", errors="replace") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                non_empty_lines += 1
-                try:
-                    data = json.loads(line)
-                    if not isinstance(data, dict):
-                        continue
-                except Exception:
-                    continue
-
-                steps_count += 1
-                source = data.get("source", "UNKNOWN")
-                content = data.get("content", "") or ""
-                thinking = data.get("thinking", "") or ""
-
-                rec_actual = self._extract_actual_tokens_from_record(data)
-                if rec_actual is not None:
-                    detected_actual_tokens = rec_actual
-
-                # Nel profilo argon escludiamo len(thinking) dal conteggio token attivo
-                if active_profile == "argon":
-                    step_chars = len(content)
-                else:
-                    step_chars = len(content) + len(thinking)
-
-                total_chars += step_chars
-                chars_by_source[source] = chars_by_source.get(source, 0) + step_chars
-
-                # Verifica Swarm Hygiene solo sui messaggi di ritorno dai sub-agenti (U-02, OPT-7)
-                is_background = self.is_background_task_message(data, content)
-                is_initial_subagent_prompt = steps_count == 1 and (
-                    "### Blocco 1" in content or "BLOCCO 1" in content
-                )
-                is_swarm_return = (
-                    not is_background
-                    and not is_initial_subagent_prompt
-                    and source == "SYSTEM"
-                    and ("[Message]" in content or "<SYSTEM_MESSAGE>" in content)
-                )
-
-                if is_swarm_return:
-                    raw_msgs = (
-                        content.split("[Message]")[1:]
-                        if "[Message]" in content
-                        else [content]
-                    )
-                    for msg_chunk in raw_msgs:
-                        net_body = msg_chunk
-                        if "content=" in net_body:
-                            net_body = net_body.split("content=", 1)[1]
-                        net_body = net_body.split("</SYSTEM_MESSAGE>")[0]
-                        net_body = net_body.replace(
-                            "<passive_data_context>", ""
-                        ).replace("</passive_data_context>", "")
-                        net_body = re.sub(
-                            r"\[([^\]]*)\]\([^\)]+\)", r"\1", net_body
-                        )
-                        net_body = re.sub(r"`[^`]+`", "T", net_body)
-                        net_body = re.sub(r"[\|\-\*\#\>\_\~]+", "", net_body)
-                        net_body = re.sub(r"\s+", " ", net_body).strip()
-                        msg_len = len(net_body)
-                        if msg_len > self.SWARM_MSG_MSS_CAP:
-                            swarm_mss_warnings.append(
-                                {
-                                    "step_index": data.get("step_index", steps_count),
-                                    "length": msg_len,
-                                    "limit": self.SWARM_MSG_MSS_CAP,
-                                }
-                            )
-                        if msg_len > self.SWARM_MSG_HARD_CAP:
-                            swarm_hygiene_violations.append(
-                                {
-                                    "step_index": data.get("step_index", steps_count),
-                                    "length": msg_len,
-                                    "limit": self.SWARM_MSG_HARD_CAP,
-                                }
-                            )
-
-                # Verifica serie consecutiva di tool diretti per Universal DDI
-                tool_calls = data.get("tool_calls", []) or []
-                has_subagent_call = False
-                has_direct_tool = False
-                for tc in tool_calls:
-                    tname = (
-                        tc.get("tool_name")
-                        or tc.get("name")
-                        or tc.get("toolName")
-                        or ""
-                    )
-                    tool_counts[tname] = tool_counts.get(tname, 0) + 1
-                    if tname in ("invoke_subagent", "define_subagent", "send_message"):
-                        has_subagent_call = True
-                    elif tname in (
-                        "view_file",
-                        "read_file",
-                        "run_command",
-                        "replace_file_content",
-                        "write_file",
-                        "edit_file",
-                    ):
-                        has_direct_tool = True
-
-                if has_subagent_call or (
-                    source == "USER_EXPLICIT" and steps_count > 1
-                ):
-                    consecutive_direct_audit_tools = 0
-                elif has_direct_tool:
-                    consecutive_direct_audit_tools += 1
-                    if consecutive_direct_audit_tools > max_consecutive_direct_audit:
-                        max_consecutive_direct_audit = consecutive_direct_audit_tools
-
-        estimated_tokens = max(1, total_chars // 4) if total_chars > 0 else 0
-        health = self.get_traffic_light_status(
-            steps_count,
-            estimated_tokens,
-            profile=active_profile,
-            actual_context_tokens=detected_actual_tokens,
-        )
-        if non_empty_lines > 0 and steps_count == 0:
-            health["status"] = "ERROR"
-            health["recommendation"] = (
-                "Corrupted transcript: 0 valid JSON records found in non-empty file."
-            )
-
-        report: Dict[str, Any] = {
-            "status": health["status"],
-            "profile": active_profile,
-            "step_count": steps_count,
-            "total_chars": total_chars,
-            "estimated_tokens": estimated_tokens,
-            "actual_context_tokens": detected_actual_tokens,
-            "recommendation": health["recommendation"],
-            "chars_by_source": chars_by_source,
-            "tool_counts": tool_counts,
-            "max_consecutive_direct_audit": max_consecutive_direct_audit,
-            "swarm_mss_cap": self.SWARM_MSG_MSS_CAP,
-            "swarm_mss_warnings_count": len(swarm_mss_warnings),
-            "swarm_mss_warnings": swarm_mss_warnings[:5],
-            "swarm_hygiene_violations_count": len(swarm_hygiene_violations),
-            "swarm_hygiene_violations": swarm_hygiene_violations[:5],
-        }
-        return report
+def __dir__() -> List[str]:
+    return sorted(
+        set(globals())
+        | set(_LAZY_EXPORT_MAP)
+        | {"_THRESHOLDS_DATA", "_PROFILES_DATA", "_STD_CS", "_CARB_CS", "_GEN_CS"}
+    )
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    """Punto di ingresso CLI per la sentinella del contesto Nexus Keystone."""
-    reconfigure_streams()
-    parser = argparse.ArgumentParser(
-        description="Nexus Keystone Context Sentry & Debloating Guard"
-    )
-    parser.add_argument(
-        "--transcript", type=str, required=True, help="Percorso del file transcript.jsonl"
-    )
-    parser.add_argument(
-        "--profile",
-        type=str,
-        default=None,
-        help="Profilo soglie: standard o argon",
-    )
-    parser.add_argument(
-        "--actual-context-tokens",
-        type=int,
-        default=None,
-        help="Token di contesto reali osservati per la soglia anti-compattazione",
-    )
-    parser.add_argument(
-        "--json", action="store_true", help="Stampa il risultato in formato JSON"
-    )
-    parser.add_argument(
-        "--verbose", action="store_true", help="Mostra i dettagli completi"
-    )
-
-    args = parser.parse_args(argv)
-    sentry = NKContextSentry(profile=args.profile)
-    res = sentry.analyze_transcript(
-        Path(args.transcript),
-        profile=args.profile,
-        actual_context_tokens=args.actual_context_tokens,
-    )
-
-    if args.json:
-        print(json.dumps(res, indent=2))
-    else:
-        status_sym = {
-            "GREEN": "🟢",
-            "YELLOW": "🟡",
-            "WARN": "🟡",
-            "RED": "🔴",
-        }.get(res.get("status"), "⚪")
-        print(
-            f"{status_sym} [NK-CONTEXT-SENTRY] Status: {res.get('status')} | "
-            f"Steps: {res.get('step_count')} | Est Tokens: {res.get('estimated_tokens'):,}"
-        )
-        print(f"  - Recommendation: {res.get('recommendation')}")
-        if args.verbose:
-            print(f"  - Total chars: {res.get('total_chars'):,}")
-            print(
-                f"  - Max consecutive direct tools: {res.get('max_consecutive_direct_audit')}"
-            )
-            print(
-                f"  - Swarm hygiene violations: {res.get('swarm_hygiene_violations_count')}"
-            )
-
-    return 0 if res.get("status") in ("GREEN", "YELLOW", "WARN") else 1
+    """Punto di ingresso CLI delegato a _internal.nk_context_sentry.cli."""
+    return importlib.import_module("_internal.nk_context_sentry.cli").main(argv)
 
 
 if __name__ == "__main__":

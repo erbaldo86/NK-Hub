@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Suite di test unitari Zero-Mock per Contratti Pydantic v2 Strict Mode e Dual-Ledgers (v4.1.0).
+Suite di test unitari Zero-Mock per Contratti Pydantic v2 Strict Mode e Dual-Ledgers (v6.4.0-Carbon).
 Modulo: tests/test_schemas_and_contracts.py.
 Valida strict mode, JsonValue, GoalFailureManifest, MetaPromptGateContract, DAG SHA-256 e IPCPointerReturn.
 """
@@ -8,27 +8,26 @@ Valida strict mode, JsonValue, GoalFailureManifest, MetaPromptGateContract, DAG 
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
-import sys
 import tempfile
+import threading
+import time
 import unittest
+
 from pydantic import ValidationError
+import pytest
 
-CURRENT_DIR = Path(__file__).resolve().parent
-STAGING_DIR = CURRENT_DIR.parent
-WORKSPACE_ROOT = (
-    STAGING_DIR.parent if STAGING_DIR.name == ".staging" else STAGING_DIR
-)
-SCRIPTS_DIR = WORKSPACE_ROOT / "scripts"
-STAGING_SCRIPTS_DIR = WORKSPACE_ROOT / ".staging" / "scripts"
+try:
+    import conftest as _nk_conftest  # noqa: F401
+except ImportError:
+    import tests.conftest as _nk_conftest  # noqa: F401
 
-for _cand in (STAGING_SCRIPTS_DIR, SCRIPTS_DIR, WORKSPACE_ROOT):
-    if _cand.exists() and str(_cand) not in sys.path:
-        sys.path.insert(0, str(_cand))
+pytestmark = pytest.mark.fast
 
-from schemas import MetaPromptGateContract as ExportedMetaPromptGateContract
-from schemas.dual_ledgers import ProgressLedger, TaskDAGNode, TaskLedger
-from schemas.nk_ipc_contracts import (
+from schemas import MetaPromptGateContract as ExportedMetaPromptGateContract  # noqa: E402
+from schemas.dual_ledgers import PIDFileLock, ProgressLedger, TaskDAGNode, TaskLedger  # noqa: E402
+from schemas.nk_ipc_contracts import (  # noqa: E402
     GoalFailureManifest,
     IPCPointerReturn,
     MetaPromptGateContract,
@@ -183,6 +182,88 @@ class TestSchemasAndContracts(unittest.TestCase):
                     "unexpected_field": 123,
                 }
             )
+
+    def test_pid_file_lock_orphan_preemption_and_concurrent_contention(self):
+        """5. Regressione [P0-1]: recupero orphan 0-byte/corrotti e release verificato (pid, nonce)."""
+        zero_lock = self.tmp_dir / "zero_orphan.lock"
+        zero_lock.write_bytes(b"")
+        old_ts = time.time() - 10.0
+        os.utime(zero_lock, (old_ts, old_ts))
+        lk_zero = PIDFileLock(zero_lock, stale_timeout_sec=1.0)
+        self.assertTrue(lk_zero.acquire(timeout_sec=1.0))
+        payload = json.loads(zero_lock.read_text(encoding="utf-8"))
+        self.assertEqual(payload["pid"], os.getpid())
+        self.assertTrue(isinstance(payload.get("nonce"), str) and len(payload["nonce"]) >= 16)
+        lk_zero.release()
+        self.assertFalse(zero_lock.exists())
+
+        corrupt_lock = self.tmp_dir / "corrupt_orphan.lock"
+        corrupt_lock.write_text("{broken_json", encoding="utf-8")
+        os.utime(corrupt_lock, (old_ts, old_ts))
+        lk_cor = PIDFileLock(corrupt_lock, stale_timeout_sec=1.0)
+        self.assertTrue(lk_cor.acquire(timeout_sec=1.0))
+        lk_cor.release()
+        self.assertFalse(corrupt_lock.exists())
+
+        preempt_lock = self.tmp_dir / "preempted.lock"
+        lk_a = PIDFileLock(preempt_lock, stale_timeout_sec=0.05)
+        self.assertTrue(lk_a.acquire(timeout_sec=1.0))
+        preemptor_payload = {
+            "pid": os.getpid(),
+            "nonce": "preemptor-nonce-999",
+            "timestamp": time.time() + 60.0,
+        }
+        preempt_lock.write_text(json.dumps(preemptor_payload), encoding="utf-8")
+        lk_a.release()
+        self.assertFalse(lk_a.acquired)
+        self.assertTrue(preempt_lock.exists())
+        self.assertEqual(
+            json.loads(preempt_lock.read_text(encoding="utf-8"))["nonce"],
+            "preemptor-nonce-999",
+        )
+        preempt_lock.unlink(missing_ok=True)
+
+    def test_pid_file_lock_concurrent_stale_contention(self):
+        """6. Regressione [P0-1]: contesa concorrente su stale lock converge a singolo proprietario."""
+        race_lock = self.tmp_dir / "race_stale.lock"
+        race_lock.write_text(
+            json.dumps({"pid": 99999999, "nonce": "dead-owner", "timestamp": 1.0}),
+            encoding="utf-8",
+        )
+        state_guard = threading.Lock()
+        active_owners = 0
+        max_owners = 0
+        completed = 0
+        errors = []
+
+        def worker() -> None:
+            nonlocal active_owners, max_owners, completed
+            lk = PIDFileLock(race_lock, stale_timeout_sec=0.5)
+            if not lk.acquire(timeout_sec=4.0):
+                errors.append("acquire_timeout")
+                return
+            try:
+                with state_guard:
+                    active_owners += 1
+                    if active_owners > max_owners:
+                        max_owners = active_owners
+                    completed += 1
+                time.sleep(0.005)
+                with state_guard:
+                    active_owners -= 1
+            finally:
+                lk.release()
+
+        threads = [threading.Thread(target=worker) for _ in range(6)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=6.0)
+
+        self.assertEqual(errors, [])
+        self.assertEqual(completed, 6)
+        self.assertEqual(max_owners, 1)
+        self.assertFalse(race_lock.exists())
 
 
 if __name__ == "__main__":

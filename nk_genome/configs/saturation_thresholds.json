@@ -1,0 +1,104 @@
+{
+  "_meta": {
+    "version": "v1.0.0-Generation",
+    "source_note": "NK-Orchestrator Multi-Profile Saturation Thresholds aligned to nk_context_sentry.py (GT-01) and nk_active_runtime_sentinel.py (GT-02)"
+  },
+  "profiles": {
+    "standard": {
+      "description": "Profilo baseline predefinito di classe per i Golden Tests GT-01 e GT-02",
+      "compaction_reset_marker": "<CONTEXT_SUMMARY>",
+      "context_sentry": {
+        "green_step_threshold": 70,
+        "red_step_threshold": 100,
+        "green_token_threshold": 80000,
+        "red_token_threshold": 120000,
+        "include_thinking_tokens": true,
+        "swarm_msg_hard_cap_mtu": 2000,
+        "swarm_msg_safe_mss": 1800
+      },
+      "runtime_sentinel": {
+        "green_max_steps": 60,
+        "caution_max_steps": 85,
+        "critical_max_steps": 100
+      }
+    },
+    "generation": {
+      "description": "Profilo sovrano predefinito in produzione per NK Hub Generation v1.0.0-Generation (NK_MODEL_PROFILE=generation)",
+      "compaction_reset_marker": "<CONTEXT_SUMMARY>",
+      "tier1_token_cap": 1200,
+      "context_sentry": {
+        "green_step_threshold": 150,
+        "red_step_threshold": 250,
+        "green_token_threshold": 250000,
+        "red_token_threshold": 500000,
+        "include_thinking_tokens": false,
+        "swarm_msg_hard_cap_mtu": 2000,
+        "swarm_msg_safe_mss": 1800
+      },
+      "runtime_sentinel": {
+        "green_max_steps": 120,
+        "caution_max_steps": 180,
+        "critical_max_steps": 250
+      },
+      "recommended_action_on_caution": "Consiglia il comando /compact o esegui NK_Hub/scripts/nk_session_handoff.py"
+    },
+    "carbon": {
+      "description": "Profilo alias ad alta capacita mantenuto per compatibilita in NK Hub Generation (NK_MODEL_PROFILE=carbon)",
+      "compaction_reset_marker": "<CONTEXT_SUMMARY>",
+      "tier1_token_cap": 1200,
+      "context_sentry": {
+        "green_step_threshold": 150,
+        "red_step_threshold": 250,
+        "green_token_threshold": 250000,
+        "red_token_threshold": 500000,
+        "include_thinking_tokens": false,
+        "swarm_msg_hard_cap_mtu": 2000,
+        "swarm_msg_safe_mss": 1800
+      },
+      "runtime_sentinel": {
+        "green_max_steps": 120,
+        "caution_max_steps": 180,
+        "critical_max_steps": 250
+      },
+      "recommended_action_on_caution": "Consiglia il comando /compact o esegui NK_Hub/scripts/nk_session_handoff.py"
+    },
+    "argon": {
+      "description": "Profilo ad alta capacita mantenuto per continuita sui test di guardia",
+      "compaction_reset_marker": "<CONTEXT_SUMMARY>",
+      "context_sentry": {
+        "green_step_threshold": 150,
+        "red_step_threshold": 250,
+        "green_token_threshold": 250000,
+        "red_token_threshold": 500000,
+        "include_thinking_tokens": false,
+        "swarm_msg_hard_cap_mtu": 2000,
+        "swarm_msg_safe_mss": 1800
+      },
+      "runtime_sentinel": {
+        "green_max_steps": 120,
+        "caution_max_steps": 180,
+        "critical_max_steps": 250
+      },
+      "recommended_action_on_caution": "Consiglia il comando /compact o esegui NK_Hub/scripts/nk_session_handoff.py"
+    }
+  },
+  "autonomous_context_shield": {
+    "description": "Soglie del guardiano autonomo L0 (ACS-v1.0.0-Generation-Unified)",
+    "z1_steps": 120,
+    "z1_tokens": 160000,
+    "z2_steps": 150,
+    "z2_tokens": 185000,
+    "z3_steps": 180,
+    "z3_tokens": 205000,
+    "epoch_baseline_tokens": 0,
+    "fallback_steps": {
+      "z1": 120,
+      "z2": 150,
+      "z3": 180
+    },
+    "velocity_floor": 140000,
+    "velocity_step_floor": 100,
+    "velocity_jump": 25000,
+    "cooldown_s": 60
+  }
+}

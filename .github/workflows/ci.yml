@@ -1,4 +1,4 @@
-name: Lab NK Hub Continuous Verification
+name: NK Hub Generation Continuous Verification (v1.0.0-Generation)
 
 on:
   push:
@@ -6,12 +6,30 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
-    runs-on: windows-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     env:
+      PYTHONDONTWRITEBYTECODE: "1"
       PYTHONIOENCODING: "utf-8"
       PYTHONUTF8: "1"
+      NK_MODEL_PROFILE: "generation"
+      COVERAGE_FILE: ${{ runner.temp }}/.coverage
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
     steps:
       - name: Configure Git Line Endings
@@ -29,51 +47,65 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          python -m pip install --upgrade pip
-          if (Test-Path "nk_docs_and_setup/requirements.txt") { pip install -r nk_docs_and_setup/requirements.txt } else { pip install -r requirements.txt }
+          python -B -u -m pip install --upgrade pip pytest-cov
+          if [ -f "nk_docs_and_setup/requirements.txt" ]; then
+            python -B -u -m pip install -r nk_docs_and_setup/requirements.txt
+          elif [ -f "requirements.txt" ]; then
+            python -B -u -m pip install -r requirements.txt
+          fi
 
       - name: Initialize Tracked Runtime Directories
         run: |
-          New-Item -ItemType Directory -Force -Path ".staging", "nk_tracking/manifests" | Out-Null
+          mkdir -p .staging nk_tracking/manifests
 
       - name: Run Pre-Flight Environment Capability Discovery
         run: |
-          python scripts/env_capability_probe.py
+          python -B -u scripts/env_capability_probe.py
 
       - name: Run Preflight Health Check
         run: |
-          python scripts/preflight_health_check.py --check-only
+          python -B -u scripts/preflight_health_check.py --check-only
 
       - name: Run Fast-Stat Session Bootstrap Gate
         run: |
-          python scripts/nk_session_bootstrap.py --force-full
+          python -B -u scripts/nk_session_bootstrap.py --force-full
 
       - name: Run Deterministic AST Guard Validator
         run: |
-          python scripts/ast_guard_validator.py --target all
+          python -B -u scripts/ast_guard_validator.py --target all
 
       - name: Run O(1) Registry Integrity Verification
         run: |
-          python scripts/nk_registry_indexer.py --verify
+          python -B -u scripts/nk_registry_indexer.py --verify
 
       - name: Run Epistemic Oracle Lock Verification
         run: |
-          python scripts/nk_transcript_tools.py oracle-lock verify
+          python -B -u scripts/nk_transcript_tools.py oracle-lock verify
 
-      - name: Run Core Platform Test Suite (93 Golden Tests in 18 modules, v5.2.0-RSI)
+      - name: Run Bounded-RSI Strict Ecosystem Verification
         run: |
-          pip install pytest-github-actions-annotate-failures
-          python -m pytest tests/ -v --tb=short --junitxml=pytest-results.xml
+          python -B -u scripts/rsi_convergence_engine.py --verify --strict-verify --benchmark-suite tests/test_rsi_convergence_engine.py
+
+      - name: Run Core Platform Test Suite with Branch Coverage (v1.0.0-Generation)
+        run: |
+          python -B -u -m pytest tests -p no:cacheprovider --cov=scripts --cov-branch --cov-fail-under=85 -q --junitxml="${{ runner.temp }}/pytest-results.xml"
 
       - name: Report Failing Tests Diagnostic
         if: failure()
         shell: pwsh
         run: |
-          if (Test-Path pytest-results.xml) {
-            [xml]$xml = Get-Content pytest-results.xml
+          $xmlPath = Join-Path $env:RUNNER_TEMP "pytest-results.xml"
+          if (Test-Path $xmlPath) {
+            [xml]$xml = Get-Content $xmlPath
             $failures = $xml.SelectNodes("//testcase[failure or error]")
             foreach ($f in $failures) {
-              Write-Host "::error::TEST FAILED: $($f.classname).$($f.name) -> $($f.failure.message)"
-              Write-Host $f.failure.'#text'
+              foreach ($node in $f.SelectNodes("failure | error")) {
+                $kind = $node.Name.ToUpperInvariant()
+                $msg = $node.GetAttribute("message")
+                Write-Host "::error::TEST ${kind}: $($f.classname).$($f.name) -> $msg"
+                if ($node.InnerText) {
+                  Write-Host $node.InnerText
+                }
+              }
             }
           }
