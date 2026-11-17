@@ -1022,8 +1022,8 @@ def test_nk_hook_gate_path_safety_temp_reparse_and_whitelist(
     assert _hg_path_safety._is_safe_redirection_target("$unknown/x.log", tmp_path) is False
     assert _hg_path_safety._is_safe_redirection_target(".staging/new.py", tmp_path) is True
     assert _hg_path_safety._is_safe_redirection_target("nk_diagnostics/r.log", tmp_path) is True
-    assert _hg_path_safety._is_safe_redirection_target("c:/outside_nk_diagnostics/nk_diagnostics/r.log", tmp_path) is True
-    assert _hg_path_safety._is_safe_redirection_target("c:/outside_random/r.log", tmp_path) is False
+    assert _hg_path_safety._is_safe_redirection_target("c:/outside_nk_diagnostics/nk_diagnostics/r.log" if os.name == "nt" else "/outside_nk_diagnostics/nk_diagnostics/r.log", tmp_path) is True
+    assert _hg_path_safety._is_safe_redirection_target("c:/outside_random/r.log" if os.name == "nt" else "/outside_random/r.log", tmp_path) is False
     assert _hg_path_safety._is_safe_redirection_target(str(Path(tempfile.gettempdir()) / "r.log"), tmp_path) is True
 
     san = _hg_path_safety._sanitize_staged_tokens_in_cmd(

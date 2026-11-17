@@ -1499,7 +1499,7 @@
     "tests/test_r4_cov_shard1_hooks_sast.py": {
       "kind": "test",
       "package": "tests",
-      "sha256": "812b6826bb68e2fd4dea1b509d63ca1f129089c6e5726d06d56a903b1a37c3d1",
+      "sha256": "9da2603b70ce5a19c3657dd548f2d1bc481178ec2d441c4c8af732edd94003e7",
       "loc": 1802
     },
     "tests/test_r4_cov_shard2_handoff_runtime.py": {
@@ -1559,7 +1559,7 @@
     "tests/test_sovereign_carbon_branch_inprocess_core.py": {
       "kind": "test",
       "package": "tests",
-      "sha256": "e6e45593a42e0bb403344b382b287b566c9b33ba61cd186bafe1288294c8a820",
+      "sha256": "63031e3184fc4da070ca8006b42aac082fade4f226ad08fbf7242cd03db5577e",
       "loc": 1605
     },
     "tests/test_sovereign_carbon_branch_inprocess_promotion.py": {

@@ -1467,7 +1467,7 @@ def test_carbon_core_hook_stop_evidence_json_io_and_tac_edges(
 
     j_tgt = jtmp / "atomic_cov.json"
     with monkeypatch.context() as mp:
-        mp.setattr(jio.os, "lstat", lambda _p: SimpleNamespace(st_file_attributes=0x400))
+        mp.setattr(jio.os, "lstat", lambda _p: SimpleNamespace(st_mode=0o100644, st_file_attributes=0x400))
         assert jio._is_path_reparse_point(j_tgt) is True
         mp.setattr(jio.os, "lstat", lambda _p: (_ for _ in ()).throw(OSError("no access")))
         assert jio._is_path_reparse_point(j_tgt) is False

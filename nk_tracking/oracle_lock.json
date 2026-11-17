@@ -25,7 +25,7 @@
     "test_nk_hook_and_transcript_governance.py": "5f594e17c22330574d1d414687933b43b4f3fcfa61b850d988e25a22b7ddb740",
     "test_nk_registry_indexer.py": "eadfcc449c68709c087c062bdc40b9b2cbcb1205f01709a63601609a6a1afcf5",
     "test_quality_baseline_manager.py": "17b486315f9aa1fb87be80927a08c39811faa326b0122c6ea81ebbdd758e3b1a",
-    "test_r4_cov_shard1_hooks_sast.py": "812b6826bb68e2fd4dea1b509d63ca1f129089c6e5726d06d56a903b1a37c3d1",
+    "test_r4_cov_shard1_hooks_sast.py": "9da2603b70ce5a19c3657dd548f2d1bc481178ec2d441c4c8af732edd94003e7",
     "test_r4_cov_shard2_handoff_runtime.py": "895c4269eb8058aefd6c209d1e41f2ec9eb1080c064dbb9ff79cabe3dd03ef22",
     "test_r4_cov_shard3_engines_dast.py": "a36ee22ba68cce0187f3b6ec6d988c5c1c4c246d33b2d63c1fc6f40d9aa67525",
     "test_rsi_convergence_engine.py": "f5ef2a8e5c820a9e54b07cb2f1dd86c37578e4641df1b5f4f3af7b57d13c524c",
@@ -35,7 +35,7 @@
     "test_session_isolation.py": "b07091f0cea531626f2cb7324ba04ffdca11b9db2fa996418fe75759914fcd2e",
     "test_skill_evals.py": "ab4bf97c33211f795ebf3041c802182c73c2147238729e02335a13e79f1a0676",
     "test_sovereign_carbon_branch_gap_closure.py": "863ca1f22c1142a035efb420e06356d707bff8bf53ec78901ec02858b733a5a7",
-    "test_sovereign_carbon_branch_inprocess_core.py": "e6e45593a42e0bb403344b382b287b566c9b33ba61cd186bafe1288294c8a820",
+    "test_sovereign_carbon_branch_inprocess_core.py": "63031e3184fc4da070ca8006b42aac082fade4f226ad08fbf7242cd03db5577e",
     "test_sovereign_carbon_branch_inprocess_promotion.py": "af6ca5a9cb0ec7763681d610ae7b41f3a189b00d5d4b1ccb37fe94a028d03ca7",
     "test_sovereign_carbon_cli_core_gates.py": "23edd4eb6f8ef06699ba29224ffa390ed1d698c6d526d2ae8f7b032b7f6e982a",
     "test_sovereign_carbon_cli_resilience_matrix.py": "4bf4a1f990ed7dab326d72d57503b6d8546ddcc310f58446ed6985d0d1459d87",
@@ -375,5 +375,5 @@
     "../nk_genome/modules/SYSTEM_GRAPHS_DAG_DSM_RTM_HEATMAP.md": "02b350571ca440013be4e1cca764ff3904e7f35db4e069ac2fe7a08de4335136",
     "../nk_genome/structural_tree.md": "5ed7cf2fef6f31fe6b92a64bf7db0e5ea834cf613fe51f629b580c4e2aa296e5"
   },
-  "combined_sha256": "bc9213bbb3e57c792c61915f90b99f08009281d0b1d6cd7b84c2d13afd689468"
+  "combined_sha256": "0f6f373df7ce34b7928c367d72c9a9e5f565f024e9126f8ebed6a1ffcd8e6141"
 }
