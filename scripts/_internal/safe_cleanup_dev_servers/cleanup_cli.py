@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -36,7 +37,6 @@ def scan_listening_port_range(
     current_pid = os.getpid()
     has_ps = bool(_facade_attr("_HAS_PSUTIL", _HAS_PSUTIL))
     ps_mod = _facade_attr("psutil", psutil)
-    sys_mod = _facade_attr("sys", sys)
     target_fn = _facade_attr("is_target_workspace_process", is_target_workspace_process)
 
     if has_ps and ps_mod is not None:
@@ -51,10 +51,8 @@ def scan_listening_port_range(
         except Exception:
             pass
 
-    if sys_mod.platform == "win32":
-        scan_fn = _facade_attr("_scan_netstat_listening_pids", _scan_netstat_listening_pids)
-        return scan_fn(port_range=(port_min, port_max), workspace_root=resolved_ws)
-    return pids
+    scan_fn = _facade_attr("_scan_netstat_listening_pids", _scan_netstat_listening_pids)
+    return scan_fn(port_range=(port_min, port_max), workspace_root=resolved_ws)
 
 
 def get_pids_listening_on_ports(
@@ -69,7 +67,6 @@ def get_pids_listening_on_ports(
     resolved_ws = Path(workspace_root).resolve() if workspace_root is not None else default_ws
     has_ps = bool(_facade_attr("_HAS_PSUTIL", _HAS_PSUTIL))
     ps_mod = _facade_attr("psutil", psutil)
-    sys_mod = _facade_attr("sys", sys)
     target_fn = _facade_attr("is_target_workspace_process", is_target_workspace_process)
 
     if has_ps and ps_mod is not None:
@@ -83,27 +80,48 @@ def get_pids_listening_on_ports(
         except Exception:
             pass
 
-    if sys_mod.platform == "win32":
-        scan_fn = _facade_attr("_scan_netstat_listening_pids", _scan_netstat_listening_pids)
-        return scan_fn(port_set=port_set, workspace_root=resolved_ws)
-    return pids
+    scan_fn = _facade_attr("_scan_netstat_listening_pids", _scan_netstat_listening_pids)
+    return scan_fn(port_set=port_set, workspace_root=resolved_ws)
 
 
 def kill_pid_tree(pid: int) -> bool:
-    """Termina forzatamente un processo e tutti i suoi figli tramite taskkill."""
+    """Termina forzatamente un processo e tutti i suoi figli tramite taskkill o POSIX."""
     if pid <= 0 or pid == os.getpid():
         return False
+    sys_mod = _facade_attr("sys", sys)
     sub_mod = _facade_attr("subprocess", subprocess)
     try:
-        res = sub_mod.run(
-            ["taskkill", "/F", "/T", "/PID", str(pid)],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=5.0,
-        )
-        return res.returncode == 0
+        if sys_mod.platform == "win32":
+            res = sub_mod.run(
+                ["taskkill", "/F", "/T", "/PID", str(pid)],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=5.0,
+            )
+            return res.returncode == 0
+        ps_mod = _facade_attr("psutil", psutil)
+        if ps_mod is not None:
+            try:
+                parent = ps_mod.Process(pid)
+                children_fn = getattr(parent, "children", None)
+                kill_fn = getattr(parent, "kill", None)
+                if callable(children_fn) and callable(kill_fn):
+                    for child in children_fn(recursive=True):
+                        child_kill = getattr(child, "kill", None)
+                        if callable(child_kill):
+                            try:
+                                child_kill()
+                            except Exception:
+                                pass
+                    kill_fn()
+                    return True
+            except Exception:
+                pass
+        sig = getattr(signal, "SIGKILL", signal.SIGTERM)
+        os.kill(pid, sig)
+        return True
     except Exception as exc:
         print(f"Errore durante la terminazione del PID {pid}: {exc}", file=sys.stderr)
         return False

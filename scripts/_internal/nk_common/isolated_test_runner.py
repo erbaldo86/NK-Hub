@@ -151,13 +151,15 @@ def _resolve_mirror_targets(mirror_dir: Path, ws_root: Path, targets: Sequence[s
     ws_prefix = ws_root.as_posix().rstrip("/") + "/"
     resolved: List[str] = []
     for raw_t in raw_list:
-        norm = str(raw_t).strip().replace("\\", "/").lstrip("./")
-        if not norm:
+        norm = str(raw_t).strip().replace("\\", "/")
+        if not norm or not norm.lstrip("./"):
             continue
         if norm.lower().startswith(ws_prefix.lower()):
-            norm = norm[len(ws_prefix) :]
-        elif norm.startswith(f"{mirror_dir.name}/"):
-            norm = norm[len(mirror_dir.name) + 1 :]
+            norm = norm[len(ws_prefix) :].lstrip("/")
+        else:
+            norm = norm.lstrip("./")
+            if norm.startswith(f"{mirror_dir.name}/"):
+                norm = norm[len(mirror_dir.name) + 1 :]
         if norm.startswith(".staging/tests/") or norm == ".staging/tests":
             norm = norm[len(".staging/") :]
         resolved.append(norm)

@@ -6,6 +6,7 @@ from __future__ import annotations
 import contextvars
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -164,7 +165,17 @@ def is_target_workspace_process(
 
     if not has_ps or ps_mod is None:
         if sys_mod.platform != "win32":
-            return False
+            proc_dir = Path(f"/proc/{pid}")
+            if not proc_dir.is_dir():
+                return False
+            try:
+                cmd_raw = (proc_dir / "cmdline").read_bytes().replace(b"\x00", b" ").decode("utf-8", errors="replace").lower()
+                cwd_str = os.path.realpath(str(proc_dir / "cwd")).lower().replace("/", "\\").rstrip("\\")
+                exe_str = os.path.realpath(str(proc_dir / "exe"))
+                proc_name = os.path.basename(exe_str).lower()
+                return _matches_workspace_paths(proc_name, cmd_raw, cwd_str, exe_str, workspace_root)
+            except OSError:
+                return False
         batch_cache = _CIM_BATCH_CACHE.get()
         if batch_cache is not None:
             entry = batch_cache.get(pid)
@@ -195,17 +206,19 @@ def _scan_netstat_listening_pids(
     port_range: Optional[Tuple[int, int]] = None,
     workspace_root: Optional[Path | str] = None,
 ) -> Set[int]:
-    """Scansiona le porte LISTENING tramite netstat -ano con filtro fail-closed."""
+    """Scansiona le porte LISTENING tramite netstat o ss con filtro fail-closed."""
     pids: Set[int] = set()
     current_pid = os.getpid()
     default_ws = Path(_facade_attr("_workspace_root", _workspace_root))
     resolved_ws = Path(workspace_root).resolve() if workspace_root is not None else default_ws
     sub_mod = _facade_attr("subprocess", subprocess)
+    sys_mod = _facade_attr("sys", sys)
 
     candidate_pids: Set[int] = set()
+    scan_cmd = ["netstat", "-ano"] if sys_mod.platform == "win32" else ["ss", "-ltnp"]
     try:
         output = sub_mod.check_output(
-            ["netstat", "-ano"],
+            scan_cmd,
             shell=False,
             text=True,
             encoding="utf-8",
@@ -215,23 +228,34 @@ def _scan_netstat_listening_pids(
         )
         for line in output.splitlines():
             line = line.strip()
-            if not line or "LISTENING" not in line:
+            if not line:
                 continue
-            parts = line.split()
-            if len(parts) < 5 or ":" not in parts[1]:
-                continue
-            try:
-                port_num = int(parts[1].rsplit(":", 1)[1])
-                pid = int(parts[-1])
-            except ValueError:
-                continue
-            if pid <= 0 or pid == current_pid:
-                continue
-            if port_set is not None and port_num not in port_set:
-                continue
-            if port_range is not None and not (port_range[0] <= port_num <= port_range[1]):
-                continue
-            candidate_pids.add(pid)
+            line_ports_pids: List[Tuple[int, int]] = []
+            if "LISTENING" in line:
+                parts = line.split()
+                if len(parts) >= 5 and ":" in parts[1]:
+                    try:
+                        line_ports_pids.append((int(parts[1].rsplit(":", 1)[1]), int(parts[-1])))
+                    except ValueError:
+                        continue
+            elif line.startswith("LISTEN"):
+                parts = line.split()
+                if len(parts) >= 4 and ":" in parts[3]:
+                    local_tok = parts[3].replace("[", "").replace("]", "")
+                    try:
+                        port_num = int(local_tok.rsplit(":", 1)[1])
+                    except ValueError:
+                        continue
+                    for pid_txt in re.findall(r"pid=(\d+)", line):
+                        line_ports_pids.append((port_num, int(pid_txt)))
+            for port_num, pid in line_ports_pids:
+                if pid <= 0 or pid == current_pid:
+                    continue
+                if port_set is not None and port_num not in port_set:
+                    continue
+                if port_range is not None and not (port_range[0] <= port_num <= port_range[1]):
+                    continue
+                candidate_pids.add(pid)
     except Exception as exc:
         print(f"Avviso durante la scansione porte: {exc}", file=sys.stderr)
         return pids
@@ -241,7 +265,6 @@ def _scan_netstat_listening_pids(
 
     has_ps = bool(_facade_attr("_HAS_PSUTIL", _HAS_PSUTIL))
     ps_mod = _facade_attr("psutil", psutil)
-    sys_mod = _facade_attr("sys", sys)
     target_fn = _facade_attr("is_target_workspace_process", is_target_workspace_process)
 
     if (not has_ps or ps_mod is None) and sys_mod.platform == "win32":

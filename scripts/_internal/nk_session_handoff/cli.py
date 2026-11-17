@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -286,7 +287,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 0
 
     if is_auto_checkpoint:
-        repo_hash16 = hashlib.sha256(str(effective_root.resolve()).lower().encode("utf-8")).hexdigest()[:16]
+        repo_hash16 = hashlib.sha256(
+            os.path.realpath(str(effective_root)).lower().replace("/", "\\").rstrip("\\").encode("utf-8")
+        ).hexdigest()[:16]
         mutex_cls = resolve_facade_attr(_FACADES, "Win32NamedMutex", Win32NamedMutex)
         try:
             with mutex_cls(f"Global\\NK_HandoffWorker_{repo_hash16}", timeout_ms=0, is_path=False):

@@ -9,6 +9,7 @@ from __future__ import annotations
 import ast
 import json
 import os
+import sys
 import time
 from pathlib import Path
 
@@ -158,15 +159,21 @@ def test_ast_exports_win32_mutex_and_catalog_edges(
     assert ast_exp.resolve_dotted_module_file(".helper", [pkg_root], cur_dir=sub_pkg, level=1) == (sub_pkg / "helper.py").resolve()
     assert ast_exp.resolve_dotted_module_file("", roots) is None
 
-    assert w32m.is_win32_handle_valid(None) is False
-    assert w32m.is_win32_handle_valid(True) is False
-    assert w32m.is_win32_handle_valid("bad") is False
-    assert w32m.is_win32_handle_valid(0) is False
-    assert w32m.is_win32_handle_valid(42) is True
-    h = w32m.try_acquire_mutex_nonblocking("Local\\NK_Test_Cov_Mutex_1")
-    assert h is not None and h > 0
-    w32m.release_win32_mutex(h)
-    w32m.release_win32_mutex(None)
+    with monkeypatch.context() as mp_w32:
+        mp_w32.setattr(w32m.sys, "platform", "win32")
+        assert w32m.is_win32_handle_valid(None) is False
+        assert w32m.is_win32_handle_valid(True) is False
+        assert w32m.is_win32_handle_valid("bad") is False
+        assert w32m.is_win32_handle_valid(0) is False
+        assert w32m.is_win32_handle_valid(42) is True
+    if sys.platform == "win32":
+        h = w32m.try_acquire_mutex_nonblocking("Local\\NK_Test_Cov_Mutex_1")
+        assert h is not None and h > 0
+        w32m.release_win32_mutex(h)
+        w32m.release_win32_mutex(None)
+    else:
+        assert w32m.is_win32_handle_valid(None) is True
+        assert w32m.try_acquire_mutex_nonblocking("Local\\NK_Test_Cov_Mutex_1") == -1
     with monkeypatch.context() as mp:
         mp.setattr(w32m.sys, "platform", "linux")
         assert w32m.is_win32_handle_valid(None) is True

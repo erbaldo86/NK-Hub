@@ -977,4 +977,29 @@ def test_s2b_camelcase_rmw_anchored_compaction_l0_enforce_and_sentinel_state(
         sent_mod.main()
     res_sent = json.loads(sent_out.getvalue())
     assert res_sent["profile"] == "generation"
-    assert (Path(_tf.gettempdir()) / "nk_diagnostics" / "sentinel_state_conv-sent-s2b.json").is_file()
+    assert (Path(_tf.gettempdir()) / "nk_diagnostics" / "sentinel_state_conv-sent-s2b.json").is_file() is (sys.platform == "win32")
+
+    # 6. Copertura ramo POSIX _read_stdin_safe (FIFO select vs timeout, errore e non-FIFO)
+    import select as _sel
+    import stat as _st
+
+    const_fg = sys.modules[fg._read_stdin_safe.__module__]
+    with monkeypatch.context() as mp_lx_fg:
+        mp_lx_fg.setattr(const_fg.sys, "platform", "linux")
+        mp_lx_fg.setattr(const_fg.sys, "stdin", io.StringIO('{"ok": true}'))
+        assert fg._read_stdin_safe() == '{"ok": true}'
+
+        fake_fifo_stdin = SimpleNamespace(isatty=lambda: False, fileno=lambda: 77, read=lambda: "pipe_payload")
+        mp_lx_fg.setattr(const_fg.sys, "stdin", fake_fifo_stdin)
+        mp_lx_fg.setattr(const_fg.os, "fstat", lambda _fd: SimpleNamespace(st_mode=0o100644))
+        assert fg._read_stdin_safe() == "pipe_payload"
+
+        mp_lx_fg.setattr(const_fg.os, "fstat", lambda _fd: SimpleNamespace(st_mode=_st.S_IFIFO | 0o600))
+        mp_lx_fg.setattr(_sel, "select", lambda *_a: ([], [], []))
+        assert fg._read_stdin_safe() == ""
+
+        mp_lx_fg.setattr(_sel, "select", lambda *_a: ([77], [], []))
+        assert fg._read_stdin_safe() == "pipe_payload"
+
+        mp_lx_fg.setattr(const_fg.os, "fstat", lambda _fd: (_ for _ in ()).throw(OSError("fstat fail")))
+        assert fg._read_stdin_safe() == "pipe_payload"

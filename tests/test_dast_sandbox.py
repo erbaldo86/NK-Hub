@@ -108,7 +108,7 @@ class TestDASTSandbox(unittest.IsolatedAsyncioTestCase):
         try:
             ok_dest = sb.write_file("sub/safe_mod.py", "SAFE = 1\n")
             self.assertTrue(ok_dest.exists())
-            for escaped in ("../escape.py", "sub/../../escape.py", "C:/Windows/Temp/evil.py", "/abs/evil.py"):
+            for escaped in ("../escape.py", "sub/../../escape.py", "C:/Windows/Temp/evil.py", "/abs/evil.py", "sub/evil.txt:ads", "//server/share/evil.py"):
                 with self.assertRaises(ValueError):
                     sb.write_file(escaped, "EVIL = 1\n")
                 with self.assertRaises(ValueError):

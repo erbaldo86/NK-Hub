@@ -301,6 +301,7 @@ def _sanitize_staged_tokens_in_cmd(cmd_low: str) -> str:
 
 def _is_whitelisted_outside_staging(cand: Path, project_root: Path) -> bool:
     """Verifica se un target fuori da .staging/ appartiene alla whitelist esplicita e sicura."""
+    cand = _canonical_path(cand)
     cand_norm_posix = cand.as_posix().lower()
     ws_root = _canonical_path(_WORKSPACE_ROOT)
     eff_root = _resolve_effective_hub_root(project_root)

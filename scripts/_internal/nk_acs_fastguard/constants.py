@@ -147,7 +147,7 @@ def _win32_stdin_ready(fd: int) -> bool:
 
 
 def _read_stdin_safe() -> str:
-    """Legge stdin evitando blocchi su tty, handle chiusi o pipe Win32 vuote."""
+    """Legge stdin evitando blocchi su tty, handle chiusi o pipe vuote."""
     if sys.stdin is None:
         return ""
     try:
@@ -161,6 +161,17 @@ def _read_stdin_safe() -> str:
             ready_fn = _fg_attr("_win32_stdin_ready", _win32_stdin_ready)
             if not ready_fn(fd):
                 return ""
+        except Exception:
+            pass
+    elif hasattr(sys.stdin, "fileno"):
+        try:
+            fd = sys.stdin.fileno()
+            if stat.S_ISFIFO(os.fstat(fd).st_mode):
+                import select
+
+                readable, _, _ = select.select([fd], [], [], 0.018)
+                if not readable:
+                    return ""
         except Exception:
             pass
     try:

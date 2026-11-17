@@ -241,7 +241,11 @@ def safe_subprocess_run(
             raw_shell_str = (
                 normalized_cmd
                 if isinstance(normalized_cmd, str)
-                else subprocess.list2cmdline([str(x) for x in normalized_cmd])
+                else (
+                    subprocess.list2cmdline([str(x) for x in normalized_cmd])
+                    if sys.platform == "win32"
+                    else shlex.join([str(x) for x in normalized_cmd])
+                )
             )
             if any(c in raw_shell_str for c in ("\x00", "\n", "\r")):
                 raise ValueError("Caratteri di controllo vietati in modalita shell.")

@@ -670,6 +670,70 @@ def test_sub_safe_cleanup_psutil_and_netstat_fallback(
         mp_c.setattr(clean_mod.subprocess, "run", lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError("sub err")))
         assert clean_mod.kill_pid_tree(424242) is False
 
+        win32_proc_mod = sys.modules[clean_mod.is_target_workspace_process.__module__]
+        cleanup_cli_mod = sys.modules[clean_mod.kill_pid_tree.__module__]
+        proc_ok = tmp_path / "proc_424242"
+        (proc_ok / "cwd").mkdir(parents=True)
+        (proc_ok / "exe").write_text("", encoding="utf-8")
+        (proc_ok / "cmdline").write_bytes(b"python\x00" + os.path.realpath(str(ws_c / "srv.py")).encode("utf-8") + b"\x00")
+        proc_err = tmp_path / "proc_424243"
+        proc_err.mkdir()
+        orig_wp_path = win32_proc_mod.Path
+        proc_map = {
+            "/proc/424242": proc_ok,
+            "/proc/424243": proc_err,
+            "/proc/424244": tmp_path / "proc_missing_424244",
+        }
+        ss_out = (
+            "\n"
+            "State   Recv-Q Send-Q Local Address:Port Peer Address:Port Process\n"
+            'LISTEN  0      128    127.0.0.1:8000     0.0.0.0:*         users:(("python",pid=424242,fd=3))\n'
+            'LISTEN  0      128    [::1]:8001         [::]:*            users:(("python",pid=0,fd=4))\n'
+            'LISTEN  0      128    127.0.0.1:9000     0.0.0.0:*         users:(("python",pid=424242,fd=5))\n'
+            'LISTEN  0      128    127.0.0.1:badport  0.0.0.0:*         users:(("python",pid=424242,fd=6))\n'
+            'LISTEN  0      128    bad_addr_no_colon  0.0.0.0:*         users:(("python",pid=424242,fd=7))\n'
+            'LISTEN  0      128    127.0.0.1:8000     0.0.0.0:*         no_pid_token\n'
+            "TCP     bad            LISTENING         424242\n"
+            "TCP     127.0.0.1:badp 0.0.0.0:0         LISTENING         424242\n"
+        )
+        with monkeypatch.context() as mp_lx:
+            mp_lx.setattr(clean_mod, "sys", SimpleNamespace(platform="linux"))
+            mp_lx.setattr(clean_mod, "_HAS_PSUTIL", False)
+            mp_lx.setattr(clean_mod, "psutil", None)
+            mp_lx.setattr(
+                win32_proc_mod,
+                "Path",
+                lambda p, *_a: proc_map.get(str(p).replace("\\", "/"), orig_wp_path(p, *_a)),
+            )
+            assert clean_mod.is_target_workspace_process(424244, ws_c) is False
+            assert clean_mod.is_target_workspace_process(424243, ws_c) is False
+            assert clean_mod.is_target_workspace_process(424242, ws_c) is True
+            mp_lx.setattr(clean_mod.subprocess, "check_output", lambda *_a, **_k: ss_out)
+            assert clean_mod.get_pids_listening_on_ports([8000], workspace_root=ws_c) == {424242}
+            assert clean_mod.scan_listening_port_range(8000, 8010, workspace_root=ws_c) == {424242}
+
+            kill_calls: list[int] = []
+            child_ok = SimpleNamespace(kill=lambda: kill_calls.append(1))
+            child_err = SimpleNamespace(kill=lambda: (_ for _ in ()).throw(RuntimeError("child err")))
+            child_no = SimpleNamespace(kill="bad")
+            parent_ok = SimpleNamespace(
+                children=lambda recursive=True: [child_ok, child_err, child_no],
+                kill=lambda: kill_calls.append(99),
+            )
+            mp_lx.setattr(clean_mod, "psutil", SimpleNamespace(Process=lambda _pid: parent_ok))
+            assert clean_mod.kill_pid_tree(424242) is True and kill_calls == [1, 99]
+
+            os_kills: list[int] = []
+            mp_lx.setattr(cleanup_cli_mod.os, "kill", lambda p_id, _sig: os_kills.append(p_id))
+            mp_lx.setattr(clean_mod, "psutil", SimpleNamespace(Process=lambda _pid: SimpleNamespace()))
+            assert clean_mod.kill_pid_tree(424242) is True and os_kills == [424242]
+            mp_lx.setattr(clean_mod, "psutil", SimpleNamespace(Process=lambda _pid: (_ for _ in ()).throw(RuntimeError("no proc"))))
+            assert clean_mod.kill_pid_tree(424242) is True and os_kills == [424242, 424242]
+            mp_lx.setattr(clean_mod, "psutil", None)
+            assert clean_mod.kill_pid_tree(424242) is True and len(os_kills) == 3
+            mp_lx.setattr(cleanup_cli_mod.os, "kill", lambda *_a: (_ for _ in ()).throw(OSError("no such pid")))
+            assert clean_mod.kill_pid_tree(424242) is False
+
 
 @pytest.mark.fast
 def test_sub_handoff_discovery_context_sentry_yaml_and_compliance(
@@ -882,8 +946,10 @@ def test_sub_nk_common_win32_mutex_edges(monkeypatch: pytest.MonkeyPatch) -> Non
     """Copre tutti i rami di nk_common.win32_mutex (Global->Local fallback, timeout, cleanup)."""
     from _internal.nk_common import win32_mutex as wm
 
-    assert wm.is_win32_handle_valid(None) is False and wm.is_win32_handle_valid(True) is False
-    assert wm.is_win32_handle_valid("bad") is False and wm.is_win32_handle_valid(42) is True  # type: ignore[arg-type]
+    with monkeypatch.context() as mp_isw:
+        mp_isw.setattr(wm.sys, "platform", "win32")
+        assert wm.is_win32_handle_valid(None) is False and wm.is_win32_handle_valid(True) is False
+        assert wm.is_win32_handle_valid("bad") is False and wm.is_win32_handle_valid(42) is True  # type: ignore[arg-type]
     if sys.platform != "win32":
         assert wm.create_or_open_named_mutex("Global\\NK_NonWin32") == (None, False, "non_win32")
         assert wm.try_acquire_mutex_nonblocking("Global\\NK_NonWin32") == -1

@@ -25,7 +25,15 @@ def _resolve_confined_sandbox_path(sandbox_dir: Path, rel_path: Path | str) -> P
     if not raw_str or "\x00" in raw_str:
         raise ValueError(f"Percorso sandbox vuoto o non valido: {rel_path!r}")
     rel_obj = Path(raw_str)
-    if rel_obj.is_absolute() or rel_obj.drive or rel_obj.root:
+    has_win_drive = len(raw_str) >= 2 and raw_str[0].isalpha() and raw_str[1] == ":"
+    if (
+        rel_obj.is_absolute()
+        or rel_obj.drive
+        or rel_obj.root
+        or has_win_drive
+        or ":" in raw_str
+        or raw_str.startswith(("\\\\", "//"))
+    ):
         raise ValueError(f"Percorso assoluto vietato nella sandbox: {rel_path!r}")
     norm_segments = [seg for seg in raw_str.replace("\\", "/").split("/") if seg]
     if ".." in norm_segments or ".." in rel_obj.parts:

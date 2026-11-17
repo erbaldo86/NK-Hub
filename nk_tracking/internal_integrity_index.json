@@ -215,8 +215,8 @@
     "scripts/_internal/dast_sandbox_runner/sandbox_fs.py": {
       "kind": "internal",
       "package": "dast_sandbox_runner",
-      "sha256": "25e0242cba5e39cc3ac0f6f576eaf84ab21ed231784973c9184a8dff1aa475e6",
-      "loc": 194
+      "sha256": "c019afd965d6e4ef18570e77d26562bae4f0b7979f384284f39948cbf0c47b25",
+      "loc": 202
     },
     "scripts/_internal/dast_sandbox_runner/staging_overlay.py": {
       "kind": "internal",
@@ -323,8 +323,8 @@
     "scripts/_internal/nk_acs_fastguard/constants.py": {
       "kind": "internal",
       "package": "nk_acs_fastguard",
-      "sha256": "ca1b1ec9e25accf0a3832544a94d6795c5fa30b2669f5f7781876b8e71a6e6d8",
-      "loc": 311
+      "sha256": "79b487022352e9aeaa5cc971b4a5f3b60b56bc9728e305a9d9e8999a22280aa7",
+      "loc": 322
     },
     "scripts/_internal/nk_acs_fastguard/evaluator.py": {
       "kind": "internal",
@@ -395,8 +395,8 @@
     "scripts/_internal/nk_common/isolated_test_runner.py": {
       "kind": "internal",
       "package": "nk_common",
-      "sha256": "d66a4a4df9b6375f8ba5e062bf94ac1b28a79d11d337c3cff29c2675eba07ba5",
-      "loc": 280
+      "sha256": "5f23cb0b31d2a769959ccea21d302a7c0fbf61394e632a493e428ec3804afc3d",
+      "loc": 282
     },
     "scripts/_internal/nk_common/ledger_lock_io.py": {
       "kind": "internal",
@@ -575,8 +575,8 @@
     "scripts/_internal/nk_hook_gate/path_safety.py": {
       "kind": "internal",
       "package": "nk_hook_gate",
-      "sha256": "3b5671db36805977b8bf1d197763d480703d3f03aee6f2dbcd46412cd660d8a8",
-      "loc": 349
+      "sha256": "915b513e0f3c847fc3f5ea82aca7f8ca97df3fd8b53a7cec43693f38b6869f13",
+      "loc": 350
     },
     "scripts/_internal/nk_hook_gate/shell_ast_paths.py": {
       "kind": "internal",
@@ -815,8 +815,8 @@
     "scripts/_internal/nk_session_handoff/cli.py": {
       "kind": "internal",
       "package": "nk_session_handoff",
-      "sha256": "b5aee5eb982d17875aa37231793f0a2ae4d06d35f3694b63ea21855a7d3efe0f",
-      "loc": 325
+      "sha256": "e1f9437d77a1899b76d2658950ffd0ea65e264603387acd67a726c57ed7f41ea",
+      "loc": 328
     },
     "scripts/_internal/nk_session_handoff/constants.py": {
       "kind": "internal",
@@ -1109,14 +1109,14 @@
     "scripts/_internal/safe_cleanup_dev_servers/cleanup_cli.py": {
       "kind": "internal",
       "package": "safe_cleanup_dev_servers",
-      "sha256": "4a71df8244cae0f59bc641e14dcbf8186500b585ad5f99d4c2f6bda306a954cf",
-      "loc": 192
+      "sha256": "402b533b7c47d07e022db42ea239d160685cf58cd75c9868ece8690df4337842",
+      "loc": 210
     },
     "scripts/_internal/safe_cleanup_dev_servers/win32_proc.py": {
       "kind": "internal",
       "package": "safe_cleanup_dev_servers",
-      "sha256": "cedc26ac119ccc4090d217efff8e204ab19b4087b2672083028dd15a1a3a95a6",
-      "loc": 261
+      "sha256": "eeda1cb5f5177f2e1e147b829b61a6ad896ebbe621c66a7e1648442c3b022c70",
+      "loc": 284
     },
     "scripts/_internal/sbfl_engine/__init__.py": {
       "kind": "internal",
@@ -1415,8 +1415,8 @@
     "tests/test_autonomous_context_shield.py": {
       "kind": "test",
       "package": "tests",
-      "sha256": "29d4c68265e6d5943aaf63887fc38500c1fec91bd51ea63588a4dca29f3ba4ff",
-      "loc": 980
+      "sha256": "974a983e18db8e316e86a6656aadb69cca2bd3b0b0568636ed24059f556f7cb6",
+      "loc": 1005
     },
     "tests/test_context_sentry.py": {
       "kind": "test",
@@ -1433,7 +1433,7 @@
     "tests/test_dast_sandbox.py": {
       "kind": "test",
       "package": "tests",
-      "sha256": "df69b6fd8eba00c817b7b3d471d1a1e17b2f6a8ae44102f6fe87bfbffe19a85a",
+      "sha256": "011f9f6b609c4e21dbacbcacda05d43d5307d12476505d4be3c75096ef9f3797",
       "loc": 192
     },
     "tests/test_generation_wave2.py": {
@@ -1457,14 +1457,14 @@
     "tests/test_internal_submodules_coverage.py": {
       "kind": "test",
       "package": "tests",
-      "sha256": "98440ae1a06e614134694552598268d67676c91b84b7883d61022acd3ba6db65",
-      "loc": 1279
+      "sha256": "0afd26d527cbd4aa2e42a8346c60f500179228fc5ea91f2eeab79089880f5b40",
+      "loc": 1345
     },
     "tests/test_isolated_pytest_runner.py": {
       "kind": "test",
       "package": "tests",
-      "sha256": "22eeaeb4fe7875125b164fdad0e2c6076a7edf1aad4626ea3fa5092823e46143",
-      "loc": 363
+      "sha256": "e07b7a8783ba9f08570f63ffe640320fd6e5255d7dbd4c2de8c2b6f45b0ac890",
+      "loc": 375
     },
     "tests/test_memory_3tier.py": {
       "kind": "test",
@@ -1475,8 +1475,8 @@
     "tests/test_nk_common_and_ast_guards_coverage.py": {
       "kind": "test",
       "package": "tests",
-      "sha256": "b0c83d3ecc8f23548ec3c8097f0d49bb548aff86806a0372fb2d53b1c45a48c8",
-      "loc": 333
+      "sha256": "5e1d3c5fc36f4de74b1ff3d5c33afb7eab5cc7f74617093724274298a048a2ad",
+      "loc": 340
     },
     "tests/test_nk_hook_and_transcript_governance.py": {
       "kind": "test",

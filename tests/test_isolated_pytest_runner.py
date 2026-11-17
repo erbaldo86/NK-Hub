@@ -226,6 +226,7 @@ def test_isolated_runner_unit_branches(tmp_path: Path, monkeypatch: pytest.Monke
     assert iso_mod._resolve_mirror_targets(ws_ref, ws_ref, ()) == ["tests"]
     assert iso_mod._resolve_mirror_targets(ws_ref, ws_ref, ("", "   ")) == ["tests"]
     assert iso_mod._resolve_mirror_targets(ws_ref, ws_ref, (f"{ws_ref.as_posix()}/tests/test_keep.py", "MiniHub/tests/test_x.py", "./.staging/tests/test_s.py")) == ["tests/test_keep.py", "tests/test_x.py", "staging/tests/test_s.py"]
+    assert iso_mod._resolve_mirror_targets(Path("/tmp/MiniHub"), Path("/tmp/MiniHub"), ("./", "/tmp/MiniHub/tests/test_pos.py")) == ["tests/test_pos.py"]
 
     assert iso_mod._extract_pytest_metrics("", None)["passed"] == 0
     cnt = iso_mod._extract_pytest_metrics("3 passed, 1 failed, 1 error, 2 skipped, 1 xfailed", None)
@@ -282,6 +283,17 @@ def test_platform_runner_isolated_cli_and_tokenizer(
     with monkeypatch.context() as mp:
         mp.setattr(pr_mod.sys, "platform", "linux")
         assert pr_mod._win32_detached_flags() == 0
+        seen_shell: list[object] = []
+        mp.setattr(
+            subprocess,
+            "Popen",
+            lambda tgt, **_kw: (
+                seen_shell.append(tgt)
+                or SimpleNamespace(returncode=0, communicate=lambda timeout=None: ("posix ok\n", ""))
+            ),
+        )
+        rc_px, out_px, _ = pr_mod.safe_subprocess_run(["echo", "posix sh"], use_shell=True)
+        assert rc_px == 0 and out_px == "posix ok\n" and seen_shell == ["echo 'posix sh'"]
 
 
 @pytest.mark.fast
