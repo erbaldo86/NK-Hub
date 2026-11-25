@@ -1,46 +1,44 @@
-"""Normalizzazione STT, esenzione bypass gate, protocolli intrinseci e rendering L0."""
+"""Normalizzazione STT, intent handoff, esenzione bypass gate, protocolli intrinseci e rendering L0."""
 
 from __future__ import annotations
 
-import re
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Tuple
 
+from _internal.nk_common.epistemic_firewall_rules import (
+    _OUTBOUND_CODE_EXCLUSION_RE,
+    detect_outbound_handoff_intent_fast,
+    parse_verified_handoff_v2_wire,
+    strip_zero_width_chars,
+)
+from _internal.vibe_sprint_router.constants_core import _BRIEF_HEADER_PHASE_RE, _HANDOFF_MUTATING_ORDER_RE, _TECH_CAMEL_ALLOWLIST  # noqa: F401
 from _internal.vibe_sprint_router.constants_core import (
     _INTRINSIC_BOOST_KEYWORDS,
     _INTRINSIC_PLAN_KEYWORDS,
-    _TECH_CAMEL_ALLOWLIST,
     _normalize_explicit_mode,
     _normalize_input_text,
 )
-from _internal.vibe_sprint_router.constants_stt import (
-    _ANALYTICAL_INTERROGATIVE_PREFIXES,
-    _BP_ANY_RE,
-    _BP_DIRETTO_RE,
-    _BP_RAW_RE,
-    _CAMEL_GLUED_RE,
-    _CODE_SPAN_RE,
-    _EXPLICIT_BYPASS_NEG_RES,
-    _FIRST_WORD_RE,
-    _MULTI_SPACE_RE,
-    _NODE_SELECTIONS,
-    _ONBOARDING_TRIGGERS,
-    _PUNCT_NORM_RE,
-    _SALTA_GATE_RE,
-    _SENT_SPLIT_RE,
-    _SHELL_META_EXEMPT_BLOCKERS,
-    _STT_INDEPENDENT_ACTION_START_RE,
-    _VOICE_CORRECTION_PATTERNS,
-    _VOICE_SELF_CORRECTION_MARKERS,
-    _normalize_trigger_text,
-    _parse_dashboard_selector,
+from _internal.vibe_sprint_router.constants_stt import _ANALYTICAL_INTERROGATIVE_PREFIXES, _BP_ANY_RE, _BP_DIRETTO_RE, _BP_RAW_RE, _CAMEL_GLUED_RE, _CODE_SPAN_RE, _EXPLICIT_BYPASS_NEG_RES, _FIRST_WORD_RE, _NODE_SELECTIONS, _ONBOARDING_TRIGGERS, _PUNCT_NORM_RE, _SALTA_GATE_RE, _SENT_SPLIT_RE, _SHELL_META_EXEMPT_BLOCKERS, _STT_INDEPENDENT_ACTION_START_RE, _VOICE_CORRECTION_PATTERNS, _VOICE_SELF_CORRECTION_MARKERS, _normalize_trigger_text  # noqa: F401
+from _internal.vibe_sprint_router.constants_stt import _MULTI_SPACE_RE, _parse_dashboard_selector
+from _internal.vibe_sprint_router.prompt_linter import _is_anti_loop_confirmation  # noqa: F401
+from _internal.vibe_sprint_router.prompt_linter import is_passive_state_handoff
+from _internal.vibe_sprint_router.stt_helpers import _apply_self_correction_marker, _choose_self_corrected_text, _is_unsafe_bypass_prompt, _resolve_prefix_after_correction, _starts_with_analytical_word  # noqa: F401
+from _internal.vibe_sprint_router.stt_helpers import (
+    _apply_voice_corrections,
+    _check_explicit_bypass_toggle,
+    _is_exempt_short_trigger,
+    _is_safe_env_capsule,
+    _mask_code_spans,
+    _split_glued_camelcase,
+    _strip_voice_bypass_markers,
 )
-from _internal.vibe_sprint_router.prompt_linter import (
-    _is_anti_loop_confirmation,
-    is_passive_state_handoff,
-)
-from _internal.vibe_sprint_router.write_intent import (
-    _has_destructive_shell_command,
-    _has_imperative_write_keyword,
+from _internal.vibe_sprint_router.write_intent import _has_imperative_write_keyword  # noqa: F401
+from _internal.vibe_sprint_router.write_intent import _has_destructive_shell_command
+
+_OUTBOUND_ANCHOR_BLOCK_MARKERS: Tuple[str, ...] = (
+    "[nk-anchor:start:",
+    "[handoff stato sessione nk-hub]",
+    "passive_session_state_handoff",
+    "handoff_v2:",
 )
 
 
@@ -49,65 +47,66 @@ def is_passive_state_handoff_impl(self, raw_prompt: str) -> bool:
     return is_passive_state_handoff(raw_prompt)
 
 
-def resolve_intrinsic_vibe_protocols_impl(
-    self,
-    prompt: str,
-    recommended_mode: str = "mode_c",
-) -> Dict[str, Any]:
+def _has_outbound_handoff_blocker(clean: str) -> bool:
+    """Esclude prompt con comandi distruttivi, anchor passivi o esclusioni codice."""
+    if _has_destructive_shell_command(clean):
+        return True
+    low = clean.lower()
+    if any(marker in low for marker in _OUTBOUND_ANCHOR_BLOCK_MARKERS):
+        return True
+    return is_passive_state_handoff(clean) or parse_verified_handoff_v2_wire(clean) is not None
+
+
+def detect_outbound_handoff_intent_impl(text: str) -> Optional[str]:
+    """Rileva l'intento di serializzazione handoff in uscita escludendo anchor, code edit e shell distruttive."""
+    clean = strip_zero_width_chars(_normalize_input_text(text)).strip()
+    if not clean or _has_outbound_handoff_blocker(clean):
+        return None
+    if _OUTBOUND_CODE_EXCLUSION_RE.search(clean):
+        return None
+    return detect_outbound_handoff_intent_fast(clean)
+
+
+def detect_active_continuation_handoff_impl(text: str) -> Optional[Dict[str, Any]]:
+    """Rileva ed estrae un handoff V2 ACTIVE_CONTINUATION verificato tramite parse_verified_handoff_v2_wire."""
+    clean = strip_zero_width_chars(_normalize_input_text(text)).strip()
+    if not clean:
+        return None
+    parsed = parse_verified_handoff_v2_wire(clean)
+    if not isinstance(parsed, dict):
+        return None
+    payload = parsed.get("payload") if isinstance(parsed.get("payload"), dict) else {}
+    mode_val = str(payload.get("handoff_mode") or parsed.get("mode") or "").upper()
+    return parsed if mode_val == "ACTIVE_CONTINUATION" else None
+
+
+def _detect_intrinsic_protocol_flags(text_low: str, rec_mode: str) -> Tuple[bool, bool, bool]:
+    """Calcola i flag boolean di attivazione per GOAL, BOOST e PLAN."""
+    boost_active = rec_mode in ("mode_a", "mode_d") or any(kw in text_low for kw in _INTRINSIC_BOOST_KEYWORDS)
+    plan_active = rec_mode in ("mode_a", "mode_b") or any(kw in text_low for kw in _INTRINSIC_PLAN_KEYWORDS)
+    return True, boost_active, plan_active
+
+
+def resolve_intrinsic_vibe_protocols_impl(self, prompt: str, recommended_mode: str = "mode_c") -> Dict[str, Any]:
     """Rileva e attiva autonomamente INTRINSIC_GOAL, INTRINSIC_BOOST e INTRINSIC_PLAN."""
-    text = _normalize_input_text(prompt).strip()
-    if is_passive_state_handoff(text):
+    text = strip_zero_width_chars(_normalize_input_text(prompt)).strip()
+    if is_passive_state_handoff_impl(self, text) or detect_outbound_handoff_intent_impl(text) is not None:
         return {
             "intrinsic_protocols": [],
-            "autonomous_slash_equivalence": {
-                "goal": False,
-                "boost": False,
-                "plan": False,
-                "implementation": False,
-            },
-            "goal": False,
-            "boost": False,
-            "plan": False,
-            "implementation": False,
-            "recommended_mode": "mode_d",
+            "autonomous_slash_equivalence": {"goal": False, "boost": False, "plan": False, "implementation": False},
+            "goal": False, "boost": False, "plan": False, "implementation": False, "recommended_mode": "mode_d",
         }
-    text_low = text.lower()
-    rec_mode = _normalize_explicit_mode(recommended_mode) or (
-        recommended_mode or "mode_c"
-    ).strip().lower()
-
-    goal_active = True
-    boost_active = bool(
-        rec_mode in ("mode_a", "mode_d")
-        or any(kw in text_low for kw in _INTRINSIC_BOOST_KEYWORDS)
-    )
-    plan_active = bool(
-        rec_mode in ("mode_a", "mode_b")
-        or any(kw in text_low for kw in _INTRINSIC_PLAN_KEYWORDS)
-    )
-
-    protocols: List[str] = []
-    if goal_active:
-        protocols.append("INTRINSIC_GOAL")
-    if boost_active:
-        protocols.append("INTRINSIC_BOOST")
-    if plan_active:
-        protocols.append("INTRINSIC_PLAN")
-
-    slash_equivalence: Dict[str, bool] = {
-        "goal": goal_active,
-        "boost": boost_active,
-        "plan": plan_active,
-        "implementation": plan_active,
-    }
+    rec_mode = _normalize_explicit_mode(recommended_mode) or (recommended_mode or "mode_c").strip().lower()
+    goal_active, boost_active, plan_active = _detect_intrinsic_protocol_flags(text.lower(), rec_mode)
+    protocols = [
+        name for name, active in (("INTRINSIC_GOAL", goal_active), ("INTRINSIC_BOOST", boost_active), ("INTRINSIC_PLAN", plan_active))
+        if active
+    ]
+    slash_equivalence: Dict[str, bool] = {"goal": goal_active, "boost": boost_active, "plan": plan_active, "implementation": plan_active}
     return {
-        "intrinsic_protocols": protocols,
-        "autonomous_slash_equivalence": slash_equivalence,
-        "goal": goal_active,
-        "boost": boost_active,
-        "plan": plan_active,
-        "implementation": plan_active,
-        "recommended_mode": rec_mode,
+        "intrinsic_protocols": protocols, "autonomous_slash_equivalence": slash_equivalence,
+        "goal": goal_active, "boost": boost_active, "plan": plan_active,
+        "implementation": plan_active, "recommended_mode": rec_mode,
     }
 
 
@@ -116,199 +115,89 @@ def normalize_voice_stt_input_impl(self, raw_prompt: str) -> Dict[str, Any]:
     text = _normalize_input_text(raw_prompt).strip()
     if not text:
         return {
-            "raw_prompt": raw_prompt or "",
-            "cleaned_prompt": "",
-            "voice_corrections_applied": [],
-            "camelcase_splits": [],
-            "bypass_requested": False,
+            "raw_prompt": raw_prompt or "", "cleaned_prompt": "",
+            "voice_corrections_applied": [], "camelcase_splits": [], "bypass_requested": False,
         }
-
-    code_spans: List[str] = []
-
-    if "`" in text:
-
-        def _stash_code(match: re.Match[str]) -> str:
-            idx = len(code_spans)
-            code_spans.append(match.group(0))
-            return f"__NK_CODE_{idx}__"
-
-        masked = _CODE_SPAN_RE.sub(_stash_code, text)
-    else:
-        masked = text
-
+    masked, code_spans = _mask_code_spans(text)
     voice_corrections: List[str] = []
     camelcase_splits: List[str] = []
-    bypass_requested = False
-    masked_low = masked.lower()
-
-    if "!diretto" in masked_low and _BP_DIRETTO_RE.search(masked):
-        bypass_requested = True
-        masked = _BP_DIRETTO_RE.sub(" ", masked).strip()
-        masked_low = masked.lower()
-    if "!raw" in masked_low and _BP_RAW_RE.search(masked):
-        bypass_requested = True
-        masked = _BP_RAW_RE.sub(" ", masked).strip()
-        masked_low = masked.lower()
-
-    if "salta gate" in masked_low:
-        fw_m = _FIRST_WORD_RE.search(masked_low[:64])
-        starts_analytical_stt = bool(
-            fw_m and fw_m.group(0) in _ANALYTICAL_INTERROGATIVE_PREFIXES
-        )
-        if not starts_analytical_stt and _SALTA_GATE_RE.search(masked):
-            bypass_requested = True
-            masked = _SALTA_GATE_RE.sub(" ", masked).strip()
-
-    def _split_camel(match: re.Match[str]) -> str:
-        orig = match.group(0)
-        if orig.lower() in _TECH_CAMEL_ALLOWLIST:
-            return orig
-        rep = f"{match.group(1)} {match.group(2)}"
-        camelcase_splits.append(f"{orig} -> {rep}")
-        voice_corrections.append(f"{orig} -> {rep}")
-        return rep
-
-    masked = _CAMEL_GLUED_RE.sub(_split_camel, masked)
-    masked_low = masked.lower()
-
-    if any(
-        tok in masked_low
-        for tok in ("scusa", "anzi", "meglio", "volevo", "praticamente")
-    ):
-        for marker, m_pat in _VOICE_CORRECTION_PATTERNS:
-            if not m_pat.search(masked):
-                continue
-            if marker in _VOICE_SELF_CORRECTION_MARKERS:
-                parts = m_pat.split(masked)
-                if len(parts) >= 2:
-                    before_part = " ".join(parts[:-1]).strip(" ,;:-")
-                    after_part = parts[-1].strip(" ,;:-")
-                    if after_part:
-                        sent_parts = _SENT_SPLIT_RE.split(before_part)
-                        last_clause = (
-                            sent_parts[-1].strip(" ,;:-.!?")
-                            if sent_parts
-                            else before_part
-                        )
-                        prefix_sents = " ".join(sent_parts[:-1]).strip()
-                        voice_corrections.append(
-                            f"{last_clause or marker} -> {after_part}"
-                        )
-                        is_indep = bool(
-                            _STT_INDEPENDENT_ACTION_START_RE.match(after_part)
-                        )
-                        is_explicit_neg_marker = marker in (
-                            "anzi no",
-                            "anzi scusa",
-                            "scusa volevo dire",
-                            "scusami volevo dire",
-                        )
-                        if (
-                            not is_explicit_neg_marker
-                            and _has_imperative_write_keyword(last_clause)
-                            and not _has_imperative_write_keyword(after_part)
-                        ):
-                            masked = f"{before_part} {after_part}".strip()
-                        elif len(after_part.split()) >= 1 and (
-                            is_indep or len(last_clause.split()) <= 8
-                        ):
-                            keep_prefix = bool(prefix_sents) and not (
-                                is_explicit_neg_marker
-                                and is_indep
-                                and not _has_imperative_write_keyword(after_part)
-                                and _has_imperative_write_keyword(prefix_sents)
-                            )
-                            masked = (
-                                f"{prefix_sents} {after_part}".strip()
-                                if keep_prefix
-                                else after_part
-                            )
-                        else:
-                            masked = f"{before_part} {after_part}".strip()
-            else:
-                voice_corrections.append(f"{marker} -> (rimosso filler vocale)")
-                masked = m_pat.sub(" ", masked)
-
+    masked, bypass_requested = _strip_voice_bypass_markers(masked)
+    masked = _split_glued_camelcase(masked, voice_corrections, camelcase_splits)
+    masked = _apply_voice_corrections(masked, voice_corrections)
     masked = _MULTI_SPACE_RE.sub(" ", masked).strip()
     for idx, span in enumerate(code_spans):
         masked = masked.replace(f"__NK_CODE_{idx}__", span)
-
     return {
-        "raw_prompt": raw_prompt,
-        "cleaned_prompt": masked,
+        "raw_prompt": raw_prompt, "cleaned_prompt": masked,
         "voice_corrections_applied": voice_corrections,
-        "camelcase_splits": camelcase_splits,
-        "bypass_requested": bypass_requested,
+        "camelcase_splits": camelcase_splits, "bypass_requested": bypass_requested,
     }
 
 
+def _is_handoff_or_selector_exempt(text: str, text_low: str) -> Optional[bool]:
+    """Valuta esenzioni immediate per anchor passivi, handoff V2 e selettori dashboard."""
+    if "[nk-anchor:" in text_low:
+        return is_passive_state_handoff(text)
+    if detect_active_continuation_handoff_impl(text) is not None:
+        return False
+    if is_passive_state_handoff(text) or detect_outbound_handoff_intent_impl(text) is not None:
+        return True
+    return True if _parse_dashboard_selector(text) is not None else None
+
+
 def is_gate_exempt_impl(self, raw_prompt: str) -> bool:
-    """Verifica le esenzioni anti-loop e standby per il Super Meta-Prompt Gate (RULE-00.6)."""
-    text = _normalize_input_text(raw_prompt).strip()
+    """Verifica le esenzioni anti-loop, handoff e standby per il Super Meta-Prompt Gate (RULE-00.6)."""
+    text = strip_zero_width_chars(_normalize_input_text(raw_prompt)).strip()
     if not text:
         return True
     if _has_destructive_shell_command(text):
         return False
-    if is_passive_state_handoff(text):
-        return True
-    if _parse_dashboard_selector(text) is not None:
-        return True
     text_low = text.lower()
-    if text_low.startswith("<env_capsule>") or (
-        "<env_capsule>" in text_low and "</env_capsule>" in text_low
-    ):
+    handoff_res = _is_handoff_or_selector_exempt(text, text_low)
+    if handoff_res is not None:
+        return handoff_res
+    if _is_safe_env_capsule(text, text_low):
         return True
-    if ("!diretto" in text_low or "!raw" in text_low) and _BP_ANY_RE.search(
-        text_low
-    ):
-        return True
-    fw_m = _FIRST_WORD_RE.search(text_low[:64])
-    starts_with_analytical = bool(
-        fw_m and fw_m.group(0) in _ANALYTICAL_INTERROGATIVE_PREFIXES
-    ) or text_low.startswith(_ANALYTICAL_INTERROGATIVE_PREFIXES)
-    if not starts_with_analytical:
-        for toggle_marker, neg_re in _EXPLICIT_BYPASS_NEG_RES:
-            if toggle_marker in text_low and not neg_re.search(text_low):
-                return True
-    if len(text_low) > 256:
-        return False
-    if any(meta in text_low for meta in _SHELL_META_EXEMPT_BLOCKERS):
-        return False
-    norm = _MULTI_SPACE_RE.sub(" ", _PUNCT_NORM_RE.sub(" ", text_low)).strip()
-    if norm in _NODE_SELECTIONS or _normalize_trigger_text(text_low) in _ONBOARDING_TRIGGERS:
-        return True
-    return _is_anti_loop_confirmation(text_low)
+    toggle_res = _check_explicit_bypass_toggle(text, text_low)
+    if toggle_res is not None:
+        return toggle_res
+    return _is_exempt_short_trigger(text_low)
 
 
-def format_meta_prompt_markdown_impl(self, envelope: Dict[str, Any]) -> str:
-    """Formatta il blocco Markdown visibile di Livello 0 per il campo content prima di ask_question."""
-    brief_id = str(envelope.get("brief_id", "IB-UNKNOWN"))
-    fsm_state = str(envelope.get("fsm_state", "AWAIT_CONFIRM"))
-    rec_mode = str(envelope.get("recommended_mode", "mode_c"))
-    primary_ag = str(envelope.get("primary_agent", "NK-Python-Async-Builder"))
-    native_sub = str(envelope.get("native_subagent", "NK-Builder-Agent"))
+def _resolve_markdown_protocols(envelope: Dict[str, Any]) -> str:
+    """Restituisce la stringa formattata dei protocolli attivi nel blocco L0."""
     if envelope.get("standby_mode"):
-        protos = "NONE (STATE_HANDOFF_STANDBY)"
-    else:
-        protos = ", ".join(envelope.get("intrinsic_protocols") or []) or "INTRINSIC_GOAL"
-    intent_hash = str(envelope.get("intent_hash_sha256", ""))
-    mirror = str(envelope.get("conceptual_mirror", ""))
-    reqs = list(envelope.get("requirements_r_ids") or [])
-    voice_corrs = "; ".join(envelope.get("voice_corrections_applied") or []) or "Nessuna"
-    out_scope = "; ".join(envelope.get("out_of_scope") or []) or "Nessuno"
-    ambiguities = "; ".join(envelope.get("ambiguities") or []) or "Nessuna"
+        return "NONE (STATE_HANDOFF_STANDBY)"
+    if envelope.get("bypass_reason") == "EXECUTE_HANDOFF_SERIALIZE":
+        return "NONE (EXECUTE_HANDOFF_SERIALIZE)"
+    return ", ".join(envelope.get("intrinsic_protocols") or ()) or "INTRINSIC_GOAL"
 
-    if fsm_state == "BYPASSED":
-        return "\n".join(
-            [
-                "### 🧭 [LIVELLO 0: SUPER META-PROMPT & INTENT BRIEF GATE]",
-                f"- **Brief ID:** `{brief_id}` | **Stato FSM:** `{fsm_state}` | **Hash:** `{intent_hash[:12]}`",
-                f"- **1. Intenzione:** {mirror[:160]} ({reqs[0] if reqs else 'R1'})",
-                f"- **2. Come Farlo:** `{rec_mode}` | **Skill:** `{primary_ag}` | **Sub-Agente:** `{native_sub}` | **Protocolli:** `{protos}`",
-                f"- **3. Regole e Perimetro:** {out_scope[:120]} | **Ambiguità:** {ambiguities}",
-            ]
-        )
 
+def _join_envelope_list(envelope: Dict[str, Any], key: str, empty_label: str) -> str:
+    """Unisce una lista opzionale dell'envelope con fallback esplicito."""
+    items = envelope.get(key)
+    return "; ".join(items) if items else empty_label
+
+
+def _format_bypassed_l0_markdown(
+    brief_id: str, fsm_state: str, intent_hash: str, mirror: str, reqs: List[str],
+    rec_mode: str, primary_ag: str, native_sub: str, protos: str, out_scope: str, ambiguities: str,
+) -> str:
+    """Formatta il blocco compatto L0 per lo stato BYPASSED."""
+    return "\n".join([
+        "### 🧭 [LIVELLO 0: SUPER META-PROMPT & INTENT BRIEF GATE]",
+        f"- **Brief ID:** `{brief_id}` | **Stato FSM:** `{fsm_state}` | **Hash:** `{intent_hash[:12]}`",
+        f"- **1. Intenzione:** {mirror[:160]} ({reqs[0] if reqs else 'R1'})",
+        f"- **2. Come Farlo:** `{rec_mode}` | **Skill:** `{primary_ag}` | **Sub-Agente:** `{native_sub}` | **Protocolli:** `{protos}`",
+        f"- **3. Regole e Perimetro:** {out_scope[:120]} | **Ambiguità:** {ambiguities}",
+    ])
+
+
+def _format_full_l0_markdown(
+    brief_id: str, fsm_state: str, intent_hash: str, mirror: str, reqs: List[str], voice_corrs: str,
+    rec_mode: str, primary_ag: str, native_sub: str, protos: str, out_scope: str, ambiguities: str,
+) -> str:
+    """Formatta il blocco esteso a tre passaggi L0 per AWAIT_CONFIRM o CONFIRMED."""
     req_lines = [f"  * {r}" for r in reqs] if reqs else ["  * R1: Eseguire il task richiesto"]
     lines = [
         "### 🧭 [LIVELLO 0: SUPER META-PROMPT & INTENT BRIEF GATE]",
@@ -329,10 +218,21 @@ def format_meta_prompt_markdown_impl(self, envelope: Dict[str, Any]) -> str:
         "- **Divieto 4° Blocco ([NO-RAW-META-PROMPT]):** Vietato stampare il campo interno optimized_meta_prompt ([META-PROMPT L0]) come 4° blocco separato; le intenzioni sono già integrate nei 3 passaggi.",
     ]
     if fsm_state == "AWAIT_CONFIRM":
-        lines.append(
-            "- **Stop Pre-Esecuzione (`AWAIT_CONFIRM`):** Fermati subito dopo questo specchio e invoca `ask_question`. Vietato eseguire il task prima della conferma utente e vietato posticipare il Gate L0 a fine task."
-        )
-    lines.append(
-        "- [MANDATORY-VISIBLE-L0]: Mostra obbligatoriamente questo blocco nel campo content della risposta PRIMA o INSIEME a ask_question (vietato content_len=0)."
-    )
+        lines.append("- **Stop Pre-Esecuzione (`AWAIT_CONFIRM`):** Fermati subito dopo questo specchio e invoca `ask_question`. Vietato eseguire il task prima della conferma utente e vietato posticipare il Gate L0 a fine task.")
+    lines.append("- [MANDATORY-VISIBLE-L0]: Mostra obbligatoriamente questo blocco nel campo content della risposta PRIMA o INSIEME a ask_question (vietato content_len=0).")
     return "\n".join(lines)
+
+
+def format_meta_prompt_markdown_impl(self, envelope: Dict[str, Any]) -> str:
+    """Formatta il blocco Markdown visibile di Livello 0 per il campo content prima di ask_question."""
+    brief_id, fsm_state = str(envelope.get("brief_id", "IB-UNKNOWN")), str(envelope.get("fsm_state", "AWAIT_CONFIRM"))
+    rec_mode, primary_ag = str(envelope.get("recommended_mode", "mode_c")), str(envelope.get("primary_agent", "NK-Python-Async-Builder"))
+    native_sub, protos = str(envelope.get("native_subagent", "NK-Builder-Agent")), _resolve_markdown_protocols(envelope)
+    intent_hash, mirror = str(envelope.get("intent_hash_sha256", "")), str(envelope.get("conceptual_mirror", ""))
+    reqs = list(envelope.get("requirements_r_ids") or ())
+    voice_corrs = _join_envelope_list(envelope, "voice_corrections_applied", "Nessuna")
+    out_scope = _join_envelope_list(envelope, "out_of_scope", "Nessuno")
+    ambiguities = _join_envelope_list(envelope, "ambiguities", "Nessuna")
+    if fsm_state == "BYPASSED":
+        return _format_bypassed_l0_markdown(brief_id, fsm_state, intent_hash, mirror, reqs, rec_mode, primary_ag, native_sub, protos, out_scope, ambiguities)
+    return _format_full_l0_markdown(brief_id, fsm_state, intent_hash, mirror, reqs, voice_corrs, rec_mode, primary_ag, native_sub, protos, out_scope, ambiguities)

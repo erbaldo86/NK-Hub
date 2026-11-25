@@ -1,9 +1,10 @@
-"""Helper di verifica classi/firme, lookup controparte e persistenza JSON atomica."""
+"""Helper di verifica classi/firme, lookup controparte, cache AST e JSON atomico."""
 
 from __future__ import annotations
 
+import ast
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from _internal.ast_guard_validator.models import (
     PROTECTED_SECURITY_ANCHORS,
@@ -14,6 +15,36 @@ from _internal.ast_guard_validator.models import (
 )
 from _internal.nk_common.io import atomic_write_json
 
+try:
+    from _internal.nk_common.repo_snapshot_cache import get_repo_snapshot_cache
+except ImportError:  # pragma: no cover
+    import _internal.nk_common as _nk_common_pkg
+
+    _stg_common_dir = str(Path(__file__).resolve().parent.parent / "nk_common")
+    if hasattr(_nk_common_pkg, "__path__") and _stg_common_dir not in _nk_common_pkg.__path__:
+        _nk_common_pkg.__path__.insert(0, _stg_common_dir)
+    from _internal.nk_common.repo_snapshot_cache import get_repo_snapshot_cache
+
+
+def parse_ast_cached(
+    code: str, filename: str = "<string>"
+) -> Tuple[Optional[ast.AST], Optional[SyntaxError]]:
+    """Esegue il parsing AST tramite RepoSnapshotCache condiviso evitando parse duplicati."""
+    cache = get_repo_snapshot_cache()
+    return cache.parse_source_cached(code, filename=filename)
+
+
+def load_file_ast_cached(
+    file_path: Path,
+) -> Tuple[Optional[ast.AST], Optional[SyntaxError]]:
+    """Legge e parsa un file .py tramite RepoSnapshotCache condiviso."""
+    cache = get_repo_snapshot_cache()
+    try:
+        _, tree, syn_err = cache.get_text_and_ast(file_path)
+        return tree, syn_err
+    except OSError as exc:
+        return None, SyntaxError(str(exc))
+
 
 def verify_classes_impl(
     pre_class_bases: Dict[str, List[str]],
@@ -22,19 +53,11 @@ def verify_classes_impl(
     violations: List[GuardViolation],
     target_file: str = "<target>",
 ) -> None:
-    target_basename = (
-        str(target_file).replace("\\", "/").rsplit("/", 1)[-1].lower()
-        if target_file
-        else ""
-    )
+    """Verifica che classi pubbliche e relative basi non subiscano rimozioni non autorizzate."""
+    del target_file
     for cls_key, pre_bases in pre_class_bases.items():
         short_name = cls_key.split(".")[-1]
         if cls_key in allowed_mutations or short_name in allowed_mutations:
-            continue
-        if (
-            short_name == "SignatureDriftDetector"
-            and target_basename == "ast_guard_validator.py"
-        ):
             continue
         is_dunder = short_name.startswith("__") and short_name.endswith("__")
         is_protected = (
@@ -82,6 +105,7 @@ def verify_signatures_impl(
     allowed_mutations: Set[str],
     violations: List[GuardViolation],
 ) -> None:
+    """Verifica conservazione firme, default, variadici e annotazioni di tipo."""
     for name, pre_sig in pre_sigs.items():
         if name in allowed_mutations or name.split(".")[-1] in allowed_mutations:
             continue

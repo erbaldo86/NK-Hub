@@ -11,6 +11,37 @@ from _internal.ast_guard_validator.models import (
 )
 
 
+def _accessor_role_from_decorators(
+    node: ast.FunctionDef | ast.AsyncFunctionDef,
+) -> str:
+    """Estrae il ruolo accessor (@property, setter, deleter, getter) dai decoratori."""
+    for dec in node.decorator_list:
+        if isinstance(dec, ast.Name) and dec.id == "property":
+            return "property"
+        if isinstance(dec, ast.Attribute) and dec.attr in (
+            "setter",
+            "deleter",
+            "getter",
+        ):
+            return dec.attr
+    return ""
+
+
+def _resolve_signature_key(
+    node: ast.FunctionDef | ast.AsyncFunctionDef,
+    current_class: Optional[str],
+    existing: Dict[str, FunctionSignatureSnapshot],
+) -> str:
+    """Calcola chiave firma disambiguando @property getter, setter e deleter."""
+    base_key = f"{current_class}.{node.name}" if current_class else node.name
+    role = _accessor_role_from_decorators(node)
+    if role in ("setter", "deleter"):
+        return f"{base_key}[{role}]"
+    if role == "getter" and base_key in existing:
+        return f"{base_key}[getter]"
+    return base_key
+
+
 class SignatureCollector(ast.NodeVisitor):
     """Raccoglie firme delle funzioni, classi, basi ereditarie e nomi globali di modulo."""
 
@@ -142,11 +173,7 @@ class SignatureCollector(ast.NodeVisitor):
     ) -> None:
         if self.function_depth > 0:
             return
-        key = (
-            f"{self.current_class}.{node.name}"
-            if self.current_class
-            else node.name
-        )
+        key = _resolve_signature_key(node, self.current_class, self.signatures)
         if self.current_class is None:
             self.defined_globals.add(node.name)
 

@@ -5,13 +5,46 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union
 
 from . import constants as _consts
 from .constants import TwoPhaseCommitError
 from .io_and_paths import _assert_no_external_reparse, _is_reparse_point
+
+
+def _is_skipped_staging_marker(name: str, depth: int) -> bool:
+    """Esclude solo .gitkeep e il manifest radice .deleted_files.json (depth == 0)."""
+    return name == ".gitkeep" or (depth == 0 and name == ".deleted_files.json")
+
+
+def _coerce_finite_pass_rate(raw_pr: Any) -> float:
+    """Converte il pass rate in float finito rifiutando bool, None e NaN/Inf."""
+    if isinstance(raw_pr, bool) or raw_pr is None:
+        raise TwoPhaseCommitError(f"Pass rate baseline non valido: {raw_pr!r}")
+    pr_val = float(raw_pr)
+    if not math.isfinite(pr_val):
+        raise TwoPhaseCommitError(f"Pass rate baseline non finito: {raw_pr!r}")
+    return pr_val
+
+
+def _parse_baseline_pass_rate(
+    candidate_metrics: Dict[str, Any], data: Dict[str, Any]
+) -> Optional[float]:
+    """Estrae e convalida il pass rate da metriche o chiavi root legacy."""
+    for key in ("unit_tests_pass_pct", "pass_rate_pct"):
+        if key in candidate_metrics:
+            pr_val = _coerce_finite_pass_rate(candidate_metrics[key])
+            candidate_metrics["unit_tests_pass_pct"] = pr_val
+            return pr_val
+    raw_root = data.get("pass_rate_pct") if data.get("pass_rate_pct") is not None else data.get("pass_rate")
+    if raw_root is None:
+        return None
+    pr_val = _coerce_finite_pass_rate(raw_root)
+    candidate_metrics["unit_tests_pass_pct"] = pr_val
+    return pr_val
 
 
 def _extract_dual_schema_baseline(
@@ -25,15 +58,7 @@ def _extract_dual_schema_baseline(
         k: (v.get("value") if isinstance(v, dict) else v)
         for k, v in raw_metrics.items()
     }
-    pass_rate: Optional[float] = None
-    if "unit_tests_pass_pct" in candidate_metrics:
-        pass_rate = float(candidate_metrics["unit_tests_pass_pct"])
-    elif data.get("pass_rate_pct") is not None:
-        pass_rate = float(data["pass_rate_pct"])
-        candidate_metrics["unit_tests_pass_pct"] = pass_rate
-    elif data.get("pass_rate") is not None:
-        pass_rate = float(data["pass_rate"])
-        candidate_metrics["unit_tests_pass_pct"] = pass_rate
+    pass_rate = _parse_baseline_pass_rate(candidate_metrics, data)
 
     total_tests = 0
     if "unit_tests_total" in candidate_metrics:
@@ -56,6 +81,61 @@ def _extract_dual_schema_baseline(
     return candidate_metrics, pass_rate, total_tests
 
 
+def _resolve_oracle_lock_candidate_paths(raw_path: Path) -> List[Path]:
+    """Risolve il percorso quality_baseline e l'eventuale equivalente fuori da .staging/."""
+    resolved = raw_path.resolve()
+    candidates = [resolved]
+    parts = resolved.parts
+    for idx in range(len(parts) - 1, -1, -1):
+        if parts[idx] == ".staging":
+            rel_parts = parts[idx + 1 :]
+            if rel_parts:
+                candidates.append(Path(*parts[:idx], *rel_parts).resolve())
+            break
+    return candidates
+
+
+def _assert_oracle_lock_coherent(
+    verify_lock_fn: Any,
+    raw_paths: Sequence[Optional[Path]],
+) -> None:
+    """Verifica la coerenza di oracle_lock anche su baseline dict, v1 o in staging."""
+    seen: Set[Path] = set()
+    for raw_p in raw_paths:
+        if raw_p is None:
+            continue
+        for cand in _resolve_oracle_lock_candidate_paths(raw_p):
+            if cand in seen:
+                continue
+            seen.add(cand)
+            lock_anomalies = verify_lock_fn(str(cand))
+            if lock_anomalies:
+                raise TwoPhaseCommitError(
+                    f"Regressione rilevata nel quality_baseline: {lock_anomalies}"
+                )
+
+
+def _verify_dict_baseline_ratchet(
+    dst_bl: Dict[str, Any],
+    stg_bl: Optional[Union[str, Path, Dict[str, Any]]],
+    verify_lock_fn: Any,
+) -> Dict[str, Any]:
+    """Valida una baseline passata come dizionario verificando eventuale oracle_lock associato."""
+    cand_metrics, pass_rate, total_tests = _extract_dual_schema_baseline(dst_bl)
+    if not cand_metrics or pass_rate is None:
+        raise TwoPhaseCommitError("Metriche assenti o invalide nel quality_baseline.")
+    if pass_rate < 100.0:
+        raise TwoPhaseCommitError(f"Pass rate inferiore al 100.0% nel quality_baseline: {pass_rate}%")
+    dict_paths: List[Optional[Path]] = [Path(stg_bl) if isinstance(stg_bl, (str, Path)) else None]
+    for meta_obj in (dst_bl, stg_bl if isinstance(stg_bl, dict) else None):
+        if isinstance(meta_obj, dict):
+            ws_raw = meta_obj.get("workspace_root") or meta_obj.get("repo_root")
+            if isinstance(ws_raw, str) and ws_raw.strip():
+                dict_paths.append(Path(ws_raw.strip()) / "nk_tracking" / "quality_baseline.json")
+    _assert_oracle_lock_coherent(verify_lock_fn, dict_paths)
+    return {"verdict": "PASS", "pass_rate_pct": pass_rate, "total_tests": total_tests, "metrics": cand_metrics}
+
+
 def _verify_quality_baseline_ratchet(
     dst_bl: Union[str, Path, Dict[str, Any]],
     stg_bl: Optional[Union[str, Path, Dict[str, Any]]] = None,
@@ -69,21 +149,7 @@ def _verify_quality_baseline_ratchet(
     )
 
     if isinstance(dst_bl, dict):
-        cand_metrics, pass_rate, total_tests = _extract_dual_schema_baseline(dst_bl)
-        if not cand_metrics or pass_rate is None:
-            raise TwoPhaseCommitError(
-                "Metriche assenti o invalide nel quality_baseline."
-            )
-        if pass_rate < 100.0:
-            raise TwoPhaseCommitError(
-                f"Pass rate inferiore al 100.0% nel quality_baseline: {pass_rate}%"
-            )
-        return {
-            "verdict": "PASS",
-            "pass_rate_pct": pass_rate,
-            "total_tests": total_tests,
-            "metrics": cand_metrics,
-        }
+        return _verify_dict_baseline_ratchet(dst_bl, stg_bl, _verify_oracle_lock_coherence)
 
     dst_path = Path(dst_bl)
     stg_path = Path(stg_bl) if isinstance(stg_bl, (str, Path)) else None
@@ -106,11 +172,15 @@ def _verify_quality_baseline_ratchet(
             raise TwoPhaseCommitError(
                 f"Metriche assenti o invalide nel quality_baseline di staging: {stg_path}"
             )
-        if stg_pass is not None and stg_pass < 100.0:
+        if stg_pass is None or not math.isfinite(stg_pass):
+            raise TwoPhaseCommitError(
+                f"Pass rate assente o non valido nel quality_baseline di staging: {stg_path}"
+            )
+        if stg_pass < 100.0:
             raise TwoPhaseCommitError(
                 f"Pass rate di staging inferiore al 100.0%: {stg_pass}%"
             )
-        if dst_pass is not None and stg_pass is not None and stg_pass < dst_pass:
+        if dst_pass is not None and stg_pass < dst_pass:
             raise TwoPhaseCommitError(
                 f"Regressione pass rate nel quality_baseline: {dst_pass}% -> {stg_pass}%"
             )
@@ -129,9 +199,10 @@ def _verify_quality_baseline_ratchet(
                 raise TwoPhaseCommitError(
                     f"Regressione rilevata nel quality_baseline di staging: {res_bl.get('regressions')}"
                 )
+        _assert_oracle_lock_coherent(_verify_oracle_lock_coherence, [dst_path, stg_path])
         return {
             "verdict": "PASS",
-            "pass_rate_pct": stg_pass if stg_pass is not None else 100.0,
+            "pass_rate_pct": stg_pass,
             "total_tests": stg_tot,
             "metrics": stg_metrics,
         }
@@ -147,19 +218,18 @@ def _verify_quality_baseline_ratchet(
         raise TwoPhaseCommitError(
             f"Metriche assenti o invalide nel quality_baseline: {active_bl}"
         )
-    if pass_rate is not None and pass_rate < 100.0:
+    if pass_rate is None or not math.isfinite(pass_rate):
+        raise TwoPhaseCommitError(
+            f"Pass rate assente o non valido nel quality_baseline: {active_bl}"
+        )
+    if pass_rate < 100.0:
         raise TwoPhaseCommitError(
             f"Regressione rilevata nel quality_baseline ({active_bl}): pass_rate={pass_rate}%"
         )
-    if isinstance(bl_data.get("metrics"), dict) and bl_data.get("metrics"):
-        lock_anomalies = _verify_oracle_lock_coherence(str(active_bl))
-        if lock_anomalies:
-            raise TwoPhaseCommitError(
-                f"Regressione rilevata nel quality_baseline: {lock_anomalies}"
-            )
+    _assert_oracle_lock_coherent(_verify_oracle_lock_coherence, [active_bl, dst_path, stg_path])
     return {
         "verdict": "PASS",
-        "pass_rate_pct": pass_rate if pass_rate is not None else 100.0,
+        "pass_rate_pct": pass_rate,
         "total_tests": total_tests,
         "metrics": cand_metrics,
     }
@@ -242,7 +312,7 @@ def _scan_staging_canonical(
                     continue
                 _walk_dir(entry_path, depth + 1)
             elif is_file:
-                if name in (".gitkeep", ".deleted_files.json"):
+                if _is_skipped_staging_marker(name, depth):
                     continue
                 if Path(name).suffix.lower() in _consts.IGNORED_STAGING_SUFFIXES:
                     continue

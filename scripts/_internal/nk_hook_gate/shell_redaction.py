@@ -34,11 +34,13 @@ def _scan_quotes_clean(text: str, allow_backslash_escape: bool) -> bool:
     while idx < n:
         ch = text[idx]
         if in_q:
+            # In single-quote PowerShell/POSIX il backslash resta letterale e non esegue escape.
             if (
                 allow_backslash_escape
+                and in_q == '"'
                 and ch == "\\"
                 and idx + 1 < n
-                and text[idx + 1] in (in_q, "\\")
+                and text[idx + 1] in ('"', "\\")
             ):
                 idx += 2
                 continue
@@ -50,7 +52,7 @@ def _scan_quotes_clean(text: str, allow_backslash_escape: bool) -> bool:
             in_q = ch
             idx += 1
             continue
-        if ch in (";", "|", "&", "<", ">", "`", "\n", "\r"):
+        if ch in (";", "|", "&", "<", ">", "`", "\n", "\r", "(", ")", "{", "}"):
             return False
         if ch == "$" and idx + 1 < n and text[idx + 1] in ("(", "{"):
             return False
@@ -152,7 +154,7 @@ def _redact_safe_si_literals(raw_cmd: str, cand_s: str) -> str:
 
 
 def _mask_balanced_prompt_payloads(raw_cmd: str, cand_s: str) -> str:
-    """Maschera payload testuali quotati e bilanciati di flag prompt su scripts/*.py prima del solo word-check."""
+    """Maschera payload testuali quotati e bilanciati di flag prompt su scripts/*.py prima dei word-check."""
     if not raw_cmd or not cand_s:
         return cand_s
     for text in (raw_cmd, cand_s):
@@ -183,10 +185,14 @@ def _mask_balanced_prompt_payloads(raw_cmd: str, cand_s: str) -> str:
         ch = cand_s[idx]
         if in_q:
             if (
-                ch == "\\"
+                in_q == '"'
+                and ch == "\\"
                 and idx + 1 < n
-                and cand_s[idx + 1] in (in_q, "\\")
+                and cand_s[idx + 1] in ('"', "\\")
             ):
+                idx += 2
+                continue
+            if in_q == "'" and ch == "'" and idx + 1 < n and cand_s[idx + 1] == "'":
                 idx += 2
                 continue
             if ch == in_q:
@@ -205,18 +211,28 @@ def _mask_balanced_prompt_payloads(raw_cmd: str, cand_s: str) -> str:
                     while j < n:
                         c2 = cand_s[j]
                         if (
-                            c2 == "\\"
+                            q_char == '"'
+                            and c2 == "\\"
                             and j + 1 < n
-                            and cand_s[j + 1] in (q_char, "\\")
+                            and cand_s[j + 1] in ('"', "\\")
                         ):
                             j += 2
                             continue
                         if c2 == q_char:
+                            if q_char == "'" and j + 1 < n and cand_s[j + 1] == "'":
+                                j += 2
+                                continue
                             j += 1
                             closed = True
                             break
                         j += 1
                     if closed and (j == n or cand_s[j].isspace()):
+                        raw_span = cand_s[q_start:j]
+                        if q_char == '"' and '\\"' in raw_span and any(
+                            op in raw_span
+                            for op in ("(", ")", ";", "|", "&", "<", ">", "`", "$", "{", "}")
+                        ):
+                            return cand_s
                         spans.append((q_start, j))
                         idx = j
                         continue

@@ -1,12 +1,19 @@
-"""Canonicalizzazione percorsi, blocco NTFS ADS/reparse e whitelist staging."""
+"""Canonicalizzazione percorsi, blocco NTFS ADS/reparse, Online lock e whitelist staging."""
 
 from __future__ import annotations
 
 import os
 import re
 from pathlib import Path
-from typing import List
+from typing import Any, Dict, List
 
+from _internal.nk_common.paths import (
+    cmd_mentions_external_project,
+    cmd_mentions_nk_proget_online,
+    is_external_projects_staging_path,
+    is_nk_proget_locale_path,
+    is_nk_proget_online_path,
+)
 from _internal.nk_hook_gate.constants import (
     _PROD_DIR_PREFIXES,
     _SAFE_DIR_COMPONENTS,
@@ -22,6 +29,20 @@ _PS_ENV_PREFIX_RE = re.compile(
     r"^(?:\$env:[A-Za-z0-9_]+|\$\{env:[^}:/\\]+\})(?=$|[/\\])",
     re.IGNORECASE,
 )
+
+_is_nk_proget_online_target = is_nk_proget_online_path
+_is_nk_proget_locale_target = is_nk_proget_locale_path
+_cmd_mentions_nk_proget_online = cmd_mentions_nk_proget_online
+_cmd_mentions_external_project = cmd_mentions_external_project
+
+
+def _deny_online_readonly() -> Dict[str, Any]:
+    """Restituisce il verdetto di blocco fail-closed per target o comandi in NK Proget/Online/."""
+    return {
+        "decision": "deny",
+        "reason_code": "NK_PROGET_ONLINE_READONLY",
+        "reason": "Direct write, mutation, or staging inside NK Proget/Online/ is forbidden (read-only production release mirror).",
+    }
 
 
 def _is_safe_temp_marker_path(norm_low: str) -> bool:
@@ -80,13 +101,14 @@ def _resolve_effective_hub_root(project_root: Path) -> Path:
     """Risolve la sottocartella NK_Hub quando project_root punta alla cartella padre."""
     root = _canonical_path(project_root)
     nk_hub_sub = root / "NK_Hub"
-    if not (root / "nk_tracking").exists() and nk_hub_sub.is_dir():
-        if (
-            (nk_hub_sub / "nk_tracking").exists()
-            or (nk_hub_sub / ".staging").exists()
-            or (nk_hub_sub / "scripts").exists()
-        ):
-            return _canonical_path(nk_hub_sub)
+    if nk_hub_sub.is_dir() and (
+        (not (root / "scripts").is_dir() and (nk_hub_sub / "scripts").is_dir())
+        or (
+            not (root / "nk_tracking").exists()
+            and ((nk_hub_sub / "nk_tracking").exists() or (nk_hub_sub / ".staging").exists() or (nk_hub_sub / "scripts").exists())
+        )
+    ):
+        return _canonical_path(nk_hub_sub)
     return root
 
 
@@ -169,8 +191,10 @@ def _resolve_target_path(target_str: str, project_root: Path) -> Path:
 
 
 def _is_valid_staging_path(cand: Path, project_root: Path) -> bool:
-    """Verifica che il percorso canonico risieda realmente sotto la cartella .staging della root."""
+    """Verifica che il percorso canonico risieda realmente sotto .staging/ di Hub, bridge o Locale."""
     cand_res = _canonical_path(cand)
+    if is_nk_proget_online_path(cand_res):
+        return False
     root_res = _canonical_path(project_root)
     hub_res = _resolve_effective_hub_root(root_res)
     ws_res = _canonical_path(_WORKSPACE_ROOT)
@@ -189,24 +213,24 @@ def _is_valid_staging_path(cand: Path, project_root: Path) -> bool:
                 parent_bridge_dir.parent,
             ):
                 return True
-    parts_low = [p.lower().rstrip(". ") for p in cand_res.parts]
-    if "nk_external_projects" in parts_low:
-        idx = parts_low.index("nk_external_projects")
-        if len(parts_low) > idx + 2 and parts_low[idx + 2] == ".staging":
-            return True
-    return False
+    return is_external_projects_staging_path(cand_res)
+
+
+def _has_forbidden_redir_prefix(cleaned: str, raw_target: str, low: str) -> bool:
+    """Verifica blocchi preliminari su target di redirezione (vuoto, backtick, ADS, .., .wal, Online)."""
+    if not cleaned or cleaned == "__empty_redirect__" or "`" in raw_target:
+        return True
+    if _has_ntfs_ads_stream(cleaned) or ".." in low or ".wal" in low:
+        return True
+    return cmd_mentions_nk_proget_online(low)
 
 
 def _is_safe_redirection_target(raw_target: str, project_root: Path) -> bool:
     """Verifica se una destinazione di redirezione o output punta a un path temporaneo, nullo o staged sicuro."""
     cleaned = _strip_wrapping_quotes(raw_target)
-    if not cleaned or cleaned == "__empty_redirect__" or "`" in raw_target:
-        return False
-    if _has_ntfs_ads_stream(cleaned):
-        return False
     norm = cleaned.replace("\\", "/")
     low = norm.lower()
-    if ".." in low or ".wal" in low:
+    if _has_forbidden_redir_prefix(cleaned, raw_target, low):
         return False
     if low in ("nul", "/dev/null", "$null"):
         return True
@@ -225,6 +249,8 @@ def _is_safe_redirection_target(raw_target: str, project_root: Path) -> bool:
     if _has_ancestor_reparse_escape(cleaned, project_root):
         return False
     cand = _resolve_target_path(cleaned, project_root)
+    if is_nk_proget_online_path(cand):
+        return False
     if _is_valid_staging_path(cand, project_root):
         return True
     eff_root = _resolve_effective_hub_root(project_root)
@@ -255,12 +281,17 @@ def _is_safe_redirection_target(raw_target: str, project_root: Path) -> bool:
     return False
 
 
+def _is_unsafe_staged_token(tok: str) -> bool:
+    """Identifica token .staging/ non sanitizzabili (traversal, .wal o Online)."""
+    return ".." in tok or ".wal" in tok or cmd_mentions_nk_proget_online(tok)
+
+
 def _sanitize_staged_tokens_in_cmd(cmd_low: str) -> str:
     """Rimuove dal comando shell i soli token che puntano legittimamente a .staging/ o %TEMP%."""
 
     def _repl(match: re.Match[str]) -> str:
         tok = match.group(0)
-        if ".." in tok or ".wal" in tok:
+        if _is_unsafe_staged_token(tok):
             return tok
         prefix = tok.split(".staging/", 1)[0]
         if any(bad in prefix for bad in _PROD_DIR_PREFIXES):
@@ -299,9 +330,23 @@ def _sanitize_staged_tokens_in_cmd(cmd_low: str) -> str:
     return sanitized
 
 
+def _is_non_workspace_whitelisted(cand: Path, cand_norm_posix: str) -> bool:
+    """Verifica whitelist per artefatti brain/ o tempdir fuori dai confini workspace."""
+    if is_nk_proget_locale_path(cand):
+        return False
+    if ".gemini/antigravity/brain/" in cand_norm_posix:
+        return True
+    import tempfile
+
+    temp_root = _canonical_path(tempfile.gettempdir())
+    return cand == temp_root or temp_root in cand.parents
+
+
 def _is_whitelisted_outside_staging(cand: Path, project_root: Path) -> bool:
     """Verifica se un target fuori da .staging/ appartiene alla whitelist esplicita e sicura."""
     cand = _canonical_path(cand)
+    if is_nk_proget_online_path(cand):
+        return False
     cand_norm_posix = cand.as_posix().lower()
     ws_root = _canonical_path(_WORKSPACE_ROOT)
     eff_root = _resolve_effective_hub_root(project_root)
@@ -312,12 +357,7 @@ def _is_whitelisted_outside_staging(cand: Path, project_root: Path) -> bool:
     in_ws = cand == ws_root or ws_root in cand.parents
 
     if not in_proj and not in_eff and not in_ws:
-        if ".gemini/antigravity/brain/" in cand_norm_posix:
-            return True
-        import tempfile
-
-        temp_root = _canonical_path(tempfile.gettempdir())
-        if cand == temp_root or temp_root in cand.parents:
+        if _is_non_workspace_whitelisted(cand, cand_norm_posix):
             return True
 
     for base_r in (eff_root, proj_canon, ws_root):

@@ -4,16 +4,22 @@
 
 from __future__ import annotations
 
-import json
 import os
-import sys
 import tempfile
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from . import constants as _consts
-from .constants import TwoPhaseCommitError, compute_sha256
+from _internal.nk_common.paths import is_nk_proget_online_path
+from _internal.nk_common.tas_ssot_io import parse_deleted_files_manifest
+
+from .constants import (
+    TwoPhaseCommitError,
+    compute_sha256,
+    is_protected_governance_path,
+    validate_override_reason,  # noqa: F401
+)
+from .governance_auth import authorize_governance_override
 from .io_and_paths import (
     _assert_no_external_reparse,
     _extract_patch_notes_headers,
@@ -26,6 +32,10 @@ from .io_and_paths import (
     get_repo_batch_mutex_name,
 )
 from .mutex import Win32NamedMutex
+from .tensor_session_guard import (
+    assert_no_active_tensor_session_for_quarantine,
+    run_git_sync,  # noqa: F401
+)
 
 
 def quarantine_staging(
@@ -47,6 +57,7 @@ def quarantine_staging(
         timeout_ms=10000,
         is_path=False,
     ):
+        assert_no_active_tensor_session_for_quarantine(root)
         if not staging_dir.exists():
             staging_dir.mkdir(parents=True, exist_ok=True)
             (staging_dir / ".gitkeep").write_text("", encoding="utf-8")
@@ -104,26 +115,63 @@ def quarantine_staging(
     }
 
 
+def _enforce_deletion_governance(
+    rel_del: str,
+    clean_rel_del: str,
+    rel_del_norm: str,
+    del_target: Path,
+    allow_governance_override: bool,
+    governance_override_reason: Optional[str],
+    overridden_out: Optional[List[str]],
+    governance_token: Optional[str] = None,
+    staging_manifest_sha256: Optional[str] = None,
+) -> None:
+    del_name_low = Path(rel_del_norm).name.lower()
+    is_protected = (
+        is_protected_governance_path(rel_del_norm)
+        or rel_del_norm == "nk_tracking/quality_baseline.json"
+        or (
+            del_name_low.startswith("checkpoint_")
+            and del_name_low.endswith(".json")
+            and _win_long_path(del_target).exists()
+        )
+        or (
+            rel_del_norm in ("patch_notes.md", "nk_genome/patch_notes.md")
+            and _win_long_path(del_target).exists()
+        )
+    )
+    if not is_protected:
+        return
+    if not allow_governance_override:
+        raise TwoPhaseCommitError(
+            f"Cancellazione bloccata per file di governance protetto ({rel_del}): "
+            "richiesto --allow-governance-override ([RULE-ORACLE-LOCK])."
+        )
+    authorize_governance_override(
+        governance_override_reason,
+        governance_token,
+        rel_del,
+        staging_manifest_sha256=staging_manifest_sha256,
+    )
+    if overridden_out is not None:
+        overridden_out.append(f"delete:{clean_rel_del}")
+
+
 def collect_validated_deletions(
     deleted_manifest: Path,
     root: Path,
     real_root: Path,
     allow_governance_override: bool,
+    governance_override_reason: Optional[str] = None,
+    overridden_out: Optional[List[str]] = None,
+    governance_token: Optional[str] = None,
+    staging_manifest_sha256: Optional[str] = None,
 ) -> List[Tuple[str, Path]]:
-    """Valida il manifest .deleted_files.json contro denylist e reparse esterni."""
-    deleted_rel_paths: List[str] = []
-    if deleted_manifest.exists() and deleted_manifest.is_file():
-        raw_del = json.loads(deleted_manifest.read_text(encoding="utf-8-sig"))
-        if isinstance(raw_del, list):
-            deleted_rel_paths = [str(x) for x in raw_del if str(x).strip()]
-        elif isinstance(raw_del, dict) and isinstance(raw_del.get("deleted_files"), list):
-            deleted_rel_paths = [
-                str(x) for x in raw_del["deleted_files"] if str(x).strip()
-            ]
-        else:
-            raise TwoPhaseCommitError(
-                "Formato invalido per .deleted_files.json: attesa lista o chiave 'deleted_files'."
-            )
+    """Valida il manifest .deleted_files.json contro denylist, Online read-only e reparse esterni."""
+    try:
+        deleted_rel_paths = parse_deleted_files_manifest(deleted_manifest)
+    except ValueError as exc:
+        raise TwoPhaseCommitError(str(exc)) from exc
 
     validated_deletions: List[Tuple[str, Path]] = []
     for rel_del in deleted_rel_paths:
@@ -132,31 +180,88 @@ def collect_validated_deletions(
         del_target = (root / clean_rel_del).resolve()
         _assert_no_external_reparse(del_target, real_root, stop_at=root)
         real_del_target = Path(os.path.realpath(str(del_target)))
+        if is_nk_proget_online_path(del_target) or is_nk_proget_online_path(real_del_target):
+            raise TwoPhaseCommitError(
+                f"[NK_PROGET_ONLINE_READONLY] Cancellazione 2PC vietata sul mirror read-only: {rel_del}"
+            )
         if real_del_target == real_root or real_root not in real_del_target.parents:
             raise TwoPhaseCommitError(
                 f"Percorso di cancellazione fuori dalla root del repository: {rel_del}"
             )
-        del_name_low = Path(rel_del_norm).name.lower()
-        is_protected_cp = (
-            del_name_low.startswith("checkpoint_")
-            and del_name_low.endswith(".json")
-            and _win_long_path(del_target).exists()
+        _enforce_deletion_governance(
+            rel_del,
+            clean_rel_del,
+            rel_del_norm,
+            del_target,
+            allow_governance_override,
+            governance_override_reason,
+            overridden_out,
+            governance_token=governance_token,
+            staging_manifest_sha256=staging_manifest_sha256,
         )
-        is_protected_pn = (
-            rel_del_norm in ("patch_notes.md", "nk_genome/patch_notes.md")
-            and _win_long_path(del_target).exists()
-        )
-        if not allow_governance_override and (
-            rel_del_norm in _consts.PROTECTED_GOVERNANCE_DENYLIST
-            or del_name_low == "oracle_lock.json"
-            or is_protected_cp
-            or is_protected_pn
-        ):
-            raise TwoPhaseCommitError(
-                f"Cancellazione bloccata per file di governance protetto ({rel_del}): richiesto --allow-governance-override ([RULE-ORACLE-LOCK])."
-            )
         validated_deletions.append((clean_rel_del, del_target))
     return validated_deletions
+
+
+def _enforce_staged_payload_governance(
+    rel_path: Path,
+    clean_rel: str,
+    rel_norm: str,
+    prod_file: Path,
+    stg_bytes: bytes,
+    allow_governance_override: bool,
+    governance_override_reason: Optional[str],
+    overridden_out: Optional[List[str]],
+    governance_token: Optional[str] = None,
+    staging_manifest_sha256: Optional[str] = None,
+) -> None:
+    rel_name_low = Path(rel_norm).name.lower()
+    is_protected_cp = (
+        rel_name_low.startswith("checkpoint_")
+        and rel_name_low.endswith(".json")
+        and _win_long_path(prod_file).exists()
+    )
+    if is_protected_governance_path(rel_norm) or is_protected_cp:
+        if not allow_governance_override:
+            raise TwoPhaseCommitError(
+                f"Promozione bloccata per file di governance protetto ({rel_path.as_posix()}): "
+                "richiesto --allow-governance-override ([RULE-ORACLE-LOCK])."
+            )
+        authorize_governance_override(
+            governance_override_reason,
+            governance_token,
+            clean_rel,
+            staging_manifest_sha256=staging_manifest_sha256,
+        )
+        if overridden_out is not None:
+            overridden_out.append(f"promote:{clean_rel}")
+
+    if (
+        rel_norm in ("patch_notes.md", "nk_genome/patch_notes.md")
+        and _win_long_path(prod_file).exists()
+        and _win_long_path(prod_file).is_file()
+    ):
+        prod_txt = _win_long_path(prod_file).read_bytes().decode(
+            "utf-8-sig", errors="replace"
+        )
+        stg_txt = stg_bytes.decode("utf-8-sig", errors="replace")
+        prod_headers = _extract_patch_notes_headers(prod_txt)
+        stg_headers = set(_extract_patch_notes_headers(stg_txt))
+        missing_headers = [h for h in prod_headers if h not in stg_headers]
+        if missing_headers:
+            if not allow_governance_override:
+                raise TwoPhaseCommitError(
+                    f"Promozione bloccata per {rel_path.as_posix()}: header storici ## [...] "
+                    f"rimossi ({missing_headers[0]}); richiesto --allow-governance-override."
+                )
+            authorize_governance_override(
+                governance_override_reason,
+                governance_token,
+                clean_rel,
+                staging_manifest_sha256=staging_manifest_sha256,
+            )
+            if overridden_out is not None:
+                overridden_out.append(f"patch_notes_rewrite:{clean_rel}")
 
 
 def collect_staged_payloads(
@@ -165,8 +270,12 @@ def collect_staged_payloads(
     root: Path,
     real_root: Path,
     allow_governance_override: bool,
+    governance_override_reason: Optional[str] = None,
+    overridden_out: Optional[List[str]] = None,
+    governance_token: Optional[str] = None,
+    staging_manifest_sha256: Optional[str] = None,
 ) -> List[Tuple[Path, Path, Path, bytes, str]]:
-    """Valida e carica in memoria tutti i payload di staging verificando lock e PATCH_NOTES."""
+    """Valida e carica in memoria i payload di staging verificando governance lock, Online e PATCH_NOTES."""
     staged_payloads: List[Tuple[Path, Path, Path, bytes, str]] = []
     for stg_file in staging_files:
         rel_path = stg_file.relative_to(staging_dir)
@@ -175,84 +284,27 @@ def collect_staged_payloads(
         prod_file = (root / clean_rel).resolve()
         _assert_no_external_reparse(prod_file, real_root, stop_at=root)
         real_prod = Path(os.path.realpath(str(prod_file)))
+        if is_nk_proget_online_path(prod_file) or is_nk_proget_online_path(real_prod):
+            raise TwoPhaseCommitError(
+                f"[NK_PROGET_ONLINE_READONLY] Promozione 2PC vietata sul mirror read-only: {rel_path}"
+            )
         if real_prod == real_root or real_root not in real_prod.parents:
             raise TwoPhaseCommitError(
                 f"Percorso di promozione fuori dalla root del repository: {rel_path}"
             )
-        rel_name_low = Path(rel_norm).name.lower()
-        is_protected_cp = (
-            rel_name_low.startswith("checkpoint_")
-            and rel_name_low.endswith(".json")
-            and _win_long_path(prod_file).exists()
-        )
-        if not allow_governance_override and (
-            rel_norm in _consts.PROTECTED_GOVERNANCE_DENYLIST
-            or rel_name_low == "oracle_lock.json"
-            or is_protected_cp
-        ):
-            raise TwoPhaseCommitError(
-                f"Promozione bloccata per file di governance protetto ({rel_path.as_posix()}): richiesto --allow-governance-override ([RULE-ORACLE-LOCK])."
-            )
         stg_bytes = _win_long_path(stg_file).read_bytes()
-        if (
-            not allow_governance_override
-            and rel_norm in ("patch_notes.md", "nk_genome/patch_notes.md")
-            and _win_long_path(prod_file).exists()
-            and _win_long_path(prod_file).is_file()
-        ):
-            prod_txt = _win_long_path(prod_file).read_bytes().decode(
-                "utf-8-sig", errors="replace"
-            )
-            stg_txt = stg_bytes.decode("utf-8-sig", errors="replace")
-            prod_headers = _extract_patch_notes_headers(prod_txt)
-            stg_headers = set(_extract_patch_notes_headers(stg_txt))
-            missing_headers = [h for h in prod_headers if h not in stg_headers]
-            if missing_headers:
-                raise TwoPhaseCommitError(
-                    f"Promozione bloccata per {rel_path.as_posix()}: header storici ## [...] rimossi ({missing_headers[0]}); richiesto --allow-governance-override."
-                )
+        _enforce_staged_payload_governance(
+            rel_path,
+            clean_rel,
+            rel_norm,
+            prod_file,
+            stg_bytes,
+            allow_governance_override,
+            governance_override_reason,
+            overridden_out,
+            governance_token=governance_token,
+            staging_manifest_sha256=staging_manifest_sha256,
+        )
         stg_sha = compute_sha256(stg_bytes)
         staged_payloads.append((stg_file, rel_path, prod_file, stg_bytes, stg_sha))
     return staged_payloads
-
-
-def run_git_sync(
-    root: Path, committed: List[Dict[str, Any]], deleted: List[str]
-) -> bool:
-    """Esegue git add e git rm --cached fuori dal mutex batch se git e nel PATH."""
-    import shutil
-    import subprocess
-
-    git_exe = shutil.which("git")
-    if not git_exe:
-        print(
-            "[WARN] Eseguibile 'git' non trovato nel PATH; sincronizzazione Git saltata.",
-            file=sys.stderr,
-        )
-        return False
-    try:
-        files_to_sync: List[str] = [c["relative_path"] for c in committed]
-        if files_to_sync:
-            proc_git = subprocess.run(
-                [git_exe, "add", "--"] + files_to_sync,
-                cwd=str(root),
-                capture_output=True,
-                text=True,
-                check=False,
-                timeout=15.0,
-            )
-            ok = proc_git.returncode == 0
-        else:
-            ok = True
-        if deleted:
-            subprocess.run(
-                [git_exe, "rm", "--cached", "--ignore-unmatch", "--"] + deleted,
-                cwd=str(root),
-                capture_output=True,
-                text=True,
-                check=False,
-                timeout=15.0,
-            )
-        return ok
-    except Exception:
-        return False

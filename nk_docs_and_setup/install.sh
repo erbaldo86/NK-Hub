@@ -10,7 +10,7 @@ if [ -n "${1:-}" ]; then
 fi
 REQ_PROFILE="$(printf '%s' "${NK_MODEL_PROFILE:-generation}" | tr '[:upper:]' '[:lower:]')"
 case "$REQ_PROFILE" in
-    generation|carbon|argon|standard) export NK_MODEL_PROFILE="$REQ_PROFILE" ;;
+    generation|carbon|neon|pro|flash|argon|standard) export NK_MODEL_PROFILE="$REQ_PROFILE" ;;
     *) export NK_MODEL_PROFILE="generation" ;;
 esac
 
@@ -34,7 +34,7 @@ fi
 
 echo "========================================================="
 echo "Inizializzazione NK Hub Generation (v1.0.0-Generation)"
-echo "Profilo: NK_MODEL_PROFILE=$NK_MODEL_PROFILE (supporta generation, carbon)"
+echo "Profilo: NK_MODEL_PROFILE=$NK_MODEL_PROFILE (supporta generation|carbon|neon|pro|flash|argon|standard; default generation, fallback carbon)"
 echo "========================================================="
 
 mkdir -p "../.agents"
@@ -56,7 +56,7 @@ if [ -f "nk_docs_and_setup/root_bridge_AGENTS.md" ]; then
 fi
 
 if [ -d ".agents" ]; then
-    echo "[OK] Cartella .agents/ rilevata (6 Sub-Agenti Nativi, 11 Skill Playbook, 34 file scripts/, 37 Moduli Indicizzati, NK_MODEL_PROFILE=$NK_MODEL_PROFILE)."
+    echo "[OK] Cartella .agents/ rilevata (6 Sub-Agenti Nativi, 11 Skill Playbook, facciate CLI scripts/, sottopacchetti _internal/, 7 shard DOM-00..06, NK_MODEL_PROFILE=$NK_MODEL_PROFILE)."
 fi
 
 PY_CMD="python"

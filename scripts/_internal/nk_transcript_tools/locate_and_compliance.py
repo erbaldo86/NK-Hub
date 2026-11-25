@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Sequence, Tuple
 
@@ -18,7 +19,6 @@ from _internal.nk_transcript_tools.constants import (
     _WRITE_CMD_RE,
     _get_runtime_temp_markers,
     _has_missing_path_error,
-    _pop_correlated_tool_call,
     classify_transcript_record,
     clean_tool_path,
     clean_tool_str,
@@ -31,8 +31,34 @@ from _internal.nk_transcript_tools.locate_helper import (
     is_subagent_transcript_file,
     load_transcript_records,
     locate_transcript,
+    parse_transcript_events,
 )
 from _internal.nk_transcript_tools.prompt_and_ste100 import verify_ste100_compliance
+
+_ONLINE_TARGET_RE = re.compile(r"(?:^|[\s\"'=/(])nk\s+proget/+online(?:$|[\s\"'/,;)\]])")
+_LOCALE_TARGET_RE = re.compile(r"(?:^|[\s\"'=/(])nk\s+proget/+locale(?:/|$|[\s\"',;)\]])")
+_ONLINE_FORCE_TOOLS = ("win32_2pc_engine", "external_project_scaffolder")
+_ONLINE_GIT_MUTATE_RE = re.compile(r"\bgit\s+(?:add|commit|push|reset|checkout|clean)\b")
+
+
+def _is_unstage_file_write_target(tf: str, safe_write_markers: Sequence[str]) -> bool:
+    """Verifica se un target file viola .staging/ o punta al mirror NK Proget/Online."""
+    if _ONLINE_TARGET_RE.search(tf):
+        return True
+    return bool(tf) and not any(m in tf for m in safe_write_markers)
+
+
+def _is_unstage_external_cmd_write(cmd: str) -> bool:
+    """Rileva comandi CLI mutanti verso NK Proget/Online, Locale o NK_External_Projects."""
+    cmd_low = cmd.replace("\\", "/").lower()
+    if _ONLINE_TARGET_RE.search(cmd_low):
+        if any(tok in cmd_low for tok in _ONLINE_FORCE_TOOLS) or _ONLINE_GIT_MUTATE_RE.search(cmd_low):
+            return True
+        return not any(ro in cmd_low for ro in _READONLY_CMD_MARKERS) and bool(_WRITE_CMD_RE.search(cmd))
+    is_loc_or_ext = "nk_external_projects/" in cmd_low or bool(_LOCALE_TARGET_RE.search(cmd_low))
+    if not is_loc_or_ext or ".staging" in cmd_low:
+        return False
+    return not any(ro in cmd_low for ro in _READONLY_CMD_MARKERS) and bool(_WRITE_CMD_RE.search(cmd))
 
 
 def _inspect_record_blind_reads_and_bursts(
@@ -53,7 +79,9 @@ def analyze_compliance(transcript_path: Path) -> Dict[str, Any]:
     if not transcript_path.is_file():
         return {"passed": False, "error": f"Missing transcript: {transcript_path}"}
 
-    records = load_transcript_records(transcript_path, only_after_last_turn=False, hydrate_truncated=True)
+    events = parse_transcript_events(
+        transcript_path, only_after_last_turn=False, hydrate_truncated=True
+    )
     safe_write_markers = (*_SAFE_WRITE_MARKERS, *_get_runtime_temp_markers())
     max_streak = cur_streak = delegations = ext_writes = 0
     polling_list_calls = oversized_swarm_messages = 0
@@ -63,13 +91,12 @@ def analyze_compliance(transcript_path: Path) -> Dict[str, Any]:
     scripts_seen: List[str] = []
     intent_briefs_seen: List[str] = []
     last_model_text = ""
-    pending_tool_calls: List[Dict[str, Any]] = []
 
-    for rec in records:
-        cat = classify_transcript_record(rec)
-        is_turn_boundary = cat in ("USER", "SYSTEM")
+    for ev in events:
+        cat = ev["category"]
+        is_turn_boundary = ev["is_turn_boundary"]
         is_planner_step = cat == "MODEL"
-        content = str(rec.get("content") or rec.get("output") or "")
+        content = ev["content"]
         content_stripped = content.strip()
 
         if is_planner_step and content_stripped:
@@ -86,18 +113,15 @@ def analyze_compliance(transcript_path: Path) -> Dict[str, Any]:
         if is_turn_boundary:
             prev_was_poll = False
             turn_has_visible_l0 = False
-            pending_tool_calls.clear()
 
-        calls = rec.get("tool_calls") or []
+        calls = ev["calls"]
         if cat == "TOOL" and not calls:
-            corr_call = _pop_correlated_tool_call(pending_tool_calls, rec)
-            if extract_tool_name(corr_call) in _READ_FILE_TOOLS:
-                if _has_missing_path_error(str(rec.get("status") or ""), content):
+            if ev["corr_tool"] in _READ_FILE_TOOLS:
+                if _has_missing_path_error(ev["status"], content):
                     blind_read_errors += 1
             continue
 
-        pending_tool_calls = list(calls) if calls else []
-        b_err, w_burst = _inspect_record_blind_reads_and_bursts(rec, calls)
+        b_err, w_burst = _inspect_record_blind_reads_and_bursts(ev["record"], calls)
         blind_read_errors += b_err
         write_burst_steps += w_burst
         step_delegated = False
@@ -137,18 +161,15 @@ def analyze_compliance(transcript_path: Path) -> Dict[str, Any]:
             if tname in ("write_to_file", "write_file", "replace_file_content", "edit_file", "notebook_edit"):
                 raw_tf = args.get("TargetFile") or args.get("Path") or args.get("AbsolutePath") or args.get("NotebookPath") or args.get("file") or ""
                 tf = clean_tool_path(raw_tf).replace("\\", "/").lower()
-                if tf and not any(m in tf for m in safe_write_markers):
+                if _is_unstage_file_write_target(tf, safe_write_markers):
                     ext_writes += 1
             elif tname == "run_command":
                 cmd = clean_tool_str(args.get("CommandLine") or args.get("command") or "")
                 for sm in _SCRIPT_RE.findall(cmd):
                     if sm not in scripts_seen:
                         scripts_seen.append(sm)
-                cmd_low = cmd.replace("\\", "/").lower()
-                if "nk_external_projects/" in cmd_low and ".staging" not in cmd_low:
-                    if not any(ro in cmd_low for ro in _READONLY_CMD_MARKERS):
-                        if _WRITE_CMD_RE.search(cmd) and not any(sm in cmd_low for sm in ("patch_notes.md", "readme")):
-                            ext_writes += 1
+                if _is_unstage_external_cmd_write(cmd):
+                    ext_writes += 1
 
         if step_delegated or is_turn_boundary:
             cur_streak = 0
@@ -183,4 +204,5 @@ __all__ = [
     "is_subagent_transcript_file",
     "load_transcript_records",
     "locate_transcript",
+    "parse_transcript_events",
 ]

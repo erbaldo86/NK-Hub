@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+from pathlib import Path
 import subprocess
 import sys
 import threading
@@ -13,6 +14,7 @@ from typing import Any, List, Optional, Sequence
 
 from .constants import (
     CREATE_SUSPENDED,
+    DAST_MAX_OUTPUT_BYTES,
     CoverageTraceItem,
     SandboxConfig,
     SandboxTelemetryReport,
@@ -25,6 +27,7 @@ from .sandbox_fs import (
     ShadowSandbox,
     _build_sanitized_sandbox_env,
     _strip_builder_holdouts_from_sandbox,
+    _truncate_utf8_bytes,
 )
 from .win32_job import (
     _HAS_PSUTIL,
@@ -63,6 +66,36 @@ def _parse_coverage_traces(
     return statement_traces, executed_statements
 
 
+def _resolve_sandbox_pythonpath(
+    sandbox_dir: Path,
+    existing_pypath: str,
+    is_builder_profile: bool,
+) -> str:
+    """Costruisce PYTHONPATH includendo la radice sandbox e preservando solo path confinati in builder."""
+    sandbox_path_str = str(sandbox_dir)
+    if not is_builder_profile:
+        return (
+            f"{sandbox_path_str}{os.pathsep}{existing_pypath}"
+            if existing_pypath
+            else sandbox_path_str
+        )
+    sb_resolved = sandbox_dir.resolve()
+    confined_parts: List[str] = [sandbox_path_str]
+    for raw_part in existing_pypath.split(os.pathsep):
+        part = raw_part.strip()
+        if not part:
+            continue
+        try:
+            p_res = Path(part).resolve()
+        except OSError:
+            continue
+        if p_res == sb_resolved or p_res.is_relative_to(sb_resolved):
+            p_str = str(p_res)
+            if p_str not in confined_parts:
+                confined_parts.append(p_str)
+    return os.pathsep.join(confined_parts)
+
+
 class DASTSandboxRunner:
     """Esegue codice reale dentro una ShadowSandbox con controllo di tempo e memoria."""
 
@@ -99,14 +132,9 @@ class DASTSandboxRunner:
             strip_fn(sandbox.sandbox_dir)
 
         env = env_fn(self.config.env_vars)
-        sandbox_path_str = str(sandbox.sandbox_dir)
-        existing_pypath = env.get("PYTHONPATH", "")
-        if is_builder_profile:
-            env["PYTHONPATH"] = sandbox_path_str
-        elif existing_pypath:
-            env["PYTHONPATH"] = f"{sandbox_path_str}{os.pathsep}{existing_pypath}"
-        else:
-            env["PYTHONPATH"] = sandbox_path_str
+        env["PYTHONPATH"] = _resolve_sandbox_pythonpath(
+            sandbox.sandbox_dir, env.get("PYTHONPATH", ""), is_builder_profile
+        )
 
         raw_cmd = list(command)
         cov_out_file = sandbox.sandbox_dir / "_nk_coverage_out.json"
@@ -227,8 +255,8 @@ class DASTSandboxRunner:
             sandbox_id=sandbox.sandbox_id, sandbox_dir=str(sandbox.sandbox_dir), command=actual_cmd,
             exit_code=exit_code, duration_sec=duration_sec, peak_memory_bytes=peak_memory_bytes,
             timed_out=timed_out, memory_exceeded=memory_exceeded,
-            stdout=stdout_bytes.decode("utf-8", errors="replace"),
-            stderr=stderr_bytes.decode("utf-8", errors="replace"),
+            stdout=_truncate_utf8_bytes(stdout_bytes, DAST_MAX_OUTPUT_BYTES),
+            stderr=_truncate_utf8_bytes(stderr_bytes, DAST_MAX_OUTPUT_BYTES),
             executed_statements=executed_statements, statement_traces=statement_traces, success=success,
         )
 

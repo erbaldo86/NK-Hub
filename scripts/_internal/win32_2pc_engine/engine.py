@@ -103,26 +103,26 @@ class TwoPhaseCommitEngine:
         target = Path(prepare_req.target_path).resolve()
         staging = Path(prepare_req.staging_path).resolve()
 
-        if not _win_long_path(staging).exists():
-            return self.abort(
-                prepare_req,
-                reason=f"Staging file {staging} does not exist",
-            )
-
-        staging_data = _win_long_path(staging).read_bytes()
-        if compute_sha256(staging_data) != prepare_req.expected_sha256:
-            return self.abort(
-                prepare_req,
-                reason="Staging file SHA-256 mismatch during commit phase",
-            )
-
-        if compute_crc32(staging_data) != prepare_req.crc32:
-            return self.abort(
-                prepare_req,
-                reason="Staging file CRC32 mismatch during commit phase",
-            )
-
         with Win32NamedMutex(target, timeout_ms=prepare_req.timeout_ms):
+            if not _win_long_path(staging).exists():
+                return self.abort(
+                    prepare_req,
+                    reason=f"Staging file {staging} does not exist",
+                )
+
+            staging_data = _win_long_path(staging).read_bytes()
+            if compute_sha256(staging_data) != prepare_req.expected_sha256:
+                return self.abort(
+                    prepare_req,
+                    reason="Staging file SHA-256 mismatch during commit phase",
+                )
+
+            if compute_crc32(staging_data) != prepare_req.crc32:
+                return self.abort(
+                    prepare_req,
+                    reason="Staging file CRC32 mismatch during commit phase",
+                )
+
             target_lp = _win_long_path(target)
             had_previous = target_lp.exists() and target_lp.is_file()
             previous_bytes: Optional[bytes] = (

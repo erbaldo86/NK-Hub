@@ -22,7 +22,7 @@ _DYN_IMPORT_REFLECT_RE = re.compile(
 
 _CMD_WORD_WRITE_RE = re.compile(
     r"(?:^|[\s;|&,({])(?:(?<![>&])&(?!&)\s*)?[\"']?(?:del|rm|erase|cp|mv|ren|rename|rmdir|rd|sc|ac|ni|ri|si|copy|move)[\"']?(?=\s)"
-    r"|\bcmd(?:\.exe)?\s+/c\s+[\"']?(?:copy|move|ren|rename|del|erase|mkdir|md|rmdir|rd|mklink)\b"
+    r"|(?:^|[\s;|&,({\"'\\/:])(?:cmd(?:\.exe)?|%comspec%)[\"']?(?:\s+|(?=/))(?:/[a-z](?::[a-z0-9]+)?\s*)*/[ckr]\s*[\"']?(?:copy|move|ren|rename|del|erase|mkdir|md|rmdir|rd|mklink)\b"
     r"|\btar(?:\.exe)?\b(?:\s+x[vzfjc]*(?=\s)|[^\n;|&]*?(?:\s-[a-z]*x|\s--extract\b))"
     r"|\bexpand-archive\b"
     r"|\bunpack_archive\b"
@@ -71,12 +71,12 @@ _ENCODED_CMD_RE = re.compile(
     re.IGNORECASE,
 )
 _PS_COMMAND_WRAPPER_RE = re.compile(
-    r"\b(?:powershell|pwsh)(?:\.exe)?\b[^\n\r;|&]*?(?:^|[\s\"'])[-/]"
-    r"c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?\s+(.+)$",
+    r"(?:^|[\s;|&,({\"'\\/:])(?:powershell|pwsh)(?:\.exe)?[\"']?[^\n\r;|&]*?(?:^|[\s\"'])[-/]"
+    r"c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?(?:\s+|:\s*)(.+)$",
     re.IGNORECASE | re.DOTALL,
 )
 _CMD_C_WRAPPER_RE = re.compile(
-    r"\bcmd(?:\.exe)?\s+/[ck]\s+(.+)$",
+    r'(?:^|[\s;|&,({"\'\\/:])(?:cmd(?:\.exe)?|%comspec%)["\']?(?:\s+|(?=/))(?:/[a-z](?::[a-z0-9]+)?\s*)*/[ckr](?:\s+|(?=["\'(]|\\"|`"))(.+)$',
     re.IGNORECASE | re.DOTALL,
 )
 _DYNAMIC_PS_EXEC_RE = re.compile(
@@ -112,7 +112,7 @@ _UNSTAGE_CODE_DIR_CMD_RE = re.compile(
 )
 _FS_PATH_PREFIX_RE = re.compile(
     r"^(?:[a-zA-Z]:[/\\]|/|\\|\./|\.\\|\.\./|\.\.\\|"
-    r"(?:scripts|\.agents|nk_tracking|nk_genome|tests|\.staging|src_app|app|src|core|nk_external_projects)[/\\])",
+    r"(?:scripts|\.agents|nk_tracking|nk_genome|tests|\.staging|src_app|app|src|core|nk_external_projects|nk\s+proget)[/\\])",
     re.IGNORECASE,
 )
 _SHELL_CMD_START_RE = re.compile(
@@ -170,10 +170,15 @@ _AUTH_PY_TOK_RE = (
     r"'[^'\n\r;|&<>`]*?(?:python(?:3)?|py)(?:\.exe)?'|"
     r"(?:[^\s\"';|&<>`]*?)(?:python(?:3)?|py)(?:\.exe)?)"
 )
+_AUTH_SCRIPT_NAMES = (
+    r"(?:win32_2pc_engine|nk_registry_indexer|healing_snapshot_rollback|"
+    r"ast_repo_mapper|ast_guard_validator|dast_sandbox_runner|"
+    r"nk_transcript_tools|vibe_sprint_router|external_project_scaffolder|builder_mutation_gate|tensor_rsi)"
+)
 _AUTH_SCRIPT_TOK_RE = (
-    r'(?:"(?:[^"\n\r;|&<>`]*?/)?(?:\.staging/)?scripts/(?:win32_2pc_engine|nk_registry_indexer|healing_snapshot_rollback|ast_repo_mapper|ast_guard_validator|dast_sandbox_runner|nk_transcript_tools)\.py"|'
-    r"'(?:[^'\n\r;|&<>`]*?/)?(?:\.staging/)?scripts/(?:win32_2pc_engine|nk_registry_indexer|healing_snapshot_rollback|ast_repo_mapper|ast_guard_validator|dast_sandbox_runner|nk_transcript_tools)\.py'|"
-    r"(?:[^\s\"';|&<>`]*?/)?(?:\.staging/)?scripts/(?:win32_2pc_engine|nk_registry_indexer|healing_snapshot_rollback|ast_repo_mapper|ast_guard_validator|dast_sandbox_runner|nk_transcript_tools)\.py)"
+    rf'(?:"(?:[^"\n\r;|&<>`]*?/)?(?:\.staging/)?scripts/{_AUTH_SCRIPT_NAMES}\.py"|'
+    rf"'(?:[^'\n\r;|&<>`]*?/)?(?:\.staging/)?scripts/{_AUTH_SCRIPT_NAMES}\.py'|"
+    rf"(?:[^\s\"';|&<>`]*?/)?(?:\.staging/)?scripts/{_AUTH_SCRIPT_NAMES}\.py)"
 )
 _AUTH_SCRIPT_RE = re.compile(
     rf"^\s*{_AUTH_PY_TOK_RE}\s+(?:-[a-zA-Z0-9]+\s+)*{_AUTH_SCRIPT_TOK_RE}(?=$|\s)",
@@ -186,3 +191,195 @@ _MCP_MUTATING_TOOL_RE = re.compile(
     r"put_file|save_file|write_file|edit_file)(?:$|[_-])",
     re.IGNORECASE,
 )
+_WIN32_2PC_CMD_RE = re.compile(r"(?:^|[/\\.])win32_2pc_engine(?:\.py)?$", re.IGNORECASE)
+_PROMOTE_VALUE_FLAGS = frozenset((
+    "--milestone", "--repo-root", "--staging-dir", "--override-reason", "--governance-token", "--sandbox-report", "--root",
+))
+_PROMOTE_IGNORED_VERBS = frozenset((
+    "rg", "ripgrep", "grep", "egrep", "fgrep", "select-string", "echo", "write-output", "printf",
+))
+_PS_VALUE_FLAGS = frozenset((
+    "-executionpolicy", "-ep", "-ex", "/executionpolicy", "/ep",
+    "-windowstyle", "-w", "-win", "/windowstyle", "/w",
+    "-inputformat", "-if", "-inp", "-outputformat", "-of", "-out",
+    "-workingdirectory", "-wd", "-configurationname", "-config",
+    "-settingsfile", "-custompipename", "-psconsolefile", "-version", "-v",
+))
+_PS_CMD_FLAG_RE = re.compile(r"^[-/]c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?$", re.IGNORECASE)
+_PS_CMD_STDIN_RE = re.compile(r"^[-/](?:c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?|f(?:i(?:l(?:e)?)?)?)[:=]-$", re.IGNORECASE)
+_PS_FILE_FLAG_RE = re.compile(r"^[-/]f(?:i(?:l(?:e)?)?)?$", re.IGNORECASE)
+_STDIN_SHELL_VERBS = frozenset(("powershell", "pwsh", "cmd", "%comspec%"))
+_CD_SHELL_VERBS = frozenset(("cd", "chdir", "pushd", "push-location", "set-location", "sl"))
+_SHELL_SEP_TOKENS = frozenset(("&&", "||", "|", ";", "&"))
+_PS_COLON_CMD_PREFIXES = ("-c:", "-command:", "/c:", "/command:")
+
+
+def has_win32_2pc_promote_tokens(words: list[str]) -> bool:
+    """Riconosce invocazioni reali di win32_2pc_engine con --promote-staging su confini token."""
+    idx = 1 if len(words) > 1 and words[0] == "&" else 0
+    if idx >= len(words) or words[idx].replace("\\", "/").rsplit("/", 1)[-1].lower() in _PROMOTE_IGNORED_VERBS:
+        return False
+    saw_eng, saw_prom, skip_next = False, False, False
+    for tok in words[idx:]:
+        if skip_next:
+            skip_next = False
+            continue
+        low = tok.replace("\\", "/").lower()
+        if low in _PROMOTE_VALUE_FLAGS:
+            skip_next = True
+            continue
+        if not any(low.startswith(f + "=") for f in _PROMOTE_VALUE_FLAGS):
+            saw_eng = saw_eng or bool(_WIN32_2PC_CMD_RE.search(low))
+            saw_prom = saw_prom or low == "--promote-staging" or low.startswith("--promote-staging=")
+    return saw_eng and saw_prom
+
+
+def _shell_verb_from_tokens(tokens: list[tuple[str, str, bool]], norm_verb_fn) -> tuple[int, str]:
+    """Restituisce indice e nome normalizzato del comando (gestendo &, &"cmd" e %comspec%)."""
+    idx = 1 if len(tokens) > 1 and tokens[0][1] == "&" else 0
+    if idx >= len(tokens):
+        return -1, ""
+    raw_verb = tokens[idx][1].strip("\"'")
+    if raw_verb.startswith("&") and len(raw_verb) > 1:
+        raw_verb = raw_verb[1:].strip("\"'")
+    if raw_verb.lower() == "%comspec%":
+        return idx, "%comspec%"
+    return idx, norm_verb_fn(raw_verb)
+
+
+def _is_explicit_ps_cmd_or_file(low_t: str) -> bool:
+    """Riconosce flag espliciti powershell/pwsh -Command/-File o separatore stdin '-'."""
+    if low_t == "-" or _PS_CMD_FLAG_RE.match(low_t) or _PS_CMD_STDIN_RE.match(low_t) or _PS_FILE_FLAG_RE.match(low_t):
+        return True
+    return any(low_t.startswith(p) for p in ("-f:", "-file:", "-f=", "-file=", "-c:", "-command:", "/c:", "/command:"))
+
+
+def _collect_ps_arg_tokens(tokens: list[tuple[str, str, bool]], start_idx: int) -> list[tuple[str, str, bool]]:
+    """Raccoglie i token argomento fino al primo separatore shell non quotato."""
+    collected: list[tuple[str, str, bool]] = []
+    for tok in tokens[start_idx:]:
+        if not tok[2] and tok[1] in _SHELL_SEP_TOKENS:
+            break
+        collected.append(tok)
+    return collected
+
+
+def _format_ps_payload_tokens(arg_toks: list[tuple[str, str, bool]], prefix_arg: str = "") -> tuple[str, bool]:
+    """Unisce gli argomenti multipli PowerShell o preserva il singolo token quotato."""
+    if prefix_arg:
+        parts = [prefix_arg, *(t[1] for t in arg_toks)]
+        return (parts[0], False) if len(parts) == 1 else (" ".join(parts).strip(), True)
+    if not arg_toks:
+        return "", False
+    if len(arg_toks) == 1:
+        return arg_toks[0][0], False
+    joined = " ".join(t[1] for t in arg_toks).strip()
+    if joined.startswith("{") and joined.endswith("}"):
+        joined = joined[1:-1].strip()
+    return joined, True
+
+
+def _advance_ps_payload_start(tokens: list[tuple[str, str, bool]], start_idx: int) -> tuple[int, str, bool]:
+    """Avanza oltre i flag powershell/pwsh e restituisce (indice_arg, prefix_col, ok)."""
+    i = start_idx
+    while i < len(tokens):
+        _, unq_t, was_q = tokens[i]
+        low_t = unq_t.lower()
+        if was_q or not low_t.startswith(("-", "/")):
+            return i, "", True
+        if low_t == "--" or _PS_CMD_FLAG_RE.match(low_t):
+            return i + 1, "", True
+        if any(low_t.startswith(p) for p in _PS_COLON_CMD_PREFIXES):
+            val = unq_t.split(":", 1)[1].strip()
+            return (0, "", False) if val == "-" else (i + 1, val.strip("\"'"), True)
+        if _is_explicit_ps_cmd_or_file(low_t):
+            return 0, "", False
+        i += 2 if low_t in _PS_VALUE_FLAGS else 1
+    return i, "", True
+
+
+def extract_ps_command_payload(tokens: list[tuple[str, str, bool]], norm_verb_fn) -> tuple[str, bool]:
+    """Estrae il payload posizionale o multi-argomento da powershell/pwsh."""
+    idx, verb = _shell_verb_from_tokens(tokens, norm_verb_fn)
+    if verb not in ("powershell", "pwsh"):
+        return "", False
+    start_i, prefix_arg, ok = _advance_ps_payload_start(tokens, idx + 1)
+    if not ok:
+        return "", False
+    arg_toks = _collect_ps_arg_tokens(tokens, start_i)
+    if not prefix_arg and arg_toks and not arg_toks[0][2] and arg_toks[0][1] == "-":
+        return "", False
+    return _format_ps_payload_tokens(arg_toks, prefix_arg=prefix_arg)
+
+
+def extract_ps_positional_payload(tokens: list[tuple[str, str, bool]], norm_verb_fn) -> str:
+    """Estrae il comando posizionale o -Command da powershell/pwsh (compatibilita)."""
+    return extract_ps_command_payload(tokens, norm_verb_fn)[0]
+
+
+def has_ps_stdin_flag_tokens(tokens: list[tuple[str, str, bool]], norm_verb_fn) -> bool:
+    """Rileva esecuzione stdin PowerShell via -Command -, -File - o - finale."""
+    idx, verb = _shell_verb_from_tokens(tokens, norm_verb_fn)
+    if verb not in ("powershell", "pwsh"):
+        return False
+    i = idx + 1
+    while i < len(tokens):
+        _, unq_t, was_q = tokens[i]
+        low_t = unq_t.lower()
+        if (not was_q and low_t == "-") or _PS_CMD_STDIN_RE.match(low_t):
+            return True
+        if _PS_CMD_FLAG_RE.match(low_t) or _PS_FILE_FLAG_RE.match(low_t):
+            return i + 1 < len(tokens) and tokens[i + 1][1] == "-"
+        if was_q or not low_t.startswith(("-", "/")) or low_t == "--":
+            return False
+        i += 2 if low_t in _PS_VALUE_FLAGS else 1
+    return False
+
+
+def _iter_unquoted_char_positions(text: str, target_ch: str) -> list[int]:
+    """Trova le posizioni non quotate di un carattere operatore (| o <) nella riga shell."""
+    positions: list[int] = []
+    in_q, idx, n = "", 0, len(text)
+    while idx < n:
+        ch = text[idx]
+        if in_q == '"' and ((ch == "\\" and idx + 1 < n and text[idx + 1] in ('"', "\\")) or (ch == "`" and idx + 1 < n)):
+            idx += 2
+            continue
+        if in_q:
+            if ch == in_q:
+                in_q = ""
+        elif ch in ('"', "'"):
+            in_q = ch
+        elif ch == target_ch:
+            positions.append(idx)
+        idx += 1
+    return positions
+
+
+def _iter_unquoted_pipe_rhs(text: str) -> list[str]:
+    """Estrae i lati destri delle pipe singole non quotate (ignorando ||)."""
+    out: list[str] = []
+    for pos in _iter_unquoted_char_positions(text, "|"):
+        is_or = (pos > 0 and text[pos - 1] == "|") or (pos + 1 < len(text) and text[pos + 1] == "|")
+        if not is_or:
+            out.append(text[pos + 1 :].strip())
+    return out
+
+
+def has_stdin_shell_exec(cmd_text: str, split_fn, tokenize_fn, norm_verb_fn) -> bool:
+    """Rileva pipe verso shell interattiva, redirezione stdin < o powershell -Command -."""
+    for rhs in _iter_unquoted_pipe_rhs(cmd_text):
+        first_seg = (split_fn(rhs) or [rhs])[0]
+        toks = tokenize_fn(first_seg)
+        if toks and _shell_verb_from_tokens(toks, norm_verb_fn)[1] in _STDIN_SHELL_VERBS:
+            return True
+    for seg in split_fn(cmd_text) or [cmd_text]:
+        toks = tokenize_fn(seg)
+        if not toks:
+            continue
+        _, verb = _shell_verb_from_tokens(toks, norm_verb_fn)
+        if verb in ("powershell", "pwsh") and has_ps_stdin_flag_tokens(toks, norm_verb_fn):
+            return True
+        if verb in _STDIN_SHELL_VERBS and _iter_unquoted_char_positions(seg, "<"):
+            return True
+    return False

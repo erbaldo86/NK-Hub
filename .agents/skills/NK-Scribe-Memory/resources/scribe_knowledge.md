@@ -14,7 +14,7 @@
 ## 2. Sincronizzazione della Pentad Sovrana 4+1 e dei Manuali
 1. Rigenera `.staging/nk_genome/repo_map.md` tramite `python -u scripts/ast_repo_mapper.py --snapshot-out .staging/nk_genome/repo_map.md` (`[RULE-01.13]`).
 2. Allinea `nk_docs_and_setup/README.md`, `README.it.md` e `GUIDA_INSTALLAZIONE.md` ai moduli certificati e a `nk_tracking/quality_baseline.json`.
-3. Verifica il ratchet della baseline (`MIN_GOLDEN_TESTS_FLOOR = 93`, `branch coverage >= 85%`) tramite `python -u scripts/quality_baseline_manager.py --check-only` (`[RULE-01.10]`).
+3. Verifica il ratchet Schema `v2` su `quality_baseline.json` (`MIN_GOLDEN_TESTS_FLOOR = 93`, `no_metric_may_worsen`). Esegui `python -u scripts/quality_baseline_manager.py --check-only --live --with-coverage` (`[RULE-01.10]`).
 4. Verifica l'integrità post-commit del registro O(1) tramite `python -u scripts/nk_registry_indexer.py --verify` (`[RULE-01.14]`).
 
 ## 3. Sequenza Git Sicura con Staging Esplicito (`U-52`)

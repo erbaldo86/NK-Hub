@@ -18,6 +18,17 @@ else:
     Path = Any
 
 
+def _match_candidate_hub_root(cand_p: Path) -> Optional[Path]:
+    """Seleziona cand_p o cand_p/NK_Hub privilegiando scripts/ prima di .staging/."""
+    nk_sub = cand_p / "NK_Hub"
+    for marker in ("scripts", ".staging"):
+        if (cand_p / marker).is_dir():
+            return cand_p
+        if (nk_sub / marker).is_dir():
+            return nk_sub.resolve()
+    return None
+
+
 def _resolve_proj_root_path(
     raw_root: Optional[str], payload: Optional[Dict[str, Any]] = None
 ) -> Path:
@@ -54,13 +65,9 @@ def _resolve_proj_root_path(
                 continue
             if cand_p.is_dir():
                 existing_dirs.append(cand_p)
-                if (cand_p / "scripts").is_dir() or (cand_p / ".staging").is_dir():
-                    return cand_p
-                nk_sub = cand_p / "NK_Hub"
-                if nk_sub.is_dir() and (
-                    (nk_sub / "scripts").is_dir() or (nk_sub / ".staging").is_dir()
-                ):
-                    return nk_sub.resolve()
+                matched = _match_candidate_hub_root(cand_p)
+                if matched is not None:
+                    return matched
         if existing_dirs:
             return existing_dirs[0]
 

@@ -6,12 +6,20 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from _internal.nk_common.catalog import get_catalog_counts
 from _internal.nk_common.paths import normalize_rel_path
 from _internal.nk_common.thresholds import load_deleted_files
 from _internal.preflight_health_check.cleanup_and_wal import DEFAULT_VERSION, VERSION
+
+_SKILL_VERSION_RE = re.compile(r'(?m)^version:\s*["\']?([^"\'\s]+)["\']?')
+_MD_HEADING_RE = re.compile(r"^#{1,6}\s+")
+_RULE_DEF_RE = re.compile(r"\[(RULE-[A-Z0-9._-]+)\]")
+_RULE_REF_RE = re.compile(r"\[(RULE-[A-Z0-9._*-]+)\]")
+_ROOT_BRIDGE_VERSION_RE = re.compile(
+    rf"(?<![A-Za-z0-9_])`?v?`?{re.escape(VERSION)}`?(?![A-Za-z0-9_.-])"
+)
 
 
 def get_expected_skills_count(workspace_root: Path) -> int:
@@ -36,9 +44,81 @@ def get_expected_skills_count(workspace_root: Path) -> int:
     return 11
 
 
+def _pick_metric_num(data: Dict[str, Any], metrics: Dict[str, Any], keys: Tuple[str, ...]) -> Optional[float]:
+    """Estrae il primo valore numerico valido dalle chiavi candidate in metrics o root."""
+    for k in keys:
+        for src in (metrics, data):
+            raw = src.get(k)
+            val = raw.get("value") if isinstance(raw, dict) else raw
+            if isinstance(val, (int, float)) and not isinstance(val, bool):
+                return float(val)
+    return None
+
+
+def _eval_external_baseline(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Valida quality_baseline.json di un repo app esterno supportando schema metrics e flat."""
+    metrics = data.get("metrics") if isinstance(data.get("metrics"), dict) else {}
+    total_v = _pick_metric_num(data, metrics, ("unit_tests_total", "total_tests", "tests_total", "total_golden_tests", "golden_tests_count"))
+    failed_v = _pick_metric_num(data, metrics, ("failed_tests",))
+    pass_v = _pick_metric_num(data, metrics, ("unit_tests_pass_pct", "pass_rate_pct", "pass_rate"))
+    tests_total = int(total_v) if total_v is not None else 0
+    failed_tests = int(failed_v) if failed_v is not None else 0
+    pass_pct = float(pass_v) if pass_v is not None else 0.0
+    passed = tests_total > 0 and failed_tests == 0 and pass_pct >= 100.0
+    return {
+        "passed": passed,
+        "version": data.get("_version", data.get("version", DEFAULT_VERSION)),
+        "tests_total": tests_total,
+        "failed_tests": failed_tests,
+        "pass_pct": pass_pct,
+        "external_app": True,
+        "details": (
+            f"External app baseline aligned ({tests_total} tests, pass_pct={pass_pct}%)"
+            if passed
+            else f"External app baseline discrepancy: total={tests_total}, failed={failed_tests}, pass_pct={pass_pct}"
+        ),
+    }
+
+
+def _is_external_app_workspace(ws: Path) -> bool:
+    """True per repo app esterne con src_app/ prive di .agents/skills."""
+    return (
+        (ws / "src_app").is_dir()
+        and not (ws / ".agents" / "skills").is_dir()
+        and not (ws / ".staging" / ".agents" / "skills").is_dir()
+    )
+
+
+def _eval_hub_baseline(checker: Any, data: Dict[str, Any]) -> Dict[str, Any]:
+    """Valida quality_baseline.json standard dell'ecosistema NK_Hub."""
+    expected_skills = checker._get_expected_skills_count()
+    metrics = data.get("metrics", {})
+    raw_skills = metrics.get("skills_audited", 0)
+    skills_audited = raw_skills.get("value", 0) if isinstance(raw_skills, dict) else raw_skills
+    raw_crv = metrics.get("crv_macro_phases", 0)
+    crv_phases = raw_crv.get("value", 0) if isinstance(raw_crv, dict) else raw_crv
+    raw_pass = metrics.get("unit_tests_pass_pct", 100.0)
+    unit_pass = raw_pass.get("value", 0.0) if isinstance(raw_pass, dict) else raw_pass
+
+    passed = skills_audited == expected_skills and crv_phases == 4 and float(unit_pass) >= 100.0
+    return {
+        "passed": passed,
+        "version": data.get("_version", DEFAULT_VERSION),
+        "skills_audited": skills_audited,
+        "expected_skills": expected_skills,
+        "crv_macro_phases": crv_phases,
+        "details": (
+            f"Baseline perfectly aligned ({expected_skills} canonical skills, CRV 4 Macro-Phases)"
+            if passed
+            else f"Discrepancy: skills={skills_audited}/{expected_skills}, crv_phases={crv_phases}/4, pass_pct={unit_pass}"
+        ),
+    }
+
+
 def check_baseline_alignment(checker: Any) -> Dict[str, Any]:
     """Verifica che quality_baseline.json sia valido e allineato al manifesto."""
-    staged_baseline = checker.workspace_root / ".staging" / "nk_tracking" / "quality_baseline.json"
+    ws = Path(checker.workspace_root)
+    staged_baseline = ws / ".staging" / "nk_tracking" / "quality_baseline.json"
     target_baseline = staged_baseline if staged_baseline.exists() else checker.baseline_file
     if not target_baseline.exists():
         return {"passed": False, "details": "quality_baseline.json not found"}
@@ -49,28 +129,7 @@ def check_baseline_alignment(checker: Any) -> Dict[str, Any]:
         if not isinstance(data, dict):
             return {"passed": False, "details": "quality_baseline.json root is not a dict"}
 
-        expected_skills = checker._get_expected_skills_count()
-        metrics = data.get("metrics", {})
-        raw_skills = metrics.get("skills_audited", 0)
-        skills_audited = raw_skills.get("value", 0) if isinstance(raw_skills, dict) else raw_skills
-        raw_crv = metrics.get("crv_macro_phases", 0)
-        crv_phases = raw_crv.get("value", 0) if isinstance(raw_crv, dict) else raw_crv
-        raw_pass = metrics.get("unit_tests_pass_pct", 100.0)
-        unit_pass = raw_pass.get("value", 0.0) if isinstance(raw_pass, dict) else raw_pass
-
-        passed = skills_audited == expected_skills and crv_phases == 4 and float(unit_pass) >= 100.0
-        return {
-            "passed": passed,
-            "version": data.get("_version", DEFAULT_VERSION),
-            "skills_audited": skills_audited,
-            "expected_skills": expected_skills,
-            "crv_macro_phases": crv_phases,
-            "details": (
-                f"Baseline perfectly aligned ({expected_skills} canonical skills, CRV 4 Macro-Phases)"
-                if passed
-                else f"Discrepancy: skills={skills_audited}/{expected_skills}, crv_phases={crv_phases}/4, pass_pct={unit_pass}"
-            ),
-        }
+        return _eval_external_baseline(data) if _is_external_app_workspace(ws) else _eval_hub_baseline(checker, data)
     except Exception as e:
         return {"passed": False, "details": f"Corrupted quality_baseline.json: {e}"}
 
@@ -179,7 +238,7 @@ def check_ssot_governance(checker: Any) -> Dict[str, Any]:
         if not (rel_k.endswith(("/SKILL.md", "/agent.md")) or rel_k in ("SKILL.md", "agent.md")):
             continue
         txt = agents_overlay[rel_k].read_text(encoding="utf-8", errors="replace")
-        m_ver = re.search(r'(?m)^version:\s*["\']?([^"\'\s]+)["\']?', txt)
+        m_ver = _SKILL_VERSION_RE.search(txt)
         if m_ver:
             if m_ver.group(1) != VERSION:
                 version_mismatches.append(f".agents/{rel_k}: {m_ver.group(1)} != {VERSION}")
@@ -217,21 +276,20 @@ def check_ssot_governance(checker: Any) -> Dict[str, Any]:
         if rb_path is not None:
             counts = get_catalog_counts(checker.workspace_root)
             rb_txt = rb_path.read_text(encoding="utf-8", errors="replace")
-            ver_pat = rf"(?<![A-Za-z0-9_])`?v?`?{re.escape(VERSION)}`?(?![A-Za-z0-9_.-])"
             bridge_checks = (
-                (VERSION, ver_pat),
-                (f"{counts['skills']} skill", rf"(?<!\w)`?{counts['skills']}`?\s+`?skill`?(?!\w)"),
-                (f"{counts['agents']} sub-agenti", rf"(?<!\w)`?{counts['agents']}`?\s+`?sub-agenti`?(?!\w)"),
-                (f"{counts['dashboard_nodes']} nodi", rf"(?<!\w)`?{counts['dashboard_nodes']}`?\s+`?nodi`?(?!\w)"),
+                (VERSION, _ROOT_BRIDGE_VERSION_RE),
+                (f"{counts['skills']} skill", re.compile(rf"(?<!\w)`?{counts['skills']}`?\s+`?skill`?(?!\w)")),
+                (f"{counts['agents']} sub-agenti", re.compile(rf"(?<!\w)`?{counts['agents']}`?\s+`?sub-agenti`?(?!\w)")),
+                (f"{counts['dashboard_nodes']} nodi", re.compile(rf"(?<!\w)`?{counts['dashboard_nodes']}`?\s+`?nodi`?(?!\w)")),
             )
             for req_tok, req_pat in bridge_checks:
-                if not re.search(req_pat, rb_txt):
+                if not req_pat.search(rb_txt):
                     root_bridge_missing.append(req_tok)
 
     defined_seq: List[str] = []
     for line in agents_text.splitlines():
-        if re.match(r"^#{1,6}\s+", line):
-            defined_seq.extend(re.findall(r"\[(RULE-[A-Z0-9._-]+)\]", line))
+        if _MD_HEADING_RE.match(line):
+            defined_seq.extend(_RULE_DEF_RE.findall(line))
 
     seen_rules: Set[str] = set()
     duplicate_rule_ids: List[str] = []
@@ -245,7 +303,7 @@ def check_ssot_governance(checker: Any) -> Dict[str, Any]:
         if fpath.suffix.lower() not in {".md", ".json", ".py", ".yml", ".yaml", ".txt"}:
             continue
         txt = fpath.read_text(encoding="utf-8", errors="ignore")
-        for m_ref in re.finditer(r"\[(RULE-[A-Z0-9._*-]+)\]", txt):
+        for m_ref in _RULE_REF_RE.finditer(txt):
             rid = m_ref.group(1)
             if "*" in rid or rid in ("RULE-XX", "RULE-X", "RULE-NN"):
                 continue

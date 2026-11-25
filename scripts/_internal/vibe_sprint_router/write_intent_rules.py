@@ -12,7 +12,6 @@ _NEGATION_TOKENS: Set[str] = {
     "non",
     "senza",
     "né",
-    "ne",
     "mai",
     "vietato",
     "evita",
@@ -30,6 +29,16 @@ _ADVERSATIVE_TOKENS: Set[str] = {
     "bensì",
     "bensi",
     "invece",
+}
+_DEONTIC_MODAL_TOKENS: Set[str] = {
+    "dobbiamo",
+    "dovremo",
+    "bisogna",
+    "occorre",
+    "serve",
+    "servirà",
+    "servira",
+    "vorrei",
 }
 _ITALIAN_NOUN_DETERMINERS: Set[str] = {
     "il",
@@ -104,6 +113,8 @@ _LIGHT_EXEC_VERBS: Set[str] = {
     "apportare",
     "effettua",
     "effettuare",
+    "esegui",
+    "eseguire",
 }
 _ANALYTICAL_AUDIT_HEADS: Set[str] = {
     "analizza",
@@ -160,6 +171,7 @@ _COORDINATED_IMPERATIVE_PREFIX_TOKENS: Set[str] = {
     "dopo",
 }
 _WORD_TOKEN_RE = re.compile(r"[a-z0-9_àèéìòù]+")
+_NEG_TOKEN_RE = re.compile(r"[a-z0-9_àèéìòù]+|,")
 _EXPLANATORY_CLAUSE_START_RE = re.compile(
     r"^(?:spiega|dimmi|illustra|descrivi|perch[eé]|dove|come\s+funziona|come\s+avviene|cosa\s+fa|cosa\s+succede|quali\b|quale\b|chi\b|quando\b)",
     re.IGNORECASE,
@@ -212,6 +224,13 @@ _WRITE_ROOT_GROUPS: Tuple[Tuple[str, Tuple[str, ...]], ...] = (
     ("rifattorizz", ("rifattorizza", "rifattorizzi")),
     ("decompon", ("decomponi", "decomponga")),
     ("certific", ("certifica", "certifichi")),
+    ("inser", ("inseri", "inserisci", "inserisca", "inserir", "inser")),
+    ("realizz", ("realizza", "realizzi", "realizzer")),
+    ("integr", ("integra", "integri", "integrer")),
+    ("configur", ("configura", "configuri", "configurer")),
+    ("impost", ("imposta", "imposti", "imposter")),
+    ("predispon", ("predisponi", "predisponga", "predispon")),
+    ("predispor", ("predisporr", "predispor")),
 )
 _WRITE_ROOT_PATTERNS: Tuple[Tuple[str, re.Pattern[str]], ...] = tuple(
     (
@@ -227,6 +246,29 @@ _WRITE_ROOT_PATTERNS: Tuple[Tuple[str, re.Pattern[str]], ...] = tuple(
         re.compile(
             rf"\b(?:ottimizza|ottimizzi|ottimizzer){_VERB_CONJ_TAIL}"
             r"(?!\s+con\s+analisi\s+(?:approfondita|multi-livello)\b)"
+        ),
+    ),
+)
+_WRITE_IDIOM_PATTERNS: Tuple[Tuple[str, re.Pattern[str]], ...] = (
+    (
+        "basi",
+        re.compile(
+            r"\b(?:mett(?:ere|i|iamo|ete|a|ano)|gett(?:are|a|i|iamo|ate|ino)|"
+            r"(?:mett|gett)er(?:[oòà]|emo|ete|anno))"
+            r"\s+(?:anche\s+|qui\s+)?(?:le|delle)\s+basi\b"
+        ),
+    ),
+    (
+        "in piedi",
+        re.compile(
+            r"\bmett(?:ere|i|iamo|ete|a|ano|er(?:[oòà]|emo|ete|anno))\s+in\s+piedi\b"
+        ),
+    ),
+    (
+        "servir",
+        re.compile(
+            r"\bservir[àa]\b(?:\s+[a-z0-9_àèéìòù'-]+){0,4}\s+"
+            r"(?:pagin[ae]|sezion[ei]|server|modul[oi])\b"
         ),
     ),
 )

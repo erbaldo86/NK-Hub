@@ -6,29 +6,30 @@ Inietta -u nei comandi Python, supporta pytest NVMe detached e tree-kill su time
 
 from __future__ import annotations
 
-import json
-import os
-import pkgutil
-import re
-import shlex
-import sys
+import json, os, re, shlex, sys
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 
+def _prepend_stg_pkg_paths(script_dir: Path) -> None:
+    """Prepone i path staged a __path__ di _internal e _internal.nk_common senza duplicati."""
+    import _internal as _stg_int, _internal.nk_common as _stg_nkc
+    for pkg_obj, rel in ((_stg_int, "_internal"), (_stg_nkc, "_internal/nk_common")):
+        stg_p = str(script_dir / rel)
+        cur_p = list(getattr(pkg_obj, "__path__", ()))
+        pkg_obj.__path__ = [stg_p] + [p for p in cur_p if os.path.normcase(p) != os.path.normcase(stg_p)]
+
+
 def _ensure_nk_common_paths() -> None:
-    """Configura sys.path e pkgutil.extend_path per risolvere _internal.nk_common."""
+    """Configura sys.path e __path__ per risolvere _internal.nk_common da .staging/."""
     script_dir = Path(__file__).resolve().parent
     prod_scripts = script_dir.parent.parent / "scripts" if script_dir.parent.name == ".staging" else script_dir
     for cand in (str(prod_scripts), str(script_dir)):
-        if cand not in sys.path:
-            sys.path.insert(0, cand)
+        if cand in sys.path:
+            sys.path.remove(cand)
+        sys.path.insert(0, cand)
     if script_dir != prod_scripts and (script_dir / "_internal" / "nk_common").is_dir():
-        import _internal as _stg_int
-        import _internal.nk_common as _stg_nkc
-
-        _stg_int.__path__ = pkgutil.extend_path(_stg_int.__path__, "_internal")
-        _stg_nkc.__path__ = pkgutil.extend_path(_stg_nkc.__path__, "_internal.nk_common")
+        _prepend_stg_pkg_paths(script_dir)
 
 
 def _win32_detached_flags() -> int:
@@ -38,7 +39,6 @@ def _win32_detached_flags() -> int:
     try:
         _ensure_nk_common_paths()
         from _internal.nk_common.isolated_test_runner import WIN32_DETACHED_FLAGS
-
         return int(WIN32_DETACHED_FLAGS)
     except ImportError:
         return 0x00000200 | 0x08000000
@@ -48,13 +48,10 @@ def reconfigure_streams() -> None:
     """Configura sys.stdout, sys.stderr e sys.stdin con codifica UTF-8 sicura."""
     _ensure_nk_common_paths()
     from _internal.nk_common.paths import reconfigure_streams as _nk_reconfigure
-
     _nk_reconfigure(include_stdin=True)
 
 
-def _normalize_python_command(
-    cmd: Union[str, Sequence[str]],
-) -> Union[str, List[str]]:
+def _normalize_python_command(cmd: Union[str, Sequence[str]]) -> Union[str, List[str]]:
     """Aggiunge il flag -u alle invocazioni Python sia in formato lista sia stringa."""
     if isinstance(cmd, (list, tuple)):
         cmd_list = list(cmd)
@@ -82,15 +79,11 @@ def _kill_process_tree_sync(pid: int) -> None:
         return
     if sys.platform == "win32":
         import subprocess
-
         try:
             subprocess.run(
                 ["taskkill", "/F", "/T", "/PID", str(pid)],
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                creationflags=_win32_detached_flags(),
-                timeout=2.0,
+                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                creationflags=_win32_detached_flags(), timeout=2.0,
             )
         except Exception:
             pass
@@ -171,10 +164,7 @@ def _tokenize_command_no_shell(cmd_str: str) -> List[str]:
     return tokens
 
 
-def _prepare_argv_no_shell(
-    normalized_cmd: Union[str, Sequence[str]],
-    run_env: Dict[str, str],
-) -> List[str]:
+def _prepare_argv_no_shell(normalized_cmd: Union[str, Sequence[str]], run_env: Dict[str, str]) -> List[str]:
     """Valida e risolve l'eseguibile tramite shutil.which senza forzare shell=True su .bat/.cmd."""
     argv = _tokenize_command_no_shell(normalized_cmd) if isinstance(normalized_cmd, str) else [str(part) for part in normalized_cmd]
     if not argv or not argv[0].strip():
@@ -186,7 +176,6 @@ def _prepare_argv_no_shell(
 
     if not Path(exe).is_file():
         import shutil
-
         resolved_exe = shutil.which(exe, path=run_env.get("PATH"))
         if resolved_exe:
             argv[0] = resolved_exe
@@ -210,24 +199,28 @@ def _decode_stream_output(raw: Union[str, bytes, None]) -> str:
     return raw.decode("utf-8", errors="replace") if raw else ""
 
 
-def safe_subprocess_run(
-    cmd: Union[str, Sequence[str]],
-    cwd: Optional[Union[str, Path]] = None,
-    timeout: Optional[float] = None,
-    capture: bool = True,
-    env: Optional[Dict[str, str]] = None,
-    use_shell: bool = False,
-) -> Tuple[int, str, str]:
-    """Esegue un sottoprocesso con codifica UTF-8, modalita unbuffered e tree-kill su timeout."""
-    import subprocess
-
-    reconfigure_streams()
-    run_env = dict(os.environ)
-    if env is not None:
-        run_env.update(env)
+def _build_subprocess_env(env: Optional[Dict[str, str]], replace_env: bool) -> Dict[str, str]:
+    """Costruisce l'ambiente del sottoprocesso preservando o sostituendo os.environ."""
+    if replace_env and env is not None:
+        run_env = dict(env)
+    else:
+        run_env = dict(os.environ)
+        if env is not None:
+            run_env.update(env)
     run_env["PYTHONIOENCODING"] = "utf-8"
     run_env["PYTHONUTF8"] = "1"
     run_env["PYTHONUNBUFFERED"] = "1"
+    return run_env
+
+
+def safe_subprocess_run(
+    cmd: Union[str, Sequence[str]], cwd: Optional[Union[str, Path]] = None, timeout: Optional[float] = None,
+    capture: bool = True, env: Optional[Dict[str, str]] = None, use_shell: bool = False, replace_env: bool = False,
+) -> Tuple[int, str, str]:
+    """Esegue un sottoprocesso con codifica UTF-8, modalita unbuffered e tree-kill su timeout."""
+    import subprocess
+    reconfigure_streams()
+    run_env = _build_subprocess_env(env, replace_env)
 
     normalized_cmd = _normalize_python_command(cmd)
     cwd_str = str(cwd) if cwd is not None else None
@@ -238,15 +231,12 @@ def safe_subprocess_run(
     proc: Optional[subprocess.Popen[str]] = None
     try:
         if effective_shell:
-            raw_shell_str = (
-                normalized_cmd
-                if isinstance(normalized_cmd, str)
-                else (
-                    subprocess.list2cmdline([str(x) for x in normalized_cmd])
-                    if sys.platform == "win32"
-                    else shlex.join([str(x) for x in normalized_cmd])
-                )
-            )
+            if isinstance(normalized_cmd, str):
+                raw_shell_str = normalized_cmd
+            elif sys.platform == "win32":
+                raw_shell_str = subprocess.list2cmdline([str(x) for x in normalized_cmd])
+            else:
+                raw_shell_str = shlex.join([str(x) for x in normalized_cmd])
             if any(c in raw_shell_str for c in ("\x00", "\n", "\r")):
                 raise ValueError("Caratteri di controllo vietati in modalita shell.")
             popen_target: Union[str, List[str]] = raw_shell_str
@@ -258,11 +248,7 @@ def safe_subprocess_run(
             text=True, encoding="utf-8", errors="replace", env=run_env, shell=effective_shell, creationflags=_win32_detached_flags(),
         )
         stdout_str, stderr_str = proc.communicate(timeout=timeout)
-        return (
-            proc.returncode if proc.returncode is not None else 0,
-            stdout_str if stdout_str is not None else "",
-            stderr_str if stderr_str is not None else "",
-        )
+        return (proc.returncode if proc.returncode is not None else 0, stdout_str or "", stderr_str or "")
     except subprocess.TimeoutExpired as exc:
         if proc is not None and proc.pid:
             _kill_process_tree_sync(proc.pid)
@@ -292,7 +278,6 @@ def _run_pytest_isolated_cli(args: object) -> int:
     """Delega l'esecuzione pytest isolata su NVMe al runner detached."""
     _ensure_nk_common_paths()
     from _internal.nk_common.isolated_test_runner import run_detached_pytest
-
     script_dir = Path(__file__).resolve().parent
     default_ws = script_dir.parent.parent if script_dir.parent.name == ".staging" else script_dir.parent
     ws_arg = getattr(args, "workspace_root", None)
@@ -301,20 +286,16 @@ def _run_pytest_isolated_cli(args: object) -> int:
     extra_args = tuple(shlex.split(raw_extra)) if raw_extra else ("-q", "--tb=short")
     timeout_val = getattr(args, "timeout", None)
     res = run_detached_pytest(
-        workspace_root=ws_root,
-        targets=tuple(getattr(args, "targets", None) or ("tests",)),
-        extra_args=extra_args,
-        timeout_sec=float(timeout_val) if timeout_val is not None else 180.0,
-        coverage=bool(getattr(args, "coverage", False)),
-        apply_overlay=bool(getattr(args, "overlay_staging", False)),
+        workspace_root=ws_root, targets=tuple(getattr(args, "targets", None) or ("tests",)),
+        extra_args=extra_args, timeout_sec=float(timeout_val) if timeout_val is not None else 180.0,
+        coverage=bool(getattr(args, "coverage", False)), apply_overlay=bool(getattr(args, "overlay_staging", False)),
     )
     if getattr(args, "json", False):
         sys.stdout.write(json.dumps(res, indent=2, ensure_ascii=False) + "\n")
     else:
         sys.stdout.write(
-            f"[NK-PYTEST-ISO] status={res['status']} passed={res['passed']} "
-            f"failed={res['failed']} errors={res['errors']} skipped={res['skipped']} "
-            f"duration_s={res['duration_s']} log={res['log_file']}\n"
+            f"[NK-PYTEST-ISO] status={res['status']} passed={res['passed']} failed={res['failed']} "
+            f"errors={res['errors']} skipped={res['skipped']} duration_s={res['duration_s']} log={res['log_file']}\n"
         )
         if not res["success"] and res.get("tail"):
             sys.stdout.write(str(res["tail"]) + "\n")
@@ -325,7 +306,6 @@ def _run_pytest_isolated_cli(args: object) -> int:
 def main() -> int:
     """Interfaccia CLI per l'esecuzione protetta di comandi e pytest NVMe isolati."""
     import argparse
-
     reconfigure_streams()
     parser = argparse.ArgumentParser(description="NK Hub Generation Universal Platform Runner 1.0.0-Generation")
     parser.add_argument("--cmd", type=str, required=False, default=None, help="Comando da eseguire in ambiente UTF-8 unbuffered")
@@ -344,7 +324,18 @@ def main() -> int:
         return _run_pytest_isolated_cli(args)
     if not args.cmd:
         parser.error("--cmd e' obbligatorio quando --pytest-isolated non e' attivo.")
-    rc, stdout, stderr = safe_subprocess_run(cmd=args.cmd, cwd=args.cwd, timeout=args.timeout, capture=not args.no_capture)
+    if args.overlay_staging:
+        _ensure_nk_common_paths()
+        from _internal.nk_common.isolated_test_runner import mirror_workspace_to_nvme, safe_rmtree
+        ws_root = Path(args.workspace_root or args.cwd or ".").resolve()
+        mirror_dir = mirror_workspace_to_nvme(ws_root, prefix="nk_cmd_iso_", apply_overlay=True, mirror_siblings=False)
+        ov_env = {"PYTHONPATH": os.pathsep.join([str(mirror_dir)] + ([os.environ["PYTHONPATH"]] if os.environ.get("PYTHONPATH") else []))}
+        try:
+            rc, stdout, stderr = safe_subprocess_run(cmd=args.cmd, cwd=mirror_dir, timeout=args.timeout, capture=not args.no_capture, env=ov_env)
+        finally:
+            safe_rmtree(mirror_dir.parent)
+    else:
+        rc, stdout, stderr = safe_subprocess_run(cmd=args.cmd, cwd=args.cwd, timeout=args.timeout, capture=not args.no_capture)
     if stdout:
         sys.stdout.write(stdout if stdout.endswith("\n") else stdout + "\n")
         sys.stdout.flush()

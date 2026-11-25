@@ -16,6 +16,10 @@ from _internal.nk_common.io import (
     win_long_path as _common_win_long_path,
 )
 from _internal.nk_common.paths import resolve_workspace_root
+from _internal.nk_common.win32_mutex import (
+    get_repo_batch_mutex_name as _common_get_repo_batch_mutex_name,
+    repo_path_hash as _common_repo_path_hash,
+)
 
 from . import constants as _consts
 from .constants import TwoPhaseCommitError
@@ -83,9 +87,8 @@ def _atomic_write_bytes(target_path: Path, data: bytes) -> None:
 
 
 def _get_repo_hash16(root: Union[str, Path]) -> str:
-    """Calcola il prefisso SHA-256 a 16 caratteri della root canonica."""
-    norm_root = os.path.realpath(str(root)).lower().replace("/", "\\").rstrip("\\")
-    return hashlib.sha256(norm_root.encode("utf-8")).hexdigest()[:16]
+    """Calcola il prefisso SHA-256 a 16 caratteri della root canonica delegando a win32_mutex."""
+    return _common_repo_path_hash(root, chars=16)
 
 
 def get_mutex_name_for_path(file_path: Union[str, Path]) -> str:
@@ -97,9 +100,7 @@ def get_mutex_name_for_path(file_path: Union[str, Path]) -> str:
 
 def get_repo_batch_mutex_name(root: Union[str, Path]) -> str:
     """Deriva il nome deterministico del mutex batch di repository dalla root canonica."""
-    norm_root = os.path.realpath(str(root)).lower().replace("/", "\\").rstrip("\\")
-    root_hash16 = hashlib.sha256(norm_root.encode("utf-8")).hexdigest()[:16]
-    return f"Global\\NK_RepoBatchLock_{root_hash16}"
+    return _common_get_repo_batch_mutex_name(root)
 
 
 def _is_reparse_point(path_obj: Path) -> bool:

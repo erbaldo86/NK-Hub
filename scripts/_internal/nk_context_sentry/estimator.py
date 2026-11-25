@@ -7,6 +7,12 @@ from typing import Any, Dict, Optional
 
 from _internal.nk_common.transcript_guards import valid_token_int
 from _internal.nk_context_sentry.thresholds_proxy import (
+    FLASH_ACTUAL_RED_TOKENS,
+    FLASH_ACTUAL_WARN_TOKENS,
+    FLASH_GREEN_STEP_THRESHOLD,
+    FLASH_GREEN_TOKEN_THRESHOLD,
+    FLASH_RED_STEP_THRESHOLD,
+    FLASH_RED_TOKEN_THRESHOLD,
     HIGH_CAPACITY_PROFILES,
     _safe_pos_int,
 )
@@ -89,6 +95,53 @@ def is_background_task_message(data: Dict[str, Any], content: str) -> bool:
     return False
 
 
+def _resolve_profile_thresholds(sentry: Any, active_profile: str, prof_cfg: Dict[str, Any]) -> tuple[int, int, int, int]:
+    if active_profile in HIGH_CAPACITY_PROFILES:
+        return (
+            _safe_pos_int(prof_cfg.get("green_step_threshold"), sentry.CARBON_GREEN_STEP_THRESHOLD),
+            _safe_pos_int(prof_cfg.get("red_step_threshold"), sentry.CARBON_RED_STEP_THRESHOLD),
+            _safe_pos_int(prof_cfg.get("green_token_threshold"), sentry.CARBON_GREEN_TOKEN_THRESHOLD),
+            _safe_pos_int(prof_cfg.get("red_token_threshold"), sentry.CARBON_RED_TOKEN_THRESHOLD),
+        )
+    if active_profile == "flash":
+        return (
+            _safe_pos_int(prof_cfg.get("green_step_threshold"), getattr(sentry, "FLASH_GREEN_STEP_THRESHOLD", FLASH_GREEN_STEP_THRESHOLD)),
+            _safe_pos_int(prof_cfg.get("red_step_threshold"), getattr(sentry, "FLASH_RED_STEP_THRESHOLD", FLASH_RED_STEP_THRESHOLD)),
+            _safe_pos_int(prof_cfg.get("green_token_threshold"), getattr(sentry, "FLASH_GREEN_TOKEN_THRESHOLD", FLASH_GREEN_TOKEN_THRESHOLD)),
+            _safe_pos_int(prof_cfg.get("red_token_threshold"), getattr(sentry, "FLASH_RED_TOKEN_THRESHOLD", FLASH_RED_TOKEN_THRESHOLD)),
+        )
+    return (
+        _safe_pos_int(prof_cfg.get("green_step_threshold"), sentry.GREEN_STEP_THRESHOLD),
+        _safe_pos_int(prof_cfg.get("red_step_threshold"), sentry.RED_STEP_THRESHOLD),
+        _safe_pos_int(prof_cfg.get("green_token_threshold"), sentry.GREEN_TOKEN_THRESHOLD),
+        _safe_pos_int(prof_cfg.get("red_token_threshold"), sentry.RED_TOKEN_THRESHOLD),
+    )
+
+
+def _apply_actual_token_caps(
+    sentry: Any, active_profile: str, actual_context_tokens: Optional[int], status: str, recommendation: str,
+) -> tuple[str, str]:
+    if active_profile not in HIGH_CAPACITY_PROFILES and active_profile != "flash":
+        return status, recommendation
+    if actual_context_tokens is None or actual_context_tokens <= 0:
+        return status, recommendation
+    act_red = (
+        sentry.CARBON_ACTUAL_RED_TOKENS
+        if active_profile in HIGH_CAPACITY_PROFILES
+        else getattr(sentry, "FLASH_ACTUAL_RED_TOKENS", FLASH_ACTUAL_RED_TOKENS)
+    )
+    act_warn = (
+        sentry.CARBON_ACTUAL_WARN_TOKENS
+        if active_profile in HIGH_CAPACITY_PROFILES
+        else getattr(sentry, "FLASH_ACTUAL_WARN_TOKENS", FLASH_ACTUAL_WARN_TOKENS)
+    )
+    if actual_context_tokens >= act_red:
+        return "RED", "Critical saturation (503 risk): Execute /compact or nk_session_handoff.py."
+    if actual_context_tokens >= act_warn and status != "RED":
+        return "WARN", "Warning: Context saturation nearing threshold. Delegate heavy tasks to subagents."
+    return status, recommendation
+
+
 def get_traffic_light_status_impl(
     sentry: Any,
     step_count: int,
@@ -124,32 +177,9 @@ def get_traffic_light_status_impl(
         ):
             prof_cfg = raw_prof["context_sentry"]
 
-    if active_profile in HIGH_CAPACITY_PROFILES:
-        green_steps = _safe_pos_int(
-            prof_cfg.get("green_step_threshold"), sentry.CARBON_GREEN_STEP_THRESHOLD
-        )
-        red_steps = _safe_pos_int(
-            prof_cfg.get("red_step_threshold"), sentry.CARBON_RED_STEP_THRESHOLD
-        )
-        green_tokens = _safe_pos_int(
-            prof_cfg.get("green_token_threshold"), sentry.CARBON_GREEN_TOKEN_THRESHOLD
-        )
-        red_tokens = _safe_pos_int(
-            prof_cfg.get("red_token_threshold"), sentry.CARBON_RED_TOKEN_THRESHOLD
-        )
-    else:
-        green_steps = _safe_pos_int(
-            prof_cfg.get("green_step_threshold"), sentry.GREEN_STEP_THRESHOLD
-        )
-        red_steps = _safe_pos_int(
-            prof_cfg.get("red_step_threshold"), sentry.RED_STEP_THRESHOLD
-        )
-        green_tokens = _safe_pos_int(
-            prof_cfg.get("green_token_threshold"), sentry.GREEN_TOKEN_THRESHOLD
-        )
-        red_tokens = _safe_pos_int(
-            prof_cfg.get("red_token_threshold"), sentry.RED_TOKEN_THRESHOLD
-        )
+    green_steps, red_steps, green_tokens, red_tokens = _resolve_profile_thresholds(
+        sentry, active_profile, prof_cfg
+    )
 
     effective_tokens = (
         actual_context_tokens
@@ -171,24 +201,9 @@ def get_traffic_light_status_impl(
             "Critical saturation (503 risk): Execute /compact or nk_session_handoff.py."
         )
 
-    if (
-        active_profile in HIGH_CAPACITY_PROFILES
-        and actual_context_tokens is not None
-        and actual_context_tokens > 0
-    ):
-        if actual_context_tokens >= sentry.CARBON_ACTUAL_RED_TOKENS:
-            status = "RED"
-            recommendation = (
-                "Critical saturation (503 risk): Execute /compact or nk_session_handoff.py."
-            )
-        elif (
-            actual_context_tokens >= sentry.CARBON_ACTUAL_WARN_TOKENS
-            and status != "RED"
-        ):
-            status = "WARN"
-            recommendation = (
-                "Warning: Context saturation nearing threshold. Delegate heavy tasks to subagents."
-            )
+    status, recommendation = _apply_actual_token_caps(
+        sentry, active_profile, actual_context_tokens, status, recommendation
+    )
 
     result: Dict[str, Any] = {
         "status": status,

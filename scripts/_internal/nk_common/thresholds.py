@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Set, Tuple, Union
 
 from _internal.nk_common.paths import normalize_rel_path, resolve_workspace_root
+from _internal.nk_common.tas_ssot_io import parse_deleted_files_manifest
 
 _THRESHOLDS_CANON_REL = Path("nk_genome/configs/saturation_thresholds.json")
 _THRESHOLDS_CACHE: Dict[str, Tuple[int, int, Dict[str, Any]]] = {}
@@ -85,16 +86,11 @@ def load_saturation_thresholds(
     return {}
 
 
-def _normalize_deleted_rel(raw_item: str) -> str:
-    """Normalizza un percorso relativo eliminato delegando a normalize_rel_path."""
-    return normalize_rel_path(raw_item)
-
-
 def load_deleted_files(
     workspace_root: Optional[Union[str, Path]] = None,
     deleted_manifest: Optional[Union[str, Path]] = None,
 ) -> Set[str]:
-    """Carica in modo fail-safe .deleted_files.json supportando sia list che dict."""
+    """Carica in modo fail-safe .deleted_files.json delegando al parser SSOT."""
     if deleted_manifest is not None:
         manifest_path = Path(deleted_manifest)
     else:
@@ -105,25 +101,8 @@ def load_deleted_files(
         )
         manifest_path = base_root / ".staging" / ".deleted_files.json"
 
-    if not manifest_path.is_file():
-        return set()
-
     try:
-        raw_data = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
-    except Exception:
+        items = parse_deleted_files_manifest(manifest_path)
+    except (OSError, ValueError):
         return set()
-
-    if isinstance(raw_data, list):
-        items = raw_data
-    elif isinstance(raw_data, dict) and isinstance(raw_data.get("deleted_files"), list):
-        items = raw_data["deleted_files"]
-    else:
-        return set()
-
-    deleted: Set[str] = set()
-    for item in items:
-        if isinstance(item, str):
-            norm = normalize_rel_path(item)
-            if norm:
-                deleted.add(norm)
-    return deleted
+    return {norm for raw in items if (norm := normalize_rel_path(raw))}

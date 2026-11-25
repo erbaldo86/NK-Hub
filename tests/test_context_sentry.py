@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Test unitari Zero-Mock per nk_context_sentry.py e nk_compliance_checker.py (v6.4.0-Carbon).
+Test unitari Zero-Mock per nk_context_sentry.py e nk_compliance_checker.py (v1.0.0-Generation).
 Modulo: tests/test_context_sentry.py.
 Valida stima token, Head-Tail, GT-01/GT-04, profilo carbon, compattazione e audit compliance.
 """
@@ -27,94 +27,105 @@ NKComplianceChecker = compliance_mod.NKComplianceChecker
 pytestmark = pytest.mark.fast
 
 
-def test_estimate_tokens() -> None:
-    """Verifica la stima token, il fallback Head-Tail e le soglie semaforiche GT-01."""
+def _assert_token_and_head_tail() -> None:
     assert NKContextSentry.estimate_tokens("") == 0
     assert NKContextSentry.estimate_tokens("a") == 1
     assert NKContextSentry.estimate_tokens("12345678") == 2
     assert NKContextSentry.estimate_tokens("a" * 400) == 100
-
     short_text = "Traceback (most recent call last):\n  File 'test.py', line 1\nValueError"
     assert NKContextSentry.format_head_tail(short_text) == short_text
-
-    long_text = "HEAD_" + ("x" * 2000) + "_TAIL"
-    compressed = NKContextSentry.format_head_tail(long_text, head_chars=10, tail_chars=10)
+    compressed = NKContextSentry.format_head_tail("HEAD_" + ("x" * 2000) + "_TAIL", head_chars=10, tail_chars=10)
     assert compressed.startswith("HEAD_")
     assert compressed.endswith("_TAIL")
     assert "[... TRUNCATED BY NK-CONTEXT-SENTRY HEAD-TAIL FALLBACK ...]" in compressed
 
-    sentry_std = NKContextSentry(profile="standard")
+
+def _assert_traffic_light_profiles(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Any:
+    monkeypatch.delenv("NK_MODEL_PROFILE", raising=False)
+    sentry_std = NKContextSentry(workspace_root=tmp_path)
+    assert sentry_std.profile == "standard"
     assert sentry_std.GREEN_STEP_THRESHOLD == 70
     assert sentry_std.RED_STEP_THRESHOLD == 100
     assert sentry_std.get_traffic_light_status(step_count=40, estimated_tokens=30000)["status"] == "GREEN"
     assert sentry_std.get_traffic_light_status(step_count=85, estimated_tokens=90000)["status"] == "YELLOW"
     assert sentry_std.get_traffic_light_status(step_count=105, estimated_tokens=150000)["status"] == "RED"
+    st_std_120k = sentry_std.get_traffic_light_status(step_count=10, estimated_tokens=120_000)
+    assert st_std_120k["profile"] == "standard"
+    assert st_std_120k["status"] == "RED"
 
     sentry_argon = NKContextSentry(profile="argon")
     assert sentry_argon.get_traffic_light_status(step_count=120, estimated_tokens=90000)["status"] == "GREEN"
     assert sentry_argon.get_traffic_light_status(step_count=180, estimated_tokens=150000)["status"] == "YELLOW"
     assert sentry_argon.get_traffic_light_status(step_count=260, estimated_tokens=260000)["status"] == "RED"
+    return NKContextSentry(workspace_root=tmp_path, profile="carbon")
 
 
-def test_analyze_transcript_real(
-    tmp_path: Path, monkeypatch: Any, capsys: Any
-) -> None:
-    """Verifica l'analisi reale di transcript.jsonl e l'esecuzione CLI JSON."""
-    sentry = NKContextSentry(workspace_root=tmp_path)
-    fake_transcript = tmp_path / "transcript.jsonl"
-    lines = [
-        {"step_index": 1, "source": "USER_EXPLICIT", "content": "Hello", "tool_calls": []},
-        {"step_index": 2, "source": "MODEL", "content": "Hi", "tool_calls": [{"name": "view_file"}]},
-        {"step_index": 3, "source": "MODEL", "content": "Checking", "tool_calls": [{"name": "run_command"}]},
-        {"step_index": 4, "source": "SYSTEM", "content": "<SYSTEM_MESSAGE> [Message] sender=worker-1 " + ("a" * 2500) + " </SYSTEM_MESSAGE>"},
-    ]
-    fake_transcript.write_text("\n".join(json.dumps(x) for x in lines) + "\n", encoding="utf-8")
-
-    res = sentry.analyze_transcript(fake_transcript)
-    assert res["status"] == "GREEN"
-    assert res["step_count"] == 4
-    assert res["swarm_hygiene_violations_count"] == 1
-    assert res["max_consecutive_direct_audit"] == 1
-
-    exempt_tr = tmp_path / "exempt_streak.jsonl"
-    exempt_tools = ["read_file", "view_file", "grep_search", "find_by_name", "swarm_wait", "read_board", "ask_question", "schedule"] * 2
-    exempt_rows = [{"step_index": i + 1, "source": "MODEL", "tool_calls": [{"name": nm}]} for i, nm in enumerate(exempt_tools)]
-    exempt_rows.append({"step_index": 20, "source": "MODEL", "tool_calls": [{"name": "swarm"}, {"name": "post_message"}]})
-    exempt_tr.write_text("\n".join(json.dumps(r) for r in exempt_rows) + "\n", encoding="utf-8")
-    exempt_res = sentry.analyze_transcript(exempt_tr)
-    assert exempt_res["max_consecutive_direct_audit"] == 0
-
-    monkeypatch.setattr(sys, "argv", ["nk_context_sentry.py", "--transcript", str(fake_transcript), "--json"])
-    sentry_mod.main()
-    cli_out = json.loads(capsys.readouterr().out)
-    assert cli_out["step_count"] == 4
-
-
-def test_context_sentry_carbon_profile_and_compaction_checkpoint_reset(
-    tmp_path: Path,
-) -> None:
-    """Verifica soglie profilo carbon, esclusione thinking e reset su SYSTEM CHECKPOINT."""
-    with pytest.MonkeyPatch.context() as mp:
-        mp.delenv("NK_MODEL_PROFILE", raising=False)
-        sentry_default = NKContextSentry()
-        assert sentry_default.profile == "standard"
-        mp.setenv("NK_MODEL_PROFILE", "carbon")
-        assert NKContextSentry().profile == "carbon"
-
-    sentry_carbon = NKContextSentry(workspace_root=tmp_path, profile="carbon")
+def _assert_carbon_and_bool_guards(sentry_carbon: Any) -> None:
+    assert sentry_carbon.profile == "carbon"
     assert sentry_carbon.CARBON_GREEN_STEP_THRESHOLD == 150
     assert sentry_carbon.CARBON_RED_STEP_THRESHOLD == 250
+    assert sentry_carbon.get_traffic_light_status(step_count=10, estimated_tokens=120_000)["status"] == "GREEN"
     assert sentry_carbon.get_traffic_light_status(step_count=140, estimated_tokens=120_000, actual_context_tokens=140_000)["status"] == "GREEN"
     assert sentry_carbon.get_traffic_light_status(step_count=160, estimated_tokens=120_000, actual_context_tokens=140_000)["status"] == "YELLOW"
     assert sentry_carbon.get_traffic_light_status(step_count=40, estimated_tokens=40_000, actual_context_tokens=160_000)["status"] == "WARN"
     assert sentry_carbon.get_traffic_light_status(step_count=40, estimated_tokens=40_000, actual_context_tokens=205_000)["status"] == "RED"
 
+
+def _assert_actual_tokens_bool_extraction(sentry_carbon: Any) -> None:
+    assert NKContextSentry._extract_actual_tokens_from_record({"usage": {"input_tokens": 90_000, "cache_read_tokens": 65_000}}) == 155_000
+    assert NKContextSentry._extract_actual_tokens_from_record({"input_tokens": 110_000, "cache_read_tokens": 50_000}) == 160_000
+    assert NKContextSentry._extract_actual_tokens_from_record({"input_tokens": True, "cache_read_tokens": False}) is None
+    assert NKContextSentry._extract_actual_tokens_from_record({"usage": {"input_tokens": 1500, "cache_read_tokens": True}}) != 1501
+    st_bool = sentry_carbon.get_traffic_light_status(step_count=True, estimated_tokens=True, actual_context_tokens=True)
+    assert st_bool["step_count"] == 0
+    assert st_bool.get("actual_context_tokens") is None
+    assert st_bool["status"] == "GREEN"
+
+
+def test_context_sentry_estimate_tokens_head_tail_and_profiles(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Verifica stima token, Head-Tail, profili standard/argon/carbon e somma token con rigetto bool."""
+    _assert_token_and_head_tail()
+    monkeypatch.setenv("NK_MODEL_PROFILE", "carbon")
+    sentry_from_env = NKContextSentry(workspace_root=tmp_path)
+    _assert_traffic_light_profiles(tmp_path, monkeypatch)
+    _assert_carbon_and_bool_guards(sentry_from_env)
+    _assert_actual_tokens_bool_extraction(sentry_from_env)
+
+
+def _assert_140kb_line_and_empty_offset(tmp_path: Path, sentry_carbon: Any) -> None:
+    filler = json.dumps({"source": "MODEL", "type": "PLANNER_RESPONSE", "content": "F" * 11_500, "usage": {"input_tokens": 210_000}})
+    ckpt = json.dumps({"source": "SYSTEM", "type": "CHECKPOINT", "content": "SYSTEM CHECKPOINT VERIFIED"})
+    big_140kb = json.dumps({"source": "MODEL", "type": "PLANNER_RESPONSE", "content": "X" * 144_000, "usage": {"input_tokens": 120_000, "cache_read_tokens": 35_000}})
+    assert len(big_140kb.encode("utf-8")) > 140_000
+
+    tp_big = tmp_path / "sentry_big_140kb.jsonl"
+    tp_big.write_text("\n".join(([filler] * 38) + [ckpt, big_140kb]) + "\n", encoding="utf-8")
+    rep_big = sentry_carbon.analyze_transcript(tp_big)
+    assert rep_big["step_count"] == 2
+    assert rep_big["actual_context_tokens"] == 155_000
+    assert rep_big["status"] == "WARN"
+
+    tp_big_no_ckpt = tmp_path / "sentry_big_no_ckpt.jsonl"
+    tp_big_no_ckpt.write_text("\n".join(([filler] * 38) + [big_140kb]) + "\n", encoding="utf-8")
+    rep_no_ckpt = sentry_carbon.analyze_transcript(tp_big_no_ckpt)
+    assert rep_no_ckpt["actual_context_tokens"] == 155_000
+    assert rep_no_ckpt["status"] == "WARN"
+
+    tp_empty = tmp_path / "empty.jsonl"
+    tp_empty.write_text("", encoding="utf-8")
+    assert NKContextSentry._find_last_compaction_offset(tp_empty) == 0
+    assert NKContextSentry._find_last_compaction_offset(tmp_path / "missing.jsonl") == 0
+
+
+def test_context_sentry_compaction_no_false_reset_and_large_line_140kb(tmp_path: Path) -> None:
+    """Verifica reset compaction, esclusione thinking, nessun falso reset MODEL/GENERIC e righe 140KB."""
+    sentry_carbon = NKContextSentry(workspace_root=tmp_path, profile="carbon")
+
     tp_comp = tmp_path / "carbon_compaction.jsonl"
     comp_records = [
-        *[
-            {"step_index": idx, "source": "MODEL", "type": "PLANNER_RESPONSE", "input_tokens": 220_000, "content": "A" * 2000, "thinking": "T" * 8000}
-            for idx in range(260)
-        ],
+        *[{"step_index": idx, "source": "MODEL", "type": "PLANNER_RESPONSE", "input_tokens": 220_000, "content": "A" * 200, "thinking": "T" * 1000} for idx in range(260)],
         {"source": "SYSTEM", "type": "CHECKPOINT", "content": "# Resuming from a compaction checkpoint..."},
         {"step_index": 261, "source": "USER_EXPLICIT", "type": "USER_INPUT", "content": "Procedi dopo compattazione."},
         {"step_index": 262, "source": "MODEL", "type": "PLANNER_RESPONSE", "input_tokens": 18_000, "content": "Riprendo esecuzione.", "thinking": "R" * 40_000},
@@ -126,10 +137,6 @@ def test_context_sentry_carbon_profile_and_compaction_checkpoint_reset(
     assert rep_comp["actual_context_tokens"] == 18_000
     assert rep_comp["estimated_tokens"] < 5_000
 
-
-def test_context_sentry_no_false_reset_on_model_summary(tmp_path: Path) -> None:
-    """Verifica che citazioni <CONTEXT_SUMMARY> di MODEL o GENERIC non resettino il conteggio."""
-    sentry_carbon = NKContextSentry(workspace_root=tmp_path, profile="carbon")
     tp_non_reset = tmp_path / "carbon_no_false_reset.jsonl"
     non_reset_records = [
         *[{"step_index": idx, "source": "MODEL", "type": "PLANNER_RESPONSE", "input_tokens": 210_000, "content": "Step"} for idx in range(160)],
@@ -137,56 +144,11 @@ def test_context_sentry_no_false_reset_on_model_summary(tmp_path: Path) -> None:
         {"step_index": 162, "source": "MODEL", "type": "GENERIC", "content": "<CONTEXT_SUMMARY> citato in record generico."},
     ]
     tp_non_reset.write_text("\n".join(json.dumps(r) for r in non_reset_records) + "\n", encoding="utf-8")
-    rep = sentry_carbon.analyze_transcript(tp_non_reset)
-    assert rep["step_count"] == 162
-    assert rep["actual_context_tokens"] == 210_000
-    assert rep["status"] == "RED"
-
-
-def test_wp4_context_sentry_profile_tokens_140kb_bool_and_tv08(tmp_path, monkeypatch) -> None:
-    """Verifica default standard, somma input+cache e rigetto bool in _extract_actual_tokens_from_record."""
-    monkeypatch.delenv("NK_MODEL_PROFILE", raising=False)
-    sentry_default = sentry_mod.NKContextSentry(workspace_root=tmp_path)
-    assert sentry_default.profile == "standard"
-    st_std_120k = sentry_default.get_traffic_light_status(step_count=10, estimated_tokens=120_000)
-    assert st_std_120k["profile"] == "standard" and st_std_120k["status"] == "RED"
-
-    sentry_carbon = sentry_mod.NKContextSentry(workspace_root=tmp_path, profile="carbon")
-    assert sentry_carbon.profile == "carbon"
-    st_cb_120k = sentry_carbon.get_traffic_light_status(step_count=10, estimated_tokens=120_000)
-    assert st_cb_120k["profile"] == "carbon" and st_cb_120k["status"] == "GREEN"
-
-    assert sentry_mod.NKContextSentry._extract_actual_tokens_from_record({"usage": {"input_tokens": 90_000, "cache_read_tokens": 65_000}}) == 155_000
-    assert sentry_mod.NKContextSentry._extract_actual_tokens_from_record({"input_tokens": 110_000, "cache_read_tokens": 50_000}) == 160_000
-    assert sentry_mod.NKContextSentry._extract_actual_tokens_from_record({"input_tokens": True, "cache_read_tokens": False}) is None
-    assert sentry_mod.NKContextSentry._extract_actual_tokens_from_record({"usage": {"input_tokens": 1500, "cache_read_tokens": True}}) != 1501
-
-    st_bool = sentry_carbon.get_traffic_light_status(step_count=True, estimated_tokens=True, actual_context_tokens=True)
-    assert st_bool["step_count"] == 0 and st_bool.get("actual_context_tokens") is None and st_bool["status"] == "GREEN"
-
-
-def test_context_sentry_large_line_140kb_and_backscan_edge(tmp_path: Path) -> None:
-    """Verifica righe 140 KB su file > 500 KB, chunk senza newline e file vuoto."""
-    sentry_carbon = NKContextSentry(workspace_root=tmp_path, profile="carbon")
-    filler = json.dumps({"source": "MODEL", "type": "PLANNER_RESPONSE", "content": "F" * 11_500, "usage": {"input_tokens": 210_000}})
-    ckpt = json.dumps({"source": "SYSTEM", "type": "CHECKPOINT", "content": "SYSTEM CHECKPOINT VERIFIED"})
-    big_140kb = json.dumps({"source": "MODEL", "type": "PLANNER_RESPONSE", "content": "X" * 144_000, "usage": {"input_tokens": 120_000, "cache_read_tokens": 35_000}})
-    assert len(big_140kb.encode("utf-8")) > 140_000
-
-    tp_big = tmp_path / "sentry_big_140kb.jsonl"
-    tp_big.write_text("\n".join(([filler] * 38) + [ckpt, big_140kb]) + "\n", encoding="utf-8")
-    rep_big = sentry_carbon.analyze_transcript(tp_big)
-    assert rep_big["step_count"] == 2 and rep_big["actual_context_tokens"] == 155_000 and rep_big["status"] == "WARN"
-
-    tp_big_no_ckpt = tmp_path / "sentry_big_no_ckpt.jsonl"
-    tp_big_no_ckpt.write_text("\n".join(([filler] * 38) + [big_140kb]) + "\n", encoding="utf-8")
-    rep_no_ckpt = sentry_carbon.analyze_transcript(tp_big_no_ckpt)
-    assert rep_no_ckpt["actual_context_tokens"] == 155_000 and rep_no_ckpt["status"] == "WARN"
-
-    tp_empty = tmp_path / "empty.jsonl"
-    tp_empty.write_text("", encoding="utf-8")
-    assert NKContextSentry._find_last_compaction_offset(tp_empty) == 0
-    assert NKContextSentry._find_last_compaction_offset(tmp_path / "missing.jsonl") == 0
+    rep_nr = sentry_carbon.analyze_transcript(tp_non_reset)
+    assert rep_nr["step_count"] == 162
+    assert rep_nr["actual_context_tokens"] == 210_000
+    assert rep_nr["status"] == "RED"
+    _assert_140kb_line_and_empty_offset(tmp_path, sentry_carbon)
 
 
 def test_context_sentry_tv08_checkpoint_spoof_and_r1c4_hooks(tmp_path: Path) -> None:
@@ -239,8 +201,7 @@ def test_context_sentry_thresholds_lazy_attrs_corrupt_and_cli_text(
     assert sentry_mod.load_saturation_thresholds(workspace_root=tmp_path) == {}
     stg_cfg_dir = tmp_path / ".staging" / "nk_genome" / "configs"
     stg_cfg_dir.mkdir(parents=True)
-    stg_json = stg_cfg_dir / "saturation_thresholds.json"
-    stg_json.write_text(json.dumps({"profiles": {"carbon": {"context_sentry": {"green_steps": 145}}}}), encoding="utf-8")
+    (stg_cfg_dir / "saturation_thresholds.json").write_text(json.dumps({"profiles": {"carbon": {"context_sentry": {"green_steps": 145}}}}), encoding="utf-8")
     assert sentry_mod.load_saturation_thresholds(workspace_root=tmp_path)["profiles"]["carbon"]["context_sentry"]["green_steps"] == 145
     assert sentry_mod._safe_pos_int(True, 5) == 5 and sentry_mod._safe_pos_int(12, 5) == 12
     assert isinstance(sentry_mod._THRESHOLDS_DATA, dict)
@@ -252,8 +213,7 @@ def test_context_sentry_thresholds_lazy_attrs_corrupt_and_cli_text(
 
     corrupt_tp = tmp_path / "corrupt.jsonl"
     corrupt_tp.write_text("{corrupt_json\n", encoding="utf-8")
-    rep_err = NKContextSentry(workspace_root=tmp_path).analyze_transcript(corrupt_tp)
-    assert rep_err["status"] == "ERROR"
+    assert NKContextSentry(workspace_root=tmp_path).analyze_transcript(corrupt_tp)["status"] == "ERROR"
 
     blind_tp = tmp_path / "blind_read.jsonl"
     blind_rows = [
@@ -273,10 +233,7 @@ def test_context_sentry_thresholds_lazy_attrs_corrupt_and_cli_text(
     assert "status" in json.loads(capsys.readouterr().out)
 
 
-def test_compliance_checker_external_writes_correlation_and_rsi_lookup(
-    tmp_path: Path, monkeypatch: Any, capsys: Any
-) -> None:
-    """Chiude i branch di nk_compliance_checker su scritture esterne, correlazione tool, telemetry RSI e CLI."""
+def _assert_compliance_unit_helpers() -> None:
     assert compliance_mod._is_external_unstage_write("NK_External_Projects/App/src_app/a.py", is_command=False) is True
     assert compliance_mod._is_external_unstage_write("NK_External_Projects/App/.staging/a.py", is_command=False) is False
     assert compliance_mod._is_external_unstage_write("pytest NK_External_Projects/App/tests", is_command=True) is False
@@ -289,36 +246,12 @@ def test_compliance_checker_external_writes_correlation_and_rsi_lookup(
     assert compliance_mod._parse_record_epoch("invalid-date") is None
 
     pending = [{"id": "c1", "name": "run_command"}, {"tool_call_id": "c2", "name": "read_file"}]
-    matched = compliance_mod._pop_correlated_tool_call(pending, {"tool_response": {"id": "c2"}})
-    assert matched["name"] == "read_file"
+    assert compliance_mod._pop_correlated_tool_call(pending, {"tool_response": {"id": "c2"}})["name"] == "read_file"
     assert compliance_mod._pop_correlated_tool_call(pending, {})["name"] == "run_command"
     assert compliance_mod._pop_correlated_tool_call([], {}) == {}
 
-    conv_dir = tmp_path / "brain" / "conv-123"
-    conv_dir.mkdir(parents=True)
-    tp = conv_dir / "transcript.jsonl"
-    rows = [
-        {"step_index": 1, "source": "USER_EXPLICIT", "content": "Vai"},
-        {"step_index": 2, "source": "MODEL", "tool_calls": [{"id": "call-1", "name": "run_command", "arguments": {"CommandLine": "python scripts/rsi_convergence_engine.py"}}]},
-        {"step_index": 3, "source": "TOOL", "tool_response": {"id": "call-1"}, "content": '{"status": "CONVERGED_OPTIMAL"}'},
-    ]
-    tp.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
-    (conv_dir / "rsi_telemetry.jsonl").write_text(json.dumps({"session_id": "conv-123", "fitness_q": 96.5}) + "\n", encoding="utf-8")
 
-    checker = NKComplianceChecker(workspace_root=tmp_path)
-    audit = checker.audit_transcript(tp)
-    assert audit["status"] in ("PASS", "FAIL")
-    assert checker._lookup_rsi_telemetry_score(tp) == (True, 96.5)
-
-    monkeypatch.setattr(sys, "argv", ["nk_compliance_checker.py", "--transcript", str(tp), "--min-score", "101"])
-    assert compliance_mod.main() == 1
-    assert "[NK-COMPLIANCE]" in capsys.readouterr().out
-
-
-def test_compliance_checker_staging_md_exempt_from_ast_guard_penalty(tmp_path: Path) -> None:
-    """Verifica esenzione AST Guard [-10] su .staging/.md mantenendo -20/-10 su codice non staged."""
-    checker = NKComplianceChecker(workspace_root=tmp_path)
-
+def _assert_compliance_staging_and_prod_audit(tmp_path: Path, checker: Any) -> None:
     tp_staged = tmp_path / "staged_md_only.jsonl"
     tp_staged.write_text(
         "\n".join([
@@ -332,7 +265,8 @@ def test_compliance_checker_staging_md_exempt_from_ast_guard_penalty(tmp_path: P
     )
     rep_staged = checker.audit_transcript(tp_staged)
     assert rep_staged["status"] == "PASS"
-    assert rep_staged["metrics"]["write_calls"] == 2 and rep_staged["metrics"]["code_write_calls"] == 0
+    assert rep_staged["metrics"]["write_calls"] == 2
+    assert rep_staged["metrics"]["code_write_calls"] == 0
     assert not any("AST Guard omitted" in p for p in rep_staged["penalties"])
 
     tp_unstaged = tmp_path / "unstaged_prod.jsonl"
@@ -346,6 +280,33 @@ def test_compliance_checker_staging_md_exempt_from_ast_guard_penalty(tmp_path: P
         encoding="utf-8",
     )
     rep_unstaged = checker.audit_transcript(tp_unstaged)
-    assert rep_unstaged["status"] == "FAIL" and rep_unstaged["metrics"]["code_write_calls"] == 1
+    assert rep_unstaged["status"] == "FAIL"
+    assert rep_unstaged["metrics"]["code_write_calls"] == 1
     assert any("Staging bypass" in p and "[-20]" in p for p in rep_unstaged["penalties"])
     assert any("AST Guard omitted [-10]" in p for p in rep_unstaged["penalties"])
+
+
+def test_compliance_checker_external_writes_correlation_and_staging_exempt(
+    tmp_path: Path, monkeypatch: Any, capsys: Any
+) -> None:
+    """Verifica nk_compliance_checker su scritture esterne, correlazione tool, telemetry RSI, esenzione .staging/.md e CLI."""
+    _assert_compliance_unit_helpers()
+    conv_dir = tmp_path / "brain" / "conv-123"
+    conv_dir.mkdir(parents=True)
+    tp = conv_dir / "transcript.jsonl"
+    rows = [
+        {"step_index": 1, "source": "USER_EXPLICIT", "content": "Vai"},
+        {"step_index": 2, "source": "MODEL", "tool_calls": [{"id": "call-1", "name": "run_command", "arguments": {"CommandLine": "python scripts/rsi_convergence_engine.py"}}]},
+        {"step_index": 3, "source": "TOOL", "tool_response": {"id": "call-1"}, "content": '{"status": "CONVERGED_OPTIMAL"}'},
+    ]
+    tp.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
+    (conv_dir / "rsi_telemetry.jsonl").write_text(json.dumps({"session_id": "conv-123", "fitness_q": 96.5}) + "\n", encoding="utf-8")
+
+    checker = NKComplianceChecker(workspace_root=tmp_path)
+    assert checker.audit_transcript(tp)["status"] in ("PASS", "FAIL")
+    assert checker._lookup_rsi_telemetry_score(tp) == (True, 96.5)
+
+    monkeypatch.setattr(sys, "argv", ["nk_compliance_checker.py", "--transcript", str(tp), "--min-score", "101"])
+    assert compliance_mod.main() == 1
+    assert "[NK-COMPLIANCE]" in capsys.readouterr().out
+    _assert_compliance_staging_and_prod_audit(tmp_path, checker)

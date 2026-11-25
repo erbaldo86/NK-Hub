@@ -13,7 +13,12 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
 from _internal.nk_common.facade_boot import resolve_facade_attr
-from _internal.nk_common.paths import reconfigure_streams
+from _internal.nk_common.paths import (
+    cmd_mentions_nk_proget_online,
+    is_nk_proget_online_path,
+    reconfigure_streams,
+    resolve_nk_proget_roots,
+)
 
 _INTERNAL_PKG_DIR = Path(__file__).resolve().parent
 _scripts_dir = _INTERNAL_PKG_DIR.parent.parent
@@ -37,7 +42,7 @@ except ImportError:
 
 reconfigure_streams()
 
-TARGET_PORTS: List[int] = [8000, 8080, 5000, 3000, 8018]
+TARGET_PORTS: List[int] = [8000, 8080, 5000, 3000, 8018, 8090]
 PORT_SCAN_RANGE: Tuple[int, int] = (3000, 9999)
 DEV_PROCESS_KEYWORDS: Tuple[str, ...] = (
     "python", "uvicorn", "fastapi", "flask",
@@ -119,6 +124,48 @@ def _query_win32_cim_processes(pids: Sequence[int]) -> Dict[int, Tuple[str, str,
     return info_map
 
 
+def _iter_external_workspace_norms(effective_ws: Path) -> List[str]:
+    """Normalizza le root esterne (NK_External_Projects e NK Proget/Locale) escludendo Online."""
+    ext_cand = (
+        effective_ws / "NK_External_Projects"
+        if (effective_ws / "NK_External_Projects").exists()
+        else effective_ws.parent / "NK_External_Projects"
+    )
+    raw_roots: List[Path] = [ext_cand]
+    locale_root, _ = resolve_nk_proget_roots(effective_ws)
+    if locale_root is not None:
+        raw_roots.append(locale_root)
+    norms: List[str] = []
+    for cand in raw_roots:
+        if not is_nk_proget_online_path(cand):
+            norms.append(os.path.realpath(str(cand)).lower().replace("/", "\\").rstrip("\\"))
+    return norms
+
+
+def _process_targets_readonly_online(proc_cwd: str, exe_norm: str, cmd_norm: str) -> bool:
+    """Verifica se il processo appartiene al mirror protetto NK Proget/Online."""
+    return (
+        is_nk_proget_online_path(proc_cwd)
+        or is_nk_proget_online_path(exe_norm)
+        or cmd_mentions_nk_proget_online(cmd_norm)
+    )
+
+
+def _matches_any_norm_root(
+    proc_cwd: str,
+    exe_norm: str,
+    cmd_norm: str,
+    norm_roots: Sequence[str],
+) -> bool:
+    """Verifica la corrispondenza su almeno una root consentita escludendo NK Proget/Online."""
+    if _process_targets_readonly_online(proc_cwd, exe_norm, cmd_norm):
+        return False
+    for norm_r in norm_roots:
+        if _is_subpath_str(proc_cwd, norm_r) or _is_subpath_str(exe_norm, norm_r) or (norm_r and norm_r in cmd_norm):
+            return True
+    return False
+
+
 def _matches_workspace_paths(
     proc_name: str,
     cmdline_str: str,
@@ -133,21 +180,13 @@ def _matches_workspace_paths(
     default_ws = Path(_facade_attr("_workspace_root", _workspace_root))
     effective_ws = Path(workspace_root).resolve() if workspace_root is not None else default_ws.resolve()
     ws_norm = os.path.realpath(str(effective_ws)).lower().replace("/", "\\").rstrip("\\")
-    ext_root_cand = (
-        effective_ws / "NK_External_Projects"
-        if (effective_ws / "NK_External_Projects").exists()
-        else effective_ws.parent / "NK_External_Projects"
-    )
-    ext_norm = os.path.realpath(str(ext_root_cand)).lower().replace("/", "\\").rstrip("\\")
     cmd_norm = cmdline_str.replace("/", "\\")
     exe_norm = os.path.realpath(proc_exe).lower().replace("/", "\\").rstrip("\\") if proc_exe else ""
 
-    if _is_subpath_str(proc_cwd, ws_norm) or _is_subpath_str(exe_norm, ws_norm) or (ws_norm and ws_norm in cmd_norm):
+    if _matches_any_norm_root(proc_cwd, exe_norm, cmd_norm, (ws_norm,)):
         return True
-    if workspace_root is None and (
-        _is_subpath_str(proc_cwd, ext_norm) or _is_subpath_str(exe_norm, ext_norm) or (ext_norm and ext_norm in cmd_norm)
-    ):
-        return True
+    if workspace_root is None or effective_ws == default_ws.resolve():
+        return _matches_any_norm_root(proc_cwd, exe_norm, cmd_norm, _iter_external_workspace_norms(effective_ws))
     return False
 
 

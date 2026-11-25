@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import ast
-from typing import Any, Tuple
+from typing import Any, List, Optional, Set, Tuple
 
 from _internal.ast_guard_validator.sast_call_helpers import (
+    _check_dunder_import_call,
+    _check_sql_execute_call,
+    _extract_getattr_pair,
     check_dynamic_attr_access as _check_dynamic_attr_access,
-    check_getattr_call as _check_getattr_call,
     check_import_module_call,
     check_literal_env_path_args,
     check_path_traversal_args,
@@ -24,6 +26,102 @@ from _internal.ast_guard_validator.sast_constants import (
     TOK_FIXTURE_FN,
 )
 
+_BANNED_INDIRECT_CALLABLES: Set[str] = {
+    "eval", "exec", "compile", "__import__",
+    "builtins.eval", "builtins.exec", "builtins.compile", "builtins.__import__",
+    "__builtins__.eval", "__builtins__.exec", "__builtins__.compile", "__builtins__.__import__",
+    "os.system", "os.popen", "nt.system", "nt.popen", "posix.system", "posix.popen",
+    "pty.spawn", "asyncio.create_subprocess_shell",
+    "pickle.loads", "pickle.load", "_pickle.loads", "_pickle.load",
+    "marshal.loads", "marshal.load",
+    "yaml.load", "yaml.load_all", "yaml.full_load", "yaml.full_load_all",
+    "yaml.unsafe_load", "yaml.unsafe_load_all",
+}
+
+
+def _is_banned_indirect_callable(resolved_sym: str) -> bool:
+    """Verifica se un argomento callable passato a map/partial punta a sink SAST."""
+    if resolved_sym in _BANNED_INDIRECT_CALLABLES:
+        return True
+    if "." in resolved_sym:
+        mod, attr = resolved_sym.rsplit(".", 1)
+        if mod in ("os", "nt", "posix") and attr.startswith(("exec", "spawn")):
+            return True
+    return False
+
+
+def _check_methodcaller_attrgetter_call(
+    checker: Any, node: ast.Call, resolved: str
+) -> None:
+    """Verifica attrgetter e methodcaller rispetto a lookup pericolosi o offuscati."""
+    is_mc = resolved in ("methodcaller", "operator.methodcaller")
+    emit_sym = "operator.methodcaller" if is_mc else "operator.attrgetter"
+    args_to_scan = node.args[:1] if is_mc else node.args
+    mc_extra = (
+        {"system", "popen", "eval", "exec", "compile", "__import__", "load", "loads"}
+        if is_mc
+        else set()
+    )
+    banned_attrs = DANGEROUS_LOOKUP_SYMS | MRO_EVASION_ATTRS | mc_extra
+    for ag_arg in args_to_scan:
+        if checker._has_reverse_slice_expr(ag_arg):
+            checker._emit_sast(
+                emit_sym,
+                node,
+                f"Unsafe reverse-slice obfuscation in '{emit_sym}()' detected.",
+            )
+            return
+        attr_s = checker._eval_const_str_expr(ag_arg)
+        if attr_s and any(
+            p in banned_attrs or (is_mc and p.startswith(("exec", "spawn")))
+            for p in attr_s.split(".")
+        ):
+            checker._emit_sast(
+                emit_sym,
+                node,
+                f"Unsafe '{emit_sym}({attr_s!r})' detected.",
+            )
+            return
+
+
+def _find_banned_indirect_target(checker: Any, node: ast.Call) -> Optional[str]:
+    """Individua il primo callable SAST vietato passato per posizione o keyword func=."""
+    cb_nodes: List[ast.AST] = list(node.args[:1]) + [
+        kw.value for kw in node.keywords if kw.arg == "func"
+    ]
+    for cb_node in cb_nodes:
+        target_cb = checker._resolve_symbol_expr(cb_node)
+        if target_cb and _is_banned_indirect_callable(target_cb):
+            return str(target_cb)
+    return None
+
+
+def _check_indirect_callable_call(
+    checker: Any, node: ast.Call, resolved: str
+) -> None:
+    """Verifica passaggi indiretti di sink vietati tramite map() o partial()."""
+    target_cb = _find_banned_indirect_target(checker, node)
+    if target_cb:
+        checker._emit_sast(
+            resolved,
+            node,
+            f"Unsafe indirect callable '{resolved}({target_cb}, ...)' detected.",
+        )
+
+
+def _emit_eval_exec_compile_if_active(
+    checker: Any, node: ast.Call, func: ast.expr, resolved: str
+) -> None:
+    """Emette violazione SAST su eval/exec/compile escludendo i parametri eval/compile in scope."""
+    is_shadowed_param = (
+        isinstance(func, ast.Name)
+        and func.id in ("eval", "compile")
+        and getattr(checker, "_is_param_in_scope", lambda _n: False)(func.id)
+    )
+    if not is_shadowed_param:
+        sym_name = func.id if isinstance(func, ast.Name) else resolved
+        checker._emit_sast(sym_name, node, f"Unsafe SAST construct '{resolved}()' detected.")
+
 
 def check_call_resolved(
     checker: Any, node: ast.Call, func: ast.expr, resolved: str
@@ -33,79 +131,33 @@ def check_call_resolved(
     handled_gaming = False
 
     if resolved in (
-        "eval",
-        "exec",
-        "compile",
-        "builtins.eval",
-        "builtins.exec",
-        "builtins.compile",
-        "__builtins__.eval",
-        "__builtins__.exec",
-        "__builtins__.compile",
+        "eval", "exec", "compile",
+        "builtins.eval", "builtins.exec", "builtins.compile",
+        "__builtins__.eval", "__builtins__.exec", "__builtins__.compile",
     ):
-        sym_name = func.id if isinstance(func, ast.Name) else resolved
-        checker._emit_sast(
-            sym_name,
-            node,
-            f"Unsafe SAST construct '{resolved}()' detected.",
-        )
+        _emit_eval_exec_compile_if_active(checker, node, func, resolved)
     elif resolved in ("import_module", "importlib.import_module"):
         checker._check_import_module_call(node)
-    elif resolved in ("attrgetter", "operator.attrgetter") and node.args:
-        for ag_arg in node.args:
-            if checker._has_reverse_slice_expr(ag_arg):
-                checker._emit_sast(
-                    "operator.attrgetter",
-                    node,
-                    "Unsafe reverse-slice obfuscation in 'operator.attrgetter()' detected.",
-                )
-                break
-            attr_s = checker._eval_const_str_expr(ag_arg)
-            if attr_s and any(
-                p in DANGEROUS_LOOKUP_SYMS | MRO_EVASION_ATTRS
-                for p in attr_s.split(".")
-            ):
-                checker._emit_sast(
-                    "operator.attrgetter",
-                    node,
-                    f"Unsafe 'operator.attrgetter({attr_s!r})' detected.",
-                )
-                break
-    elif (
-        resolved in ("__import__", "builtins.__import__", "__builtins__.__import__")
-        and node.args
-    ):
-        if checker._has_reverse_slice_expr(node.args[0]):
-            checker._emit_sast(
-                "__import__",
-                node,
-                "Unsafe reverse-slice obfuscation in '__import__()' detected.",
-            )
-        else:
-            mod_arg = checker._eval_const_str_expr(node.args[0])
-            if mod_arg and mod_arg.split(".")[0] in DANGEROUS_MODULES | {"sys"}:
-                checker._emit_sast(
-                    "__import__",
-                    node,
-                    f"Unsafe dynamic import '__import__({mod_arg!r})' detected.",
-                )
     elif (
         resolved
-        in (
-            "getattr",
-            "builtins.getattr",
-            "__builtins__.getattr",
-            "__getattribute__",
-            "builtins.__getattribute__",
-            "__builtins__.__getattribute__",
-            "object.__getattribute__",
-            "type.__getattribute__",
-        )
-        and len(node.args) >= 2
+        in ("attrgetter", "operator.attrgetter", "methodcaller", "operator.methodcaller")
+        and node.args
     ):
-        handled_gaming = _check_dynamic_attr_access(
-            checker, node, node.args[0], node.args[1], resolved
-        )
+        _check_methodcaller_attrgetter_call(checker, node, resolved)
+    elif resolved in ("map", "builtins.map", "partial", "functools.partial"):
+        _check_indirect_callable_call(checker, node, resolved)
+    elif resolved in ("__import__", "builtins.__import__", "__builtins__.__import__"):
+        _check_dunder_import_call(checker, node)
+    elif resolved in (
+        "getattr", "builtins.getattr", "__builtins__.getattr",
+        "__getattribute__", "builtins.__getattribute__", "__builtins__.__getattribute__",
+        "object.__getattribute__", "type.__getattribute__",
+    ):
+        pair = _extract_getattr_pair(node)
+        if pair is not None:
+            handled_gaming = _check_dynamic_attr_access(
+                checker, node, pair[0], pair[1], resolved
+            )
     elif (
         resolved in MOCK_SYMBOLS
         or any(resolved.endswith(f".{m}") for m in MOCK_SYMBOLS)
@@ -130,6 +182,7 @@ def check_call_resolved(
         checker._check_path_traversal_args(resolved, node)
         checker._check_literal_env_path_args(resolved, node)
     elif resolved in ("os.makedirs", "os.mkdir"):
+        checker._check_path_traversal_args(resolved, node)
         checker._check_literal_env_path_args(resolved, node)
     elif resolved == "pty.spawn":
         checker._emit_sast(
@@ -152,12 +205,9 @@ def check_call_resolved(
                 f"Unsafe OS command execution '{resolved}()' detected.",
             )
     elif resolved in (
-        "pickle.loads",
-        "pickle.load",
-        "_pickle.loads",
-        "_pickle.load",
-        "marshal.loads",
-        "marshal.load",
+        "pickle.loads", "pickle.load",
+        "_pickle.loads", "_pickle.load",
+        "marshal.loads", "marshal.load",
     ):
         checker._emit_sast(
             resolved,
@@ -174,11 +224,8 @@ def check_call_resolved(
 
     if not checker.is_test_file and not handled_gaming:
         if resolved in (
-            "currentframe",
-            "_getframe",
-            "inspect.currentframe",
-            "inspect.stack",
-            "sys._getframe",
+            "currentframe", "_getframe",
+            "inspect.currentframe", "inspect.stack", "sys._getframe",
         ):
             checker._emit_gaming_violation(
                 "SAST-GAMING-D02",
@@ -247,21 +294,8 @@ def check_call_attribute(
         checker._check_path_traversal_args("Path.joinpath", node)
         checker._check_literal_env_path_args("Path.joinpath", node)
 
-    if attr in ("execute", "executemany") and node.args:
-        first_arg = node.args[0]
-        if isinstance(first_arg, ast.JoinedStr):
-            raw_sql = "".join(
-                part.value
-                for part in first_arg.values
-                if isinstance(part, ast.Constant) and isinstance(part.value, str)
-            ).upper()
-            sql_keywords = ("SELECT ", "INSERT ", "UPDATE ", "DELETE ", "DROP ")
-            if any(kw in raw_sql for kw in sql_keywords):
-                checker._emit_sast(
-                    attr,
-                    node,
-                    f"Unsafe SQL f-string injection in '.{attr}()' detected.",
-                )
+    if attr in ("execute", "executemany"):
+        _check_sql_execute_call(checker, attr, node)
 
     if not handled_mock and attr in MOCK_SYMBOLS:
         checker._emit_sast(
@@ -306,5 +340,4 @@ __all__ = [
     "check_subprocess_call",
     "check_yaml_call",
     "_check_dynamic_attr_access",
-    "_check_getattr_call",
 ]

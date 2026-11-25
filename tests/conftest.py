@@ -13,10 +13,13 @@ import io
 import json
 import os
 import shutil
+import stat
+import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, FrozenSet, List, Optional, Set, Tuple
 
 import pytest
 
@@ -144,6 +147,141 @@ def _install_staging_import_overlay() -> None:
 _install_staging_import_overlay()
 
 _GLOBAL_MODULE_CACHE: Dict[str, Any] = {}
+_CACHED_DEP_IDS: Set[int] = set()
+_TRANSIENT_RELOAD_KEYS: Set[str] = set()
+_SCRIPTS_RESOLVED: Path = SCRIPTS_DIR.resolve()
+_STAGING_SCRIPTS_RESOLVED: Path = STAGING_SCRIPTS_DIR.resolve()
+_STDLIB_MODULE_NAMES: FrozenSet[str] = frozenset(
+    getattr(sys, "stdlib_module_names", ())
+) | frozenset({"sys", "os", "builtins", "importlib"})
+_PRESERVED_MODULE_PREFIXES: Tuple[str, ...] = (
+    "pytest",
+    "_pytest",
+    "pluggy",
+    "pydantic",
+    "pydantic_core",
+    "coverage",
+    "_coverage",
+)
+
+
+def _handle_rm_readonly(func: Any, path: str, _exc: Any) -> None:
+    """Rimuove il bit sola lettura su Windows durante la pulizia ricorsiva."""
+    try:
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
+    except OSError:
+        pass
+
+
+def safe_rmtree(path: Path, retries: int = 5, delay: float = 0.025) -> bool:
+    """Rimuove ricorsivamente una directory gestendo bit sola lettura e retry [WinError 32]."""
+    target = Path(path)
+    if not target.exists() and not target.is_symlink():
+        return True
+    kw: Dict[str, Any] = (
+        {"onexc": _handle_rm_readonly}
+        if sys.version_info >= (3, 12)
+        else {"onerror": _handle_rm_readonly}
+    )
+    attempts = max(1, int(retries))
+    for idx in range(attempts):
+        try:
+            if target.is_symlink():
+                target.unlink(missing_ok=True)
+            else:
+                shutil.rmtree(target, **kw)
+            return True
+        except FileNotFoundError:
+            return True
+        except OSError:
+            if idx + 1 < attempts:
+                time.sleep(max(0.0, float(delay)))
+    return not target.exists() and not target.is_symlink()
+
+
+def _normalize_staged_rel(raw_path: str) -> str:
+    """Normalizza un percorso relativo POSIX rimuovendo prefissi ./ e /."""
+    clean = str(raw_path or "").strip().strip("\"'").replace("\\", "/")
+    while clean.startswith("./"):
+        clean = clean[2:]
+    clean = clean.strip("/")
+    return clean.lower() if os.name == "nt" else clean
+
+
+def _load_staged_deleted_set(staging_dir: Optional[Path] = None) -> Set[str]:
+    """Carica in modo fail-safe i percorsi eliminati da .staging/.deleted_files.json."""
+    base_stg = staging_dir if staging_dir is not None else STAGING_ROOT
+    manifest = base_stg / ".deleted_files.json"
+    if not manifest.is_file():
+        return set()
+    try:
+        raw = json.loads(manifest.read_text(encoding="utf-8-sig"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return set()
+    if isinstance(raw, list):
+        items = raw
+    elif isinstance(raw, dict) and isinstance(raw.get("deleted_files"), list):
+        items = raw["deleted_files"]
+    else:
+        return set()
+    return {
+        norm
+        for item in items
+        if isinstance(item, str) and (norm := _normalize_staged_rel(item))
+    }
+
+
+_STAGED_DELETED_SET: Set[str] = _load_staged_deleted_set()
+
+
+def _is_path_in_staged_deleted(rel_path: str) -> bool:
+    """True se rel_path o una sua directory antenata figura in _STAGED_DELETED_SET."""
+    norm_rel = _normalize_staged_rel(rel_path)
+    if not norm_rel or not _STAGED_DELETED_SET:
+        return False
+    norm_low = norm_rel.lower()
+    return any(
+        norm_rel == d
+        or norm_rel.startswith(f"{d}/")
+        or norm_low == d.lower()
+        or norm_low.startswith(f"{d.lower()}/")
+        for d in _STAGED_DELETED_SET
+    )
+
+
+def _record_load_outcome(
+    target_key: str,
+    mod_name: str,
+    mod: Any,
+    pre_keys: Set[str],
+    force_reload: bool,
+) -> None:
+    """Aggiorna cache globale o traccia alias force_reload per la pulizia di fine test."""
+    if force_reload:
+        _TRANSIENT_RELOAD_KEYS.add(mod_name)
+        return
+    _TRANSIENT_RELOAD_KEYS.discard(mod_name)
+    _GLOBAL_MODULE_CACHE[target_key] = mod
+    for loaded_name, loaded_obj in list(sys.modules.items()):
+        if loaded_name not in pre_keys and loaded_obj is not None:
+            _CACHED_DEP_IDS.add(id(loaded_obj))
+
+
+def _is_real_workspace_module(mod_name: str, mod_obj: Any) -> bool:
+    """True se il modulo risiede nei pacchetti scripts/ o .staging/scripts/ reali."""
+    if mod_name in _TRANSIENT_RELOAD_KEYS:
+        return False
+    mod_file = getattr(mod_obj, "__file__", None)
+    if not isinstance(mod_file, str) or not mod_file:
+        return False
+    try:
+        mod_res = Path(mod_file).resolve()
+    except OSError:
+        return False
+    return mod_res.is_relative_to(_SCRIPTS_RESOLVED) or mod_res.is_relative_to(
+        _STAGING_SCRIPTS_RESOLVED
+    )
 
 
 def is_cov_instrumented() -> bool:
@@ -159,7 +297,7 @@ def is_cov_instrumented() -> bool:
 def _resolve_staged_or_prod(rel_path: str) -> Path:
     """Risolve un percorso relativo dando priorita alla copia in .staging/."""
     staged = WORKSPACE_ROOT / ".staging" / rel_path
-    if staged.exists():
+    if staged.exists() or _is_path_in_staged_deleted(rel_path):
         return staged
     return WORKSPACE_ROOT / rel_path
 
@@ -200,6 +338,7 @@ def load_script_by_relpath(
     spec = importlib.util.spec_from_file_location(spec_name, target_key)
     if spec is None or spec.loader is None:
         raise ImportError(f"Impossibile caricare il modulo {mod_name} da {target}")
+    pre_load_keys = set(sys.modules.keys())
     mod = importlib.util.module_from_spec(spec)
     sys.modules[mod_name] = mod
     if not force_reload:
@@ -207,8 +346,7 @@ def load_script_by_relpath(
         sys.modules[dotted] = mod
     spec.loader.exec_module(mod)
     _overlay_internal_packages()
-    if not force_reload:
-        _GLOBAL_MODULE_CACHE[target_key] = mod
+    _record_load_outcome(target_key, mod_name, mod, pre_load_keys, force_reload)
     return mod
 
 
@@ -268,6 +406,88 @@ def call_script_main_captured(
     return rc, buf_out.getvalue(), buf_err.getvalue()
 
 
+def _is_preserved_sys_module(
+    mod_name: str,
+    mod_obj: Any,
+    baseline_keys: Set[str],
+    cached_ids: Set[int],
+) -> bool:
+    """True se il modulo in sys.modules va preservato dopo il singolo test."""
+    if mod_name in baseline_keys:
+        return True
+    if mod_obj is not None and (id(mod_obj) in cached_ids or id(mod_obj) in _CACHED_DEP_IDS):
+        return True
+    top_pkg = mod_name.split(".", 1)[0]
+    if top_pkg in _STDLIB_MODULE_NAMES or mod_name.startswith(_PRESERVED_MODULE_PREFIXES):
+        return True
+    if _is_real_workspace_module(mod_name, mod_obj):
+        return True
+    mod_file = getattr(mod_obj, "__file__", "") or ""
+    return isinstance(mod_file, str) and mod_file.lower().endswith((".pyd", ".so", ".dll"))
+
+
+@pytest.fixture(autouse=True)
+def _isolate_transient_sys_modules():
+    """Rimuove le chiavi transitorie aggiunte a sys.modules preservando cache, stdlib e pytest."""
+    baseline_keys = set(sys.modules.keys())
+    yield
+    cached_ids = {id(m) for m in _GLOBAL_MODULE_CACHE.values() if m is not None}
+    for mod_name in list(sys.modules.keys()):
+        if not _is_preserved_sys_module(
+            mod_name, sys.modules.get(mod_name), baseline_keys, cached_ids
+        ):
+            sys.modules.pop(mod_name, None)
+
+
+def _is_fast_guard_active(request: pytest.FixtureRequest) -> bool:
+    """Attiva la guardia 0-Subprocess / 0-Sleep solo con -m fast su test marcati fast."""
+    markexpr = str(getattr(request.config.option, "markexpr", "") or "").lower()
+    if "fast" not in markexpr or "not fast" in markexpr:
+        return False
+    node = request.node
+    has_fast = node.get_closest_marker("fast") is not None
+    has_heavy = (
+        node.get_closest_marker("integration") is not None
+        or node.get_closest_marker("stress") is not None
+    )
+    return has_fast and not has_heavy
+
+
+@pytest.fixture(autouse=True)
+def _fast_guard_no_subprocess_or_sleep(
+    request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch
+):
+    """Impedisce sottoprocessi reali e sleep > 0.05s durante i test -m fast."""
+    if not _is_fast_guard_active(request):
+        yield
+        return
+    real_sleep = time.sleep
+
+    def _forbidden_subprocess(*_args: Any, **_kwargs: Any) -> Any:
+        pytest.fail(
+            "[FAST-GUARD] Real subprocess forbidden in @pytest.mark.fast; move test to @pytest.mark.integration."
+        )
+
+    def _guarded_sleep(secs: float, *args: Any, **kwargs: Any) -> Any:
+        if float(secs) > 0.05:
+            pytest.fail(
+                f"[FAST-GUARD] time.sleep({secs}) > 0.05s forbidden in @pytest.mark.fast"
+            )
+        return real_sleep(secs, *args, **kwargs)
+
+    for mod_obj, attr_name in (
+        (subprocess, "Popen"),
+        (subprocess, "run"),
+        (subprocess, "call"),
+        (subprocess, "check_call"),
+        (subprocess, "check_output"),
+        (os, "system"),
+    ):
+        monkeypatch.setattr(mod_obj, attr_name, _forbidden_subprocess)
+    monkeypatch.setattr(time, "sleep", _guarded_sleep)
+    yield
+
+
 @pytest.fixture(scope="session")
 def session_registry_manifest() -> Dict[str, Any]:
     """Memorizza in cache di sessione il manifesto JSON nk_registry_manifest.json."""
@@ -317,7 +537,7 @@ def temp_test_dir():
     tmp = tempfile.mkdtemp(prefix="nk_test_dir_")
     path = Path(tmp)
     yield path
-    shutil.rmtree(path, ignore_errors=True)
+    safe_rmtree(path)
 
 
 @pytest.fixture
@@ -326,7 +546,7 @@ def clean_sandbox_dir():
     tmp = tempfile.mkdtemp(prefix="nk_sandbox_test_")
     path = Path(tmp)
     yield path
-    shutil.rmtree(path, ignore_errors=True)
+    safe_rmtree(path)
 
 
 @pytest.fixture(scope="session")

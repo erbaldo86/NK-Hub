@@ -154,6 +154,14 @@ def _evaluate_fallback_no_transcript(
     return 0
 
 
+def _update_velocity_delta(state: Dict[str, Any], cur_tokens: int, prev_actual: int) -> None:
+    if cur_tokens > 0:
+        state["last_velocity_delta"] = max(0, cur_tokens - prev_actual) if prev_actual > 0 else 0
+        state["prev_actual_tokens"] = cur_tokens
+    elif prev_actual == 0 and int(state.get("last_velocity_delta", 0)) != 0:
+        state["last_velocity_delta"] = 0
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     """Entry point rapido della guardia ACS PreInvocation e PostInvocation."""
     _reconfigure_streams()
@@ -254,8 +262,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             elif is_z2:
                 spawn_fn(roots, tp_path, conv_id, payload, state, cooldown_s=float(cfg["cooldown_s"]))
 
-        if cur_tokens > 0:
-            state["prev_actual_tokens"] = cur_tokens
+        _update_velocity_delta(state, cur_tokens, prev_actual)
         if not state_exists or state_recovered or state != state_before:
             _persist_state_or_warn(state_path, state)
         print(json.dumps(out, ensure_ascii=True))

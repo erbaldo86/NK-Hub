@@ -5,8 +5,9 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
+from _internal.nk_common.constants import NK_LOCK_FILENAMES
 from _internal.nk_hook_gate.constants import (
     _MCP_CHROME_DEVTOOLS_TOOLS,
     _MCP_MUTATING_TOOL_RE,
@@ -16,8 +17,11 @@ from _internal.nk_hook_gate.constants import (
 from _internal.nk_hook_gate.json_io import _extract_args_dict
 from _internal.nk_hook_gate.path_safety import (
     _canonical_path,
+    _deny_online_readonly,
     _has_ancestor_reparse_escape,
     _has_ntfs_ads_stream,
+    _is_nk_proget_locale_target,
+    _is_nk_proget_online_target,
     _is_valid_staging_path,
     _is_whitelisted_outside_staging,
     _resolve_effective_hub_root,
@@ -30,6 +34,15 @@ _KNOWN_MCP_EAGER_PREFIXES = (
     "mcp_puppeteer_",
     "mcp_chrome-devtools-mcp_",
     "mcp_firebase-mcp-server_",
+)
+_MCP_PROTECTED_SEGS = (
+    "scripts",
+    ".agents",
+    "nk_genome",
+    "schemas",
+    "tests",
+    ".wal",
+    "nk_external_projects",
 )
 
 
@@ -76,32 +89,37 @@ def _extract_mcp_candidate_paths(
     if is_path_key:
         return [val]
     norm_low = val_low.replace("\\", "/")
-    if re.match(r"^(?:[a-z]:/|\\\\|/|(?:\./|\.\./))", norm_low) or (
-        " " not in norm_low
-        and (
-            norm_low.startswith(
-                (
-                    "nk_hub/",
-                    ".staging/",
-                    "scripts/",
-                    ".agents/",
-                    "nk_genome/",
-                    "schemas/",
-                    "tests/",
-                    "nk_tracking/",
+    if (
+        re.match(r"^(?:[a-z]:/|\\\\|/|(?:\./|\.\./))", norm_low)
+        or norm_low.startswith("nk proget/")
+        or "/nk proget/" in norm_low
+        or (
+            " " not in norm_low
+            and (
+                norm_low.startswith(
+                    (
+                        "nk_hub/",
+                        ".staging/",
+                        "scripts/",
+                        ".agents/",
+                        "nk_genome/",
+                        "schemas/",
+                        "tests/",
+                        "nk_tracking/",
+                    )
                 )
-            )
-            or any(
-                seg in norm_low
-                for seg in (
-                    "/scripts/",
-                    "/.agents/",
-                    "/nk_genome/",
-                    "/schemas/",
-                    "/tests/",
-                    "/nk_hub/",
-                    "oracle_lock.json",
-                    "quality_baseline.json",
+                or any(
+                    seg in norm_low
+                    for seg in (
+                        "/scripts/",
+                        "/.agents/",
+                        "/nk_genome/",
+                        "/schemas/",
+                        "/tests/",
+                        "/nk_hub/",
+                        "oracle_lock.json",
+                        "quality_baseline.json",
+                    )
                 )
             )
         )
@@ -126,6 +144,70 @@ def _resolve_eager_mcp_names(
     if len(parts) == 3:
         return mcp_server or parts[1], parts[2]
     return mcp_server, fallback_tool_name
+
+
+_MCP_LOCK_NAMES_LOW = frozenset(name.lower() for name in NK_LOCK_FILENAMES)
+
+
+def _is_mcp_protected_gov_file(cand_name_low: str) -> bool:
+    """Riconosce i file di governance protetti in chiamate MCP."""
+    return cand_name_low in _MCP_LOCK_NAMES_LOW or cand_name_low in (
+        "quality_baseline.json",
+        "patch_notes.md",
+        "active.json",
+    ) or (cand_name_low.startswith("checkpoint_") and cand_name_low.endswith(".json"))
+
+
+def _is_mcp_gov_or_tensor_target(cand_name_low: str, cand_parts_low: List[str]) -> bool:
+    """Verifica file di governance protetti o directory nk_tracking/tensor_sessions in MCP."""
+    if _is_mcp_protected_gov_file(cand_name_low):
+        return True
+    return "nk_tracking" in cand_parts_low and "tensor_sessions" in cand_parts_low
+
+
+def _check_mcp_candidate_path(
+    cand_str: str,
+    project_root: Path,
+    eff_root: Path,
+    proj_canon: Path,
+    ws_hub: Path,
+) -> Optional[Dict[str, Any]]:
+    """Valida un singolo percorso estratto da argomenti MCP contro ADS, reparse, Online e .staging/."""
+    if _has_ntfs_ads_stream(cand_str):
+        return {
+            "decision": "deny",
+            "reason": "Blocked call_mcp_tool with NTFS Alternate Data Stream path target.",
+        }
+    if _has_ancestor_reparse_escape(cand_str, project_root):
+        return {
+            "decision": "deny",
+            "reason": "Blocked call_mcp_tool with symlink/reparse point escape path target.",
+        }
+    cand_path = _resolve_target_path(cand_str, project_root)
+    if _is_nk_proget_online_target(cand_path):
+        return _deny_online_readonly()
+    if _is_valid_staging_path(cand_path, project_root):
+        return None
+    cand_parts_low = [p.lower().rstrip(". ") for p in cand_path.parts]
+    cand_name_low = cand_path.name.lower().split(":", 1)[0].rstrip(". ")
+    if _is_mcp_gov_or_tensor_target(cand_name_low, cand_parts_low):
+        return {
+            "decision": "deny",
+            "reason": f"Blocked call_mcp_tool targeting protected governance artifact outside .staging/: {cand_path.name}",
+        }
+    if _is_nk_proget_locale_target(cand_path) or any(p in _MCP_PROTECTED_SEGS for p in cand_parts_low):
+        return {
+            "decision": "deny",
+            "reason": "Blocked call_mcp_tool targeting protected code/governance/tests directory outside .staging/.",
+        }
+    if any(
+        cand_path == br or br in cand_path.parents for br in (eff_root, proj_canon, ws_hub)
+    ) and not _is_whitelisted_outside_staging(cand_path, project_root):
+        return {
+            "decision": "deny",
+            "reason": "Blocked call_mcp_tool targeting NK_Hub path outside .staging/.",
+        }
+    return None
 
 
 def _classify_mcp_tool_call(
@@ -176,60 +258,13 @@ def _classify_mcp_tool_call(
 
     eff_root = _resolve_effective_hub_root(project_root)
     proj_canon = _canonical_path(project_root)
-    ws_hub = _canonical_path(_WORKSPACE_ROOT / "NK_Hub")
+    ws_hub = _resolve_effective_hub_root(_WORKSPACE_ROOT)
     for cand_str in _extract_mcp_candidate_paths(raw_mcp_args):
-        if _has_ntfs_ads_stream(cand_str):
-            return {
-                "decision": "deny",
-                "reason": "Blocked call_mcp_tool with NTFS Alternate Data Stream path target.",
-            }
-        if _has_ancestor_reparse_escape(cand_str, project_root):
-            return {
-                "decision": "deny",
-                "reason": "Blocked call_mcp_tool with symlink/reparse point escape path target.",
-            }
-        cand_path = _resolve_target_path(cand_str, project_root)
-        if _is_valid_staging_path(cand_path, project_root):
-            continue
-        cand_parts_low = [p.lower().rstrip(". ") for p in cand_path.parts]
-        cand_name_low = cand_path.name.lower().split(":", 1)[0].rstrip(". ")
-        if (
-            cand_name_low
-            in ("oracle_lock.json", "quality_baseline.json", "patch_notes.md")
-            or (
-                cand_name_low.startswith("checkpoint_")
-                and cand_name_low.endswith(".json")
-            )
-        ):
-            return {
-                "decision": "deny",
-                "reason": f"Blocked call_mcp_tool targeting protected governance artifact outside .staging/: {cand_path.name}",
-            }
-        if any(
-            p
-            in (
-                "scripts",
-                ".agents",
-                "nk_genome",
-                "schemas",
-                "tests",
-                ".wal",
-                "nk_external_projects",
-            )
-            for p in cand_parts_low
-        ):
-            return {
-                "decision": "deny",
-                "reason": "Blocked call_mcp_tool targeting protected code/governance/tests directory outside .staging/.",
-            }
-        if any(
-            cand_path == br or br in cand_path.parents
-            for br in (eff_root, proj_canon, ws_hub)
-        ) and not _is_whitelisted_outside_staging(cand_path, project_root):
-            return {
-                "decision": "deny",
-                "reason": "Blocked call_mcp_tool targeting NK_Hub path outside .staging/.",
-            }
+        path_denial = _check_mcp_candidate_path(
+            cand_str, project_root, eff_root, proj_canon, ws_hub
+        )
+        if path_denial is not None:
+            return path_denial
 
     srv_low = mcp_server.lower()
     tool_low = mcp_tool.lower()

@@ -4,9 +4,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
-from _internal.nk_common.constants import HIGH_CAPACITY_PROFILES
+from _internal.nk_common.constants import (
+    HIGH_CAPACITY_PROFILES,
+    SUPPORTED_MODEL_PROFILES,
+)
 from _internal.nk_common.paths import reconfigure_streams
 from _internal.nk_common.thresholds import _safe_pos_int, load_saturation_thresholds
 from _internal.nk_common.transcript_guards import (
@@ -44,12 +47,39 @@ GENERATION_GREEN_TOKEN_THRESHOLD: int = CARBON_GREEN_TOKEN_THRESHOLD
 GENERATION_RED_TOKEN_THRESHOLD: int = CARBON_RED_TOKEN_THRESHOLD
 GENERATION_ACTUAL_WARN_TOKENS: int = CARBON_ACTUAL_WARN_TOKENS
 GENERATION_ACTUAL_RED_TOKENS: int = CARBON_ACTUAL_RED_TOKENS
+NEON_GREEN_STEP_THRESHOLD: int = CARBON_GREEN_STEP_THRESHOLD
+NEON_RED_STEP_THRESHOLD: int = CARBON_RED_STEP_THRESHOLD
+NEON_GREEN_TOKEN_THRESHOLD: int = CARBON_GREEN_TOKEN_THRESHOLD
+NEON_RED_TOKEN_THRESHOLD: int = CARBON_RED_TOKEN_THRESHOLD
+NEON_ACTUAL_WARN_TOKENS: int = CARBON_ACTUAL_WARN_TOKENS
+NEON_ACTUAL_RED_TOKENS: int = CARBON_ACTUAL_RED_TOKENS
+PRO_GREEN_STEP_THRESHOLD: int = CARBON_GREEN_STEP_THRESHOLD
+PRO_RED_STEP_THRESHOLD: int = CARBON_RED_STEP_THRESHOLD
+PRO_GREEN_TOKEN_THRESHOLD: int = CARBON_GREEN_TOKEN_THRESHOLD
+PRO_RED_TOKEN_THRESHOLD: int = CARBON_RED_TOKEN_THRESHOLD
+PRO_ACTUAL_WARN_TOKENS: int = CARBON_ACTUAL_WARN_TOKENS
+PRO_ACTUAL_RED_TOKENS: int = CARBON_ACTUAL_RED_TOKENS
+FLASH_GREEN_STEP_THRESHOLD: int = 90
+FLASH_RED_STEP_THRESHOLD: int = 140
+FLASH_GREEN_TOKEN_THRESHOLD: int = 100_000
+FLASH_RED_TOKEN_THRESHOLD: int = 160_000
+FLASH_ACTUAL_WARN_TOKENS: int = 120_000
+FLASH_ACTUAL_RED_TOKENS: int = 160_000
 ARGON_ACTUAL_WARN_TOKENS: int = CARBON_ACTUAL_WARN_TOKENS
 ARGON_ACTUAL_RED_TOKENS: int = CARBON_ACTUAL_RED_TOKENS
 PLATFORM_COMPACTION_TOKEN_LIMIT: int = 273_000
 COMPACTION_SUMMARY_MARKER: str = "<CONTEXT_SUMMARY>"
 CONTEXT_BACKSCAN_CHUNK_BYTES: int = 65536
 CONTEXT_MAX_SCAN_BYTES: int = 50 * 1024 * 1024
+
+_PROFILE_ATTR_CANDIDATES: Dict[str, Tuple[str, ...]] = {
+    "_STD_CS": ("standard",),
+    "_CARB_CS": ("carbon", "generation"),
+    "_GEN_CS": ("generation", "carbon"),
+    "_NEON_CS": ("neon", "generation", "carbon"),
+    "_PRO_CS": ("pro", "generation", "carbon"),
+    "_FLASH_CS": ("flash", "standard"),
+}
 
 
 def _get_thresholds_data(workspace_root: Optional[Path] = None) -> Dict[str, Any]:
@@ -62,6 +92,16 @@ def _get_thresholds_data(workspace_root: Optional[Path] = None) -> Dict[str, Any
     return _THRESHOLDS_CACHE
 
 
+def _lookup_profile_ctx(candidates: Tuple[str, ...]) -> Dict[str, Any]:
+    """Restituisce il blocco context_sentry per la prima chiave profilo presente."""
+    profiles = get_lazy_threshold_attr("_PROFILES_DATA")
+    for key in candidates:
+        entry = profiles.get(key)
+        if isinstance(entry, dict):
+            return entry.get("context_sentry", {})
+    return {}
+
+
 def get_lazy_threshold_attr(name: str) -> Any:
     """Risolve i dizionari di soglia lazy richiesti dalla facciata."""
     if name == "_THRESHOLDS_DATA":
@@ -69,23 +109,9 @@ def get_lazy_threshold_attr(name: str) -> Any:
     if name == "_PROFILES_DATA":
         data = _get_thresholds_data()
         return data.get("profiles") if isinstance(data.get("profiles"), dict) else {}
-    if name == "_STD_CS":
-        profiles = get_lazy_threshold_attr("_PROFILES_DATA")
-        return (
-            profiles.get("standard", {}).get("context_sentry", {})
-            if isinstance(profiles.get("standard"), dict)
-            else {}
-        )
-    if name in ("_CARB_CS", "_GEN_CS"):
-        profiles = get_lazy_threshold_attr("_PROFILES_DATA")
-        entry = (
-            profiles.get("generation")
-            if name == "_GEN_CS" and isinstance(profiles.get("generation"), dict)
-            else profiles.get("carbon")
-            if isinstance(profiles.get("carbon"), dict)
-            else profiles.get("generation")
-        )
-        return entry.get("context_sentry", {}) if isinstance(entry, dict) else {}
+    candidates = _PROFILE_ATTR_CANDIDATES.get(name)
+    if candidates is not None:
+        return _lookup_profile_ctx(candidates)
     raise AttributeError(name)
 
 
@@ -106,6 +132,12 @@ __all__ = [
     "COMPACTION_SUMMARY_MARKER",
     "CONTEXT_BACKSCAN_CHUNK_BYTES",
     "CONTEXT_MAX_SCAN_BYTES",
+    "FLASH_ACTUAL_RED_TOKENS",
+    "FLASH_ACTUAL_WARN_TOKENS",
+    "FLASH_GREEN_STEP_THRESHOLD",
+    "FLASH_GREEN_TOKEN_THRESHOLD",
+    "FLASH_RED_STEP_THRESHOLD",
+    "FLASH_RED_TOKEN_THRESHOLD",
     "GENERATION_ACTUAL_RED_TOKENS",
     "GENERATION_ACTUAL_WARN_TOKENS",
     "GENERATION_GREEN_STEP_THRESHOLD",
@@ -113,11 +145,24 @@ __all__ = [
     "GENERATION_RED_STEP_THRESHOLD",
     "GENERATION_RED_TOKEN_THRESHOLD",
     "HIGH_CAPACITY_PROFILES",
+    "NEON_ACTUAL_RED_TOKENS",
+    "NEON_ACTUAL_WARN_TOKENS",
+    "NEON_GREEN_STEP_THRESHOLD",
+    "NEON_GREEN_TOKEN_THRESHOLD",
+    "NEON_RED_STEP_THRESHOLD",
+    "NEON_RED_TOKEN_THRESHOLD",
     "PLATFORM_COMPACTION_TOKEN_LIMIT",
+    "PRO_ACTUAL_RED_TOKENS",
+    "PRO_ACTUAL_WARN_TOKENS",
+    "PRO_GREEN_STEP_THRESHOLD",
+    "PRO_GREEN_TOKEN_THRESHOLD",
+    "PRO_RED_STEP_THRESHOLD",
+    "PRO_RED_TOKEN_THRESHOLD",
     "STANDARD_GREEN_STEP_THRESHOLD",
     "STANDARD_GREEN_TOKEN_THRESHOLD",
     "STANDARD_RED_STEP_THRESHOLD",
     "STANDARD_RED_TOKEN_THRESHOLD",
+    "SUPPORTED_MODEL_PROFILES",
     "SWARM_MSG_HARD_CAP",
     "SWARM_MSG_MSS_CAP",
     "_UNTRUSTED_COMPACTION_SOURCES",

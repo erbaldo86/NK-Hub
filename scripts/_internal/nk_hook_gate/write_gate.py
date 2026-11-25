@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict
+from pathlib import Path as _RuntimePath
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple
 
 from _internal.nk_hook_gate.constants import (
     _PROTECTED_PROJECT_SEGMENTS,
@@ -20,6 +21,10 @@ from _internal.nk_hook_gate.json_io import (
 )
 from _internal.nk_hook_gate.path_safety import (
     _canonical_path,
+    _cmd_mentions_external_project,
+    _deny_online_readonly,
+    _is_nk_proget_locale_target,
+    _is_nk_proget_online_target,
     _is_valid_staging_path,
     _is_whitelisted_outside_staging,
     _resolve_effective_hub_root,
@@ -32,6 +37,168 @@ if TYPE_CHECKING:
     from pathlib import Path
 else:
     Path = Any
+
+_TARGET_KEYS = (
+    "TargetFile", "target_file", "Path", "path", "file_path", "filePath",
+    "AbsolutePath", "absolute_path", "NotebookPath", "notebook_path", "file", "target",
+)
+_CMD_KEYS = ("CommandLine", "command_line", "command", "cmd")
+_CONTENT_KEYS = (
+    "Content", "content", "CodeContent", "code_content", "Replacement",
+    "replacement", "ReplacementContent", "replacement_content", "new_string", "new_str",
+)
+_CHUNK_TARGET_KEYS = ("TargetContent", "Target", "old_string", "old_str")
+_CHUNK_REP_KEYS = ("ReplacementContent", "Replacement", "new_string", "new_str")
+_SINGLE_REP_KEYS = ("Replacement", "ReplacementContent", "new_string", "new_str")
+
+
+def _first_nonempty_str(args: Dict[str, Any], keys: Tuple[str, ...]) -> str:
+    """Estrae la prima stringa non vuota associata alle chiavi fornite."""
+    for key in keys:
+        val = args.get(key)
+        if val:
+            return str(val)
+    return ""
+
+
+def _first_present_arg(args: Dict[str, Any], keys: Tuple[str, ...], fallback: Any = "") -> Any:
+    """Restituisce il primo argomento presente per chiave, oppure il fallback."""
+    for key in keys:
+        if key in args:
+            val = args.get(key)
+            return "" if val is None else val
+    return fallback
+
+
+def _extract_promote_root_candidates(words: List[str], project_root: Path) -> List[_RuntimePath]:
+    """Estrae le root candidate da CLI --root/--repo-root, eff_root e project_root."""
+    roots: List[_RuntimePath] = [_resolve_effective_hub_root(project_root), _canonical_path(project_root)]
+    for idx, clean_tok in enumerate(words):
+        if clean_tok in ("--root", "--repo-root") and idx + 1 < len(words):
+            roots.append(_canonical_path(_resolve_target_path(words[idx + 1], project_root)))
+        elif clean_tok.startswith(("--root=", "--repo-root=")):
+            roots.append(_canonical_path(_resolve_target_path(clean_tok.split("=", 1)[1], project_root)))
+    return list(dict.fromkeys(roots))
+
+
+def _check_tensor_session_promote_gate(cmd_deobf: str, cmd_low: str, project_root: Path) -> Dict[str, Any]:
+    """Blocca --promote-staging o promote inline se ACTIVE.json manca firma/TTL, non e approvato o ha hash diverso."""
+    from _internal.nk_hook_gate.constants_patterns import has_win32_2pc_promote_tokens
+    from _internal.nk_hook_gate.shell_parser import _split_shell_segments, _tokenize_shell_tokens, _unwrap_shell_subcommands
+    from _internal.nk_hook_gate.shell_redaction import _mask_balanced_prompt_payloads
+
+    masked_low = _mask_balanced_prompt_payloads(cmd_deobf, cmd_deobf).replace("\\", "/").lower()
+    has_cli = "win32_2pc_engine" in cmd_low and "--promote-staging" in cmd_low
+    has_inline = "promote_staging_to_production" in masked_low
+    if not has_cli and not has_inline:
+        return {}
+
+    matched_words: List[str] = []
+    for cand in (cmd_deobf, *_unwrap_shell_subcommands(cmd_deobf)):
+        for seg in _split_shell_segments(cand) or [cand]:
+            words = [u for _, u, _ in _tokenize_shell_tokens(seg)]
+            if has_win32_2pc_promote_tokens(words):
+                matched_words.extend(words)
+    if not matched_words and not has_inline:
+        return {}
+
+    from _internal.win32_2pc_engine.constants import TwoPhaseCommitError
+    from _internal.win32_2pc_engine.tensor_session_guard import verify_active_tensor_session
+
+    for root_cand in _extract_promote_root_candidates(matched_words, project_root):
+        try:
+            verify_active_tensor_session(root_cand, root_cand / ".staging")
+        except TwoPhaseCommitError as exc:
+            return {
+                "decision": "deny",
+                "reason_code": "ACTIVE_TENSOR_SESSION_UNAPPROVED",
+                "reason": f"Promozione staging bloccata: {exc}",
+            }
+    return {}
+
+
+def _evaluate_pre_command_gates(cmd_deobf: str, cmd_low: str, project_root: Path) -> Dict[str, Any]:
+    """Esegue pre_command_gate e la precondizione Tensor-RSI su --promote-staging."""
+    hallucinated_res = pre_command_gate(cmd_deobf)
+    if hallucinated_res:
+        return hallucinated_res
+    return _check_tensor_session_promote_gate(cmd_deobf, cmd_low, project_root)
+
+
+def _is_protected_unstaged_direct_target(cand: Path, cand_parts_low: List[str]) -> bool:
+    """Identifica target protetti o percorsi NK Proget/Locale/ scritti fuori da .staging/."""
+    return _is_nk_proget_locale_target(cand) or any(
+        p in ("nk_external_projects", *_PROTECTED_PROJECT_SEGMENTS)
+        for p in cand_parts_low
+    )
+
+
+def _simulate_patch_notes_chunks(old_txt: str, chunks: List[Any]) -> str:
+    """Applica la simulazione di ReplacementChunks sul testo esistente di PATCH_NOTES.md."""
+    sim_txt = old_txt
+    for chunk in chunks:
+        if not isinstance(chunk, dict):
+            continue
+        t_c = _first_nonempty_str(chunk, _CHUNK_TARGET_KEYS).replace("\r\n", "\n").strip()
+        r_c = str(_first_present_arg(chunk, _CHUNK_REP_KEYS, ""))
+        if t_c and t_c in sim_txt:
+            sim_txt = sim_txt.replace(t_c, r_c)
+        elif not t_c:
+            sim_txt = r_c
+    return sim_txt
+
+
+def _simulate_patch_notes_edit(
+    old_txt: str, args: Dict[str, Any], chunks: List[Any], new_content: str
+) -> str:
+    """Calcola il testo risultante per PATCH_NOTES.md da chunks, edit singolo o write."""
+    if chunks:
+        return _simulate_patch_notes_chunks(old_txt, chunks)
+    if any(args.get(k) for k in _CHUNK_TARGET_KEYS):
+        tgt_s = _first_nonempty_str(args, _CHUNK_TARGET_KEYS)
+        rep_s = str(_first_present_arg(args, _SINGLE_REP_KEYS, new_content))
+        return old_txt.replace(tgt_s, rep_s) if (tgt_s and tgt_s in old_txt) else rep_s
+    return new_content
+
+
+def _check_patch_notes_prepend(
+    cand: Path, args: Dict[str, Any], chunks: List[Any], new_content: str
+) -> Dict[str, Any]:
+    """Verifica che le modifiche a PATCH_NOTES.md preservino anchor e header storici (prepend-only)."""
+    if not cand.exists():
+        return {}
+    old_txt = cand.read_text(encoding="utf-8", errors="replace").strip()
+    anchor = _extract_first_section(old_txt)
+    old_headers = _extract_historical_headers(old_txt)
+    if not old_txt or not (anchor or old_headers):
+        return {}
+
+    sim_txt = _simulate_patch_notes_edit(old_txt, args, chunks, new_content)
+    norm_sim = "\n".join(ln.strip() for ln in str(sim_txt or "").splitlines() if ln.strip())
+    sim_headers_set = set(_extract_historical_headers(str(sim_txt or "")))
+    if (
+        not sim_txt
+        or (anchor and anchor not in sim_txt and anchor not in norm_sim)
+        or any(h not in sim_headers_set for h in old_headers)
+    ):
+        return {"decision": "deny", "reason": "PATCH_NOTES.md is prepend-only: preserve previous history."}
+    return {}
+
+
+def _extract_write_inputs(
+    args: Dict[str, Any], cli_target: str, cli_cmd: str, cli_content: str
+) -> Tuple[str, str, List[Any], str]:
+    """Normalizza target, comando, chunks e contenuto dai parametri hook/CLI."""
+    target = str(cli_target or _first_nonempty_str(args, _TARGET_KEYS))
+    cmd = str(cli_cmd or _first_nonempty_str(args, _CMD_KEYS))
+    raw_chunks = args.get("ReplacementChunks") if isinstance(args.get("ReplacementChunks"), list) else args.get("replacement_chunks")
+    chunks = raw_chunks if isinstance(raw_chunks, list) else []
+    new_content = str(cli_content or _first_nonempty_str(args, _CONTENT_KEYS))
+    if not new_content and chunks:
+        new_content = "\n".join(
+            _first_nonempty_str(c, _CHUNK_REP_KEYS) for c in chunks if isinstance(c, dict)
+        )
+    return target, cmd, chunks, new_content
 
 
 def _handle_write_gate(
@@ -69,81 +236,19 @@ def _handle_write_gate(
 
         return _classify_mcp_tool_call(args, project_root, fallback_tool_name=tool_name)
 
-    target = str(
-        cli_target
-        or args.get("TargetFile")
-        or args.get("target_file")
-        or args.get("Path")
-        or args.get("path")
-        or args.get("file_path")
-        or args.get("filePath")
-        or args.get("AbsolutePath")
-        or args.get("absolute_path")
-        or args.get("NotebookPath")
-        or args.get("notebook_path")
-        or args.get("file")
-        or args.get("target")
-        or ""
-    )
-    cmd = str(
-        cli_cmd
-        or args.get("CommandLine")
-        or args.get("command_line")
-        or args.get("command")
-        or args.get("cmd")
-        or ""
-    )
-    chunks = (
-        args.get("ReplacementChunks")
-        if isinstance(args.get("ReplacementChunks"), list)
-        else (
-            args.get("replacement_chunks")
-            if isinstance(args.get("replacement_chunks"), list)
-            else []
-        )
-    )
-    new_content = str(
-        cli_content
-        or args.get("Content")
-        or args.get("content")
-        or args.get("CodeContent")
-        or args.get("code_content")
-        or args.get("Replacement")
-        or args.get("replacement")
-        or args.get("ReplacementContent")
-        or args.get("replacement_content")
-        or args.get("new_string")
-        or args.get("new_str")
-        or ""
-    )
-    if not new_content and chunks:
-        new_content = "\n".join(
-            str(
-                c.get("ReplacementContent")
-                or c.get("Replacement")
-                or c.get("new_string")
-                or c.get("new_str")
-                or ""
-            )
-            for c in chunks
-            if isinstance(c, dict)
-        )
-
-    cmd_stripped = cmd.strip()
-    if cmd_stripped:
+    target, cmd, chunks, new_content = _extract_write_inputs(args, cli_target, cli_cmd, cli_content)
+    if cmd.strip():
         from _internal.nk_hook_gate.shell_parser import _deobfuscate_ps_backticks
 
         cmd_deobf = _deobfuscate_ps_backticks(cmd)
         cmd_low = cmd_deobf.replace("\\", "/").lower()
-        hallucinated_res = pre_command_gate(cmd_deobf)
-        if hallucinated_res:
-            return hallucinated_res
+        pre_res = _evaluate_pre_command_gates(cmd_deobf, cmd_low, project_root)
+        if pre_res:
+            return pre_res
     else:
         cmd_low = ""
 
-    protected_res = _classify_protected_target(
-        target, cmd, project_root, strict_external=strict_external
-    )
+    protected_res = _classify_protected_target(target, cmd, project_root, strict_external=strict_external)
     if protected_res:
         return protected_res
 
@@ -152,126 +257,22 @@ def _handle_write_gate(
         cand_parts_low = [p.lower().rstrip(". ") for p in cand.parts]
         cand_name_low = cand.name.lower().split(":", 1)[0].rstrip(". ")
 
+        if _is_nk_proget_online_target(cand):
+            return _deny_online_readonly()
         if _is_valid_staging_path(cand, project_root):
             return {}
-
         if cand_name_low == "patch_notes.md":
-            if cand.exists():
-                old_txt = cand.read_text(encoding="utf-8", errors="replace").strip()
-                anchor = _extract_first_section(old_txt)
-                old_headers = _extract_historical_headers(old_txt)
-                if old_txt and (anchor or old_headers):
-                    if chunks:
-                        sim_txt = old_txt
-                        for c in chunks:
-                            if isinstance(c, dict):
-                                t_c = (
-                                    str(
-                                        c.get("TargetContent")
-                                        or c.get("Target")
-                                        or c.get("old_string")
-                                        or c.get("old_str")
-                                        or ""
-                                    )
-                                    .replace("\r\n", "\n")
-                                    .strip()
-                                )
-                                r_c = str(
-                                    c.get("ReplacementContent")
-                                    or c.get("Replacement")
-                                    or c.get("new_string")
-                                    or c.get("new_str")
-                                    or ""
-                                )
-                                if t_c and t_c in sim_txt:
-                                    sim_txt = sim_txt.replace(t_c, r_c)
-                                elif not t_c:
-                                    sim_txt = r_c
-                    elif (
-                        args.get("Target")
-                        or args.get("TargetContent")
-                        or args.get("old_string")
-                        or args.get("old_str")
-                    ):
-                        tgt_s = str(
-                            args.get("Target")
-                            or args.get("TargetContent")
-                            or args.get("old_string")
-                            or args.get("old_str")
-                            or ""
-                        )
-                        rep_raw = (
-                            args.get("Replacement")
-                            if "Replacement" in args
-                            else (
-                                args.get("ReplacementContent")
-                                if "ReplacementContent" in args
-                                else (
-                                    args.get("new_string")
-                                    if "new_string" in args
-                                    else (
-                                        args.get("new_str")
-                                        if "new_str" in args
-                                        else new_content
-                                    )
-                                )
-                            )
-                        )
-                        rep_s = str(rep_raw if rep_raw is not None else "")
-                        sim_txt = (
-                            old_txt.replace(tgt_s, rep_s)
-                            if (tgt_s and tgt_s in old_txt)
-                            else rep_s
-                        )
-                    else:
-                        sim_txt = new_content
-
-                    norm_sim = "\n".join(
-                        ln.strip()
-                        for ln in str(sim_txt or "").splitlines()
-                        if ln.strip()
-                    )
-                    sim_headers_set = set(
-                        _extract_historical_headers(str(sim_txt or ""))
-                    )
-                    if (
-                        not sim_txt
-                        or (
-                            anchor
-                            and anchor not in sim_txt
-                            and anchor not in norm_sim
-                        )
-                        or any(h not in sim_headers_set for h in old_headers)
-                    ):
-                        return {
-                            "decision": "deny",
-                            "reason": "PATCH_NOTES.md is prepend-only: preserve previous history.",
-                        }
-            return {}
-
+            return _check_patch_notes_prepend(cand, args, chunks, new_content)
         if _is_whitelisted_outside_staging(cand, project_root):
             return {}
-
-        if any(
-            p in ("nk_external_projects", *_PROTECTED_PROJECT_SEGMENTS)
-            for p in cand_parts_low
-        ):
+        if _is_protected_unstaged_direct_target(cand, cand_parts_low):
             return {
                 "decision": "deny",
                 "reason": "Direct write outside .staging/ to protected code or test directories is blocked; stage and promote via win32_2pc_engine.py.",
             }
-
-        eff_root = _resolve_effective_hub_root(project_root)
-        proj_canon = _canonical_path(project_root)
-        ws_root = _canonical_path(_WORKSPACE_ROOT)
-        if any(
-            cand == base_r or base_r in cand.parents
-            for base_r in (eff_root, proj_canon, ws_root)
-        ):
-            return {
-                "decision": "deny",
-                "reason": "Default-deny: direct write inside project root outside .staging/ is forbidden ([RULE-00]).",
-            }
+        base_roots = (_resolve_effective_hub_root(project_root), _canonical_path(project_root), _canonical_path(_WORKSPACE_ROOT))
+        if any(cand == base_r or base_r in cand.parents for base_r in base_roots):
+            return {"decision": "deny", "reason": "Default-deny: direct write inside project root outside .staging/ is forbidden ([RULE-00])."}
 
     if cmd_low:
         from _internal.nk_hook_gate.shell_write_detector import (
@@ -280,27 +281,18 @@ def _handle_write_gate(
             _is_authorized_script_invocation,
         )
 
-        is_temp_writer = _has_unstaged_temp_script_targeting_protected(
-            cmd, project_root
-        )
+        is_temp_writer = _has_unstaged_temp_script_targeting_protected(cmd, project_root)
         sanitized_cmd = _sanitize_staged_tokens_in_cmd(cmd_low)
         has_write_ind = is_temp_writer or _has_cmd_write_indicator(cmd, project_root)
         is_pure_pytest = ("pytest" in cmd_low) and not has_write_ind
         is_auth_script = _is_authorized_script_invocation(cmd, project_root)
         ext_cmd_unstage = (
-            "nk_external_projects/" in sanitized_cmd
+            _cmd_mentions_external_project(sanitized_cmd)
             and not is_auth_script
             and not is_pure_pytest
-            and (
-                has_write_ind
-                or bool(_UNSTAGE_CODE_DIR_CMD_RE.search(sanitized_cmd))
-            )
+            and (has_write_ind or bool(_UNSTAGE_CODE_DIR_CMD_RE.search(sanitized_cmd)))
         )
-        local_cmd_unstage = (
-            not is_auth_script
-            and bool(_UNSTAGE_CODE_DIR_CMD_RE.search(sanitized_cmd))
-            and has_write_ind
-        )
+        local_cmd_unstage = not is_auth_script and bool(_UNSTAGE_CODE_DIR_CMD_RE.search(sanitized_cmd)) and has_write_ind
         if ext_cmd_unstage or local_cmd_unstage or (is_temp_writer and not is_auth_script):
             return {
                 "decision": "deny",

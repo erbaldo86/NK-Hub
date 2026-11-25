@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from _internal.ast_guard_validator.signature_collector import SignatureCollector
+from _internal.ast_guard_validator.validator_helpers import load_file_ast_cached
 
 try:
     from _internal.nk_common.ast_exports import (
@@ -52,19 +53,23 @@ def validate_pydantic_catalog_records(
     }
 
 
+def _resolve_target_path(target_file: str) -> Path:
+    """Risolve un percorso file rispetto a cwd gestendo errori OSError su path sintetici."""
+    raw_path = Path(target_file)
+    base = raw_path if raw_path.is_absolute() else (Path.cwd() / raw_path)
+    try:
+        return base.resolve()
+    except OSError:
+        return base
+
+
 def _resolve_local_import_roots(
     target_file: str,
 ) -> Tuple[List[Path], Optional[Path]]:
     """Determina le directory scripts overlay (staging > prod) e la directory del file target."""
     if not target_file or target_file.startswith("<"):
         return [], None
-    raw_path = Path(target_file)
-    try:
-        resolved = (
-            raw_path if raw_path.is_absolute() else (Path.cwd() / raw_path)
-        ).resolve()
-    except OSError:
-        resolved = raw_path if raw_path.is_absolute() else (Path.cwd() / raw_path)
+    resolved = _resolve_target_path(target_file)
     roots: List[Path] = []
     for anc in (resolved.parent, *resolved.parent.parents):
         if anc.name == "scripts":
@@ -93,8 +98,75 @@ def _resolve_local_import_roots(
     return roots, cur_dir
 
 
+def _resolve_prod_import_roots(
+    target_file: str,
+) -> Tuple[List[Path], Optional[Path]]:
+    """Determina esclusivamente le directory scripts di produzione per pre_collector (H4*)."""
+    if not target_file or target_file.startswith("<"):
+        return [], None
+    resolved = _resolve_target_path(target_file)
+    for anc in (resolved.parent, *resolved.parent.parents):
+        if anc.name == "scripts":
+            if anc.parent.name == ".staging":
+                prod_scripts = anc.parent.parent / "scripts"
+                if not prod_scripts.is_dir():
+                    return [], None
+                rel = resolved.parent.relative_to(anc)
+                cand_dir = prod_scripts / rel
+                pre_cur = cand_dir if cand_dir.is_dir() else prod_scripts
+                return [prod_scripts], pre_cur
+            cur_dir = resolved.parent if resolved.parent.is_dir() else None
+            return [anc], cur_dir
+        if anc.name == ".staging":
+            prod_scripts = anc.parent / "scripts"
+            roots = [prod_scripts] if prod_scripts.is_dir() else []
+            rel = resolved.parent.relative_to(anc)
+            cand_dir = anc.parent / rel
+            pre_cur = cand_dir if cand_dir.is_dir() else None
+            return roots, pre_cur
+    cur_dir = resolved.parent if resolved.parent.is_dir() else None
+    return [], cur_dir
+
+
+def _is_type_checking_guard(test_node: ast.AST) -> bool:
+    """Restituisce True se il test corrisponde a TYPE_CHECKING o typing.TYPE_CHECKING."""
+    if isinstance(test_node, ast.Name):
+        return test_node.id == "TYPE_CHECKING"
+    if isinstance(test_node, ast.Attribute):
+        return test_node.attr == "TYPE_CHECKING"
+    return False
+
+
+def _is_negated_type_checking_guard(test_node: ast.AST) -> bool:
+    """Restituisce True per guardie 'if not TYPE_CHECKING:'."""
+    return (
+        isinstance(test_node, ast.UnaryOp)
+        and isinstance(test_node.op, ast.Not)
+        and _is_type_checking_guard(test_node.operand)
+    )
+
+
+def _iter_compound_children(stmt: ast.AST) -> List[ast.AST]:
+    """Estrae i figli eseguibili a runtime di statement composti escludendo TYPE_CHECKING."""
+    if isinstance(stmt, ast.If):
+        if _is_type_checking_guard(stmt.test):
+            return list(stmt.orelse)
+        if _is_negated_type_checking_guard(stmt.test):
+            return list(stmt.body)
+    children: List[ast.AST] = []
+    for attr in ("body", "orelse", "handlers", "finalbody"):
+        sub = getattr(stmt, attr, None)
+        if isinstance(sub, list):
+            for child in sub:
+                if isinstance(child, ast.ExceptHandler):
+                    children.extend(child.body)
+                else:
+                    children.append(child)
+    return children
+
+
 def _iter_top_level_import_from(tree: ast.AST) -> List[ast.ImportFrom]:
-    """Estrae i nodi ast.ImportFrom eseguiti al livello top-level di modulo."""
+    """Estrae i nodi ast.ImportFrom eseguiti al livello top-level escludendo TYPE_CHECKING."""
     collected: List[ast.ImportFrom] = []
     stack: List[ast.AST] = list(getattr(tree, "body", []))
     while stack:
@@ -104,14 +176,7 @@ def _iter_top_level_import_from(tree: ast.AST) -> List[ast.ImportFrom]:
         elif isinstance(
             stmt, (ast.If, ast.Try, ast.With, ast.AsyncWith, ast.For, ast.AsyncFor)
         ):
-            for attr in ("body", "orelse", "handlers", "finalbody"):
-                sub = getattr(stmt, attr, None)
-                if isinstance(sub, list):
-                    for child in sub:
-                        if isinstance(child, ast.ExceptHandler):
-                            stack.extend(child.body)
-                        else:
-                            stack.append(child)
+            stack.extend(_iter_compound_children(stmt))
     return collected
 
 
@@ -180,6 +245,12 @@ def _merge_symbol_from_collector(
     dst_collector.imported_names.add(as_name)
 
 
+def _load_valid_module_ast(rp: Path) -> Optional[ast.AST]:
+    """Carica AST modulo locale tramite RepoSnapshotCache restituendo None su errore."""
+    tree, syn_err = load_file_ast_cached(rp)
+    return tree if (syn_err is None and tree is not None) else None
+
+
 def _collect_resolved_module(
     module_path: Path,
     search_roots: List[Path],
@@ -196,10 +267,8 @@ def _collect_resolved_module(
         mod_collector.skip_unparse = True  # type: ignore[attr-defined]
     if rp in visited:
         return mod_collector
-    try:
-        code = rp.read_text(encoding="utf-8-sig")
-        tree = ast.parse(code, type_comments=True)
-    except Exception:
+    tree = _load_valid_module_ast(rp)
+    if tree is None:
         cache[rp] = mod_collector
         return mod_collector
     mod_collector.visit(tree)

@@ -5,9 +5,34 @@ from __future__ import annotations
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Sequence
 
 from _internal.nk_registry_indexer.taxonomy import DOMAIN_TAXONOMY
+
+
+def _scan_docs_dir(
+    base: Path,
+    compute_sha256: Callable[[Path], str],
+    docs_index: Dict[str, Dict[str, Any]],
+) -> None:
+    """Scansiona una singola directory nk_docs_and_setup/ popolando docs_index."""
+    try:
+        with os.scandir(base) as it:
+            for entry in it:
+                if not entry.is_file(follow_symlinks=False):
+                    continue
+                if entry.name.lower().endswith(".zip"):
+                    continue
+                fpath = Path(entry.path)
+                st = entry.stat(follow_symlinks=False)
+                docs_index[entry.name] = {
+                    "name": entry.name,
+                    "relative_path": f"nk_docs_and_setup/{entry.name}",
+                    "size_bytes": st.st_size,
+                    "sha256": compute_sha256(fpath),
+                }
+    except OSError:
+        pass
 
 
 def scan_docs_and_setup_impl(self) -> Dict[str, Dict[str, Any]]:
@@ -17,23 +42,7 @@ def scan_docs_and_setup_impl(self) -> Dict[str, Dict[str, Any]]:
         self.workspace_root / "nk_docs_and_setup",
         self.stage_dir / "nk_docs_and_setup",
     ):
-        try:
-            with os.scandir(base) as it:
-                for entry in it:
-                    if entry.is_file(follow_symlinks=False):
-                        if entry.name.lower().endswith(".zip"):
-                            continue
-                        fpath = Path(entry.path)
-                        st = entry.stat(follow_symlinks=False)
-                        sha_hex = self._compute_sha256(fpath)
-                        docs_index[entry.name] = {
-                            "name": entry.name,
-                            "relative_path": f"nk_docs_and_setup/{entry.name}",
-                            "size_bytes": st.st_size,
-                            "sha256": sha_hex,
-                        }
-        except OSError:
-            pass
+        _scan_docs_dir(base, self._compute_sha256, docs_index)
     return dict(sorted(docs_index.items()))
 
 
@@ -67,6 +76,46 @@ def resolve_library_path_impl(self, filename: str) -> Optional[str]:
     return None
 
 
+def _collect_domain_ordered_names(
+    canonical_names: Sequence[str],
+    entity_index: Dict[str, Dict[str, Any]],
+    dom_id: str,
+) -> List[str]:
+    """Combina i nomi canonici seguiti da quelli dinamici appartenenti a dom_id."""
+    canonical: List[str] = []
+    for name in canonical_names:
+        if name in entity_index and entity_index[name]["domain_id"] == dom_id:
+            canonical.append(name)
+    dynamic: List[str] = []
+    for name, meta in sorted(entity_index.items()):
+        if meta["domain_id"] == dom_id and name not in canonical:
+            dynamic.append(name)
+    return (canonical + dynamic) or list(canonical_names)
+
+
+def _build_domain_entry(
+    dom_id: str,
+    dom_meta: Dict[str, Any],
+    skills_index: Dict[str, Dict[str, Any]],
+    scripts_index: Dict[str, Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Costruisce la voce di dominio per nk_registry_manifest.json."""
+    return {
+        "domain_id": dom_id,
+        "name": dom_meta["name"],
+        "title": dom_meta["title"],
+        "description": dom_meta["description"],
+        "primary_skill": dom_meta["primary_skill"],
+        "skills": _collect_domain_ordered_names(
+            dom_meta["skills"], skills_index, dom_id
+        ),
+        "scripts": _collect_domain_ordered_names(
+            dom_meta["scripts"], scripts_index, dom_id
+        ),
+        "keywords": list(dom_meta["keywords"]),
+    }
+
+
 def build_manifest_impl(self) -> Dict[str, Any]:
     """Genera il dizionario completo di nk_registry_manifest.json con Hot-Swap dinamico."""
     skills_index = self.scan_skills()
@@ -75,42 +124,9 @@ def build_manifest_impl(self) -> Dict[str, Any]:
 
     domains_payload: Dict[str, Dict[str, Any]] = {}
     for dom_id, dom_meta in DOMAIN_TAXONOMY.items():
-        canonical_skills = [
-            sk
-            for sk in dom_meta["skills"]
-            if sk in skills_index and skills_index[sk]["domain_id"] == dom_id
-        ]
-        dynamic_skills = [
-            sk
-            for sk, meta in sorted(skills_index.items())
-            if meta["domain_id"] == dom_id and sk not in canonical_skills
-        ]
-        dom_skills = (canonical_skills + dynamic_skills) or list(dom_meta["skills"])
-
-        canonical_scripts = [
-            sc
-            for sc in dom_meta["scripts"]
-            if sc in scripts_index and scripts_index[sc]["domain_id"] == dom_id
-        ]
-        dynamic_scripts = [
-            sc
-            for sc, meta in sorted(scripts_index.items())
-            if meta["domain_id"] == dom_id and sc not in canonical_scripts
-        ]
-        dom_scripts = (canonical_scripts + dynamic_scripts) or list(
-            dom_meta["scripts"]
+        domains_payload[dom_id] = _build_domain_entry(
+            dom_id, dom_meta, skills_index, scripts_index
         )
-
-        domains_payload[dom_id] = {
-            "domain_id": dom_id,
-            "name": dom_meta["name"],
-            "title": dom_meta["title"],
-            "description": dom_meta["description"],
-            "primary_skill": dom_meta["primary_skill"],
-            "skills": dom_skills,
-            "scripts": dom_scripts,
-            "keywords": list(dom_meta["keywords"]),
-        }
 
     docs_and_setup_index = self.scan_docs_and_setup()
     hygiene_profile = self.scan_global_hygiene_profile(len(skills_index))
@@ -153,7 +169,7 @@ def render_skill_index_markdown_impl(self, manifest: Dict[str, Any]) -> str:
         "",
         "# Indice Skill O(1) (`SKILL_INDEX.md`)",
         "",
-        f"Manifesto `{manifest.get('version', self.MANIFEST_VERSION)}` sharded su `7` domini, `{summary['total_skills']}` skill e `{summary['total_scripts']}` script.",
+        f"Manifesto `{manifest.get('version', self.MANIFEST_VERSION)}` con `{summary['total_domains']}` domini (`7` shard), `{summary['total_skills']}` skill e `{summary['total_scripts']}` script.",
         "",
         "## 1. Domini Funzionali (`DOM-01..DOM-05`)",
         "",

@@ -1,19 +1,30 @@
-"""Linter AP-1..AP-13, rilevamento conflitti di ruolo e verifica handoff passivo T12."""
+"""Linter AP-1..AP-16, rilevamento conflitti di ruolo e verifica handoff passivo T12/V2."""
 
 from __future__ import annotations
 
 import re
 from typing import Any, Dict, List, Optional
 
+from _internal.nk_common.epistemic_firewall_rules import (
+    HANDOFF_V2_START_ACTIVE,
+    HANDOFF_V2_START_PASSIVE,
+    T12_START,
+    _AGENT_DIRECTIVE_CUE_RE,
+    _CLAUSE_BREAK_RE,
+    _DESTRUCTIVE_SHELL_RE,
+    check_passive_v2_tiered_content,
+    evaluate_epistemic_firewall_rules,
+    extract_t12_scan_lines,
+    has_unprohibited_smuggle,
+    strip_zero_width_chars,
+)
 from _internal.nk_common.prompt_linter_core import evaluate_ap_rules
 from _internal.vibe_sprint_router.constants_core import (
     _HANDOFF_MUTATING_ORDER_RE,
-    _HANDOFF_START_PREFIXES,
     _ORCHESTRATOR_ROLES,
     _PROHIBITION_LINE_RE,
     _READ_ONLY_ROLES,
     _SHA256_HEX64_RE,
-    _STATE_HANDOFF_MARKERS,
     _normalize_input_text,
 )
 from _internal.vibe_sprint_router.constants_stt import (
@@ -39,56 +50,69 @@ from _internal.vibe_sprint_router.write_intent_rules import (
     _SINGLE_OPERA_RE,
 )
 
+_T12_META_LINE_RE = re.compile(
+    r"(?:^\s*[-*•]\s*(?:\*\*[^*]+?\*\*:?|[A-Za-zÀ-ÿ0-9_ ]{1,32}:)|"
+    r"^\s*(?:staging|dirty\s+files|stato|workspace|project\s+root|hub\s+root|milestone(?:\s+anchor)?)\s*:|"
+    r"\bpresenti\s+artefatti\b)",
+    re.IGNORECASE,
+)
+
 
 def is_passive_state_handoff(raw_prompt: str) -> bool:
-    """Verifica un handoff passivo autentico bloccando spoofing privi di anchor o con ordini mutanti."""
-    norm_text = _normalize_input_text(raw_prompt).strip()
+    """Verifica un handoff passivo V2 o T12 bloccando spoofing, fence aperti e ordini mutanti."""
+    norm_text = strip_zero_width_chars(_normalize_input_text(raw_prompt)).strip()
     if not norm_text:
         return False
-    head_clean = norm_text[:320].lstrip("# \t\r\n").lower()
-    if not head_clean.startswith(_HANDOFF_START_PREFIXES):
-        return False
     low = norm_text.lower()
-    if not (
-        any(m in low for m in _STATE_HANDOFF_MARKERS)
-        or "passive_session_state_handoff" in low
-    ):
+    if HANDOFF_V2_START_ACTIVE.lower() in low:
         return False
-    has_valid_sha256 = bool(_SHA256_HEX64_RE.search(norm_text))
-    mentions_sha = ("sha-256" in low) or ("sha256" in low)
-    if mentions_sha and not has_valid_sha256:
+    if HANDOFF_V2_START_PASSIVE.lower() not in low and T12_START.lower() not in low:
         return False
-    end_tag = "[nk-anchor:end:passive_state_handoff]"
-    start_idx = low.find("[nk-anchor:start:passive_state_handoff]")
-    end_idx = low.find(end_tag)
-    if end_idx != -1 and norm_text[end_idx + len(end_tag) :].strip():
-        return False
-    if start_idx != -1 and end_idx == -1:
-        return False
-    has_paired_t12_anchor = (
-        start_idx != -1
-        and end_idx > start_idx
-        and "template 12: passive_session_state_handoff" in low
-        and "### 1." in low
+
+    fw_viols, fw_meta = evaluate_epistemic_firewall_rules(
+        norm_text, mode="state-handoff", is_state_handoff=True
     )
-    if not (has_valid_sha256 or has_paired_t12_anchor):
+    if fw_meta.get("unclosed_fence") or fw_viols:
         return False
-    in_fence = False
-    for raw_line in norm_text.splitlines()[1:]:
+    if fw_meta.get("v2_verified"):
+        return str(fw_meta.get("v2_mode") or "").upper() == "PASSIVE_STANDBY" and not check_passive_v2_tiered_content(fw_meta)
+    if fw_meta.get("is_v2_handoff") or HANDOFF_V2_START_PASSIVE.lower() in low or "handoff_v2:" in low or not fw_meta.get("t12_framing_valid"):
+        return False
+    if ("sha-256" in low or "sha256" in low) and not _SHA256_HEX64_RE.search(norm_text):
+        return False
+
+    strict_lines, neutral_lines = extract_t12_scan_lines(norm_text)
+    for raw_line, is_neutral in [(ln, False) for ln in strict_lines] + [(ln, True) for ln in neutral_lines]:
         line_s = raw_line.strip()
         if not line_s:
             continue
-        if line_s.startswith("```"):
-            in_fence = not in_fence
-            continue
-        if in_fence or _PROHIBITION_LINE_RE.search(line_s):
-            continue
         if (
-            _has_destructive_shell_command(line_s)
+            (not is_neutral and (_has_destructive_shell_command(line_s) or _DESTRUCTIVE_SHELL_RE.search(line_s)))
             or _HANDOFF_MUTATING_ORDER_RE.search(line_s)
-            or _has_imperative_write_keyword(line_s)
+            or has_unprohibited_smuggle(line_s, _PROHIBITION_LINE_RE)
         ):
             return False
+        is_meta = bool(_T12_META_LINE_RE.search(line_s))
+        for raw_clause in _CLAUSE_BREAK_RE.split(line_s):
+            clause_s = raw_clause.strip()
+            if not clause_s or _PROHIBITION_LINE_RE.search(clause_s):
+                continue
+            check_line = (
+                re.sub(r"\.staging\b", "staging_meta", clause_s, flags=re.IGNORECASE)
+                if ".staging" in clause_s.lower() and is_meta
+                else clause_s
+            )
+            if _has_imperative_write_keyword(check_line):
+                has_cue = bool(
+                    _AGENT_DIRECTIVE_CUE_RE.search(clause_s)
+                    or re.search(r"\b(?:subito|adesso|immediatamente|devi|dobbiamo|bisogna|occorre)\b", clause_s, re.IGNORECASE)
+                    or (
+                        not is_meta
+                        and re.search(r"\b(?:il\s+file|i\s+file|il\s+codice|lo\s+script|i\s+test|nel\s+repo|in\s+\.staging)\b", clause_s, re.IGNORECASE)
+                    )
+                )
+                if has_cue:
+                    return False
     return True
 
 
@@ -115,10 +139,7 @@ def _is_anti_loop_confirmation(raw_text: str) -> bool:
         norm.startswith(_PLAN_CONFIRMATION_PREFIXES)
         or norm == "procedi"
         or norm.startswith("procedi ")
-        or any(
-            norm == p or norm.startswith(f"{p} ")
-            for p in _ANTI_LOOP_EXEMPT_PREFIXES
-        )
+        or any(norm == p or norm.startswith(f"{p} ") for p in _ANTI_LOOP_EXEMPT_PREFIXES)
     )
     if not matches_prefix:
         return False
@@ -185,5 +206,33 @@ def _make_lint_violation(
 
 
 def lint_nk_prompt(prompt_text: str, mode: str = "auto") -> Dict[str, Any]:
-    """Analizza un prompt generato per l'ambiente NK delegando a nk_common.prompt_linter_core."""
-    return evaluate_ap_rules(prompt_text, mode=mode)
+    """Analizza un prompt generato per l'ambiente NK integrando AP-1..AP-13 e AP-14..AP-16."""
+    res = evaluate_ap_rules(prompt_text, mode=mode)
+    norm_mode = (mode or "auto").strip().lower()
+    fw_viols, _ = evaluate_epistemic_firewall_rules(
+        prompt_text or "",
+        mode=norm_mode,
+        is_state_handoff=(norm_mode == "state-handoff"),
+    )
+    if fw_viols:
+        existing = list(res.get("violations") or [])
+        seen_codes = {str(v.get("code") or v.get("id") or "") for v in existing}
+        for fv in fw_viols:
+            fcode = str(fv.get("code") or fv.get("id") or "")
+            if fcode and fcode not in seen_codes:
+                existing.append(
+                    _make_lint_violation(
+                        fcode,
+                        str(fv.get("severity") or "CRITICA"),
+                        str(fv.get("message") or fv.get("msg") or fcode),
+                        rule=str(fv.get("rule") or ""),
+                    )
+                )
+                seen_codes.add(fcode)
+        is_valid = len(existing) == 0
+        res["violations"] = existing
+        res["violations_count"] = len(existing)
+        res["violation_count"] = len(existing)
+        res["passed"] = is_valid
+        res["valid"] = is_valid
+    return res

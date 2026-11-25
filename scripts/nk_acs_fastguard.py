@@ -85,9 +85,19 @@ def __getattr__(name: str) -> Any:
     return getattr(importlib.import_module(spec[0]), spec[1])
 
 
+def _fast_cli_dispatch(mod_name: str, argv: Optional[List[str]]) -> int:
+    """Gestisce --help rapidamente senza importare evaluator/z2_and_l0."""
+    raw_args = sys.argv[1:] if argv is None else list(argv)
+    if any(a in ("-h", "--help") for a in raw_args):
+        flags_txt = ", ".join(_CLI_FLAGS)
+        print(f"usage: nk_acs_fastguard.py [-h] [{flags_txt}]\n\nACS FastGuard 1.0.0-Generation (PreInvocation / PostInvocation)")
+        raise SystemExit(0)
+    return importlib.import_module(mod_name).main(argv=argv)
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     """Entry point rapido della guardia ACS PreInvocation e PostInvocation."""
-    return importlib.import_module(_E).main(argv=argv)
+    return _fast_cli_dispatch(_E, argv)
 
 
 if __name__ == "__main__":

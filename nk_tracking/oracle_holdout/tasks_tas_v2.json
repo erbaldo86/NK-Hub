@@ -1,0 +1,214 @@
+{
+  "suite_id": "tasks_tas_v2",
+  "version": "2.0.0-W2",
+  "total_tasks": 16,
+  "tasks": [
+    {
+      "task_id": "TAS-01",
+      "title": "ast_guard_validator taint + violations[] CLI JSON output",
+      "module": "scripts/ast_guard_validator.py",
+      "check_type": "tas_ast_taint_cli_json",
+      "expected": {
+        "passed": false,
+        "min_violations": 1,
+        "cli_rc": 1
+      },
+      "source_url": "https://docs.python.org/3/library/ast.html",
+      "evidence_quote": "The ast module traverses Python syntax trees for static taint and violation reporting."
+    },
+    {
+      "task_id": "TAS-02",
+      "title": "ast_guard_validator quality-diff + QD-SYNTAX-ERROR fail-closed",
+      "module": "scripts/_internal/ast_guard_validator/quality_diff_checker.py",
+      "check_type": "tas_ast_quality_diff_syntax_error",
+      "expected": {
+        "syntax_rule": "QD-SYNTAX-ERROR",
+        "scope_rule": "QD-SCOPE-CREEP",
+        "fail_closed_rc": 1
+      },
+      "source_url": "https://docs.python.org/3/library/ast.html#ast.parse",
+      "evidence_quote": "ast.parse raises SyntaxError on invalid Python code enabling fail-closed checks."
+    },
+    {
+      "task_id": "TAS-03",
+      "title": "dast_sandbox_runner PoC tri-state classifier",
+      "module": "scripts/_internal/dast_sandbox_runner/cli.py",
+      "check_type": "tas_dast_poc_tristate",
+      "expected": [
+        "EXPLOIT_CONFIRMED",
+        "HARNESS_ERROR",
+        "REFUTED"
+      ],
+      "source_url": "https://docs.python.org/3/library/re.html",
+      "evidence_quote": "Deterministic regex and exit status classification separates exploits, harness errors, and refutations."
+    },
+    {
+      "task_id": "TAS-04",
+      "title": "dast_sandbox_runner builder holdout strip (strips all holdout locks/dirs)",
+      "module": "scripts/_internal/dast_sandbox_runner/sandbox_fs.py",
+      "check_type": "tas_dast_builder_strip",
+      "expected": {
+        "stripped_count_min": 7,
+        "holdouts_absent": true
+      },
+      "source_url": "https://docs.python.org/3/library/shutil.html#shutil.rmtree",
+      "evidence_quote": "Removing holdout directories and lock files prevents leakage into builder sandboxes."
+    },
+    {
+      "task_id": "TAS-05",
+      "title": "dast_sandbox_runner verify_sandbox_holdouts fail-closed on tamper/overlay",
+      "module": "scripts/_internal/dast_sandbox_runner/holdout_verify.py",
+      "check_type": "tas_dast_verify_holdout_fail_closed",
+      "expected": {
+        "clean_evaluator_passed": true,
+        "tamper_passed": false,
+        "overlay_passed": false
+      },
+      "source_url": "https://docs.python.org/3/library/hashlib.html",
+      "evidence_quote": "SHA-256 verification detects tampered holdout manifests and unauthorized overlay mutations."
+    },
+    {
+      "task_id": "TAS-06",
+      "title": "sbfl_pytest_bridge Ochiai + CoverageMatrix + --hybrid-fl <= 80 token slice",
+      "module": "scripts/sbfl_pytest_bridge.py",
+      "check_type": "tas_sbfl_ochiai_hybrid_fl",
+      "expected": {
+        "top_ochiai": 1.0,
+        "max_slices": 3,
+        "max_slice_tokens": 80
+      },
+      "source_url": "https://ieeexplore.ieee.org/document/5362086",
+      "evidence_quote": "Ochiai ranks executed statements by suspiciousness computed from pass/fail spectra."
+    },
+    {
+      "task_id": "TAS-07",
+      "title": "oracle_evaluator_l3 self-compare (rc == 2) + Win32 UNC rejection",
+      "module": "scripts/oracle_evaluator_l3.py",
+      "check_type": "tas_oracle_l3_self_compare_unc",
+      "expected": {
+        "self_compare_rc": 2,
+        "unc_rejected": true
+      },
+      "source_url": "https://learn.microsoft.com/en-us/dotnet/standard/io/file-path-formats#unc-paths",
+      "evidence_quote": "UNC paths are explicitly blocked to prevent remote SMB path resolution."
+    },
+    {
+      "task_id": "TAS-08",
+      "title": "builder_mutation_gate 8-operator mutant gen (Path / 'x' skipped) + killed == (rc == 1)",
+      "module": "scripts/builder_mutation_gate.py",
+      "check_type": "tas_mutation_8ops_and_killed",
+      "expected": {
+        "operators_count": 8,
+        "path_div_skipped": true,
+        "killed_only_rc_1": true
+      },
+      "source_url": "https://docs.python.org/3/library/ast.html#ast.NodeTransformer",
+      "evidence_quote": "AST-level operators mutate expressions while skipping Path division patterns."
+    },
+    {
+      "task_id": "TAS-09",
+      "title": "builder_mutation_gate 0-mutant on pure constants -> fail-closed UNMEASURED",
+      "module": "scripts/_internal/builder_mutation_gate/runner.py",
+      "check_type": "tas_mutation_zero_mutant_unmeasured",
+      "expected": {
+        "status": "UNMEASURED",
+        "passed": false,
+        "mutants_total": 0
+      },
+      "source_url": "https://docs.python.org/3/library/ast.html",
+      "evidence_quote": "Zero generated mutants on executable diffs fail closed with UNMEASURED status."
+    },
+    {
+      "task_id": "TAS-10",
+      "title": "rsi_convergence_engine Q_v2 G_hard fail & gaming_penalty = -10000 ([0, 100])",
+      "module": "scripts/_internal/rsi_convergence_engine/profiles.py",
+      "check_type": "tas_rsi_qv2_hard_gate_gaming",
+      "expected": {
+        "g_hard_fail": 0,
+        "gaming_penalty": -10000,
+        "q_range": [0.0, 100.0]
+      },
+      "source_url": "https://docs.pydantic.dev/latest/",
+      "evidence_quote": "Strict Pydantic defect vectors enforce bounded Q_v2 scores and -10000 gaming penalties."
+    },
+    {
+      "task_id": "TAS-11",
+      "title": "rsi_convergence_engine doc-only STATIC_PASS & UNMEASURED <= 49.9",
+      "module": "scripts/_internal/rsi_convergence_engine/profiles.py",
+      "check_type": "tas_rsi_static_pass_unmeasured_cap",
+      "expected": {
+        "doc_only_tier": "STATIC_PASS",
+        "unmeasured_tier": "UNMEASURED",
+        "unmeasured_cap": 49.9
+      },
+      "source_url": "https://www.asd-ste100.org/",
+      "evidence_quote": "Doc-only changes achieve STATIC_PASS while unmeasured components cap fitness at 49.9."
+    },
+    {
+      "task_id": "TAS-12",
+      "title": "win32_2pc_engine HMAC governance token verify + fail-closed DAST report guard",
+      "module": "scripts/win32_2pc_engine.py",
+      "check_type": "tas_2pc_hmac_and_dast_guard",
+      "expected": {
+        "valid_token_verified": true,
+        "tamper_rejected": true,
+        "dry_run_rejected": true
+      },
+      "source_url": "https://docs.python.org/3/library/hmac.html",
+      "evidence_quote": "HMAC authentication and constant-time comparison verify governance override tokens."
+    },
+    {
+      "task_id": "TAS-13",
+      "title": "quality_baseline_manager Schema v2 (14 metrics) + --check-only strict read-only",
+      "module": "scripts/quality_baseline_manager.py",
+      "check_type": "tas_qbm_schema_v2_readonly",
+      "expected": {
+        "live_metrics_count": 14,
+        "duration_ceil": 28.0,
+        "fast_duration_ceil": 8.0,
+        "check_only_rc": 1
+      },
+      "source_url": "https://docs.python.org/3/library/json.html",
+      "evidence_quote": "Schema v2 tracks 14 quality metrics and enforces strict read-only checks on --check-only."
+    },
+    {
+      "task_id": "TAS-14",
+      "title": "nk_hook_gate target classifier locks & tests/oracle_holdout block outside staging",
+      "module": "scripts/nk_hook_gate.py",
+      "check_type": "tas_hook_gate_classifier_blocks",
+      "expected": {
+        "prod_denied": true,
+        "staging_allowed": true
+      },
+      "source_url": "https://docs.python.org/3/library/pathlib.html#pathlib.Path.resolve",
+      "evidence_quote": "Canonical path resolution confines writes to .staging/ and blocks direct lock mutations."
+    },
+    {
+      "task_id": "TAS-15",
+      "title": "nk_compliance_checker transcript scan blocking unstaged governance .md & nk_tracking/",
+      "module": "scripts/nk_compliance_checker.py",
+      "check_type": "tas_compliance_unstaged_governance",
+      "expected": {
+        "unstaged_gov_flagged": true,
+        "unstaged_tracking_flagged": true,
+        "staged_exempt": true
+      },
+      "source_url": "https://docs.python.org/3/library/json.html",
+      "evidence_quote": "Transcript auditing detects unstaged governance markdown and protected tracking writes."
+    },
+    {
+      "task_id": "TAS-16",
+      "title": "nk_common RepoSnapshotCache 64-char SHA-256 + gt14_exec_digest + prompt_linter + oracle_lock EOL SHA-256",
+      "module": "scripts/_internal/nk_common/repo_snapshot_cache.py",
+      "check_type": "tas_nk_common_primitives",
+      "expected": {
+        "sha256_len": 64,
+        "max_digest_tokens": 300,
+        "ap_rules": ["AP-2b", "AP-4", "AP-7", "AP-11"],
+        "eol_tolerant": true
+      },
+      "source_url": "https://docs.python.org/3/library/hashlib.html",
+      "evidence_quote": "Shared primitives enforce 64-char SHA-256 digests, <=300 token envelopes, AP linting, and CRLF/LF parity."
+    }
+  ]
+}

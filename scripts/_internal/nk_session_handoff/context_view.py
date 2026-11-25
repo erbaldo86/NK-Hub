@@ -8,23 +8,18 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from _internal.nk_common.constants import (
-    HIGH_CAPACITY_PROFILES,
-    SUPPORTED_MODEL_PROFILES,
+from _internal.nk_common.constants import HIGH_CAPACITY_PROFILES, SUPPORTED_MODEL_PROFILES
+from _internal.nk_common.facade_boot import resolve_facade_attr
+from _internal.nk_session_handoff.constants import DEFAULT_MILESTONE_ID, HANDOFF_VERSION, _workspace_root, resolve_session_tracking_dir
+from _internal.nk_session_handoff.ecosystem_scanner import extract_patch_notes_head
+from _internal.nk_session_handoff.handoff_engine import (
+    _is_meaningful_milestone, _prefer_newer_promo, _resolve_milestone_from_promo_or_pn, resume_from_anchor,
 )
-from _internal.nk_session_handoff.constants import (
-    DEFAULT_MILESTONE_ID,
-    HANDOFF_VERSION,
-    _workspace_root,
-    resolve_session_tracking_dir,
-)
-from _internal.nk_session_handoff.handoff_engine import resume_from_anchor
 from _internal.nk_session_handoff.session_state import (
-    _atomic_commit_bytes,
-    _read_baseline_pass_rate,
-    _read_baseline_tests_count,
-    _sanitize_ste100_inline,
+    _atomic_commit_bytes, _read_baseline_pass_rate, _read_baseline_tests_count, _sanitize_ste100_inline,
 )
+
+_FACADES = ("nk_session_handoff", "scripts.nk_session_handoff")
 
 
 def _collect_staging_relative_files(target_root: Path, limit: int = 15) -> Tuple[List[str], int]:
@@ -59,17 +54,14 @@ def _read_latest_handoff_state(
     target_root: Path, sess_dir: Optional[Path], out_file: Path
 ) -> Dict[str, Any]:
     """Carica session_handoff_latest.json dalla sessione o dalla directory handoff."""
-    candidates: List[Path] = []
-    if sess_dir is not None:
-        candidates.append(sess_dir / "session_handoff_latest.json")
-    candidates.append(target_root / "nk_tracking" / "handoff" / "session_handoff_latest.json")
-    candidates.append(out_file.parent / "session_handoff_latest.json")
+    candidates: List[Path] = ([sess_dir / "session_handoff_latest.json"] if sess_dir is not None else []) + [
+        target_root / "nk_tracking" / "handoff" / "session_handoff_latest.json",
+        out_file.parent / "session_handoff_latest.json",
+    ]
     for cand in candidates:
         try:
-            if cand.is_file():
-                data = json.loads(cand.read_text(encoding="utf-8"))
-                if isinstance(data, dict):
-                    return data
+            if cand.is_file() and isinstance(data := json.loads(cand.read_text(encoding="utf-8")), dict):
+                return data
         except Exception:
             continue
     return {}
@@ -87,27 +79,18 @@ def _format_handoff_list_field(raw_val: Any, max_items: int = 3) -> str:
 
 
 def _build_active_context_delta_lines(
-    target_root: Path,
-    sess_dir: Optional[Path],
-    out_file: Path,
-    anchor_state: Dict[str, Any],
-    base_char_len: int,
-    max_tokens: int,
+    target_root: Path, sess_dir: Optional[Path], out_file: Path,
+    anchor_state: Dict[str, Any], base_char_len: int, max_tokens: int,
 ) -> List[str]:
     """Costruisce la sezione Delta e Stato Operativo Corrente entro il budget token."""
-    max_chars = max_tokens * 4
-    item_cap = 120 if max_tokens >= 1200 else 72
+    max_chars, item_cap = max_tokens * 4, (120 if max_tokens >= 1200 else 72)
     latest_data = _read_latest_handoff_state(target_root, sess_dir, out_file)
     staged_top, total_staged = _collect_staging_relative_files(target_root, limit=15)
 
     raw_pending = anchor_state.get("pending_actions")
     if raw_pending is None:
         raw_pending = latest_data.get("pending_actions")
-    raw_summary = anchor_state.get("last_summary") or (
-        latest_data.get("last_summary")
-        or latest_data.get("completed_summary")
-        or latest_data.get("summary")
-    )
+    raw_summary = anchor_state.get("last_summary") or (latest_data.get("last_summary") or latest_data.get("completed_summary") or latest_data.get("summary"))
     raw_failed = anchor_state.get("last_failed_checks")
     if raw_failed is None:
         raw_failed = latest_data.get("last_failed_checks") or latest_data.get("failed_checks")
@@ -123,14 +106,12 @@ def _build_active_context_delta_lines(
         used_chars += len(line) + 1
         return True
 
-    summary_txt = _format_handoff_list_field(raw_summary, max_items=1)
-    if summary_txt:
-        _try_append(f"- **Ultimo Riepilogo:** {summary_txt[:item_cap]}.")
-    pending_txt = _format_handoff_list_field(raw_pending, max_items=3)
-    if pending_txt:
+    if summary_txt := _format_handoff_list_field(raw_summary, max_items=1):
+        if s_body := summary_txt[:item_cap].rstrip("."):
+            _try_append(f"- **Ultimo Riepilogo:** {s_body}.")
+    if pending_txt := _format_handoff_list_field(raw_pending, max_items=3):
         _try_append(f"- **Azioni Pendenti:** {pending_txt[:item_cap]}.")
-    failed_txt = _format_handoff_list_field(raw_failed, max_items=3)
-    if failed_txt:
+    if failed_txt := _format_handoff_list_field(raw_failed, max_items=3):
         _try_append(f"- **Controlli Falliti:** {failed_txt[:item_cap]}.")
 
     if not staged_top:
@@ -144,22 +125,34 @@ def _build_active_context_delta_lines(
                 added_files += 1
             else:
                 break
-        remaining = total_staged - added_files
-        if remaining > 0:
+        if (remaining := total_staged - added_files) > 0:
             _try_append(f"  - *(+{remaining} altri file in .staging/)*")
     return delta_lines
 
 
+def _resolve_active_context_milestone(
+    target_root: Path,
+    sess_dir: Optional[Path],
+    anchor_state: Dict[str, Any],
+    latest_data: Dict[str, Any],
+) -> str:
+    """Risolve il milestone attivo confrontando anchor, 2PC, latest handoff e PATCH_NOTES."""
+    own_sess_anchor = sess_dir is not None and (sess_dir / "session_anchor.jsonl").is_file()
+    anc_ms = str(anchor_state.get("milestone_id") or "").strip()
+    if _is_meaningful_milestone(anc_ms) and (own_sess_anchor or anchor_state.get("status") == "RESUMED"):
+        return _prefer_newer_promo(target_root, anc_ms, int(anchor_state.get("milestone_ts_ns") or 0))
+    pn_head = extract_patch_notes_head(target_root).get("patch_notes_head", {})
+    primary_snap = {"patch_notes_head": pn_head if isinstance(pn_head, dict) else {}}
+    return _resolve_milestone_from_promo_or_pn(target_root, primary_snap, latest_data)
+
+
 def generate_active_context_view(
-    root: Optional[Path] = None,
-    output_path: Optional[Path] = None,
-    profile: str = "generation",
-    dry_run: bool = False,
-    conversation_id: Optional[str] = None,
-    state_sha256_override: Optional[str] = None,
+    root: Optional[Path] = None, output_path: Optional[Path] = None, profile: str = "generation",
+    dry_run: bool = False, conversation_id: Optional[str] = None, state_sha256_override: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Genera nk_tracking/active_context.md in standard ASD-STE100."""
-    target_root = Path(root).resolve() if root is not None else _workspace_root.resolve()
+    eff_ws_root = Path(resolve_facade_attr(_FACADES, "_workspace_root", _workspace_root)).resolve()
+    target_root = Path(root).resolve() if root is not None else eff_ws_root
     if output_path is not None:
         raw_out = Path(output_path)
         out_file = raw_out.resolve() if raw_out.is_absolute() else (target_root / raw_out).resolve()
@@ -175,27 +168,30 @@ def generate_active_context_view(
     norm_profile = raw_prof if raw_prof in SUPPORTED_MODEL_PROFILES else "generation"
     max_tokens = 1200 if norm_profile in HIGH_CAPACITY_PROFILES else 350
 
-    anchor_state = resume_from_anchor(
-        root=target_root,
-        conversation_id=conversation_id,
-        state_sha256_override=state_sha256_override,
-    )
+    anchor_state = resume_from_anchor(root=target_root, conversation_id=conversation_id, state_sha256_override=state_sha256_override)
+    latest_data = _read_latest_handoff_state(target_root, sess_dir, out_file)
     last_turn = int(anchor_state.get("turn", 0))
-    last_gate = _sanitize_ste100_inline(str(anchor_state.get("gate_status") or "READY"), "READY")
-    ms_id = _sanitize_ste100_inline(str(anchor_state.get("milestone_id") or DEFAULT_MILESTONE_ID), DEFAULT_MILESTONE_ID)
-    total_tests = _read_baseline_tests_count(target_root)
-    pass_rate = _read_baseline_pass_rate(target_root)
+    turn_phase = _sanitize_ste100_inline(
+        str(anchor_state.get("turn_phase") or latest_data.get("turn_phase") or ("IDLE_CHECKPOINT" if last_turn == 0 else f"TURN_{last_turn}")),
+        "IDLE_CHECKPOINT",
+    )
+    raw_gate = str(anchor_state.get("gate_status") or "READY").strip()
+    if last_turn == 0 and raw_gate == "MISSING":
+        raw_gate = "READY"
+    last_gate = _sanitize_ste100_inline(raw_gate, "READY")
+
+    raw_ms = _resolve_active_context_milestone(target_root, sess_dir, anchor_state, latest_data)
+    ms_id = _sanitize_ste100_inline(raw_ms or DEFAULT_MILESTONE_ID, DEFAULT_MILESTONE_ID)
+    total_tests, pass_rate = _read_baseline_tests_count(target_root), _read_baseline_pass_rate(target_root)
 
     lines = [
-        "# Contesto Operativo Attivo NK Hub Generation",
-        "",
+        "# Contesto Operativo Attivo NK Hub Generation", "",
         "## Stato Corrente della Sessione",
         f"1. **Versione Attiva:** `{HANDOFF_VERSION}`.",
         f"2. **Profilo Modello:** `{norm_profile}`.",
         f"3. **Milestone Attivo:** `{ms_id}`.",
-        f"4. **Ultimo Turno FSM:** `{last_turn}` con stato `{last_gate}`.",
-        f"5. **Baseline Test:** `{total_tests}` test con pass rate `{pass_rate:.1f}%`.",
-        "",
+        f"4. **Ultimo Turno FSM:** `{last_turn}` (`{turn_phase}`) con stato `{last_gate}`.",
+        f"5. **Baseline Test:** `{total_tests}` test con pass rate `{pass_rate:.1f}%`.", "",
         "## Regole Operative Prioritarie",
         "1. Esegui tutte le modifiche esclusivamente nella directory `.staging/`.",
         "2. Valida ogni modifica con `ast_guard_validator.py` prima della promozione.",
@@ -203,16 +199,7 @@ def generate_active_context_view(
         "4. Promuovi i file in produzione tramite `win32_2pc_engine.py`.",
     ]
     base_len = sum(len(ln) + 1 for ln in lines)
-    lines.extend(
-        _build_active_context_delta_lines(
-            target_root=target_root,
-            sess_dir=sess_dir,
-            out_file=out_file,
-            anchor_state=anchor_state,
-            base_char_len=base_len,
-            max_tokens=max_tokens,
-        )
-    )
+    lines.extend(_build_active_context_delta_lines(target_root, sess_dir, out_file, anchor_state, base_len, max_tokens))
     content = "\n".join(lines) + "\n"
     if not dry_run:
         encoded = content.encode("utf-8")
@@ -222,13 +209,8 @@ def generate_active_context_view(
 
     estimated_tokens = max(1, len(content) // 4)
     return {
-        "status": "DRY_RUN" if dry_run else "GENERATED",
-        "dry_run": bool(dry_run),
-        "passed": estimated_tokens <= max_tokens,
-        "output_path": str(out_file),
-        "profile": norm_profile,
-        "max_tokens": max_tokens,
-        "estimated_tokens": estimated_tokens,
-        "char_count": len(content),
-        "content": content,
+        "status": "DRY_RUN" if dry_run else "GENERATED", "dry_run": bool(dry_run),
+        "passed": estimated_tokens <= max_tokens, "output_path": str(out_file),
+        "profile": norm_profile, "max_tokens": max_tokens,
+        "estimated_tokens": estimated_tokens, "char_count": len(content), "content": content,
     }

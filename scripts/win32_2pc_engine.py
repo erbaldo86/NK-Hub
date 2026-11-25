@@ -67,7 +67,25 @@ def _build_cli_parser() -> Any:
     parser.add_argument(
         "--allow-governance-override",
         action="store_true",
-        help="Consente la promozione esplicita di file protetti come nk_tracking/oracle_lock.json",
+        help="Consente la promozione esplicita di file protetti previa motivazione audit",
+    )
+    parser.add_argument(
+        "--override-reason",
+        type=str,
+        default=None,
+        help="Motivazione obbligatoria (>= 8 caratteri) per --allow-governance-override",
+    )
+    parser.add_argument(
+        "--governance-token",
+        type=str,
+        default=None,
+        help="Token HMAC governance (v1:ts:nonce:hmac) per --allow-governance-override",
+    )
+    parser.add_argument(
+        "--sandbox-report",
+        type=str,
+        default=None,
+        help="Percorso al report DAST/Sandbox da validare contro dry-run prima del commit",
     )
     return parser
 
@@ -99,9 +117,12 @@ if _SCRIPT_DIR != _PROD_SCRIPTS and (_SCRIPT_DIR / "_internal" / "nk_common").is
         (_stg_nkc, str(_SCRIPT_DIR / "_internal" / "nk_common")),
     ):
         _cur_p = list(getattr(_pkg_obj, "__path__", ()))
-        _pkg_obj.__path__ = [_stg_dir] + [p for p in _cur_p if os.path.normcase(p) != os.path.normcase(_stg_dir)]
+        _pkg_obj.__path__ = [_stg_dir] + [
+            p for p in _cur_p if os.path.normcase(p) != os.path.normcase(_stg_dir)
+        ]
 
 from _internal.nk_common.facade_boot import init_nk_facade  # noqa: E402
+from _internal.nk_common.tas_ssot_io import reconfigure_stdio_utf8  # noqa: E402
 
 init_nk_facade(__file__, pkg="win32_2pc_engine")
 
@@ -118,6 +139,7 @@ from _internal.win32_2pc_engine.constants import (  # noqa: E402
     MOVEFILE_REPLACE_EXISTING,
     MOVEFILE_WRITE_THROUGH,
     PROTECTED_GOVERNANCE_DENYLIST,
+    PROTECTED_GOVERNANCE_PREFIXES,
     RETRY_ATTEMPTS_IO,
     RETRY_DELAY_SEC_IO,
     WAIT_ABANDONED_0,
@@ -140,10 +162,18 @@ from _internal.win32_2pc_engine.constants import (  # noqa: E402
     _register_facade_module,
     compute_crc32,
     compute_sha256,
+    is_protected_governance_path,
 )
 from _internal.win32_2pc_engine.engine import (  # noqa: E402
     TwoPhaseCommitEngine,
     win32_atomic_replace,
+)
+from _internal.win32_2pc_engine.governance_auth import (  # noqa: E402
+    authorize_governance_override,
+    ensure_governance_hmac_key,
+    mint_governance_token,
+    resolve_governance_hmac_key_path,
+    verify_governance_token,
 )
 from _internal.win32_2pc_engine.io_and_paths import (  # noqa: E402
     _assert_no_external_reparse,
@@ -173,7 +203,9 @@ from _internal.win32_2pc_engine.staging_guards import (  # noqa: E402
     _purge_production_bytecode,
     _scan_staging_canonical,
     _verify_quality_baseline_ratchet,
+    record_governance_override_audit,
     record_session_anchor_commit,
+    validate_sandbox_report_not_dry_run,
     validate_staging_json_files,
 )
 from _internal.win32_2pc_engine.wal import WriteAheadLogManager  # noqa: E402
@@ -183,6 +215,7 @@ _register_facade_module(sys.modules.get(__name__))
 
 def main(argv: Optional[List[str]] = None) -> int:
     """Punto di ingresso CLI per il motore Win32 Two-Phase Commit 1.0.0-Generation."""
+    reconfigure_stdio_utf8()
     parser = _build_cli_parser()
 
     args = parser.parse_args(argv)
@@ -209,6 +242,10 @@ def main(argv: Optional[List[str]] = None) -> int:
                 verify_baseline=args.verify_baseline,
                 cleanup_staging=not bool(args.keep_staging),
                 allow_governance_override=bool(args.allow_governance_override),
+                governance_override_reason=args.override_reason,
+                sandbox_report=args.sandbox_report,
+                governance_token=args.governance_token,
+                enforce_nonce_replay=True,
             )
             print(json.dumps(res, indent=2))
             return 0

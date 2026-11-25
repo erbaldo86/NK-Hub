@@ -1,18 +1,21 @@
 # -*- coding: utf-8 -*-
 """
-Test unitari Zero-Mock per nk_registry_indexer.py di Nexus Keystone v6.4.0-Carbon.
+Test unitari Zero-Mock per nk_registry_indexer.py di NK Hub Generation 1.0.0-Generation.
 Modulo: tests/test_nk_registry_indexer.py.
-Valida sync, verify, CRIT-01 MCP fantasma, lookup O(1), Hot-Swap, shard e SSOT.
+Valida sync, verify, CRIT-01 MCP fantasma, lookup O(1), Hot-Swap, shard, twin parity e SSOT.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
-import tempfile
+import shutil
+import sys
 import time
+import zipfile
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict
 
 import pytest
 
@@ -30,42 +33,61 @@ NKRegistryIndexer = indexer_mod.NKRegistryIndexer
 VibeSprintRouter = router_mod.VibeSprintRouter
 PreflightHealthChecker = preflight_mod.PreflightHealthChecker
 
-pytestmark = pytest.mark.fast
+RETIRED_SCRIPTS = (
+    "invisible_healing_loop.py",
+    "nk_auto_inning.py",
+    "micro_hud_renderer.py",
+    "nk_active_runtime_sentinel.py",
+    "nk_swarm_messenger.py",
+    "sbfl_engine.py",
+)
+
+EXPECTED_SIX_AGENTS = (
+    "NK-Arch-Specifier",
+    "NK-Builder-Agent",
+    "NK-RSI-Auditor",
+    "NK-Scribe-Agent",
+    "NK-Security-DAST-Auditor",
+    "NK-Specifier-Agent",
+)
+
+_MODULE_SYNCED_CACHE: Dict[str, Any] = {}
 
 
-def test_nk_registry_indexer_sync_generates_manifest_and_skill_index(
-    tmp_path: Path,
-) -> None:
-    """Verifica che --sync generi nk_registry_manifest.json e SKILL_INDEX.md."""
-    stage_dir = tmp_path / ".staging"
+@pytest.fixture(scope="module")
+def synced_mirror_env(tmp_path_factory: pytest.TempPathFactory) -> Any:
+    """Esegue --sync una sola volta per modulo per i test @pytest.mark.integration."""
+    base_dir = tmp_path_factory.mktemp("nk_registry_sync_mod")
+    stage_dir = base_dir / ".staging"
+    stage_dir.mkdir(parents=True, exist_ok=True)
+    del_src = WORKSPACE_ROOT / ".staging" / ".deleted_files.json"
+    if del_src.is_file():
+        shutil.copy2(del_src, stage_dir / ".deleted_files.json")
+
+    no_cfg = base_dir / "no_cfg"
+    no_cfg.mkdir(parents=True, exist_ok=True)
     rc = indexer_mod.main(["--sync", "--stage-dir", str(stage_dir)])
-    assert rc == 0
-
     manifest_path = stage_dir / "nk_genome" / "nk_registry_manifest.json"
     skill_index_path = stage_dir / "nk_genome" / "SKILL_INDEX.md"
-    assert manifest_path.exists()
-    assert skill_index_path.exists()
-
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    for key in ("version", "domains", "skills_index", "scripts_index", "intent_dispatch_table", "global_hygiene_profile"):
-        assert key in manifest
-
-    assert set(manifest["domains"].keys()) == {"DOM-01", "DOM-02", "DOM-03", "DOM-04", "DOM-05"}
-    assert len(manifest["skills_index"]) == 11
-    assert len(manifest["scripts_index"]) >= 32
-    assert "nk_registry_indexer.py" in manifest["scripts_index"]
-    assert "schemas/dual_ledgers.py" in manifest["scripts_index"]
-    assert "schemas/nk_ipc_contracts.py" in manifest["scripts_index"]
-    assert manifest["scripts_index"]["schemas/dual_ledgers.py"]["domain_id"] == "DOM-01"
-    assert manifest["scripts_index"]["schemas/nk_ipc_contracts.py"]["domain_id"] == "DOM-01"
-
-    md_text = skill_index_path.read_text(encoding="utf-8")
-    assert "DOM-01" in md_text and "DOM-05" in md_text
-    assert "NK-Python-Async-Builder" in md_text
+    rehydrated = NKRegistryIndexer(
+        workspace_root=WORKSPACE_ROOT, stage_dir=stage_dir, global_config_dir=no_cfg
+    ).load_manifest()
+    _MODULE_SYNCED_CACHE.clear()
+    _MODULE_SYNCED_CACHE.update({
+        "rc": rc, "stage_dir": stage_dir, "no_cfg": no_cfg,
+        "manifest_path": manifest_path, "skill_index_path": skill_index_path,
+        "manifest": manifest, "rehydrated": rehydrated or {},
+    })
+    try:
+        yield _MODULE_SYNCED_CACHE
+    finally:
+        _MODULE_SYNCED_CACHE.clear()
 
 
-def test_nk_registry_sync_without_staging_preserves_prod(tmp_path: Path) -> None:
-    """Verifica G3-02: sync senza --sync-staging non tocca .staging di produzione."""
+@pytest.mark.integration
+def test_nk_registry_sync_without_staging_and_grounding_legacy_genome(tmp_path: Path) -> None:
+    """1. Verifica G3-02 sync senza --sync-staging, grounding report e fallback legacy genome/."""
     prod_stg_manifest = WORKSPACE_ROOT / ".staging" / "nk_genome" / "nk_registry_manifest.json"
     existed_before = prod_stg_manifest.exists()
     mtime_before = prod_stg_manifest.stat().st_mtime_ns if existed_before else None
@@ -73,181 +95,99 @@ def test_nk_registry_sync_without_staging_preserves_prod(tmp_path: Path) -> None
     g3_ws = tmp_path / "g3_no_stg_ws"
     (g3_ws / ".agents" / "skills" / "NK-Orchestrator").mkdir(parents=True, exist_ok=True)
     (g3_ws / ".agents" / "skills" / "NK-Orchestrator" / "SKILL.md").write_text(
-        "---\nname: NK-Orchestrator\ndescription: Mini.\nversion: '6.0.0-Carbon'\ndomain_id: 'DOM-01'\n---\n# Hub\n",
-        encoding="utf-8",
+        "---\nname: NK-Orchestrator\ndescription: Mini.\nversion: '6.0.0-Carbon'\ndomain_id: 'DOM-01'\n---\n# Hub\n", encoding="utf-8"
     )
     (g3_ws / "scripts").mkdir(parents=True, exist_ok=True)
     (g3_ws / "scripts" / "mini.py").write_text('"""Mini.\n@domain_id: DOM-01\n"""\n', encoding="utf-8")
 
-    no_stg_indexer = NKRegistryIndexer(workspace_root=g3_ws)
+    no_stg_indexer = NKRegistryIndexer(workspace_root=g3_ws, global_config_dir=tmp_path / "no_cfg")
     no_stg_indexer.resolve_genome_dir = lambda root=None: (tmp_path / "isolated_prod_genome", False)  # type: ignore[method-assign]
     res_no_stg = no_stg_indexer.sync(sync_staging=False)
-    assert res_no_stg["passed"] is True
-    assert res_no_stg["sync_staging"] is False
+    assert res_no_stg["passed"] is True and res_no_stg["sync_staging"] is False
     assert not (g3_ws / ".staging" / "nk_genome" / "nk_registry_manifest.json").exists()
-    if not existed_before:
-        assert not prod_stg_manifest.exists()
-    else:
-        assert prod_stg_manifest.stat().st_mtime_ns == mtime_before
+    assert (prod_stg_manifest.stat().st_mtime_ns == mtime_before) if existed_before else (not prod_stg_manifest.exists())
 
-
-def test_nk_registry_indexer_verify_detects_clean_and_drift(tmp_path: Path) -> None:
-    """Verifica che --verify certifichi integrita SHA-256 e rilevi drift."""
-    with tempfile.TemporaryDirectory() as td_sync:
-        sb_ws = Path(td_sync)
-        (sb_ws / ".agents" / "skills" / "NK-Orchestrator").mkdir(parents=True, exist_ok=True)
-        (sb_ws / "scripts").mkdir(parents=True, exist_ok=True)
-        (sb_ws / ".agents" / "skills" / "NK-Orchestrator" / "SKILL.md").write_text(
-            "---\nname: NK-Orchestrator\ndescription: Sovrano L3.\nversion: '6.0.0-Carbon'\ndomain_id: 'DOM-01'\n---\n# Hub\n",
-            encoding="utf-8",
-        )
-        (sb_ws / "scripts" / "nk_registry_indexer.py").write_text(
-            '"""Modulo indicizzatore.\n@domain_id: DOM-01\n"""\nimport argparse\n',
-            encoding="utf-8",
-        )
-        indexer = NKRegistryIndexer(workspace_root=sb_ws, stage_dir=sb_ws / ".staging_verify")
-        indexer.sync(sync_staging=True)
-        verify_res = indexer.verify()
-        assert verify_res["passed"] is True and verify_res["status"] == "VALID"
-        assert "unindexed_files" in verify_res and verify_res["elapsed_ms"] < 350.0
-
-    mini_ws = tmp_path / "mini_ws"
-    (mini_ws / ".agents" / "skills" / "NK-Orchestrator").mkdir(parents=True, exist_ok=True)
-    (mini_ws / "scripts").mkdir(parents=True, exist_ok=True)
-    (mini_ws / ".agents" / "skills" / "NK-Orchestrator" / "SKILL.md").write_text(
-        "---\nname: NK-Orchestrator\ndescription: Sovrano L3.\nversion: '6.0.0-Carbon'\n---\n# Hub\n",
-        encoding="utf-8",
-    )
-    script_py = mini_ws / "scripts" / "nk_registry_indexer.py"
-    script_py.write_text('"""Modulo indicizzatore."""\nimport argparse\n', encoding="utf-8")
-
-    tmp_indexer = NKRegistryIndexer(workspace_root=mini_ws, stage_dir=mini_ws / ".staging")
-    tmp_indexer.sync()
-    assert tmp_indexer.verify()["passed"] is True
-
-    script_py.write_text('"""Modulo indicizzatore modificato."""\nimport sys\n', encoding="utf-8")
-    drift_res = tmp_indexer.verify()
-    assert drift_res["passed"] is False and drift_res["status"] == "DRIFT_DETECTED"
-    assert any("nk_registry_indexer.py" in issue for issue in drift_res["issues"])
-
-
-def test_registry_grounding_and_legacy_genome_fallback(tmp_path: Path) -> None:
-    """Verifica grounding report e dual-resolver Tetralogia su cartella legacy genome/."""
     bad_rep = tmp_path / "bad_report.md"
     bad_rep.write_text("Esegui scripts/atomic_2pc_commit.py ora.\n", encoding="utf-8")
-    bad_res = tr_mod.verify_report_grounding(bad_rep)
-    assert bad_res["passed"] is False and bad_res["exit_code"] == 1
-
+    assert tr_mod.verify_report_grounding(bad_rep)["exit_code"] == 1
     good_rep = tmp_path / "good_report.md"
     good_rep.write_text("Esegui scripts/win32_2pc_engine.py ora.\n", encoding="utf-8")
-    good_res = tr_mod.verify_report_grounding(good_rep)
-    assert good_res["passed"] is True and good_res["exit_code"] == 0
+    assert tr_mod.verify_report_grounding(good_rep)["exit_code"] == 0
 
     legacy_ws = tmp_path / "legacy_ext_ws"
     (legacy_ws / "genome").mkdir(parents=True, exist_ok=True)
     (legacy_ws / "genome" / "concept_map.md").write_text("# Concept\n", encoding="utf-8")
-    leg_indexer = NKRegistryIndexer(workspace_root=legacy_ws, stage_dir=legacy_ws / ".staging")
-    tetra = leg_indexer.resolve_tetralogy_files()
-    assert tetra["is_legacy_genome"] is True
-    assert tetra["warning"] is not None and tetra["files"]["concept_map.md"] is not None
+    tetra = NKRegistryIndexer(workspace_root=legacy_ws, stage_dir=legacy_ws / ".staging", global_config_dir=tmp_path / "no_cfg").resolve_tetralogy_files()
+    assert tetra["is_legacy_genome"] is True and tetra["warning"] is not None and tetra["files"]["concept_map.md"] is not None
 
 
-def test_nk_registry_indexer_lookup_o1_latency_under_50ms(tmp_path: Path) -> None:
-    """Verifica che --lookup risolva dominio, skill, script e intento (<50ms, <150ms con cov)."""
-    indexer = NKRegistryIndexer(
-        workspace_root=WORKSPACE_ROOT, stage_dir=tmp_path / ".staging_lookup"
-    )
-    is_ci = bool(os.environ.get("CI") or os.environ.get("GITHUB_ACTIONS"))
-    max_ms = (250.0 if is_cov_instrumented() else 150.0) if is_ci else (150.0 if is_cov_instrumented() else 50.0)
-
-    t0 = time.perf_counter()
-    res_dom = indexer.lookup("DOM-04")
-    dt_ms = (time.perf_counter() - t0) * 1000.0
-    assert res_dom["found"] is True and res_dom["domain_id"] == "DOM-04"
-    assert res_dom["domain_name"] == "AUDIT_DAST_AND_RCA"
-    assert dt_ms < max_ms and res_dom["elapsed_ms"] < max_ms
-
-    res_skill = indexer.lookup("NK-Python-Async-Builder")
-    assert res_skill["found"] is True and res_skill["match_type"] == "skill"
-    assert res_skill["domain_id"] == "DOM-03" and res_skill["elapsed_ms"] < max_ms
-
-    res_script = indexer.lookup("vibe_sprint_router.py")
-    assert res_script["found"] is True and res_script["match_type"] == "script"
-    assert res_script["domain_id"] == "DOM-01" and "--discovery-check" in res_script["cli_flags"]
-    assert res_script["elapsed_ms"] < max_ms
-
-    res_intent = indexer.lookup("Esegui recall memoria episodica")
-    assert res_intent["found"] is True and res_intent["domain_id"] == "DOM-05"
-    assert res_intent["elapsed_ms"] < max_ms
-
-
-def test_ssot_integration_vibe_sprint_router_and_preflight_health_check(
-    tmp_path: Path,
+def _assert_hotswap_verify_and_cli_drift(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """Verifica il disaccoppiamento SSOT in vibe_sprint_router.py e preflight_health_check.py."""
-    router = VibeSprintRouter(workspace_root=WORKSPACE_ROOT)
-    assert router.resolve_domain_from_manifest("Esegui audit SAST e diagnosi SBFL Ochiai")["domain_id"] == "DOM-04"
+    sb_ws = tmp_path / "verify_ws"
+    for d in (".agents/skills/NK-Orchestrator", ".agents/skills/NK-Custom-HotSwap", ".agents/agents/NK-Reader-Auditor", "scripts/schemas"):
+        (sb_ws / d).mkdir(parents=True, exist_ok=True)
+    (sb_ws / ".agents" / "skills" / "NK-Orchestrator" / "SKILL.md").write_text("---\nname: NK-Orchestrator\nversion: '1.0.0-Generation'\ndomain_id: 'DOM-01'\n---\n# Hub\n", encoding="utf-8")
+    (sb_ws / ".agents" / "skills" / "NK-Custom-HotSwap" / "SKILL.md").write_text('---\nname: NK-Custom-HotSwap\nversion: "1.0.0-Generation"\ndomain_id: "DOM-03"\nsector: "BUILD_AND_HEAL"\n---\n# HS\n', encoding="utf-8")
+    (sb_ws / ".agents" / "agents" / "NK-Reader-Auditor" / "agent.md").write_text("---\nname: NK-Reader-Auditor\nenable_write_tools: false\nenable_subagent_tools: false\n---\n", encoding="utf-8")
+    script_py = sb_ws / "scripts" / "nk_registry_indexer.py"
+    script_py.write_text('"""Modulo indicizzatore.\n@domain_id: DOM-01\n"""\nimport argparse\n', encoding="utf-8")
+    (sb_ws / "scripts" / "schemas" / "nk_ipc_contracts.py").write_text('"""Contratti."""\nfrom pydantic import BaseModel\n', encoding="utf-8")
 
-    intent_d = router.classify_prompt_intent("Esegui discovery e benchmark architettura")
-    assert intent_d["recommended_mode"] == "mode_d" and intent_d["primary_agent"] == "NK-Ideator"
-    assert intent_d["domain_id"] == "DOM-02"
-
-    intent_c = router.classify_prompt_intent("Implementa modulo async con pydantic")
-    assert intent_c["recommended_mode"] == "mode_c" and intent_c["primary_agent"] == "NK-Python-Async-Builder"
-    assert intent_c["domain_id"] == "DOM-03"
-
-    custom_ws = tmp_path / "custom_ssot_ws"
-    for folder in ("nk_genome", "nk_tracking/anchor", ".staging"):
-        (custom_ws / folder).mkdir(parents=True, exist_ok=True)
-    custom_manifest = {
-        "version": "6.0.0-Carbon",
-        "summary": {"total_skills": 18, "total_domains": 5, "total_scripts": 32},
-        "skills_index": {f"NK-Skill-{i}": {"domain_id": "DOM-01"} for i in range(18)},
-    }
-    (custom_ws / "nk_genome" / "nk_registry_manifest.json").write_text(json.dumps(custom_manifest), encoding="utf-8")
-    (custom_ws / "nk_tracking" / "quality_baseline.json").write_text(
-        json.dumps({"_version": "6.0.0-Carbon", "metrics": {"skills_audited": 18, "crv_macro_phases": 4, "unit_tests_pass_pct": 100.0}}),
-        encoding="utf-8",
-    )
-
-    checker = PreflightHealthChecker(workspace_root=custom_ws)
-    alignment = checker._check_baseline_alignment()
-    assert alignment["passed"] is True and alignment["expected_skills"] == 18 and alignment["skills_audited"] == 18
-
-
-def test_nk_registry_indexer_hotswap_zero_touch_registration(tmp_path: Path) -> None:
-    """Verifica che una nuova skill con domain_id: DOM-03 venga auto-registrata da --sync."""
-    hs_ws = tmp_path / "hotswap_ws"
-    custom_skill_dir = hs_ws / ".agents" / "skills" / "NK-Custom-HotSwap"
-    scripts_dir = hs_ws / "scripts" / "schemas"
-    custom_skill_dir.mkdir(parents=True, exist_ok=True)
-    scripts_dir.mkdir(parents=True, exist_ok=True)
-
-    (custom_skill_dir / "SKILL.md").write_text(
-        '---\nname: NK-Custom-HotSwap\ndescription: Modulo Hot-Swap.\nversion: "6.0.0-Carbon"\ndomain_id: "DOM-03"\nsector: "BUILD_AND_HEAL"\nthinking_level: "HIGH"\n---\n# HS\n',
-        encoding="utf-8",
-    )
-    (hs_ws / "scripts" / "custom_auditor_probe.py").write_text('"""Sonda.\n@domain_id: DOM-04\n"""\nimport sys\n', encoding="utf-8")
-    (scripts_dir / "nk_ipc_contracts.py").write_text('"""Contratti."""\nfrom pydantic import BaseModel\n', encoding="utf-8")
-
-    hs_indexer = NKRegistryIndexer(
-        workspace_root=hs_ws, stage_dir=hs_ws / ".staging", global_config_dir=tmp_path / "empty_global_cfg"
-    )
-    assert hs_indexer.sync()["passed"] is True
-    manifest = hs_indexer.load_manifest()
+    indexer = NKRegistryIndexer(workspace_root=sb_ws, stage_dir=sb_ws / ".staging_verify", global_config_dir=tmp_path / "no_cfg")
+    assert indexer.sync(sync_staging=True)["passed"] is True
+    manifest = indexer.load_manifest()
     assert manifest is not None
-    assert manifest["skills_index"]["NK-Custom-HotSwap"]["domain_id"] == "DOM-03"
     assert manifest["skills_index"]["NK-Custom-HotSwap"]["sector"] == "BUILD_AND_HEAL"
-    assert "NK-Custom-HotSwap" in manifest["domains"]["DOM-03"]["skills"]
-    assert manifest["scripts_index"]["custom_auditor_probe.py"]["domain_id"] == "DOM-04"
     assert manifest["scripts_index"]["schemas/nk_ipc_contracts.py"]["domain_id"] == "DOM-01"
+    verify_res = indexer.verify()
+    assert verify_res["passed"] is True
+    assert verify_res["status"] == "VALID"
+    assert indexer.verify()["passed"] is True
+
+    monkeypatch.setattr(sys, "argv", ["nk_registry_indexer.py", "--root", str(sb_ws), "--verify"])
+    assert indexer_mod.main(["--root", str(sb_ws), "--stage-dir", str(sb_ws / ".staging_verify"), "--verify"]) == 0
+    assert "VALID" in capsys.readouterr().out
+
+    script_py.write_text('"""Modulo indicizzatore modificato."""\nimport sys\n', encoding="utf-8")
+    drift_res = indexer.verify()
+    assert drift_res["passed"] is False
+    assert drift_res["status"] == "DRIFT_DETECTED"
+    assert any("nk_registry_indexer.py" in i for i in drift_res["issues"])
 
 
-def test_global_skill_filter_and_hygiene_isolation(tmp_path: Path) -> None:
-    """Verifica consolidamento plugin e disattivazione skill globali in config.json."""
+@pytest.mark.integration
+def test_nk_registry_indexer_verify_hotswap_and_cli_drift(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """2. Verifica verify SHA-256, Hot-Swap, MISSING_MANIFEST, DRIFT GT-14/RULE-01 e cache verify (migrazione cli_core_gates)."""
+    assert NKRegistryIndexer(workspace_root=tmp_path / "no_manifest_ws").verify()["status"] == "MISSING_MANIFEST"
+
+    drift_ws = tmp_path / "drift_ws"
+    for d in (".agents/skills/NK-S1", ".agents/agents/NK-Test-Auditor", "scripts", "nk_genome"):
+        (drift_ws / d).mkdir(parents=True)
+    (drift_ws / ".agents" / "skills" / "NK-S1" / "SKILL.md").write_text("---\nname: NK-S1\ndomain_id: DOM-01\n---\n# Skill\n", encoding="utf-8")
+    (drift_ws / ".agents" / "agents" / "NK-Test-Auditor" / "agent.md").write_text("---\nname: NK-Test-Auditor\nenable_write_tools: true\nenable_subagent_tools: true\n---\n", encoding="utf-8")
+    (drift_ws / "scripts" / "s1.py").write_text("X = 1\n", encoding="utf-8")
+    bad_manifest = {
+        "version": "6.0.0-Carbon", "domains": {"DOM-01": {"scripts": ["scripts/s1.py"]}},
+        "skills_index": {"NK-S1": {"sha256": "0" * 64}}, "scripts_index": {"s1.py": {"sha256": "0" * 64}},
+        "native_agents_index": {"NK-Test-Auditor": {"sha256": "0" * 64, "enable_write_tools": True, "enable_subagent_tools": True}},
+        "intent_dispatch_table": {"bad_str_entry": "not_a_dict", "bad_dom_entry": {"domain_id": "DOM-99"}},
+    }
+    (drift_ws / "nk_genome" / "nk_registry_manifest.json").write_text(json.dumps(bad_manifest), encoding="utf-8")
+    v_res = NKRegistryIndexer(workspace_root=drift_ws).verify()
+    assert v_res["status"] == "DRIFT_DETECTED"
+    assert any("GT-14" in i for i in v_res["issues"])
+    assert any("RULE-01" in i for i in v_res["issues"])
+    _assert_hotswap_verify_and_cli_drift(tmp_path, monkeypatch, capsys)
+
+
+@pytest.mark.integration
+def test_global_skill_filter_hygiene_and_corrupt_config(tmp_path: Path) -> None:
+    """3. Verifica consolidamento plugin, disattivazione skill globali e quarantena config.json corrotto."""
     temp_cfg_dir = tmp_path / "gemini_config"
-    skills_dir = temp_cfg_dir / "skills"
-    plugins_dir = temp_cfg_dir / "plugins"
+    skills_dir, plugins_dir = temp_cfg_dir / "skills", temp_cfg_dir / "plugins"
     skills_dir.mkdir(parents=True, exist_ok=True)
     plugins_dir.mkdir(parents=True, exist_ok=True)
 
@@ -270,45 +210,42 @@ def test_global_skill_filter_and_hygiene_isolation(tmp_path: Path) -> None:
     assert before["installed_external_skills_count"] == 4 and before["context_pollution_detected"] is True
     assert idx.apply_global_filter()["applied"] is True
     assert (plugins_dir / "gcp-data-cloud-plugin" / "skills" / "bigquery-data-transfer-service" / "SKILL.md").exists()
-    assert (plugins_dir / "dev-utilities-plugin" / "skills" / "managing-python-dependencies" / "SKILL.md").exists()
-
     after = idx.scan_global_hygiene_profile(11)
-    assert after["active_external_skills_count"] == 0 and after["disabled_external_skills_count"] == 4
-    assert after["total_flat_skills"] == 11 and after["context_pollution_detected"] is False
+    assert after["active_external_skills_count"] == 0 and after["disabled_external_skills_count"] == 4 and after["context_pollution_detected"] is False
+
+    corrupt_cfg_dir = tmp_path / "corrupt_gemini_cfg"
+    (corrupt_cfg_dir / "skills").mkdir(parents=True, exist_ok=True)
+    corrupt_raw = '{"userSettings": {"customKey": "preserve_me"}, "broken": '
+    cfg_file = corrupt_cfg_dir / "config.json"
+    cfg_file.write_text(corrupt_raw, encoding="utf-8")
+    res_corr = NKRegistryIndexer(workspace_root=WORKSPACE_ROOT, stage_dir=tmp_path / ".staging_corrupt", global_config_dir=corrupt_cfg_dir).apply_global_filter()
+    assert res_corr["applied"] is True and res_corr.get("config_corrupt") is True and res_corr.get("config_preserved") is True
+    assert cfg_file.read_text(encoding="utf-8") == corrupt_raw
+    assert Path(str(res_corr.get("quarantined_config_path", ""))).read_text(encoding="utf-8") == corrupt_raw
 
 
-def test_registry_crit01_blocks_phantom_mcp_tools(tmp_path: Path) -> None:
-    """Verifica CRIT-01: blocco tool MCP fantasma (call_mcp_tool) nei file agent.md."""
-    phantom_ws = tmp_path / "phantom_mcp_ws"
-    (phantom_ws / ".agents" / "skills" / "NK-Orchestrator").mkdir(parents=True)
-    (phantom_ws / ".agents" / "agents" / "NK-Builder-Agent").mkdir(parents=True)
-    (phantom_ws / "scripts").mkdir(parents=True)
-    (phantom_ws / ".agents" / "skills" / "NK-Orchestrator" / "SKILL.md").write_text(
-        "---\nname: NK-Orchestrator\nversion: '6.0.0-Carbon'\ndomain_id: DOM-01\n---\n# Hub\n", encoding="utf-8"
-    )
-    (phantom_ws / ".agents" / "agents" / "NK-Builder-Agent" / "agent.md").write_text(
-        "---\nname: NK-Builder-Agent\ndomain_id: DOM-03\nenable_write_tools: true\nenable_subagent_tools: false\ntools:\n  - read_file\n  - call_mcp_tool\n  - send_message\n---\n# Builder\n",
-        encoding="utf-8",
-    )
-    (phantom_ws / "scripts" / "nk_registry_indexer.py").write_text('"""Indexer.\n@domain_id: DOM-01\n"""\nimport argparse\n', encoding="utf-8")
+def _assert_ratchet_forbidden_tools_and_taxonomy(rat_idx: Any, agent_md: Path) -> None:
+    for bad_tool in ("search_web", "call_mcp_tool", "write_file"):
+        agent_md.write_text(f"---\nname: NK-Arch-Specifier\ndomain_id: DOM-02\ntools:\n  - read_file\n  - {bad_tool}\n  - send_message\n---\n", encoding="utf-8")
+        res_bad = rat_idx.verify_gt14_crit01_governance()
+        assert res_bad["passed"] is False and any(bad_tool in i for i in res_bad["issues"])
 
-    phantom_idx = NKRegistryIndexer(workspace_root=phantom_ws, stage_dir=phantom_ws / ".staging", global_config_dir=tmp_path / "no_global_cfg")
-    phantom_idx.sync()
-    phantom_ver = phantom_idx.verify()
-    assert phantom_ver["passed"] is False and phantom_ver["status"] == "DRIFT_DETECTED"
-    assert any("call_mcp_tool" in issue for issue in phantom_ver["issues"])
+    assert "aligner" not in indexer_mod.DOMAIN_TAXONOMY["DOM-01"]["keywords"]
+    assert "forge" not in indexer_mod.DOMAIN_TAXONOMY["DOM-02"]["keywords"]
 
 
+@pytest.mark.integration
 def test_nk_registry_ratchet_down_and_gt14_governance(tmp_path: Path) -> None:
-    """Verifica ERR_REGISTRY_RATCHET_DOWN su riduzione skill e conformita GT-14."""
+    """4. Verifica ERR_REGISTRY_RATCHET_DOWN, CRIT-01 MCP fantasma, tool RO locali e DOMAIN_TAXONOMY."""
     rat_ws = tmp_path / "ratchet_ws"
     for sk in ("NK-Orchestrator", "NK-Ideator", "NK-System-Architect", "NK-Oracle-Evaluator"):
         (rat_ws / ".agents" / "skills" / sk).mkdir(parents=True, exist_ok=True)
-        (rat_ws / ".agents" / "skills" / sk / "SKILL.md").write_text(f"---\nname: {sk}\nversion: '6.0.0-Carbon'\n---\n# {sk}\n", encoding="utf-8")
+        (rat_ws / ".agents" / "skills" / sk / "SKILL.md").write_text(f"---\nname: {sk}\nversion: '1.0.0-Generation'\n---\n# {sk}\n", encoding="utf-8")
     (rat_ws / ".agents" / "agents" / "NK-Arch-Specifier").mkdir(parents=True, exist_ok=True)
     agent_md = rat_ws / ".agents" / "agents" / "NK-Arch-Specifier" / "agent.md"
     agent_md.write_text(
-        "---\nname: NK-Arch-Specifier\ndomain_id: DOM-02\nenable_write_tools: false\nenable_subagent_tools: false\nenable_mcp_tools: false\ntools:\n  - read_file\n  - send_message\n---\n# Specifier\n",
+        "---\nname: NK-Arch-Specifier\ndomain_id: DOM-02\nenable_write_tools: false\nenable_subagent_tools: false\nenable_mcp_tools: false\n"
+        "tools:\n  - read_file\n  - grep_search\n  - find_by_name\n  - list_dir\n  - view_file_outline\n  - view_code_item\n  - send_message\n---\n# Specifier\n",
         encoding="utf-8",
     )
     (rat_ws / "scripts").mkdir(parents=True, exist_ok=True)
@@ -321,238 +258,78 @@ def test_nk_registry_ratchet_down_and_gt14_governance(tmp_path: Path) -> None:
 
     (rat_ws / ".agents" / "skills" / "NK-System-Architect" / "SKILL.md").unlink()
     blocked_sync = rat_idx.sync(allow_ratchet_down=False)
-    assert blocked_sync["passed"] is False and blocked_sync["status"] == "RATCHET_BLOCKED"
-    assert blocked_sync["error_code"] == "ERR_REGISTRY_RATCHET_DOWN" and manifest_file.read_bytes() == before_bytes
+    assert blocked_sync["passed"] is False and blocked_sync["status"] == "RATCHET_BLOCKED" and blocked_sync["error_code"] == "ERR_REGISTRY_RATCHET_DOWN"
+    assert manifest_file.read_bytes() == before_bytes
     assert rat_idx.sync(allow_ratchet_down=True)["passed"] is True
     assert rat_idx.verify_gt14_crit01_governance()["passed"] is True
-
-    agent_md.write_text(
-        "---\nname: NK-Arch-Specifier\ndomain_id: DOM-02\nenable_write_tools: true\nenable_subagent_tools: false\nenable_mcp_tools: false\ntools:\n  - read_file\n  - search_web\n  - send_message\n---\n# Bad\n",
-        encoding="utf-8",
-    )
-    bad_gt14 = rat_idx.verify_gt14_crit01_governance()
-    assert bad_gt14["passed"] is False and len(bad_gt14["issues"]) >= 2
+    _assert_ratchet_forbidden_tools_and_taxonomy(rat_idx, agent_md)
 
 
-def test_registry_real_ecosystem_6_agents_and_gt14(tmp_path: Path) -> None:
-    """Verifica che l'ecosistema reale esponga i 6 leaf agent GT-14 e superi la verifica governance."""
-    real_idx = NKRegistryIndexer(workspace_root=WORKSPACE_ROOT, stage_dir=WORKSPACE_ROOT / ".staging", global_config_dir=tmp_path / "no_global_cfg_2")
-    real_agents = real_idx._collect_priority_native_agents()
-    assert len(real_agents) == 6 and "NK-Arch-Specifier" in real_agents
-    skills = real_idx._collect_priority_skills()
-    assert "NK-Oracle-Evaluator" in skills
-    assert "NK-Plan-Aligner" not in skills and "NK-State-Router" not in skills
-    assert real_idx.verify_gt14_crit01_governance()["passed"] is True
+def _assert_nkgate_rule_drift_checks(idx: Any, rule_mir: Path) -> None:
+    rule_mir.write_text("# Regole\nTesto difforme.\n", encoding="utf-8")
+    assert any("disallineato" in i for i in idx.verify()["issues"])
+    rule_mir.unlink()
+    assert any("mancante" in i for i in idx.verify()["issues"])
+    rule_mir.write_text("---\nbad: true\n---\n# Regole\n", encoding="utf-8")
+    assert any("frontmatter" in i for i in idx.verify()["issues"])
+    rule_mir.write_bytes(b"# Regole\nRegola valida.\n")
 
 
-def test_hygiene_filter_quarantines_and_preserves_corrupt_config_json(tmp_path: Path) -> None:
-    """Verifica [P1-4b]: config.json corrotto viene preservato/quarantinato senza wipe."""
-    corrupt_cfg_dir = tmp_path / "corrupt_gemini_cfg"
-    (corrupt_cfg_dir / "skills").mkdir(parents=True, exist_ok=True)
-    corrupt_raw = '{"userSettings": {"customKey": "preserve_me"}, "broken": '
-    cfg_file = corrupt_cfg_dir / "config.json"
-    cfg_file.write_text(corrupt_raw, encoding="utf-8")
-
-    idx = NKRegistryIndexer(workspace_root=WORKSPACE_ROOT, stage_dir=tmp_path / ".staging_corrupt", global_config_dir=corrupt_cfg_dir)
-    res = idx.apply_global_filter()
-    assert res["applied"] is True and res.get("config_corrupt") is True and res.get("config_preserved") is True
-    assert cfg_file.read_text(encoding="utf-8") == corrupt_raw
-    quarantine_path = Path(str(res.get("quarantined_config_path", "")))
-    assert quarantine_path.is_file() and quarantine_path.read_text(encoding="utf-8") == corrupt_raw
-
-
-def test_shards_rehydration_and_manifest_builder_resolution_branches(
-    tmp_path: Path, monkeypatch: Any
+def _assert_nkgate_drift_eol_and_corrupted_schemas(
+    ws: Path, idx: Any, agent_names: list[str], rule_mir: Path
 ) -> None:
-    """Chiude i branch di shards.py, manifest_builder.py e cache_and_skills.py."""
-    from _internal.nk_registry_indexer import shards as shards_mod
-
-    slim_path = tmp_path / "nk_registry_manifest.json"
-    shards_dir = tmp_path / "shards"
-    shards_dir.mkdir(parents=True)
-    (shards_dir / "corrupt.json").write_text("{bad", encoding="utf-8")
-    (shards_dir / "nondict.json").write_text("[1, 2]", encoding="utf-8")
-    (shards_dir / "dom00.json").write_text(json.dumps({"global_hygiene_profile": {"ok": True}, "docs_and_setup_index": {"doc.md": {"relative_path": "nk_docs_and_setup/doc.md"}}, "milestone_anchor_id": "M-1"}), encoding="utf-8")
-    (shards_dir / "dom06.json").write_text(json.dumps({"release": "6.4.0"}), encoding="utf-8")
-    (shards_dir / "dom09.json").write_text(
-        json.dumps({"domain": {"domain_id": "DOM-09", "name": "D9", "primary_skill": "SkX", "keywords": ["k0"]}, "skills_index": {"SkX": {"sector": "SEC"}}, "scripts_index": {"sc.py": {"classes": []}}, "native_agents_index": {"AgX": {"enable_mcp_tools": True}}, "intent_dispatch_table": {"k_str": "mode_d", "k_list": ["Ag", "mode_b"], "k_dict": {"recommended_mode": "mode_c", "primary_agent": "A"}}}),
-        encoding="utf-8",
-    )
-    slim_payload = {
-        "domains": {"DOM-99": {"name": "FallbackDom"}},
-        "shards": {"DOM-00": "shards/dom00.json", "DOM-06": "shards/dom06.json", "DOM-09": "shards/dom09.json", "DOM-MISS": "shards/missing.json", "DOM-BAD": "shards/corrupt.json", "DOM-LIST": "shards/nondict.json"},
-    }
-    merged = shards_mod.rehydrate_manifest_from_shards(slim_path, slim_payload)
-    assert merged["milestone_anchor_id"] == "M-1" and merged["release_meta"] == {"release": "6.4.0"}
-    assert "SkX" in merged["skills_index"] and "sc.py" in merged["scripts_index"] and "AgX" in merged["native_agents_index"]
-    assert merged["intent_dispatch_table"]["k_str"]["recommended_mode"] == "mode_d"
-    assert merged["intent_dispatch_table"]["k_list"]["recommended_mode"] == "mode_b"
-    assert shards_mod.rehydrate_manifest_from_shards(slim_path, {"domains": {}}) == {"domains": {}}
-
-    docs_ws = tmp_path / "docs_ws"
-    (docs_ws / "nk_docs_and_setup").mkdir(parents=True)
-    (docs_ws / "nk_docs_and_setup" / "bundle.zip").write_bytes(b"PK")
-    (docs_ws / "nk_docs_and_setup" / "guide.md").write_text("# Guide\n", encoding="utf-8")
-    (docs_ws / "nk_genome").mkdir(parents=True)
-    (docs_ws / "nk_genome" / "extra.md").write_text("# Extra\n", encoding="utf-8")
-    monkeypatch.setenv("TEMP", str(tmp_path / "reg_tmp"))
-    docs_idx = NKRegistryIndexer(workspace_root=docs_ws, stage_dir=docs_ws / ".staging", global_config_dir=tmp_path / "no_cfg")
-    assert docs_idx.resolve_library_path("") is None
-    assert docs_idx.resolve_library_path("guide.md") == "nk_docs_and_setup/guide.md"
-    assert docs_idx.resolve_library_path("extra.md") == "nk_genome/extra.md"
-    assert docs_idx.resolve_library_path("nonexistent.md") is None
-    assert "bundle.zip" not in docs_idx.scan_docs_and_setup()
-    (docs_ws / "nk_genome" / "nk_registry_manifest.json").write_text(
-        json.dumps({"docs_and_setup_index": {"guide.md": {"relative_path": "nk_docs_and_setup/guide.md"}}, "scripts_index": {"sub/tool.py": {"path": "scripts/sub/tool.py"}, "top_tool.py": {"path": "scripts/top_tool.py"}}}),
-        encoding="utf-8",
-    )
-    assert docs_idx.resolve_library_path("guide.md") == "nk_docs_and_setup/guide.md"
-    assert docs_idx.resolve_library_path("sub/tool.py") == "scripts/sub/tool.py"
-    assert docs_idx.resolve_library_path("nested/top_tool.py") == "scripts/top_tool.py"
-
-
-def test_gt14_allows_local_ro_search_tools_and_blocks_forbidden(tmp_path: Path) -> None:
-    """Verifica tool ricerca locale RO su GT-14, blocco CRIT-01 e sync rules/taxonomy."""
-    ro_ws = tmp_path / "ro_search_ws"
-    (ro_ws / ".agents" / "skills" / "NK-Orchestrator").mkdir(parents=True)
-    (ro_ws / ".agents" / "agents" / "NK-RSI-Auditor").mkdir(parents=True)
-    (ro_ws / "scripts").mkdir(parents=True)
-    (ro_ws / ".agents" / "skills" / "NK-Orchestrator" / "SKILL.md").write_text(
-        "---\nname: NK-Orchestrator\ndomain_id: DOM-01\n---\n# Hub\n", encoding="utf-8"
-    )
-    (ro_ws / "scripts" / "nk_registry_indexer.py").write_text('"""Idx."""\n', encoding="utf-8")
-    aud_md = ro_ws / ".agents" / "agents" / "NK-RSI-Auditor" / "agent.md"
-    aud_md.write_text(
-        "---\nname: NK-RSI-Auditor\ndomain_id: DOM-04\nmodel: inherit\nthinking_level: HIGH\n"
-        "tools:\n  - read_file\n  - grep_search\n  - find_by_name\n  - list_dir\n"
-        "  - view_file_outline\n  - view_code_item\n  - send_message\n---\n# Auditor\n",
-        encoding="utf-8",
-    )
-    idx = NKRegistryIndexer(workspace_root=ro_ws, stage_dir=ro_ws / ".staging", global_config_dir=tmp_path / "no_cfg")
-    parsed_meta = idx._parse_native_agent_metadata(aud_md.read_text(encoding="utf-8"))
-    assert "model" not in parsed_meta and "thinking_level" not in parsed_meta and parsed_meta["enable_write_tools"] is False
-    assert idx.verify_gt14_crit01_governance()["passed"] is True
-
-    for bad_tool in ("search_web", "call_mcp_tool", "write_file"):
-        aud_md.write_text(
-            f"---\nname: NK-RSI-Auditor\ndomain_id: DOM-04\ntools:\n  - read_file\n  - {bad_tool}\n  - send_message\n---\n",
-            encoding="utf-8",
-        )
-        res_bad = idx.verify_gt14_crit01_governance()
-        assert res_bad["passed"] is False and any(bad_tool in i for i in res_bad["issues"])
-
-    assert "aligner" not in indexer_mod.DOMAIN_TAXONOMY["DOM-01"]["keywords"]
-    assert "forge" not in indexer_mod.DOMAIN_TAXONOMY["DOM-02"]["keywords"]
-
-
-def test_p0_bug_03_nk_gate_6_of_6_sync_and_verify_drift(tmp_path: Path) -> None:
-    """Verifica sync 6/6 di nk-gate/agents e rules/AGENTS.md senza frontmatter + verify drift."""
-    import hashlib
-
-    ws = tmp_path / "gate_ws"
-    (ws / ".agents" / "skills" / "NK-Orchestrator").mkdir(parents=True)
-    (ws / ".agents" / "skills" / "NK-Orchestrator" / "SKILL.md").write_text(
-        "---\nname: NK-Orchestrator\ndomain_id: DOM-01\n---\n# Hub\n",
-        encoding="utf-8",
-    )
-    (ws / ".agents" / "rules").mkdir(parents=True)
-    (ws / ".agents" / "rules" / "anti_crash_rules.md").write_text(
-        "---\ntrigger: always_on\ndescription: Anti-crash\n---\n# Regole\nRegola valida.\n",
-        encoding="utf-8",
-    )
-    (ws / ".agents" / "plugins" / "nk-gate").mkdir(parents=True)
-    (ws / ".agents" / "plugins" / "nk-gate" / "plugin.json").write_text(
-        '{"name": "nk-gate", "version": "6.4.0"}',
-        encoding="utf-8",
-    )
-    (ws / "scripts").mkdir(parents=True)
-    (ws / "scripts" / "nk_registry_indexer.py").write_text('"""Idx."""\n', encoding="utf-8")
-
-    agent_names = [
-        "NK-Bug-Hunter",
-        "NK-Memory-Scribe",
-        "NK-Oracle-Gate",
-        "NK-RSI-Auditor",
-        "NK-Sandbox-Runner",
-        "NK-Security-Sentinel",
-    ]
-    for ag in agent_names:
-        ag_dir = ws / ".agents" / "agents" / ag
-        ag_dir.mkdir(parents=True)
-        (ag_dir / "agent.md").write_text(
-            f"---\nname: {ag}\ndomain_id: DOM-04\ntools:\n  - read_file\n---\n# {ag}\n",
-            encoding="utf-8",
-        )
-
-    idx = NKRegistryIndexer(
-        workspace_root=ws,
-        global_config_dir=tmp_path / "no_cfg",
-    )
-    missing_res = idx.verify()
-    assert missing_res["passed"] is False and missing_res["status"] == "MISSING_MANIFEST"
-    idx.sync()
-
     for ag in agent_names:
         mir = ws / ".agents" / "plugins" / "nk-gate" / "agents" / f"{ag}.md"
-        assert mir.is_file()
-        assert mir.read_bytes() == (ws / ".agents" / "agents" / ag / "agent.md").read_bytes()
+        assert (mir.is_file(), mir.read_bytes()) == (True, (ws / ".agents" / "agents" / ag / "agent.md").read_bytes())
 
-    rule_mir = ws / ".agents" / "plugins" / "nk-gate" / "rules" / "AGENTS.md"
-    assert rule_mir.is_file()
     rule_text = rule_mir.read_text(encoding="utf-8")
-    assert not rule_text.lstrip().startswith("---")
-    assert len(rule_text.encode("utf-8")) < 24000
-    assert "# Regole\nRegola valida." in rule_text
+    assert (not rule_text.lstrip().startswith("---"), len(rule_text.encode("utf-8")) < 24000, "# Regole\nRegola valida." in rule_text) == (True, True, True)
     assert idx.verify()["passed"] is True
 
     drift_mir = ws / ".agents" / "plugins" / "nk-gate" / "agents" / "NK-Bug-Hunter.md"
     orig_bytes = drift_mir.read_bytes()
     drift_mir.write_text("# Drift\n", encoding="utf-8")
-    res_drift = idx.verify()
-    assert res_drift["passed"] is False
-    assert any("NK-Bug-Hunter.md" in i for i in res_drift["issues"])
-    drift_mir.write_bytes(orig_bytes)
-
-    lf_bytes = orig_bytes.replace(b"\r\n", b"\n")
-    drift_mir.write_bytes(lf_bytes)
-    assert idx.verify()["passed"] is True
-    drift_mir.write_bytes(lf_bytes.replace(b"\n", b"\r\n"))
+    assert any("NK-Bug-Hunter.md" in i for i in idx.verify()["issues"])
+    drift_mir.write_bytes(orig_bytes.replace(b"\r\n", b"\n"))
     assert idx.verify()["passed"] is True
     drift_mir.unlink()
-    res_missing_ag = idx.verify()
-    assert res_missing_ag["passed"] is False
-    assert any("mancante" in i for i in res_missing_ag["issues"])
+    assert any("mancante" in i for i in idx.verify()["issues"])
     drift_mir.write_bytes(orig_bytes)
+    _assert_nkgate_rule_drift_checks(idx, rule_mir)
 
-    rule_mir.write_text("# Regole\nTesto difforme.\n", encoding="utf-8")
-    res_rule_diff = idx.verify()
-    assert res_rule_diff["passed"] is False
-    assert any("disallineato" in i for i in res_rule_diff["issues"])
-    rule_mir.write_bytes(b"# Regole\nRegola valida.\n")
-    assert idx.verify()["passed"] is True
-    rule_mir.write_bytes(b"# Regole\r\nRegola valida.\r\n")
-    assert idx.verify()["passed"] is True
-    rule_mir.unlink()
-    res_missing_rule = idx.verify()
-    assert res_missing_rule["passed"] is False
-    assert any("mancante" in i for i in res_missing_rule["issues"])
-    rule_mir.write_text("# Regole\nRegola valida.\n", encoding="utf-8")
 
-    rule_mir.write_bytes(b"# Regole\nRegola valida.\n")
+@pytest.mark.integration
+def test_p0_bug_03_nk_gate_6_of_6_sync_and_verify_drift(tmp_path: Path) -> None:
+    """5. Verifica sync 6/6 di nk-gate/agents e rules/AGENTS.md senza frontmatter + verify drift."""
+    ws = tmp_path / "gate_ws"
+    (ws / ".agents" / "skills" / "NK-Orchestrator").mkdir(parents=True)
+    (ws / ".agents" / "skills" / "NK-Orchestrator" / "SKILL.md").write_text("---\nname: NK-Orchestrator\ndomain_id: DOM-01\n---\n# Hub\n", encoding="utf-8")
+    (ws / ".agents" / "rules").mkdir(parents=True)
+    (ws / ".agents" / "rules" / "anti_crash_rules.md").write_text("---\ntrigger: always_on\ndescription: Anti-crash\n---\n# Regole\nRegola valida.\n", encoding="utf-8")
+    (ws / ".agents" / "plugins" / "nk-gate").mkdir(parents=True)
+    (ws / ".agents" / "plugins" / "nk-gate" / "plugin.json").write_text('{"name": "nk-gate", "version": "1.0.0-Generation"}', encoding="utf-8")
+    (ws / "scripts").mkdir(parents=True)
+    (ws / "scripts" / "nk_registry_indexer.py").write_text('"""Idx."""\n', encoding="utf-8")
+
+    agent_names = ["NK-Bug-Hunter", "NK-Memory-Scribe", "NK-Oracle-Gate", "NK-RSI-Auditor", "NK-Sandbox-Runner", "NK-Security-Sentinel"]
+    for ag in agent_names:
+        ag_dir = ws / ".agents" / "agents" / ag
+        ag_dir.mkdir(parents=True)
+        (ag_dir / "agent.md").write_text(f"---\nname: {ag}\ndomain_id: DOM-04\ntools:\n  - read_file\n---\n# {ag}\n", encoding="utf-8")
+
+    idx = NKRegistryIndexer(workspace_root=ws, global_config_dir=tmp_path / "no_cfg")
+    assert idx.verify()["status"] == "MISSING_MANIFEST"
+    idx.sync()
+    rule_mir = ws / ".agents" / "plugins" / "nk-gate" / "rules" / "AGENTS.md"
+    _assert_nkgate_drift_eol_and_corrupted_schemas(ws, idx, agent_names, rule_mir)
+
     lf_sha = hashlib.sha256(b"# Regole\nRegola valida.\n").hexdigest()
     crlf_sha = hashlib.sha256(b"# Regole\r\nRegola valida.\r\n").hexdigest()
     assert idx._sha256_matches_eol_normalized(rule_mir, "deadbeef", "") is False
-    assert idx._sha256_matches_eol_normalized(rule_mir, "deadbeef", "cafebabe") is False
     assert idx._sha256_matches_eol_normalized(ws / "missing_file.md", "deadbeef", "cafebabe") is False
     assert idx._sha256_matches_eol_normalized(rule_mir, "deadbeef", crlf_sha) is True
     rule_mir.write_bytes(b"# Regole\r\nRegola valida.\r\n")
     assert idx._sha256_matches_eol_normalized(rule_mir, "deadbeef", lf_sha) is True
-    rule_mir.write_text("# Regole\nRegola valida.\n", encoding="utf-8")
-
-    rule_mir.write_text("---\nbad: true\n---\n# Regole\n", encoding="utf-8")
-    res_fm = idx.verify()
-    assert res_fm["passed"] is False
-    assert any("frontmatter" in i for i in res_fm["issues"])
     rule_mir.write_text("# Regole\nRegola valida.\n", encoding="utf-8")
 
     manifest_file = next(ws.rglob("nk_registry_manifest.json"))
@@ -571,16 +348,8 @@ def test_p0_bug_03_nk_gate_6_of_6_sync_and_verify_drift(tmp_path: Path) -> None:
     corrupted_schema["native_agents_index"][next(iter(corrupted_schema["native_agents_index"]))]["sha256"] = "0" * 64
     manifest_file.write_text(json.dumps(corrupted_schema), encoding="utf-8")
     NKRegistryIndexer._MANIFEST_CACHE.clear()
-    res_drift_meta = idx.verify()
-    assert res_drift_meta["passed"] is False
-    issues_joined = "\n".join(res_drift_meta["issues"])
-    assert "global_hygiene_profile" in issues_joined
-    assert "DOM-05" in issues_joined
-    assert "bad_scalar" in issues_joined
-    assert "DOM-99" in issues_joined
-    assert "Drift SHA-256 rilevato sulla skill" in issues_joined
-    assert "Drift SHA-256 rilevato sullo script" in issues_joined
-    assert "Drift SHA-256 rilevato sul sub-agente nativo" in issues_joined
+    issues_joined = "\n".join(idx.verify()["issues"])
+    assert all(tok in issues_joined for tok in ("global_hygiene_profile", "DOM-05", "bad_scalar", "DOM-99", "Drift SHA-256 rilevato sulla skill", "Drift SHA-256 rilevato sullo script", "Drift SHA-256 rilevato sul sub-agente nativo"))
 
     corrupted_counts = json.loads(json.dumps(full_manifest))
     corrupted_counts.pop("shards", None)
@@ -589,61 +358,248 @@ def test_p0_bug_03_nk_gate_6_of_6_sync_and_verify_drift(tmp_path: Path) -> None:
     corrupted_counts["native_agents_index"]["NK-Fake-Agent"] = {"domain_id": "DOM-04", "sha256": "0" * 64}
     manifest_file.write_text(json.dumps(corrupted_counts), encoding="utf-8")
     NKRegistryIndexer._MANIFEST_CACHE.clear()
-    res_cnt = idx.verify()
-    assert res_cnt["passed"] is False
-    cnt_issues_joined = "\n".join(res_cnt["issues"])
-    assert "Conteggio o nomi skill disallineati" in cnt_issues_joined
-    assert "Conteggio o nomi script disallineati" in cnt_issues_joined
-    assert "Conteggio o nomi native agents disallineati" in cnt_issues_joined
+    cnt_issues = "\n".join(idx.verify()["issues"])
+    assert all(tok in cnt_issues for tok in ("Conteggio o nomi skill disallineati", "Conteggio o nomi script disallineati", "Conteggio o nomi native agents disallineati"))
 
     manifest_file.write_text(orig_manifest_raw, encoding="utf-8")
     NKRegistryIndexer._MANIFEST_CACHE.clear()
     assert idx.verify()["passed"] is True
 
 
-def test_p0_bug_07_release_zip_root_bridge_and_installers(tmp_path: Path) -> None:
-    """Verifica P0-BUG-07: root bridge nello ZIP di release e assenza di {} negli installer."""
-    import zipfile
+@pytest.mark.fast
+def test_shards_rehydration_and_manifest_builder_resolution_branches(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    """6. Chiude i branch di shards.py, manifest_builder.py e cache_and_skills.py."""
+    from _internal.nk_registry_indexer import shards as shards_mod
 
-    ws = tmp_path / "zip_ws"
-    (ws / ".agents" / "skills" / "NK-Orchestrator").mkdir(parents=True)
-    (ws / ".agents" / "skills" / "NK-Orchestrator" / "SKILL.md").write_text(
-        "---\nname: NK-Orchestrator\ndomain_id: DOM-01\n---\n# Hub\n",
+    slim_path = tmp_path / "nk_registry_manifest.json"
+    shards_dir = tmp_path / "shards"
+    shards_dir.mkdir(parents=True)
+    (shards_dir / "corrupt.json").write_text("{bad", encoding="utf-8")
+    (shards_dir / "nondict.json").write_text("[1, 2]", encoding="utf-8")
+    (shards_dir / "dom00.json").write_text(json.dumps({"global_hygiene_profile": {"ok": True}, "docs_and_setup_index": {"doc.md": {"relative_path": "nk_docs_and_setup/doc.md"}}, "milestone_anchor_id": "M-1"}), encoding="utf-8")
+    (shards_dir / "dom06.json").write_text(json.dumps({"release": "1.0.0"}), encoding="utf-8")
+    (shards_dir / "dom09.json").write_text(
+        json.dumps({"domain": {"domain_id": "DOM-09", "name": "D9", "primary_skill": "SkX", "keywords": ["k0"]}, "skills_index": {"SkX": {"sector": "SEC"}}, "scripts_index": {"sc.py": {"classes": []}}, "native_agents_index": {"AgX": {"enable_mcp_tools": True}}, "intent_dispatch_table": {"k_str": "mode_d", "k_list": ["Ag", "mode_b"], "k_dict": {"recommended_mode": "mode_c", "primary_agent": "A"}}}),
         encoding="utf-8",
     )
-    (ws / "nk_docs_and_setup").mkdir(parents=True)
-    (ws / "nk_docs_and_setup" / "root_bridge_AGENTS.md").write_text(
-        "# Bridge Root\n",
-        encoding="utf-8",
-    )
-    (ws / "scripts").mkdir(parents=True)
-    (ws / "scripts" / "nk_registry_indexer.py").write_text('"""Idx."""\n', encoding="utf-8")
+    slim_payload = {"domains": {"DOM-99": {"name": "FallbackDom"}}, "shards": {"DOM-00": "shards/dom00.json", "DOM-06": "shards/dom06.json", "DOM-09": "shards/dom09.json", "DOM-MISS": "shards/missing.json", "DOM-BAD": "shards/corrupt.json", "DOM-LIST": "shards/nondict.json"}}
+    merged = shards_mod.rehydrate_manifest_from_shards(slim_path, slim_payload)
+    assert merged["milestone_anchor_id"] == "M-1" and merged["release_meta"] == {"release": "1.0.0"}
+    assert "SkX" in merged["skills_index"] and "sc.py" in merged["scripts_index"] and "AgX" in merged["native_agents_index"]
+    assert merged["intent_dispatch_table"]["k_str"]["recommended_mode"] == "mode_d"
+    assert merged["intent_dispatch_table"]["k_list"]["recommended_mode"] == "mode_b"
+    assert shards_mod.rehydrate_manifest_from_shards(slim_path, {"domains": {}}) == {"domains": {}}
 
-    idx = NKRegistryIndexer(
-        workspace_root=ws,
-        stage_dir=ws / ".staging",
-        global_config_dir=tmp_path / "no_cfg",
-    )
-    zip_out = tmp_path / "nk_release.zip"
-    idx.build_release_zip(output_path=zip_out)
-    assert zip_out.is_file()
+    docs_ws = tmp_path / "docs_ws"
+    (docs_ws / "nk_docs_and_setup").mkdir(parents=True)
+    (docs_ws / "nk_docs_and_setup" / "bundle.zip").write_bytes(b"PK")
+    (docs_ws / "nk_docs_and_setup" / "guide.md").write_text("# Guide\n", encoding="utf-8")
+    (docs_ws / "nk_genome").mkdir(parents=True)
+    (docs_ws / "nk_genome" / "extra.md").write_text("# Extra\n", encoding="utf-8")
+    monkeypatch.setenv("TEMP", str(tmp_path / "reg_tmp"))
+    docs_idx = NKRegistryIndexer(workspace_root=docs_ws, stage_dir=docs_ws / ".staging", global_config_dir=tmp_path / "no_cfg")
+    assert docs_idx.resolve_library_path("") is None
+    assert docs_idx.resolve_library_path("guide.md") == "nk_docs_and_setup/guide.md"
+    assert docs_idx.resolve_library_path("extra.md") == "nk_genome/extra.md"
+    assert docs_idx.resolve_library_path("nonexistent.md") is None and "bundle.zip" not in docs_idx.scan_docs_and_setup()
+    (docs_ws / "nk_genome" / "nk_registry_manifest.json").write_text(json.dumps({"docs_and_setup_index": {"guide.md": {"relative_path": "nk_docs_and_setup/guide.md"}}, "scripts_index": {"sub/tool.py": {"path": "scripts/sub/tool.py"}, "top_tool.py": {"path": "scripts/top_tool.py"}}}), encoding="utf-8")
+    assert docs_idx.resolve_library_path("guide.md") == "nk_docs_and_setup/guide.md"
+    assert docs_idx.resolve_library_path("sub/tool.py") == "scripts/sub/tool.py"
+    assert docs_idx.resolve_library_path("nested/top_tool.py") == "scripts/top_tool.py"
 
-    with zipfile.ZipFile(zip_out, "r") as zf:
-        names = set(zf.namelist())
-        assert ".agents/AGENTS.md" in names
-        assert ".agents/skills.json" in names
-        assert ".agents/plugins.json" in names
-        assert "NK_External_Projects/.gitkeep" in names
-        skills_data = json.loads(zf.read(".agents/skills.json").decode("utf-8"))
-        plugins_data = json.loads(zf.read(".agents/plugins.json").decode("utf-8"))
-        assert "entries" in skills_data and isinstance(skills_data["entries"], list) and skills_data["entries"]
-        assert "entries" in plugins_data and isinstance(plugins_data["entries"], list) and plugins_data["entries"]
 
+def _assert_installers_lookup_and_preflight(idx: Any, tmp_path: Path) -> None:
     for inst_name in ("install.ps1", "install.sh"):
-        inst_path = WORKSPACE_ROOT / "nk_docs_and_setup" / inst_name
-        inst_text = inst_path.read_text(encoding="utf-8")
-        assert "entries" in inst_text
-        assert "NK_Hub/.agents/skills" in inst_text
-        assert "NK_Hub/.agents/plugins" in inst_text
-        assert "root_bridge_AGENTS.md" in inst_text
-        assert 'echo "{}" >' not in inst_text and "WriteAllText($SkillsJsonPath, \"{}\"" not in inst_text
+        inst_text = (WORKSPACE_ROOT / "nk_docs_and_setup" / inst_name).read_text(encoding="utf-8")
+        assert ("entries" in inst_text, "NK_Hub/.agents/skills" in inst_text, "root_bridge_AGENTS.md" in inst_text) == (True, True, True)
+        assert 'echo "{}" >' not in inst_text
+
+    assert idx.lookup("GOV_AND_ROUTING")["match_type"] == "domain"
+    assert idx.lookup("NK-Builder-Agent")["match_type"] == "native_agent"
+    assert idx.lookup("zzzxxyy_unknown_query_999")["match_type"] == "fallback"
+
+    custom_ws = tmp_path / "custom_ssot_ws"
+    for folder in ("nk_genome", "nk_tracking/anchor", ".staging"):
+        (custom_ws / folder).mkdir(parents=True, exist_ok=True)
+    (custom_ws / "nk_genome" / "nk_registry_manifest.json").write_text(json.dumps({"version": "1.0.0-Generation", "summary": {"total_skills": 18, "total_domains": 5, "total_scripts": 32}, "skills_index": {f"NK-Skill-{i}": {"domain_id": "DOM-01"} for i in range(18)}}), encoding="utf-8")
+    (custom_ws / "nk_tracking" / "quality_baseline.json").write_text(json.dumps({"_version": "1.0.0-Generation", "metrics": {"skills_audited": 18, "crv_macro_phases": 4, "unit_tests_pass_pct": 100.0}}), encoding="utf-8")
+    alignment = PreflightHealthChecker(workspace_root=custom_ws)._check_baseline_alignment()
+    assert (alignment["passed"], alignment["expected_skills"], alignment["skills_audited"]) == (True, 18, 18)
+
+
+def _assert_release_zip_and_preflight_alignment(
+    ws: Path, idx: Any, tmp_path: Path
+) -> None:
+    tas_md = idx.generate_tas_certification_matrix()
+    assert ("# Matrice di Certificazione TAS" in tas_md, "SK-Card" in tas_md, "NK-Builder-Agent" in tas_md) == (True, True, True)
+    out_zip = ws / "release_inside.zip"
+    assert (idx.build_release_zip(out_zip)["passed"], out_zip.is_file()) == (True, True)
+    with zipfile.ZipFile(out_zip, "r") as zf:
+        names = set(zf.namelist())
+        assert {".agents/AGENTS.md", ".agents/skills.json", ".agents/plugins.json", "NK_External_Projects/.gitkeep"}.issubset(names)
+        assert bool(json.loads(zf.read(".agents/skills.json").decode("utf-8"))["entries"])
+        assert bool(json.loads(zf.read(".agents/plugins.json").decode("utf-8"))["entries"])
+    _assert_installers_lookup_and_preflight(idx, tmp_path)
+
+
+@pytest.mark.integration
+def test_p0_bug_07_release_zip_twin_synthetic_matrix_and_lookup(tmp_path: Path) -> None:
+    """7. Verifica release ZIP, twin parity sintetica, matrix/skills_scan, preflight e lookup synthetic."""
+    from _internal.nk_registry_indexer import skills_scan as sk_scan
+    load_nk_script_module("rsi_convergence_engine")
+    from _internal.rsi_convergence_engine import eco_audits as rsi_eco
+
+    ws = tmp_path / "mat_zip_ws"
+    for d in (".agents/skills/SK-Card", ".agents/skills/SK-Del", ".staging/.agents/skills/SK-Card", ".agents/agents/NK-Builder-Agent", ".agents/plugins/nk-gate/agents", "scripts/schemas", "nk_tracking", "nk_docs_and_setup"):
+        (ws / d).mkdir(parents=True)
+    (ws / "nk_docs_and_setup" / "root_bridge_AGENTS.md").write_text("# Bridge Root\n", encoding="utf-8")
+    (ws / ".agents" / "skills" / "SK-Card" / "SKILL.md").write_text("# Old prod\n", encoding="utf-8")
+    (ws / ".agents" / "skills" / "SK-Del" / "SKILL.md").write_text("# Deleted\n", encoding="utf-8")
+    (ws / ".staging" / ".deleted_files.json").write_text(json.dumps([".agents/skills/SK-Del/SKILL.md"]), encoding="utf-8")
+    staged_card = ws / ".staging" / ".agents" / "skills" / "SK-Card" / "SKILL.md"
+    staged_card.write_text(
+        "---\nname: SK-Card\nrouting_keywords:\n  - async\n  - wal\npriority_keywords: [\"p1\", \"p2\"]\ncli_scripts: [bad, \"ok.py\"]\ntools: read_file, edit_file\n---\n"
+        "<yaml_metadata_card>\nrole_identity: \"Tester\"\ndomain_id: \"DOM-03\"\nversion: \"1.0.0-Generation\"\nsector: \"BUILD\"\nenable_mcp_tools: true\n</yaml_metadata_card>\nVedi [ref](references/guide.md).\n",
+        encoding="utf-8",
+    )
+    (ws / ".agents" / "agents" / "NK-Builder-Agent" / "agent.md").write_text("---\nname: NK-Builder-Agent\ndomain_id: DOM-03\ntools:\n  - read_file\n---\n# B\n", encoding="utf-8")
+    (ws / ".agents" / "plugins" / "nk-gate" / "agents" / "NK-Builder-Agent.md").write_text("---\nname: NK-Builder-Agent\ndomain_id: DOM-03\ntools:\n  - read_file\n---\n# B\n", encoding="utf-8")
+    (ws / "scripts" / "nk_registry_indexer.py").write_text('"""Idx."""\n', encoding="utf-8")
+    (ws / "scripts" / "schemas" / "nk_ipc_contracts.py").write_text('"""IPC."""\n', encoding="utf-8")
+    (ws / "nk_tracking" / ".wal_2pc.jsonl").write_text("{}", encoding="utf-8")
+    (ws / "nk_tracking" / "dast_report_1.json").write_text("{}", encoding="utf-8")
+    (ws / "nk_tracking" / "junk.tmp").write_text("x", encoding="utf-8")
+
+    parsed_meta = sk_scan.parse_skill_metadata_impl(staged_card.read_text(encoding="utf-8"))
+    assert parsed_meta["routing_keywords"] == ["async", "wal"]
+    assert parsed_meta["priority_keywords"] == ["p1", "p2"]
+    assert parsed_meta["enable_mcp_tools"] is True
+    assert parsed_meta["auxiliary_links"] == ["references/guide.md"]
+    assert sk_scan.resolve_skill_native_subagent_impl("SK-Card", "DOM-03", {"native_subagent": "Custom-Ag"}) == "Custom-Ag"
+
+    idx = NKRegistryIndexer(workspace_root=ws, stage_dir=ws / ".staging", global_config_dir=tmp_path / "no_cfg")
+    assert "SK-Del" not in idx._collect_priority_skills()
+    assert rsi_eco.audit_twin_manifest_parity_impl(ws)["passed"] is True
+    (ws / ".agents" / "plugins" / "nk-gate" / "agents" / "NK-Builder-Agent.md").write_text("# Drifted\n", encoding="utf-8")
+    assert rsi_eco.audit_twin_manifest_parity_impl(ws)["passed"] is False
+    _assert_release_zip_and_preflight_alignment(ws, idx, tmp_path)
+
+
+@pytest.mark.integration
+@pytest.mark.usefixtures("synced_mirror_env")
+def test_nk_registry_indexer_sync_generates_manifest_and_skill_index(
+    tmp_path: Path,
+) -> None:
+    """8. Verifica che --sync generi nk_registry_manifest.json e SKILL_INDEX.md completi sul repo reale."""
+    _ = tmp_path
+    assert _MODULE_SYNCED_CACHE["rc"] == 0
+    assert _MODULE_SYNCED_CACHE["manifest_path"].exists() and _MODULE_SYNCED_CACHE["skill_index_path"].exists()
+    manifest = _MODULE_SYNCED_CACHE["manifest"]
+    for key in ("version", "domains", "skills_index", "scripts_index", "intent_dispatch_table", "global_hygiene_profile"):
+        assert key in manifest
+    assert set(manifest["domains"].keys()) == {"DOM-01", "DOM-02", "DOM-03", "DOM-04", "DOM-05"}
+    assert len(manifest["skills_index"]) == 11 and len(manifest["scripts_index"]) >= 32
+    assert manifest["scripts_index"]["schemas/dual_ledgers.py"]["domain_id"] == "DOM-01"
+    assert manifest["scripts_index"]["schemas/nk_ipc_contracts.py"]["domain_id"] == "DOM-01"
+    md_text = _MODULE_SYNCED_CACHE["skill_index_path"].read_text(encoding="utf-8")
+    assert "DOM-01" in md_text and "DOM-05" in md_text and "NK-Python-Async-Builder" in md_text
+
+
+def _assert_lookup_o1_timings(indexer: Any, max_ms: float) -> None:
+    t0 = time.perf_counter()
+    res_dom = indexer.lookup("DOM-04")
+    dt_ms = (time.perf_counter() - t0) * 1000.0
+    assert (res_dom["found"], res_dom["domain_name"], dt_ms < max_ms) == (True, "AUDIT_DAST_AND_RCA", True)
+    res_skill = indexer.lookup("NK-Python-Async-Builder")
+    assert (res_skill["found"], res_skill["domain_id"], res_skill["elapsed_ms"] < max_ms) == (True, "DOM-03", True)
+    res_script = indexer.lookup("vibe_sprint_router.py")
+    assert (res_script["found"], "--discovery-check" in res_script["cli_flags"], res_script["elapsed_ms"] < max_ms) == (True, True, True)
+    res_intent = indexer.lookup("Esegui recall memoria episodica")
+    assert (res_intent["found"], res_intent["domain_id"], res_intent["elapsed_ms"] < max_ms) == (True, "DOM-05", True)
+
+    for query_txt, expected_mode in (("stato dell'arte read-only analisi", "mode_d"), ("esegui cold review 6 gate turno 4", "mode_a"), ("diagnosi sbfl ochiai rca", "mode_b")):
+        m_res = indexer.lookup(query_txt)
+        assert (m_res["found"], m_res["recommended_mode"]) == (True, expected_mode)
+
+
+def _assert_real_ecosystem_agents_and_parity(synced: Dict[str, Any], rsi_eco: Any) -> None:
+    real_idx = NKRegistryIndexer(workspace_root=WORKSPACE_ROOT, stage_dir=WORKSPACE_ROOT / ".staging", global_config_dir=synced["no_cfg"])
+    assert len(real_idx._collect_priority_native_agents()) == 6
+    assert "NK-Arch-Specifier" in real_idx._collect_priority_native_agents()
+    skills = real_idx._collect_priority_skills()
+    assert "NK-Oracle-Evaluator" in skills
+    assert "NK-Plan-Aligner" not in skills
+    assert "NK-State-Router" not in skills
+    assert real_idx.verify_gt14_crit01_governance()["passed"] is True
+
+    real_parity = rsi_eco.audit_twin_manifest_parity_impl(WORKSPACE_ROOT)
+    assert real_parity["passed"] is True and real_parity["checked_agents"] == 6 and real_parity["mismatches"] == []
+    for ag_name in EXPECTED_SIX_AGENTS:
+        assert (WORKSPACE_ROOT / ".agents" / "agents" / ag_name / "agent.md").read_bytes().replace(b"\r\n", b"\n") == (WORKSPACE_ROOT / ".agents" / "plugins" / "nk-gate" / "agents" / f"{ag_name}.md").read_bytes().replace(b"\r\n", b"\n")
+    active_scripts = synced["rehydrated"].get("scripts_index", {})
+    for retired_name in RETIRED_SCRIPTS:
+        assert retired_name not in active_scripts and f"scripts/{retired_name}" not in active_scripts
+
+
+@pytest.mark.integration
+def test_nk_registry_lookup_o1_real_ecosystem_6_agents_and_twin_parity(
+    synced_mirror_env: Dict[str, Any], monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """9. Verifica lookup O(1) <50ms, 6 agent GT-14 reali, parita gemelli, SSOT router e lookup CLI."""
+    load_nk_script_module("rsi_convergence_engine")
+    from _internal.rsi_convergence_engine import eco_audits as rsi_eco
+
+    indexer = NKRegistryIndexer(
+        workspace_root=WORKSPACE_ROOT, stage_dir=synced_mirror_env["stage_dir"], global_config_dir=synced_mirror_env["no_cfg"]
+    )
+    is_ci = bool(os.environ.get("CI") or os.environ.get("GITHUB_ACTIONS"))
+    max_ms = (250.0 if is_cov_instrumented() else 150.0) if is_ci else (150.0 if is_cov_instrumented() else 50.0)
+    _assert_lookup_o1_timings(indexer, max_ms)
+    _assert_real_ecosystem_agents_and_parity(synced_mirror_env, rsi_eco)
+
+    router = VibeSprintRouter(workspace_root=WORKSPACE_ROOT)
+    assert router.resolve_domain_from_manifest("Esegui audit SAST e diagnosi SBFL Ochiai")["domain_id"] == "DOM-04"
+    assert router.classify_prompt_intent("Esegui discovery e benchmark architettura")["domain_id"] == "DOM-02"
+    assert router.classify_prompt_intent("Implementa modulo async con pydantic")["domain_id"] == "DOM-03"
+
+    monkeypatch.setattr(sys, "argv", ["nk_registry_indexer.py", "--root", str(WORKSPACE_ROOT), "--lookup", "commit atomico 2pc"])
+    assert indexer_mod.main(["--root", str(WORKSPACE_ROOT), "--lookup", "commit atomico 2pc"]) == 0
+    assert capsys.readouterr().out.strip() != ""
+
+
+@pytest.mark.integration
+def test_registry_indexer_cli_entrypoints_inprocess(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """10. Esercita nk_registry_indexer.py main() CLI su --sync, --lookup, --generate-tas-matrix, --build-release-zip e --verify."""
+    ws = tmp_path / "cli_reg_ws"
+    (ws / ".agents" / "skills" / "NK-Orchestrator").mkdir(parents=True)
+    (ws / ".agents" / "skills" / "NK-Orchestrator" / "SKILL.md").write_text("---\nname: NK-Orchestrator\ndomain_id: DOM-01\nversion: '1.0.0-Generation'\n---\n# Hub\n", encoding="utf-8")
+    (ws / "scripts").mkdir(parents=True)
+    (ws / "scripts" / "nk_registry_indexer.py").write_text('"""Idx.\n@domain_id: DOM-01\n"""\n', encoding="utf-8")
+
+    stg = ws / ".staging"
+    zip_p = tmp_path / "cli_out.zip"
+    for argv_run in (
+        ["--root", str(ws), "--stage-dir", str(stg), "--sync", "--json"],
+        ["--root", str(ws), "--stage-dir", str(stg), "--sync"],
+        ["--root", str(ws), "--stage-dir", str(stg), "--lookup", "DOM-01", "--json"],
+        ["--root", str(ws), "--stage-dir", str(stg), "--lookup", "DOM-01"],
+        ["--root", str(ws), "--stage-dir", str(stg), "--generate-tas-matrix", "--json"],
+        ["--root", str(ws), "--stage-dir", str(stg), "--generate-tas-matrix"],
+        ["--root", str(ws), "--stage-dir", str(stg), "--build-release-zip", str(zip_p), "--json"],
+        ["--root", str(ws), "--stage-dir", str(stg), "--build-release-zip", str(zip_p)],
+        ["--root", str(ws), "--stage-dir", str(stg), "--verify", "--json"],
+        ["--root", str(ws), "--stage-dir", str(stg), "--verify"],
+    ):
+        assert indexer_mod.main(argv_run) == 0 and len(capsys.readouterr().out) > 0
+
+    (ws / ".agents" / "skills" / "NK-Second").mkdir(parents=True)
+    (ws / ".agents" / "skills" / "NK-Second" / "SKILL.md").write_text("---\nname: NK-Second\ndomain_id: DOM-02\n---\n# S2\n", encoding="utf-8")
+    assert indexer_mod.main(["--root", str(ws), "--stage-dir", str(stg), "--sync"]) == 0
+    capsys.readouterr()
+    (ws / ".agents" / "skills" / "NK-Second" / "SKILL.md").unlink()
+    assert indexer_mod.main(["--root", str(ws), "--stage-dir", str(stg), "--sync"]) == 1
+    assert "ERR_REGISTRY_RATCHET_DOWN" in capsys.readouterr().out

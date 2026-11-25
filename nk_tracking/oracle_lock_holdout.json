@@ -1,0 +1,8 @@
+{
+  "target": "G:/Il mio Drive/Antigravity/NK_Hub/nk_tracking/oracle_holdout",
+  "files": {
+    "tas_behavioral_v2.json": "602b66236fa85d589340efc5784addb1e715c5b65d1911072d4a56334ce911e4",
+    "tasks_tas_v2.json": "740e5327ea243c74972195490b319b720f6c3be1ed71e272da55b4c89ef4223a"
+  },
+  "combined_sha256": "8518c37d8077f6b7c5fa696bbe84ef0c3f911ae109582a97bf3bf620d3a8c6be"
+}

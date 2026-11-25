@@ -12,8 +12,48 @@ from typing import Any, Dict, Optional
 from . import constants as _consts
 
 
+def _attach_handoff_verify_check(
+    self_obj: Any,
+    report: Dict[str, Any],
+    handoff_file: Optional[Path] = None,
+) -> None:
+    """Esegue pigramente verify_handoff_envelope_live e registra l'esito nel report."""
+    from .handoff_verify import verify_handoff_envelope_live
+
+    hub_root = getattr(
+        self_obj,
+        "hub_root",
+        Path(_consts._get_facade_attr("HUB_ROOT", _consts.HUB_ROOT)).resolve(),
+    )
+    project_root = getattr(self_obj, "project_root", self_obj.workspace_root)
+    bound_tp = self_obj._resolve_bound_transcript_path()
+    receiver_cid = str(getattr(self_obj, "conversation_id", "") or "").strip() or None
+    hv_res = verify_handoff_envelope_live(
+        hub_root=Path(hub_root),
+        project_root=Path(project_root),
+        prompt_text=self_obj.explicit_prompt,
+        handoff_file=handoff_file,
+        transcript_path=bound_tp,
+        receiver_cid=receiver_cid,
+    )
+    report["checks"]["handoff_verify"] = hv_res
+    report["handoff_verify"] = hv_res
+    if not hv_res.get("passed", True):
+        report["status"] = "FAIL"
+        report["issues"].append(
+            f"Handoff verify failed ({hv_res.get('status')}): {hv_res.get('reason', 'INVALID')}"
+        )
+    elif hv_res.get("status") == "HANDOFF_DRIFT_DETECTED":
+        drifts = ", ".join(hv_res.get("drift_reasons") or ["DRIFT"])
+        report["issues"].append(f"Handoff live drift detected: {drifts}")
+
+
 def _run_bootstrap_impl(
-    self_obj: Any, fast_stat: bool = True, prompt: Optional[str] = None
+    self_obj: Any,
+    fast_stat: bool = True,
+    prompt: Optional[str] = None,
+    handoff_verify: bool = False,
+    handoff_file: Optional[Path] = None,
 ) -> Dict[str, Any]:
     """Esegue la verifica di avvio controllando prima Fast-Stat e preservando immutabilita cache."""
     start_time = time.perf_counter()
@@ -86,24 +126,15 @@ def _run_bootstrap_impl(
             )
             if context_check.get("warning"):
                 report["issues"].append(context_check["warning"])
+            if handoff_verify:
+                _attach_handoff_verify_check(self_obj, report, handoff_file=handoff_file)
             duration_ms = (time.perf_counter() - start_time) * 1000
             report["duration_ms"] = round(duration_ms, 2)
             report["execution_time_ms"] = round(duration_ms, 2)
-            prev_t_size = (
-                int(cached_state.get("last_transcript_size", 0))
-                if cached_state
-                else 0
-            )
-            prev_t_steps = (
-                int(cached_state.get("last_step_count", 0))
-                if cached_state
-                else 0
-            )
+            prev_t_size = int(cached_state.get("last_transcript_size", 0)) if cached_state else 0
+            prev_t_steps = int(cached_state.get("last_step_count", 0)) if cached_state else 0
             prev_prompt = (
-                cached_state.get(
-                    "latest_user_prompt",
-                    cached_state.get("cached_latest_user_prompt"),
-                )
+                cached_state.get("latest_user_prompt", cached_state.get("cached_latest_user_prompt"))
                 if cached_state
                 else None
             )
@@ -150,9 +181,7 @@ def _run_bootstrap_impl(
     try:
         with os.scandir(self_obj.repo_root) as it:
             for entry in it:
-                if entry.is_file(follow_symlinks=False) and entry.name.endswith(
-                    (".tmp", ".bak")
-                ):
+                if entry.is_file(follow_symlinks=False) and entry.name.endswith((".tmp", ".bak")):
                     try:
                         if (now_orphan_ts - entry.stat().st_mtime) > 60.0:
                             Path(entry.path).unlink(missing_ok=True)
@@ -178,6 +207,8 @@ def _run_bootstrap_impl(
     )
     if context_check.get("warning"):
         report["issues"].append(context_check["warning"])
+    if handoff_verify:
+        _attach_handoff_verify_check(self_obj, report, handoff_file=handoff_file)
 
     duration_ms = (time.perf_counter() - start_time) * 1000
     report["duration_ms"] = round(duration_ms, 2)

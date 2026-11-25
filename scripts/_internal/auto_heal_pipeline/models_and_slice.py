@@ -4,14 +4,21 @@
 from __future__ import annotations
 
 import ast
+import re
 import sys
 import threading
-import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
-from pydantic import BaseModel, ConfigDict, Field
-
+from _internal.auto_heal_pipeline.schemas import (
+    MAX_HEALING_CYCLES,
+    AutoHealSessionReport,
+    CodeSlice,
+    DiagnoseSliceReport,
+    DSPyTelemetryRecord,
+    HealingCycleLog,
+    HealingResult,
+)
 from _internal.nk_common.facade_boot import resolve_facade_attr
 
 _INTERNAL_PKG_DIR = Path(__file__).resolve().parent
@@ -25,7 +32,6 @@ _root_dir = (
 _FACADE_MOD_NAMES: Tuple[str, ...] = ("auto_heal_pipeline", "scripts.auto_heal_pipeline")
 _LAZY_LOAD_LOCK = threading.Lock()
 _UNSET: Any = type("_UnsetSentinel", (), {})
-MAX_HEALING_CYCLES: int = 3
 
 OchiaiBridgeLocation: Any = _UNSET
 SBFLPytestBridge: Any = _UNSET
@@ -35,6 +41,10 @@ RSIIterationRecord: Any = _UNSET
 compute_delta: Any = _UNSET
 compute_fitness: Any = _UNSET
 ASTGuardValidator: Any = _UNSET
+
+_TIMEOUT_MARKER_RE = re.compile(
+    r"\btimeout\s*(?:error|exceeded|reached)\b", re.IGNORECASE
+)
 
 
 def _iter_facades() -> List[Any]:
@@ -181,71 +191,97 @@ def _ensure_ast_guard_loaded() -> None:
         _sync_facade_attr("ASTGuardValidator", guard_cls)
 
 
-class CodeSlice(BaseModel):
-    """Frammento minimale di codice isolato intorno alla riga del guasto."""
-
-    model_config = ConfigDict(strict=True, extra="forbid")
-    start_line: int
-    end_line: int
-    target_line: int
-    content: str
-    function_name: Optional[str] = None
-
-
-class HealingCycleLog(BaseModel):
-    """Log strutturato di un singolo ciclo di auto-riparazione."""
-
-    model_config = ConfigDict(strict=True, extra="forbid")
-    cycle_index: int
-    sbfl_payload: str
-    fault_slice: str
-    repair_action: str
-    repair_success: bool
-    duration_ms: float
-    error_details: Optional[str] = None
-
-
-class HealingResult(BaseModel):
-    """Risultato finale dell'esecuzione con auto-riparazione."""
-
-    model_config = ConfigDict(strict=True, extra="forbid")
-    success: bool
-    cycles_used: int
-    max_cycles: int = MAX_HEALING_CYCLES
-    history: List[HealingCycleLog] = Field(default_factory=list)
-    output: Optional[Any] = None
-    final_error: Optional[str] = None
+def _expand_contiguous_window(
+    raw_lines: List[str], center_idx: int, budget: int, initial_tokens: int
+) -> Tuple[int, int]:
+    """Espande una finestra contigua attorno a center_idx senza mai superare budget."""
+    left = center_idx
+    right = center_idx
+    used_tokens = initial_tokens
+    left_open = left > 0
+    right_open = right + 1 < len(raw_lines)
+    while left_open or right_open:
+        grew = False
+        if left_open and left > 0:
+            cand_l = len(raw_lines[left - 1].split())
+            if used_tokens + cand_l <= budget:
+                left -= 1
+                used_tokens += cand_l
+                grew = True
+                left_open = left > 0
+            else:
+                left_open = False
+        if right_open and right + 1 < len(raw_lines):
+            cand_r = len(raw_lines[right + 1].split())
+            if used_tokens + cand_r <= budget:
+                right += 1
+                used_tokens += cand_r
+                grew = True
+                right_open = right + 1 < len(raw_lines)
+            else:
+                right_open = False
+        if not grew:
+            break
+    return left, right
 
 
-class DSPyTelemetryRecord(BaseModel):
-    """Record telemetrico per la distillazione degli episodi di riparazione."""
+def trim_code_slice_tokens(
+    code_slice: CodeSlice, max_tokens: int = 80
+) -> Tuple[CodeSlice, int]:
+    """Limita il frammento AST a max_tokens espandendosi in modo contiguo dalla riga guasta."""
+    budget = max(1, int(max_tokens))
+    raw_lines = code_slice.content.splitlines() if code_slice.content else []
+    if not raw_lines:
+        return code_slice, 0
 
-    model_config = ConfigDict(strict=True, extra="forbid")
-    run_id: str
-    timestamp: float = Field(default_factory=time.time)
-    task_name: str
-    cycles_total: int
-    final_status: str
-    cycles_telemetry: List[Dict[str, Any]]
+    center_idx = max(0, min(len(raw_lines) - 1, code_slice.target_line - code_slice.start_line))
+    center_words = raw_lines[center_idx].split()
+    if len(center_words) > budget:
+        truncated = " ".join(center_words[:budget])
+        trimmed = CodeSlice(
+            start_line=code_slice.target_line,
+            end_line=code_slice.target_line,
+            target_line=code_slice.target_line,
+            content=truncated,
+            function_name=code_slice.function_name,
+        )
+        return trimmed, len(truncated.split())
+
+    left, right = _expand_contiguous_window(
+        raw_lines, center_idx, budget, len(center_words)
+    )
+    kept_lines = raw_lines[left : right + 1]
+    new_start = code_slice.start_line + left
+    new_end = code_slice.start_line + right
+    trimmed_slice = CodeSlice(
+        start_line=new_start,
+        end_line=new_end,
+        target_line=code_slice.target_line,
+        content="\n".join(kept_lines),
+        function_name=code_slice.function_name,
+    )
+    return trimmed_slice, sum(len(ln.split()) for ln in kept_lines)
 
 
-class AutoHealSessionReport(BaseModel):
-    """Rapporto strutturato di una sessione di auto-riparazione con metriche RSI."""
-
-    model_config = ConfigDict(strict=True, extra="forbid")
-    success: bool
-    cycles_used: int
-    max_cycles: int
-    initial_failed: int
-    final_failed: int
-    fault_location: Optional[str] = None
-    error_type: Optional[str] = None
-    ochiai_score: Optional[float] = None
-    patch_note_line: Optional[str] = None
-    rolled_back: bool = False
-    rsi_delta: int = 0
-    rsi_fitness_q: float = 100.0
-    message: str
+def _find_innermost_function(
+    source_code: str, target_line: int
+) -> Optional[Tuple[str, int, int]]:
+    """Individua la funzione piu interna contenente target_line nell'AST."""
+    try:
+        tree = ast.parse(source_code)
+    except Exception:
+        return None
+    candidates: List[Tuple[int, int, str, int, int]] = []
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            start = getattr(node, "lineno", None)
+            end = getattr(node, "end_lineno", None) or start
+            if start is not None and end is not None and start <= target_line <= end:
+                candidates.append((end - start, -start, node.name, start, end))
+    if not candidates:
+        return None
+    best = min(candidates)
+    return best[2], best[3], best[4]
 
 
 class KarpathySlicer:
@@ -263,19 +299,12 @@ class KarpathySlicer:
         start_line = max(1, clamped_target - window)
         end_line = min(total_lines, clamped_target + window)
 
-        try:
-            tree = ast.parse(source_code)
-            for node in ast.walk(tree):
-                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                    if hasattr(node, "lineno") and hasattr(node, "end_lineno"):
-                        if node.lineno <= clamped_target <= (node.end_lineno or clamped_target):
-                            fn_name = node.name
-                            if ((node.end_lineno or clamped_target) - node.lineno) <= 30:
-                                start_line = max(node.lineno, clamped_target - window)
-                                end_line = min(node.end_lineno or clamped_target, clamped_target + window)
-                            break
-        except Exception:
-            pass
+        found = _find_innermost_function(source_code, clamped_target)
+        if found is not None:
+            fn_name, fn_start, fn_end = found
+            if (fn_end - fn_start) <= 30:
+                start_line = max(fn_start, clamped_target - window)
+                end_line = min(fn_end, clamped_target + window)
 
         sliced_lines = lines[start_line - 1 : end_line]
         formatted = "\n".join(f"{i + start_line:4d} | {line}" for i, line in enumerate(sliced_lines))
@@ -308,10 +337,24 @@ class DSPyTelemetryHook:
             f.write(record.model_dump_json() + "\n")
 
 
+def _is_timeout_output(text: str) -> bool:
+    """Riconosce marcatori espliciti di timeout evitando falsi positivi sui nomi test."""
+    if not text:
+        return False
+    low = text.lower()
+    return (
+        "TimeoutExpired" in text
+        or "TIMEOUT_EXPIRED" in text
+        or "timed out" in low
+        or "execution timeout" in low
+        or bool(_TIMEOUT_MARKER_RE.search(text))
+    )
+
+
 def classify_failure(output_text: str, stderr_text: str = "", exit_code: int = 1) -> str:
     """Classifica il fallimento dando priorita a TimeoutExpired prima di AssertionError."""
     combined = f"{output_text or ''}\n{stderr_text or ''}"
-    if "TimeoutExpired" in combined or "timeout" in combined.lower():
+    if _is_timeout_output(combined):
         return "TIMEOUT_ERROR"
     if "SyntaxError" in combined or "IndentationError" in combined:
         return "SYNTAX_ERROR"

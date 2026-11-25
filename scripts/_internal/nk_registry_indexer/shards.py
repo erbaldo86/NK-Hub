@@ -35,8 +35,6 @@ def _compact_skill_entry(
         "tools": list(sk_meta.get("tools", [])),
         "sha256": sk_meta.get("sha256", ""),
     }
-    if compact_mode == 0:
-        out["domain_id"] = sk_meta.get("domain_id", "DOM-02")
     sector = sk_meta.get("sector", "")
     if sector and (compact_mode == 0 or sector != dom_name):
         out["sector"] = sector
@@ -48,12 +46,18 @@ def _compact_skill_entry(
     if compact_mode == 0 or src_layer != "production":
         out["source_layer"] = src_layer
     if compact_mode == 0:
-        out["auxiliary_links"] = list(sk_meta.get("auxiliary_links", []))
-        out["loc"] = int(sk_meta.get("loc", 0))
-        out["path"] = sk_meta.get("path", "")
-        if sk_meta.get("description"):
-            out["description"] = _trim_text(sk_meta.get("description"), 44)
+        _append_full_skill_fields(out, sk_meta)
     return out
+
+
+def _append_full_skill_fields(out: Dict[str, Any], sk_meta: Dict[str, Any]) -> None:
+    """Aggiunge i campi descrittivi non compattati nella modalita 0 della skill."""
+    out["domain_id"] = sk_meta.get("domain_id", "DOM-02")
+    out["auxiliary_links"] = list(sk_meta.get("auxiliary_links", []))
+    out["loc"] = int(sk_meta.get("loc", 0))
+    out["path"] = sk_meta.get("path", "")
+    if sk_meta.get("description"):
+        out["description"] = _trim_text(sk_meta.get("description"), 44)
 
 
 def _compact_script_entry(
@@ -62,21 +66,18 @@ def _compact_script_entry(
     """Compatta una voce script mantenendo chiavi funzionali AST e SHA-256."""
     classes = list(sc_meta.get("classes", []))
     cli_flags = list(sc_meta.get("cli_flags", []))
-    out: Dict[str, Any] = {
-        "sha256": sc_meta.get("sha256", ""),
-    }
-    if compact_mode == 0:
-        out["domain_id"] = sc_meta.get("domain_id", "DOM-03")
+    out: Dict[str, Any] = {"sha256": sc_meta.get("sha256", "")}
     if compact_mode < 2 or cli_flags:
         out["cli_flags"] = cli_flags if compact_mode < 3 else cli_flags[:6]
-    if compact_mode < 2 or (compact_mode == 2 and classes):
-        out["classes"] = classes[:2] if compact_mode >= 2 else classes
-    elif classes and compact_mode >= 3:
+    if compact_mode < 2:
+        out["classes"] = classes
+    elif classes:
         out["classes"] = classes[:2]
     src_layer = sc_meta.get("source_layer", "production")
     if compact_mode == 0 or src_layer != "production":
         out["source_layer"] = src_layer
     if compact_mode == 0:
+        out["domain_id"] = sc_meta.get("domain_id", "DOM-03")
         out["loc"] = int(sc_meta.get("loc", 0))
         if sc_meta.get("description"):
             out["description"] = _trim_text(sc_meta.get("description"), 36)
@@ -127,15 +128,49 @@ def _pack_intents_grouped(dom_intents: Dict[str, Any], dom_primary: str) -> Dict
     }
 
 
-def _collapse_emergency_intents(dom_intents: Dict[str, Any], dom_primary: str) -> Dict[str, Any]:
-    """Collasso d'emergenza (mode 3) per budget estremi sotto SHARD_MAX_BYTES."""
-    out: Dict[str, Any] = {}
-    for kw, val in dom_intents.items():
-        if isinstance(val, (list, tuple)) and len(val) >= 2 and str(val[0]) == dom_primary:
-            out[kw] = val[1]
-        else:
-            out[kw] = val
-    return out
+def _build_domain_shard_payload(
+    dom_id: str,
+    dom_meta: Dict[str, Any],
+    dom_skills: Dict[str, Dict[str, Any]],
+    dom_scripts: Dict[str, Dict[str, Any]],
+    dom_agents: Dict[str, Dict[str, Any]],
+    dom_intents: Dict[str, Any],
+    mode: int,
+) -> Dict[str, Any]:
+    """Costruisce il dizionario dello shard di dominio al livello di compattazione mode."""
+    dom_name = str(dom_meta.get("name", ""))
+    dom_primary = str(dom_meta.get("primary_skill", ""))
+    dom_obj = dict(dom_meta)
+    if mode >= 1:
+        dom_obj.pop("title", None)
+        dom_obj.pop("description", None)
+    if mode >= 2:
+        dom_obj["keywords"] = list(dom_obj.get("keywords", []))[:4]
+    if mode >= 3:
+        dom_obj["keywords"] = list(dom_obj.get("keywords", []))[:2]
+
+    intents_payload = (
+        _pack_intents_grouped(dom_intents, dom_primary)
+        if mode >= 1
+        else dict(dom_intents)
+    )
+    return {
+        "domain_id": dom_id,
+        "domain": dom_obj,
+        "skills_index": {
+            k: _compact_skill_entry(v, dom_name=dom_name, compact_mode=mode)
+            for k, v in dom_skills.items()
+        },
+        "scripts_index": {
+            k: _compact_script_entry(v, compact_mode=mode)
+            for k, v in dom_scripts.items()
+        },
+        "native_agents_index": {
+            k: _compact_agent_entry(v, compact_mode=mode)
+            for k, v in dom_agents.items()
+        },
+        "intent_dispatch_table": intents_payload,
+    }
 
 
 def _serialize_domain_shard_with_cap(
@@ -148,43 +183,17 @@ def _serialize_domain_shard_with_cap(
     max_bytes: int = SHARD_MAX_BYTES,
 ) -> str:
     """Serializza lo shard DOM-01..DOM-05 garantendo dimensione compatta entro il budget."""
-    dom_name = str(dom_meta.get("name", ""))
-    dom_primary = str(dom_meta.get("primary_skill", ""))
     last_raw = ""
     for mode in (0, 1, 2, 3):
-        dom_obj = dict(dom_meta)
-        if mode >= 1:
-            dom_obj.pop("title", None)
-            dom_obj.pop("description", None)
-        if mode >= 2:
-            dom_obj["keywords"] = list(dom_obj.get("keywords", []))[:4]
-        if mode >= 3:
-            dom_obj["keywords"] = list(dom_obj.get("keywords", []))[:2]
-
-        if mode in (1, 2):
-            intents_payload: Dict[str, Any] = _pack_intents_grouped(dom_intents, dom_primary)
-        elif mode >= 3:
-            intents_payload = _collapse_emergency_intents(dom_intents, dom_primary)
-        else:
-            intents_payload = dict(dom_intents)
-
-        payload = {
-            "domain_id": dom_id,
-            "domain": dom_obj,
-            "skills_index": {
-                k: _compact_skill_entry(v, dom_name=dom_name, compact_mode=mode)
-                for k, v in dom_skills.items()
-            },
-            "scripts_index": {
-                k: _compact_script_entry(v, compact_mode=mode)
-                for k, v in dom_scripts.items()
-            },
-            "native_agents_index": {
-                k: _compact_agent_entry(v, compact_mode=mode)
-                for k, v in dom_agents.items()
-            },
-            "intent_dispatch_table": intents_payload,
-        }
+        payload = _build_domain_shard_payload(
+            dom_id=dom_id,
+            dom_meta=dom_meta,
+            dom_skills=dom_skills,
+            dom_scripts=dom_scripts,
+            dom_agents=dom_agents,
+            dom_intents=dom_intents,
+            mode=mode,
+        )
         last_raw = _compact_json(payload)
         if len(last_raw.encode("utf-8")) <= max_bytes:
             return last_raw + "\n"
@@ -208,14 +217,8 @@ def _collect_test_suite_names(indexer: Any) -> List[str]:
     return sorted(names)
 
 
-def build_shards_and_slim_manifest(
-    indexer: Any, full_manifest: Dict[str, Any]
-) -> Tuple[Dict[str, Any], Dict[str, str]]:
-    """Costruisce il manifesto leggero (<= 3.200 B) e i 7 shard DOM-00..DOM-06 (<= 4.800 B)."""
-    shards_map = {f"DOM-0{i}": f"shards/DOM-0{i}.json" for i in range(7)}
-    shards_content: Dict[str, str] = {}
-
-    native_agents = full_manifest.get("native_agents_index", {})
+def _build_dom00_shard(full_manifest: Dict[str, Any]) -> str:
+    """Serializza lo shard DOM-00 (Root Bridge, Igiene e Documenti)."""
     docs_raw = full_manifest.get("docs_and_setup_index", {})
     compact_docs = {
         k: {
@@ -246,36 +249,11 @@ def build_shards_and_slim_manifest(
             for k, v in compact_docs.items()
         }
         dom00_raw = _compact_json(dom00_payload)
-    shards_content["DOM-00.json"] = dom00_raw + "\n"
+    return dom00_raw + "\n"
 
-    all_skills = full_manifest.get("skills_index", {})
-    all_scripts = full_manifest.get("scripts_index", {})
-    all_intents = full_manifest.get("intent_dispatch_table", {})
 
-    for dom_id, dom_meta in sorted(full_manifest.get("domains", {}).items()):
-        dom_skills = {
-            k: v for k, v in all_skills.items() if v.get("domain_id") == dom_id
-        }
-        dom_scripts = {
-            k: v for k, v in all_scripts.items() if v.get("domain_id") == dom_id
-        }
-        dom_agents = {
-            k: v for k, v in native_agents.items() if v.get("domain_id") == dom_id
-        }
-        dom_intents = {
-            kw: [entry.get("primary_agent", ""), entry.get("recommended_mode", "mode_c")]
-            for kw, entry in all_intents.items()
-            if entry.get("domain_id") == dom_id
-        }
-        shards_content[f"{dom_id}.json"] = _serialize_domain_shard_with_cap(
-            dom_id=dom_id,
-            dom_meta=dom_meta,
-            dom_skills=dom_skills,
-            dom_scripts=dom_scripts,
-            dom_agents=dom_agents,
-            dom_intents=dom_intents,
-        )
-
+def _build_dom06_shard(indexer: Any, full_manifest: Dict[str, Any]) -> str:
+    """Serializza lo shard DOM-06 (Suite Test, Lock e Artefatti CI/Release)."""
     dom06_payload: Dict[str, Any] = {
         "domain_id": "DOM-06",
         "name": "TESTS_LOCK_CI_RELEASE",
@@ -287,14 +265,30 @@ def build_shards_and_slim_manifest(
         "artifacts": {
             "quality_baseline": "nk_tracking/quality_baseline.json",
             "oracle_lock": "nk_tracking/oracle_lock.json",
+            "oracle_lock_holdout": "nk_tracking/oracle_lock_holdout.json",
+            "governance_lock": "nk_tracking/governance_lock.json",
+            "tensor_rsi_lock": "nk_tracking/tensor_rsi_lock.json",
             "setup": "pytest.ini",
             "ci_workflow": ".github/workflows/ci.yml",
             "skill_golden_eval_set": "tests/evals/skill_golden_eval_set.json",
-            "benchmark_tasks": "nk_tracking/benchmark_suite/tasks_v1.json",
+            "benchmark_tasks": "nk_tracking/oracle_holdout/tasks_tas_v2.json",
         },
     }
-    shards_content["DOM-06.json"] = _compact_json(dom06_payload) + "\n"
+    return _compact_json(dom06_payload) + "\n"
 
+
+def _filter_by_domain(items: Dict[str, Dict[str, Any]], dom_id: str) -> Dict[str, Dict[str, Any]]:
+    """Filtra una mappa di entita appartenenti al dominio dom_id."""
+    return {k: v for k, v in items.items() if v.get("domain_id") == dom_id}
+
+
+def _build_slim_manifest(
+    full_manifest: Dict[str, Any],
+    shards_map: Dict[str, str],
+    all_skills: Dict[str, Any],
+    all_scripts: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Costruisce il dizionario slim_manifest sotto MANIFEST_MAX_BYTES."""
     hygiene = full_manifest.get("global_hygiene_profile", {})
     summary_raw = full_manifest.get("summary", {})
     slim_manifest: Dict[str, Any] = {
@@ -327,6 +321,38 @@ def build_shards_and_slim_manifest(
     if len(_compact_json(slim_manifest).encode("utf-8")) > MANIFEST_MAX_BYTES:
         for d_info in slim_manifest["domains"].values():
             d_info.pop("shard", None)
+    return slim_manifest
+
+
+def build_shards_and_slim_manifest(
+    indexer: Any, full_manifest: Dict[str, Any]
+) -> Tuple[Dict[str, Any], Dict[str, str]]:
+    """Costruisce il manifesto leggero (<= 3.200 B) e i 7 shard DOM-00..DOM-06 (<= 4.800 B)."""
+    shards_map = {f"DOM-0{i}": f"shards/DOM-0{i}.json" for i in range(7)}
+    shards_content: Dict[str, str] = {"DOM-00.json": _build_dom00_shard(full_manifest)}
+
+    native_agents = full_manifest.get("native_agents_index", {})
+    all_skills = full_manifest.get("skills_index", {})
+    all_scripts = full_manifest.get("scripts_index", {})
+    all_intents = full_manifest.get("intent_dispatch_table", {})
+
+    for dom_id, dom_meta in sorted(full_manifest.get("domains", {}).items()):
+        dom_intents = {
+            kw: [entry.get("primary_agent", ""), entry.get("recommended_mode", "mode_c")]
+            for kw, entry in all_intents.items()
+            if entry.get("domain_id") == dom_id
+        }
+        shards_content[f"{dom_id}.json"] = _serialize_domain_shard_with_cap(
+            dom_id=dom_id,
+            dom_meta=dom_meta,
+            dom_skills=_filter_by_domain(all_skills, dom_id),
+            dom_scripts=_filter_by_domain(all_scripts, dom_id),
+            dom_agents=_filter_by_domain(native_agents, dom_id),
+            dom_intents=dom_intents,
+        )
+
+    shards_content["DOM-06.json"] = _build_dom06_shard(indexer, full_manifest)
+    slim_manifest = _build_slim_manifest(full_manifest, shards_map, all_skills, all_scripts)
     return slim_manifest, shards_content
 
 

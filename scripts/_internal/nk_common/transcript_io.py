@@ -15,7 +15,7 @@ _USER_REQUEST_RE = re.compile(
     re.DOTALL | re.IGNORECASE,
 )
 _METADATA_BLOCKS_RE = re.compile(
-    r"<(?:ADDITIONAL_METADATA|USER_SETTINGS_CHANGE|EPHEMERAL_MESSAGE|SYSTEM_MESSAGE)\b[^>]*>.*?</(?:ADDITIONAL_METADATA|USER_SETTINGS_CHANGE|EPHEMERAL_MESSAGE|SYSTEM_MESSAGE)>",
+    r"<(ADDITIONAL_METADATA|USER_SETTINGS_CHANGE|EPHEMERAL_MESSAGE|SYSTEM_MESSAGE)\b[^>]*>.*?</\1>",
     re.DOTALL | re.IGNORECASE,
 )
 _COMPACTION_PREFIXES = ("<CONTEXT_SUMMARY>", "# Resuming from a compaction")
@@ -26,9 +26,11 @@ def strip_antigravity_envelope(text: str) -> str:
     if not text:
         return ""
     cleaned = _METADATA_BLOCKS_RE.sub("", str(text)).strip()
-    m_req = _USER_REQUEST_RE.search(cleaned)
-    if m_req:
-        return m_req.group(1).strip()
+    low = cleaned.lower()
+    if low.count("<user_request>") == 1 and low.count("</user_request>") == 1:
+        m_req = _USER_REQUEST_RE.fullmatch(cleaned)
+        if m_req:
+            return m_req.group(1).strip()
     return cleaned
 
 

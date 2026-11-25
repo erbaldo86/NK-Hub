@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import ast
-import difflib
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from _internal.ast_guard_validator.models import (
     PROTECTED_SECURITY_ANCHORS,
@@ -17,15 +16,55 @@ from _internal.ast_guard_validator.models import (
 from _internal.ast_guard_validator.reexports import (
     _resolve_local_import_exports,
     _resolve_local_import_roots,
+    _resolve_prod_import_roots,
+    _resolve_target_path,
     validate_pydantic_catalog_records,
 )
 from _internal.ast_guard_validator.sast_checker import SASTConstructChecker
 from _internal.ast_guard_validator.scope_checker import ScopeIntegrityChecker
 from _internal.ast_guard_validator.signature_collector import SignatureCollector
 from _internal.ast_guard_validator.validator_helpers import (
+    parse_ast_cached,
     verify_classes_impl,
     verify_signatures_impl,
 )
+
+
+def _compute_visited_set(target_file: str, prod_only: bool = False) -> Set[Path]:
+    """Costruisce il set visited iniziale per evitare cicli di auto-importazione."""
+    if not target_file or target_file.startswith("<"):
+        return set()
+    res_t = _resolve_target_path(target_file)
+    if prod_only and ".staging" in res_t.parts:
+        parts = list(res_t.parts)
+        idx = parts.index(".staging")
+        rel = parts[idx + 1 :]
+        if rel:
+            prod_t = Path(*parts[:idx]).joinpath(*rel) if idx > 0 else Path(*rel)
+            return {prod_t}
+    return {res_t}
+
+
+def _resolve_pre_exports(
+    pre_tree: Optional[ast.AST],
+    pre_collector: SignatureCollector,
+    target_file: str,
+) -> None:
+    """Risolve i re-export di pre_collector in isolamento stretto sui soli path di produzione."""
+    if pre_tree is None:
+        return
+    pre_roots, pre_cur_dir = _resolve_prod_import_roots(target_file)
+    if not pre_roots:
+        return
+    _resolve_local_import_exports(
+        pre_tree,
+        pre_collector,
+        pre_roots,
+        pre_cur_dir,
+        skip_unparse=False,
+        visited=_compute_visited_set(target_file, prod_only=True),
+        cache={},
+    )
 
 
 class ASTGuardValidator:
@@ -53,26 +92,44 @@ class ASTGuardValidator:
         return validate_pydantic_catalog_records(records, model_cls)
 
     @classmethod
+    def _syntax_error_violation(
+        cls, se: Optional[Exception], stage_label: str
+    ) -> GuardViolation:
+        err = se if se is not None else SyntaxError("parse failure")
+        return GuardViolation(
+            violation_type=ViolationType.SYNTAX_ERROR,
+            symbol_name=None,
+            line_number=getattr(err, "lineno", None),
+            column=getattr(err, "offset", None),
+            message=f"SyntaxError in {stage_label}: {getattr(err, 'msg', str(err))}",
+            diff_context=getattr(err, "text", None),
+            severity="CRITICAL",
+        )
+
+    @classmethod
+    def _parse_sast_tree_or_error(
+        cls, code: str, target_file: str, tree: Optional[ast.AST]
+    ) -> Tuple[Optional[ast.AST], List[GuardViolation]]:
+        if tree is not None:
+            return tree, []
+        parsed, err = parse_ast_cached(code, target_file)
+        if parsed is None:
+            return None, [cls._syntax_error_violation(err, target_file)]
+        return parsed, []
+
+    @classmethod
     def check_sast_constructs(
-        cls, code: str, target_file: str = "<target>"
+        cls,
+        code: str,
+        target_file: str = "<target>",
+        tree: Optional[ast.AST] = None,
     ) -> List[GuardViolation]:
-        """Scansiona l'AST in modalita fail-closed rilevando SyntaxError, costrutti SAST e MagicMock."""
-        try:
-            tree = ast.parse(code, type_comments=True)
-        except (SyntaxError, ValueError) as se:
-            return [
-                GuardViolation(
-                    violation_type=ViolationType.SYNTAX_ERROR,
-                    symbol_name=None,
-                    line_number=getattr(se, "lineno", None),
-                    column=getattr(se, "offset", None),
-                    message=f"SyntaxError in {target_file}: {getattr(se, 'msg', str(se))}",
-                    diff_context=getattr(se, "text", None),
-                    severity="CRITICAL",
-                )
-            ]
+        """Scansiona l'AST in modalita fail-closed riusando un eventuale AST gia parsato."""
+        parsed_tree, syntax_errs = cls._parse_sast_tree_or_error(code, target_file, tree)
+        if parsed_tree is None:
+            return syntax_errs
         sast_checker = SASTConstructChecker(target_file=target_file)
-        sast_checker.visit(tree)
+        sast_checker.visit(parsed_tree)
         return sast_checker.violations
 
     @classmethod
@@ -116,22 +173,13 @@ class ASTGuardValidator:
         if pre_code != post_code:
             _search_roots, _cur_dir = _resolve_local_import_roots(target_file)
             if _search_roots:
-                _target_visited: Set[Path] = set()
-                try:
-                    _raw_t = Path(target_file)
-                    _res_t = (
-                        _raw_t if _raw_t.is_absolute() else (Path.cwd() / _raw_t)
-                    ).resolve()
-                    _target_visited.add(_res_t)
-                except OSError:
-                    pass
                 _resolve_local_import_exports(
                     post_tree,
                     post_collector,
                     _search_roots,
                     _cur_dir,
                     skip_unparse=False,
-                    visited=_target_visited,
+                    visited=_compute_visited_set(target_file, prod_only=False),
                     cache={},
                 )
 
@@ -141,6 +189,7 @@ class ASTGuardValidator:
             pre_collector = SignatureCollector()
             if pre_tree:
                 pre_collector.visit(pre_tree)
+                _resolve_pre_exports(pre_tree, pre_collector, target_file)
             cls._verify_classes(
                 pre_collector.class_bases,
                 post_collector.class_bases,
@@ -164,17 +213,7 @@ class ASTGuardValidator:
         sast_violations = sast_checker.sast_violations
         violations.extend(sast_violations)
 
-        if pre_code == post_code:
-            diff_lines: List[str] = []
-        else:
-            diff = difflib.unified_diff(
-                pre_code.splitlines(),
-                post_code.splitlines(),
-                fromfile=f"pre/{target_file}",
-                tofile=f"post/{target_file}",
-                lineterm="",
-            )
-            diff_lines = list(diff)
+        diff_line_count = cls._compute_diff_line_count(pre_code, post_code)
 
         is_valid = len(violations) == 0
         syntax_err_count = sum(
@@ -188,7 +227,7 @@ class ASTGuardValidator:
             + len(post_collector.classes),
             violations=violations,
             metrics={
-                "diff_line_count": len(diff_lines),
+                "diff_line_count": diff_line_count,
                 "total_violations": len(violations),
                 "sast_violations_count": len(sast_violations) + syntax_err_count,
                 "sast_violations": [v.message for v in sast_violations],
@@ -201,24 +240,24 @@ class ASTGuardValidator:
         )
 
     @classmethod
+    def _compute_diff_line_count(cls, pre_code: str, post_code: str) -> int:
+        if pre_code == post_code:
+            return 0
+        pre_lines = pre_code.splitlines()
+        post_lines = post_code.splitlines()
+        return sum(1 for a, b in zip(pre_lines, post_lines) if a != b) + abs(
+            len(post_lines) - len(pre_lines)
+        )
+
+    @classmethod
     def _parse_or_report(
         cls, code: str, stage: str, violations: List[GuardViolation]
     ) -> Optional[ast.AST]:
-        try:
-            return ast.parse(code, type_comments=True)
-        except (SyntaxError, ValueError) as se:
-            violations.append(
-                GuardViolation(
-                    violation_type=ViolationType.SYNTAX_ERROR,
-                    symbol_name=None,
-                    line_number=getattr(se, "lineno", None),
-                    column=getattr(se, "offset", None),
-                    message=f"SyntaxError in {stage}: {getattr(se, 'msg', str(se))}",
-                    diff_context=getattr(se, "text", None),
-                    severity="CRITICAL",
-                )
-            )
+        parsed, err = parse_ast_cached(code, f"<{stage}>")
+        if parsed is None:
+            violations.append(cls._syntax_error_violation(err, stage))
             return None
+        return parsed
 
     @classmethod
     def _verify_classes(

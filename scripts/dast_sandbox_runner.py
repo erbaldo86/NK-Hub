@@ -85,13 +85,17 @@ _LAZY_EXPORT_MAP: Dict[str, Tuple[str, str]] = {
     "_strip_builder_holdouts_from_sandbox": ("_internal.dast_sandbox_runner.sandbox_fs", "_strip_builder_holdouts_from_sandbox"),
     "_build_sanitized_sandbox_env": ("_internal.dast_sandbox_runner.sandbox_fs", "_build_sanitized_sandbox_env"),
     "ShadowSandbox": ("_internal.dast_sandbox_runner.sandbox_fs", "ShadowSandbox"),
+    "copy_script_package_context": ("_internal.dast_sandbox_runner.sandbox_fs", "copy_script_package_context"),
+    "prepare_staging_overlay": ("_internal.dast_sandbox_runner.staging_overlay", "prepare_staging_overlay"),
     "atomic_write_json": ("_internal.nk_common.io", "atomic_write_json"),
     "resolve_dast_report_path": ("_internal.dast_sandbox_runner.process_runner", "resolve_dast_report_path"),
     "write_atomic_dast_report": ("_internal.dast_sandbox_runner.process_runner", "write_atomic_dast_report"),
     "_run_job_isolated_subprocess": ("_internal.dast_sandbox_runner.process_runner", "_run_job_isolated_subprocess"),
     "_generate_trace_harness_script": ("_internal.dast_sandbox_runner.process_runner", "_generate_trace_harness_script"),
     "DASTSandboxRunner": ("_internal.dast_sandbox_runner.fuzzer", "DASTSandboxRunner"),
+    "classify_poc_outcome": ("_internal.dast_sandbox_runner.cli", "classify_poc_outcome"),
     "run_staging_shadow_verification": ("_internal.dast_sandbox_runner.e2e_and_audit", "run_staging_shadow_verification"),
+    "verify_sandbox_holdouts": ("_internal.dast_sandbox_runner.holdout_verify", "verify_sandbox_holdouts"),
 }
 
 

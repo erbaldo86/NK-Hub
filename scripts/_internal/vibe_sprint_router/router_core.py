@@ -48,6 +48,19 @@ def _facade_workspace_root() -> Path:
     return _DEFAULT_WORKSPACE_ROOT
 
 
+def _attach_intent_track_metadata(res: Dict[str, Any], prompt: str) -> Dict[str, Any]:
+    from _internal.vibe_sprint_router.intent_track_classifier import (
+        classify_intent_track,
+        resolve_intent_track_profile,
+    )
+    eff_text = str(res.get("optimized_meta_prompt") or prompt)
+    track = "CONTROL" if (res.get("recommended_mode") == "mode_d" and res.get("bypassed")) else classify_intent_track(eff_text)
+    res.setdefault("classified_track", track)
+    res.setdefault("intent_track", track)
+    res.setdefault("rsi_profile", resolve_intent_track_profile(track))
+    return res
+
+
 class VibeSprintRouter:
     """Valuta il rischio strutturale AST e seleziona la modalita operativa (Mode A, B, C o D)."""
 
@@ -74,9 +87,7 @@ class VibeSprintRouter:
         self, prompt: str, recommended_mode: str = "mode_c"
     ) -> Dict[str, Any]:
         """Rileva trigger semantici naturali e restituisce i protocolli intrinseci equivalenti (/goal, /boost, /plan)."""
-        return resolve_intrinsic_vibe_protocols_impl(
-            self, prompt, recommended_mode=recommended_mode
-        )
+        return resolve_intrinsic_vibe_protocols_impl(self, prompt, recommended_mode=recommended_mode)
 
     def normalize_voice_stt_input(self, raw_prompt: str) -> Dict[str, Any]:
         """Normalizza prompt grezzi da dettatura vocale (STT), rimuovendo auto-correzioni e refusi tecnici."""
@@ -86,9 +97,7 @@ class VibeSprintRouter:
         """Verifica esenzioni deterministiche anti-loop per il Meta-Prompt Gate di Livello 0."""
         return is_gate_exempt_impl(self, raw_prompt)
 
-    def evaluate_meta_prompt_gate(
-        self, raw_prompt: str, **kwargs: Any
-    ) -> Dict[str, Any]:
+    def evaluate_meta_prompt_gate(self, raw_prompt: str, **kwargs: Any) -> Dict[str, Any]:
         """Valuta il Gate L0 sul prompt fornito delegando a build_meta_prompt_envelope."""
         return evaluate_meta_prompt_gate_impl(self, raw_prompt, **kwargs)
 
@@ -102,9 +111,10 @@ class VibeSprintRouter:
         auto_bypass_readonly: bool = True,
         mode: Optional[str] = None,
         changed_lines: Optional[int] = None,
+        conversation_id: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Costruisce e valida il contratto MetaPromptGateContract di Livello 0."""
-        return build_meta_prompt_envelope_impl(
+        """Costruisce e valida il contratto MetaPromptGateContract di Livello 0 con IntentTrack."""
+        res = build_meta_prompt_envelope_impl(
             self,
             prompt,
             gate_enabled=gate_enabled,
@@ -114,7 +124,9 @@ class VibeSprintRouter:
             auto_bypass_readonly=auto_bypass_readonly,
             mode=mode,
             changed_lines=changed_lines,
+            conversation_id=conversation_id,
         )
+        return _attach_intent_track_metadata(res, prompt)
 
     def format_meta_prompt_markdown(self, envelope: Dict[str, Any]) -> str:
         """Formatta il blocco Markdown visibile di Livello 0 per il campo content prima di ask_question."""
@@ -130,9 +142,7 @@ class VibeSprintRouter:
         return diff_changed_lines_impl(prod_lines, staged_lines)
 
     def _estimate_changed_loc(
-        self,
-        files: Optional[List[str]] = None,
-        changed_lines: Optional[int] = None,
+        self, files: Optional[List[str]] = None, changed_lines: Optional[int] = None
     ) -> Optional[int]:
         """Stima il delta LOC effettivo per file staged rispetto alla produzione."""
         return estimate_changed_loc_impl(self, files=files, changed_lines=changed_lines)
@@ -149,28 +159,19 @@ class VibeSprintRouter:
             self, prompt, files=files, changed_lines=changed_lines, mode=mode
         )
 
-    def validate_generated_prompt(
-        self, file_or_text: str, mode: str = "auto"
-    ) -> Dict[str, Any]:
+    def validate_generated_prompt(self, file_or_text: str, mode: str = "auto") -> Dict[str, Any]:
         """Valida un prompt generato (file o testo inline) contro gli anti-pattern AP-1..AP-13."""
         return validate_generated_prompt_impl(self, file_or_text, mode=mode)
 
-    def compute_ast_risk_score(
-        self, source_code: str, filename: str = ""
-    ) -> Dict[str, Any]:
+    def compute_ast_risk_score(self, source_code: str, filename: str = "") -> Dict[str, Any]:
         """Analizza il codice Python via AST e determina l'idoneita Mode C."""
         return compute_ast_risk_score_impl(self, source_code, filename=filename)
 
     def generate_inline_micro_spec(
-        self,
-        target_file: str,
-        change_intent: str,
-        risk_info: Dict[str, Any],
+        self, target_file: str, change_intent: str, risk_info: Dict[str, Any]
     ) -> str:
         """Genera una Micro-Spec inline a zero burocrazia per Mode C."""
-        return generate_inline_micro_spec_impl(
-            self, target_file, change_intent, risk_info
-        )
+        return generate_inline_micro_spec_impl(self, target_file, change_intent, risk_info)
 
     def load_prewarmed_capsule(self, compact: bool = False) -> Dict[str, Any]:
         """Carica la capsula di memoria Tier-1 pre-riscaldata."""
@@ -185,61 +186,38 @@ class VibeSprintRouter:
         return generate_env_capsule_impl(self)
 
 
-def resolve_domain_from_manifest(
-    prompt: str,
-    workspace_root: Optional[Path] = None,
-) -> Dict[str, Any]:
+def resolve_domain_from_manifest(prompt: str, workspace_root: Optional[Path] = None) -> Dict[str, Any]:
     """Funzione helper di modulo per risolvere il dominio O(1) dal manifesto SSOT."""
-    router = VibeSprintRouter(workspace_root=workspace_root)
-    return router.resolve_domain_from_manifest(prompt=prompt)
+    return VibeSprintRouter(workspace_root=workspace_root).resolve_domain_from_manifest(prompt=prompt)
 
 
 def resolve_intrinsic_vibe_protocols(
-    prompt: str,
-    recommended_mode: str = "mode_c",
-    workspace_root: Optional[Path] = None,
+    prompt: str, recommended_mode: str = "mode_c", workspace_root: Optional[Path] = None
 ) -> Dict[str, Any]:
     """Funzione helper di modulo per risolvere i protocolli intrinseci /goal, /boost e /plan."""
-    router = VibeSprintRouter(workspace_root=workspace_root)
-    return router.resolve_intrinsic_vibe_protocols(
-        prompt=prompt,
-        recommended_mode=recommended_mode,
+    return VibeSprintRouter(workspace_root=workspace_root).resolve_intrinsic_vibe_protocols(
+        prompt=prompt, recommended_mode=recommended_mode
     )
 
 
 def classify_prompt_intent(
-    prompt: str,
-    files: Optional[List[str]] = None,
-    workspace_root: Optional[Path] = None,
-    changed_lines: Optional[int] = None,
-    mode: Optional[str] = None,
+    prompt: str, files: Optional[List[str]] = None, workspace_root: Optional[Path] = None,
+    changed_lines: Optional[int] = None, mode: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Funzione helper di modulo per classificare l'intento del prompt (Mode D vs A/B/C)."""
-    router = VibeSprintRouter(workspace_root=workspace_root)
-    return router.classify_prompt_intent(
-        prompt=prompt,
-        files=files,
-        changed_lines=changed_lines,
-        mode=mode,
+    return VibeSprintRouter(workspace_root=workspace_root).classify_prompt_intent(
+        prompt=prompt, files=files, changed_lines=changed_lines, mode=mode
     )
 
 
-def normalize_voice_stt_input(
-    raw_prompt: str,
-    workspace_root: Optional[Path] = None,
-) -> Dict[str, Any]:
+def normalize_voice_stt_input(raw_prompt: str, workspace_root: Optional[Path] = None) -> Dict[str, Any]:
     """Funzione helper di modulo per normalizzare l'input vocale STT."""
-    router = VibeSprintRouter(workspace_root=workspace_root)
-    return router.normalize_voice_stt_input(raw_prompt=raw_prompt)
+    return VibeSprintRouter(workspace_root=workspace_root).normalize_voice_stt_input(raw_prompt=raw_prompt)
 
 
-def is_gate_exempt(
-    raw_prompt: str,
-    workspace_root: Optional[Path] = None,
-) -> bool:
+def is_gate_exempt(raw_prompt: str, workspace_root: Optional[Path] = None) -> bool:
     """Funzione helper di modulo per verificare le esenzioni anti-loop."""
-    router = VibeSprintRouter(workspace_root=workspace_root)
-    return router.is_gate_exempt(raw_prompt=raw_prompt)
+    return VibeSprintRouter(workspace_root=workspace_root).is_gate_exempt(raw_prompt=raw_prompt)
 
 
 def build_meta_prompt_envelope(
@@ -252,10 +230,10 @@ def build_meta_prompt_envelope(
     auto_bypass_readonly: bool = True,
     mode: Optional[str] = None,
     changed_lines: Optional[int] = None,
+    conversation_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Funzione helper di modulo per costruire il contratto MetaPromptGateContract."""
-    router = VibeSprintRouter(workspace_root=workspace_root)
-    return router.build_meta_prompt_envelope(
+    return VibeSprintRouter(workspace_root=workspace_root).build_meta_prompt_envelope(
         prompt=prompt,
         gate_enabled=gate_enabled,
         gate_mode=gate_mode,
@@ -264,51 +242,45 @@ def build_meta_prompt_envelope(
         auto_bypass_readonly=auto_bypass_readonly,
         mode=mode,
         changed_lines=changed_lines,
+        conversation_id=conversation_id,
     )
 
 
 def evaluate_meta_prompt_gate(
-    raw_prompt: str,
-    workspace_root: Optional[Path] = None,
-    **kwargs: Any,
+    raw_prompt: str, workspace_root: Optional[Path] = None, **kwargs: Any
 ) -> Dict[str, Any]:
     """Funzione helper di modulo per valutare il Gate L0 tramite build_meta_prompt_envelope."""
-    router = VibeSprintRouter(workspace_root=workspace_root)
-    return router.build_meta_prompt_envelope(prompt=raw_prompt, **kwargs)
+    return VibeSprintRouter(workspace_root=workspace_root).build_meta_prompt_envelope(
+        prompt=raw_prompt, **kwargs
+    )
 
 
 def format_meta_prompt_markdown(
-    envelope: Dict[str, Any],
-    workspace_root: Optional[Path] = None,
+    envelope: Dict[str, Any], workspace_root: Optional[Path] = None
 ) -> str:
     """Funzione helper di modulo per formattare il blocco Markdown visibile di Livello 0."""
-    router = VibeSprintRouter(workspace_root=workspace_root)
-    return router.format_meta_prompt_markdown(envelope=envelope)
+    return VibeSprintRouter(workspace_root=workspace_root).format_meta_prompt_markdown(envelope=envelope)
 
 
 def validate_generated_prompt(
-    file_or_text: str,
-    workspace_root: Optional[Path] = None,
-    mode: str = "auto",
+    file_or_text: str, workspace_root: Optional[Path] = None, mode: str = "auto"
 ) -> Dict[str, Any]:
     """Funzione helper di modulo per validare un prompt contro gli anti-pattern AP-1..AP-13."""
-    router = VibeSprintRouter(workspace_root=workspace_root)
-    return router.validate_generated_prompt(file_or_text=file_or_text, mode=mode)
+    return VibeSprintRouter(workspace_root=workspace_root).validate_generated_prompt(
+        file_or_text=file_or_text, mode=mode
+    )
 
 
 def load_prewarmed_capsule(
-    workspace_root: Optional[Path] = None,
-    compact: bool = False,
+    workspace_root: Optional[Path] = None, compact: bool = False
 ) -> Dict[str, Any]:
     """Funzione helper di modulo per caricare la capsula Tier-1 pre-riscaldata."""
-    router = VibeSprintRouter(workspace_root=workspace_root)
-    return router.load_prewarmed_capsule(compact=compact)
+    return VibeSprintRouter(workspace_root=workspace_root).load_prewarmed_capsule(compact=compact)
 
 
 def format_compact_env_capsule(workspace_root: Optional[Path] = None) -> str:
     """Funzione helper di modulo per formattare <env_capsule> deduplicato."""
-    router = VibeSprintRouter(workspace_root=workspace_root)
-    return router.format_compact_env_capsule()
+    return VibeSprintRouter(workspace_root=workspace_root).format_compact_env_capsule()
 
 
 def generate_env_capsule(workspace_root: Optional[Path] = None) -> str:

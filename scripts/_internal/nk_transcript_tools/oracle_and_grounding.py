@@ -8,7 +8,7 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from _internal.nk_common.constants import HALLUCINATED_SCRIPT_DENYLIST
+from _internal.nk_common.constants import HALLUCINATED_SCRIPT_DENYLIST, NK_LOCK_FILENAMES
 from _internal.nk_common.oracle_lock import (
     compute_lf_sha256,
     sha256_eol_matches,
@@ -30,7 +30,42 @@ _EXPLICIT_SCRIPT_NEGATION_RE = re.compile(
 )
 
 
-def _hash_target_files(target: Path) -> Dict[str, str]:
+def _hash_benchmark_suite_dir(
+    ws_root: Path, files_map: Dict[str, str], skip_fn: Any
+) -> None:
+    """Calcola e registra gli SHA-256 LF-normalizzati dei file *.json in nk_tracking/benchmark_suite."""
+    bench_dir = ws_root / "nk_tracking" / "benchmark_suite"
+    if not bench_dir.is_dir():
+        return
+    for bf in sorted(bench_dir.rglob("*.json")):
+        if not skip_fn(bf, bench_dir):
+            rel_bf = bf.relative_to(bench_dir).as_posix()
+            files_map[f"../nk_tracking/benchmark_suite/{rel_bf}"] = compute_lf_sha256(bf)
+
+
+def _normalize_exclude_set(exclude_paths: Optional[Set[Path]]) -> Set[Path]:
+    """Normalizza i percorsi assoluti esclusi dal calcolo SHA-256."""
+    if not exclude_paths:
+        return set()
+    return {p.resolve() for p in exclude_paths}
+
+
+def _is_ignored_oracle_file(
+    file_p: Path,
+    ignored_suffixes: Set[str],
+    ignored_names: Set[str],
+    exclude_set: Set[Path],
+) -> bool:
+    """Verifica se il file appartiene a suffissi effimeri o file lock esclusi."""
+    if file_p.suffix.lower() in ignored_suffixes or file_p.name in ignored_names:
+        return True
+    return bool(exclude_set and file_p.resolve() in exclude_set)
+
+
+def _hash_target_files(
+    target: Path,
+    exclude_paths: Optional[Set[Path]] = None,
+) -> Dict[str, str]:
     """Calcola la mappa percorso_relativo -> sha256 per un file o target multi-root."""
     resolved = target.resolve()
     if resolved.is_file():
@@ -38,17 +73,18 @@ def _hash_target_files(target: Path) -> Dict[str, str]:
     ignored_parts = {"__pycache__", ".pytest_cache", ".git", ".staging", ".wal"}
     ignored_suffixes = {".zip", ".tmp", ".bak"}
     ignored_names = {
-        "oracle_lock.json",
+        *NK_LOCK_FILENAMES,
         ".bootstrap_fast_cache.json",
         ".fast_stat_cache.json",
         ".session_state.json",
         "session_anchor.jsonl",
     }
+    exclude_set = _normalize_exclude_set(exclude_paths)
 
     def _skip_entry(file_p: Path, base_p: Path) -> bool:
         if not file_p.is_file():
             return True
-        if file_p.suffix.lower() in ignored_suffixes or file_p.name in ignored_names:
+        if _is_ignored_oracle_file(file_p, ignored_suffixes, ignored_names, exclude_set):
             return True
         if any(pt in ignored_parts for pt in file_p.parts):
             return True
@@ -74,9 +110,7 @@ def _hash_target_files(target: Path) -> Dict[str, str]:
             if pytest_ini.is_file():
                 files_map["../pytest.ini"] = compute_lf_sha256(pytest_ini)
 
-            tasks_v1 = ws_root / "nk_tracking" / "benchmark_suite" / "tasks_v1.json"
-            if tasks_v1.is_file():
-                files_map["../nk_tracking/benchmark_suite/tasks_v1.json"] = compute_lf_sha256(tasks_v1)
+            _hash_benchmark_suite_dir(ws_root, files_map, _skip_entry)
 
             for sub_name in (".agents", ".github"):
                 sub_dir = ws_root / sub_name
@@ -107,7 +141,7 @@ def _sha256_eol_matches(file_path: Path, expected_sha: str) -> bool:
 
 def handle_oracle_lock(action: str, target: Path, lock_file: Path) -> Tuple[Dict[str, Any], int]:
     """Crea o verifica il manifesto SHA-256 della ground truth e dei test."""
-    current_map = _hash_target_files(target)
+    current_map = _hash_target_files(target, exclude_paths={lock_file.resolve()})
     if not current_map:
         return {"status": "ERROR", "passed": False, "error": f"Empty or missing target: {target}"}, 1
     if action in ("create", "freeze"):
@@ -172,7 +206,7 @@ def _collect_grounding_valid_scripts(root_dir: Path, mpath: Path) -> Tuple[Set[s
     valid_rel_paths: Set[str] = set()
 
     def _register_entry(raw_key: str) -> None:
-        norm_k = str(raw_key).strip().replace("\\", "/").lstrip("./")
+        norm_k = re.sub(r"^(?:\./)+", "", str(raw_key).strip().replace("\\", "/")).lstrip("/")
         if not norm_k.endswith(".py"):
             return
         valid_basenames.add(Path(norm_k).name)

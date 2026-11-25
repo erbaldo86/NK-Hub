@@ -50,41 +50,11 @@ class NKComplianceChecker:
             Path(workspace_root).resolve() if workspace_root else _workspace_root
         )
 
-    @staticmethod
-    def _extract_session_identifier(transcript_file: Optional[Path]) -> str:
-        """Estrae l'identificatore conversazione dal percorso del transcript."""
-        return extract_session_identifier(transcript_file)
-
-    @staticmethod
-    def _valid_numeric_score(val: Any) -> Optional[float]:
-        """Convalida un valore numerico finito escludendo i booleani."""
-        return valid_numeric_score(val)
-
-    @staticmethod
-    def _score_from_rsi_record(rec: Dict[str, Any]) -> int | float:
-        """Converte un record rsi_telemetry.jsonl nel punteggio RSI fail-closed."""
-        return score_from_rsi_record(rec)
-
-    @staticmethod
-    def _read_jsonl_dicts_reversed(cand: Path) -> List[Dict[str, Any]]:
-        """Legge i record JSON dizionario in ordine inverso dal file."""
-        return read_jsonl_dicts_reversed(cand)
-
     def _lookup_rsi_telemetry_score(
         self, transcript_file: Optional[Path] = None
     ) -> Tuple[bool, int | float]:
         """Cerca il punteggio RSI valido per la sessione corrente."""
         return lookup_rsi_telemetry_score(self.workspace_root, transcript_file)
-
-    def _read_rsi_convergence_score(
-        self,
-        transcript_file: Optional[Path] = None,
-        saw_converged_optimal: bool = False,
-    ) -> int | float:
-        """Legge il punteggio RSI coerente con la sessione corrente."""
-        _ = saw_converged_optimal
-        found, score = self._lookup_rsi_telemetry_score(transcript_file)
-        return score if found else 0
 
     def audit_transcript(
         self, transcript_path: Optional[Path] = None

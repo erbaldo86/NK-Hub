@@ -1,6 +1,6 @@
 # NK Hub Generation 1-Click Automated Installer per Windows (v1.0.0-Generation)
 param(
-    [ValidateSet("", "generation", "carbon", "argon", "standard")]
+    [ValidateSet("", "generation", "carbon", "neon", "pro", "flash", "argon", "standard")]
     [string]$Profile = ""
 )
 
@@ -19,7 +19,7 @@ if (-not [string]::IsNullOrWhiteSpace($Profile)) {
     $env:NK_MODEL_PROFILE = $env:NK_MODEL_PROFILE.Trim().ToLowerInvariant()
 }
 $ActiveProfile = $env:NK_MODEL_PROFILE
-if (@("generation", "carbon", "argon", "standard") -notcontains $ActiveProfile) {
+if (@("generation", "carbon", "neon", "pro", "flash", "argon", "standard") -notcontains $ActiveProfile) {
     Write-Host "[WARN] Profilo '$ActiveProfile' non supportato. Uso fallback su 'generation'." -ForegroundColor Yellow
     $ActiveProfile = "generation"
     $env:NK_MODEL_PROFILE = $ActiveProfile
@@ -30,7 +30,7 @@ Push-Location $HubRoot
 try {
     Write-Host "=========================================================" -ForegroundColor Cyan
     Write-Host "Inizializzazione NK Hub Generation (v1.0.0-Generation)" -ForegroundColor Green
-    Write-Host "Profilo: NK_MODEL_PROFILE=$ActiveProfile (supporta generation, carbon)" -ForegroundColor Cyan
+    Write-Host "Profilo: NK_MODEL_PROFILE=$ActiveProfile (supporta generation|carbon|neon|pro|flash|argon|standard; default generation, fallback carbon)" -ForegroundColor Cyan
     Write-Host "=========================================================" -ForegroundColor Cyan
 
     $ParentAgentsDir = Join-Path $HubRoot "..\.agents"
@@ -72,7 +72,7 @@ try {
 
     if (Test-Path ".agents") {
         (Get-Item ".agents" -Force).Attributes = 'Directory'
-        Write-Host "[OK] Cartella .agents/ configurata (6 Sub-Agenti Nativi, 11 Skill Playbook, 34 file scripts/, 37 Moduli Indicizzati)." -ForegroundColor Green
+        Write-Host "[OK] Cartella .agents/ configurata (6 Sub-Agenti Nativi, 11 Skill Playbook, facciate CLI scripts/, sottopacchetti _internal/, 7 shard DOM-00..06)." -ForegroundColor Green
     }
 
     if (Test-Path ".agents/AGENTS.md") {

@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import os
 import sys
 import threading
@@ -19,6 +18,7 @@ from ..nk_common.constants import (
 )
 from ..nk_common.facade_boot import resolve_facade_attr
 from ..nk_common.transcript_guards import valid_token_int
+from ..nk_common.win32_mutex import get_repo_batch_mutex_name
 
 
 def _resolve_scripts_dir() -> Path:
@@ -138,10 +138,8 @@ def _get_win32_k32() -> Any:
 
 
 def get_canonical_repo_batch_mutex_name(root: Path) -> str:
-    """Calcola il nome canonico Global\\NK_RepoBatchLock_<sha256[:16]> condiviso con 2PC."""
-    repo_real = os.path.realpath(str(root)).lower().replace("/", "\\").rstrip("\\")
-    digest16 = hashlib.sha256(repo_real.encode("utf-8")).hexdigest()[:16]
-    return f"Global\\NK_RepoBatchLock_{digest16}"
+    """Calcola il nome canonico Global\\NK_RepoBatchLock_<sha256[:16]> delegando a win32_mutex."""
+    return get_repo_batch_mutex_name(root)
 
 
 def _parse_iso_epoch(ts_val: Any) -> float:

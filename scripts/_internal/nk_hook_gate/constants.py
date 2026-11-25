@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from _internal.nk_common.constants import HALLUCINATED_SCRIPT_DENYLIST
+from _internal.nk_common.constants import HALLUCINATED_SCRIPT_DENYLIST, NK_LOCK_FILENAMES
 from _internal.nk_common.paths import resolve_scripts_dir
 from _internal.nk_hook_gate.constants_patterns import (
     _ARCHIVE_EXTRACT_RE,
@@ -89,11 +89,12 @@ _PROTECTED_ROOT_FILENAMES = frozenset(
         "agents.md",
         "gemini.md",
         "claude.md",
-        "oracle_lock.json",
         "quality_baseline.json",
         "patch_notes.md",
+        "active.json",
         ".gitignore",
         ".env",
+        *(name.lower() for name in NK_LOCK_FILENAMES),
     )
 )
 _PROTECTED_FILE_EXTS = frozenset(
@@ -277,6 +278,7 @@ _PYTEST_ISOLATED_SAFE_RUNNERS = (
     "quality_baseline_manager.py",
     "rsi_convergence_engine.py",
     "sbfl_pytest_bridge.py",
+    "auto_heal_pipeline.py",
 )
 _PYTEST_CLOUD_DRIVE_MARKERS = (
     "g:/",

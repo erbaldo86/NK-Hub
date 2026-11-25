@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import re
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 from _internal.nk_hook_gate.constants import (
     _ARCHIVE_EXTRACT_RE,
@@ -47,12 +48,30 @@ from _internal.nk_hook_gate.shell_redaction import (
 from _internal.nk_hook_gate.shell_search_mask import _strip_readonly_search_patterns
 
 _AUTH_SCRIPT_TOKEN_RE = re.compile(_AUTH_SCRIPT_TOK_RE, re.IGNORECASE)
+_GOV_ENV_VAR_PAT = (
+    r"(?:NK_ALLOW_GOVERNANCE_OVERRIDE|NK_GOVERNANCE_[A-Z0-9_]*|"
+    r"NK_TENSOR_[A-Z0-9_]*|NK_HOLDOUT_DIR|(?:NK_)?PROGET_ROOT)"
+)
+_GOV_ENV_TAMPER_RE = re.compile(
+    rf"(?:"
+    rf"(?:\$\{{?env:|(?:\bset|\bexport)\s+|(?:^|[\s;|&(])){_GOV_ENV_VAR_PAT}\}}?\s*="
+    rf"|(?:Set|New|Clear|Remove)-Item\b[^\n;|&]*\bEnv:[\\/]?{_GOV_ENV_VAR_PAT}\b"
+    rf"|\[(?:System\.)?Environment\]::SetEnvironmentVariable\s*\([^\n)]*{_GOV_ENV_VAR_PAT}"
+    rf"|os\.environ\s*\[[^\n\]]*{_GOV_ENV_VAR_PAT}[^\n\]]*\]\s*="
+    rf"|(?:del\s+os\.environ\s*\[[^\n\]]*{_GOV_ENV_VAR_PAT})"
+    rf"|os\.environ\.(?:update|setdefault|pop)\s*\([^\n)]*{_GOV_ENV_VAR_PAT}"
+    rf"|os\.(?:putenv|unsetenv)\s*\([^\n)]*{_GOV_ENV_VAR_PAT}"
+    rf")",
+    re.IGNORECASE,
+)
 
 
 def _segment_has_write_indicator(raw_cmd: str, seg: str) -> bool:
     """Valuta gli indicatori di scrittura su un singolo segmento applicando FP-mask."""
-    cand_eval = _redact_safe_si_literals(raw_cmd, seg)
-    seg_clean = _strip_readonly_search_patterns(cand_eval)
+    cand_prompt = _mask_balanced_prompt_payloads(
+        raw_cmd, _redact_safe_si_literals(raw_cmd, seg)
+    )
+    seg_clean = _strip_readonly_search_patterns(cand_prompt)
     cand_low = seg_clean.replace("\\", "/").lower()
     if any(ind in cand_low for ind in _CMD_WRITE_INDICATORS):
         return True
@@ -60,8 +79,7 @@ def _segment_has_write_indicator(raw_cmd: str, seg: str) -> bool:
         return True
     if _ARCHIVE_EXTRACT_RE.search(seg_clean):
         return True
-    cand_word_eval = _mask_balanced_prompt_payloads(raw_cmd, seg_clean)
-    if _CMD_WORD_WRITE_RE.search(cand_word_eval.replace("\\", "/").lower()):
+    if _CMD_WORD_WRITE_RE.search(cand_low):
         return True
     if _PS_CALL_WRITE_RE.search(cand_low):
         return True
@@ -109,28 +127,8 @@ def _has_cmd_write_indicator(
     return any(not _is_safe_redirection_target(rt, project_root) for rt in all_targets)
 
 
-def _is_authorized_script_invocation(
-    cmd_str: str, project_root: Path = _WORKSPACE_ROOT
-) -> bool:
-    """Verifica che il comando invochi realmente uno script ancorato a HUB_ROOT senza concatenazioni."""
-    norm = cmd_str.replace("\\", "/").strip()
-    norm_low = norm.lower()
-    if "`" in norm or any(sep in norm_low for sep in (";", "|", "&", "\n", "\r")):
-        return False
-    if (
-        "--allow-governance-override" in norm_low
-        and os.environ.get("NK_ALLOW_GOVERNANCE_OVERRIDE", "").strip() != "1"
-    ):
-        return False
-    if _has_cmd_write_indicator(norm, project_root):
-        return False
-    if not _AUTH_SCRIPT_RE.match(norm):
-        return False
-
-    m_tok = _AUTH_SCRIPT_TOKEN_RE.search(norm)
-    if not m_tok:
-        return False
-    raw_script_tok = _strip_wrapping_quotes(m_tok.group(0)).strip()
+def _is_allowed_script_parent(raw_script_tok: str, project_root: Path) -> bool:
+    """Verifica che il token script risieda sotto scripts/ o .staging/scripts/ di root."""
     if not raw_script_tok or "scratch/" in raw_script_tok.lower():
         return False
     eff_root = _resolve_effective_hub_root(project_root)
@@ -143,3 +141,127 @@ def _is_authorized_script_invocation(
         hub_canon / ".staging" / "scripts",
     )
     return any(cand.parent == _canonical_path(ar) for ar in allowed_roots)
+
+
+def _has_inline_governance_env_tampering(cmd_str: str) -> bool:
+    """Blocca tentativi inline di manipolare NK_ALLOW_GOVERNANCE_OVERRIDE o KEY_PATH."""
+    from _internal.nk_hook_gate.shell_parser import _split_shell_segments
+
+    if not cmd_str:
+        return False
+    for cand in (
+        cmd_str,
+        _deobfuscate_ps_backticks(cmd_str),
+        *_unwrap_shell_subcommands(cmd_str),
+    ):
+        for seg in _split_shell_segments(cand) or [cand]:
+            seg_clean = _strip_readonly_search_patterns(
+                _mask_balanced_prompt_payloads(cmd_str, seg)
+            )
+            if _GOV_ENV_TAMPER_RE.search(seg_clean):
+                return True
+    return False
+
+
+def _extract_cli_flag_value(
+    tokens: List[Tuple[str, str, bool]], flag_name: str
+) -> str:
+    """Estrae il valore di un flag CLI (--flag val o --flag=val) dai token shell."""
+    target_low = flag_name.lower()
+    prefix = target_low + "="
+    for idx, (_, unq, _) in enumerate(tokens):
+        low = unq.lower()
+        if low.startswith(prefix):
+            return unq.split("=", 1)[1].strip()
+        if low == target_low and (idx + 1) < len(tokens):
+            return tokens[idx + 1][1].strip()
+    return ""
+
+
+def _is_authorized_governance_override_cmd(
+    cmd_str: str, project_root: Path = _WORKSPACE_ROOT
+) -> bool:
+    """Autorizza --allow-governance-override solo su win32_2pc_engine con HMAC valido."""
+    from _internal.nk_hook_gate.shell_parser import _tokenize_shell_tokens
+
+    if os.environ.get("NK_ALLOW_GOVERNANCE_OVERRIDE", "").strip() != "1":
+        return False
+    if _has_inline_governance_env_tampering(cmd_str):
+        return False
+    norm = cmd_str.replace("\\", "/").strip()
+    if "`" in norm or any(sep in norm for sep in (";", "|", "&", "\n", "\r")):
+        return False
+    if not _AUTH_SCRIPT_RE.match(norm):
+        return False
+    m_tok = _AUTH_SCRIPT_TOKEN_RE.search(norm)
+    if not m_tok:
+        return False
+    raw_script_tok = _strip_wrapping_quotes(m_tok.group(0)).strip()
+    if os.path.basename(raw_script_tok).lower() != "win32_2pc_engine.py":
+        return False
+    if not _is_allowed_script_parent(raw_script_tok, project_root):
+        return False
+    tokens = _tokenize_shell_tokens(cmd_str)
+    reason = _extract_cli_flag_value(tokens, "--override-reason")
+    token = _extract_cli_flag_value(tokens, "--governance-token") or os.environ.get(
+        "NK_GOVERNANCE_TOKEN", ""
+    ).strip()
+    if len(reason.strip()) < 8 or not token:
+        return False
+    try:
+        from _internal.win32_2pc_engine.governance_auth import verify_governance_token
+
+        verify_governance_token(token, reason)
+        return True
+    except (ImportError, RuntimeError, ValueError, OSError):
+        return False
+
+
+def _check_governance_override_denial(
+    cmd_str: str, cmd_deobf: str, project_root: Path
+) -> Optional[Dict[str, Any]]:
+    """Valida in fail-closed flag --allow-governance-override e manipolazioni env inline."""
+    if _has_inline_governance_env_tampering(cmd_str):
+        return {
+            "decision": "deny",
+            "reason_code": "UNAUTHORIZED_GOVERNANCE_OVERRIDE",
+            "reason": "Inline governance environment tampering is forbidden ([RULE-00]).",
+        }
+    cmd_low = cmd_deobf.replace("\\", "/").lower()
+    if "--allow-governance-override" not in cmd_low:
+        return None
+    if _is_authorized_governance_override_cmd(cmd_str, project_root):
+        return None
+    return {
+        "decision": "deny",
+        "reason_code": "UNAUTHORIZED_GOVERNANCE_OVERRIDE",
+        "reason": (
+            "Flag --allow-governance-override requires NK_ALLOW_GOVERNANCE_OVERRIDE=1, "
+            "--override-reason, and valid HMAC --governance-token ([RULE-00] / EXAM-06)."
+        ),
+    }
+
+
+def _is_authorized_script_invocation(
+    cmd_str: str, project_root: Path = _WORKSPACE_ROOT
+) -> bool:
+    """Verifica che il comando invochi realmente uno script ancorato a HUB_ROOT senza concatenazioni."""
+    norm = cmd_str.replace("\\", "/").strip()
+    norm_low = norm.lower()
+    if "`" in norm or any(sep in norm_low for sep in (";", "|", "&", "\n", "\r")):
+        return False
+    if (
+        "--allow-governance-override" in norm_low
+        and not _is_authorized_governance_override_cmd(cmd_str, project_root)
+    ):
+        return False
+    if _has_cmd_write_indicator(norm, project_root):
+        return False
+    if not _AUTH_SCRIPT_RE.match(norm):
+        return False
+
+    m_tok = _AUTH_SCRIPT_TOKEN_RE.search(norm)
+    if not m_tok:
+        return False
+    raw_script_tok = _strip_wrapping_quotes(m_tok.group(0)).strip()
+    return _is_allowed_script_parent(raw_script_tok, project_root)

@@ -5,6 +5,18 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, Set, Tuple
 
+from _internal.nk_common.epistemic_firewall_rules import (
+    HANDOFF_V2_END_ACTIVE,
+    HANDOFF_V2_END_PASSIVE,
+    HANDOFF_V2_START_ACTIVE,
+    HANDOFF_V2_START_PASSIVE,
+    T12_END,
+    T12_START,
+    _AGENT_DIRECTIVE_CUE_RE,
+    _OUTBOUND_CODE_EXCLUSION_RE,
+    _OUTBOUND_HANDOFF_RE,
+)
+
 _DOM04_TECHNICAL_AUDIT_KEYWORDS: Tuple[str, ...] = (
     "audit",
     "forense",
@@ -145,9 +157,10 @@ _STATE_HANDOFF_MARKERS: Tuple[str, ...] = (
     "template 12: passive_session_state_handoff",
     "[nk-anchor:start:passive_state_handoff]",
     "[nk-anchor:start:state_handoff",
+    HANDOFF_V2_START_PASSIVE.lower(),
 )
 _PROHIBITION_LINE_RE = re.compile(
-    r"\b(?:vieta(?:to|ndo|re)?|divieto|proibit[oa]|non\s+(?:attivare|invocare|generare|eseguire|proporre|avviare)|mai\s+(?:attivare|invocare)|zero\s+|senza\s+|nessun[oa]?\s+(?:pista|task|opzione)|ap-12|ap-13)\b",
+    r"\b(?:vieta(?:to|ndo|re)?|divieto|proibit[oa]|non\s+(?:attivare|invocare|generare|eseguire|proporre|avviare|modificare|devi|impone)|mai\s+(?:attivare|invocare)|nessun[oa]?\s+(?:pista|task|opzione))\b",
     re.IGNORECASE,
 )
 _AP12_IMPERATIVE_LEAK_RE = re.compile(
@@ -164,7 +177,7 @@ _BRIEF_HEADER_PHASE_RE = re.compile(
     re.IGNORECASE,
 )
 _HANDOFF_MUTATING_ORDER_RE = re.compile(
-    r"\b(?:cancella(?:re)?|elimina(?:re)?|rimuovi|rimuovere|sovrascrivi|sovrascrivere|formatta(?:re)?|drop\s+table|delete\s+from|set-content|remove-item|out-file|write_file|edit_file|write_to_file|--promote-staging)\b",
+    r"(?:\b(?:cancella(?:re)?|elimina(?:re)?|rimuovi|rimuovere|sovrascrivi|sovrascrivere|formatta(?:re)?|drop\s+table|delete\s+from|set-content|remove-item|out-file|write_file|edit_file|write_to_file)\b|(?<![A-Za-z0-9_-])--promote-staging\b)",
     re.IGNORECASE,
 )
 _HANDOFF_START_PREFIXES: Tuple[str, ...] = (
@@ -174,9 +187,35 @@ _HANDOFF_START_PREFIXES: Tuple[str, ...] = (
     "template 12: passive_session_state_handoff",
     "[nk-anchor:start:passive_state_handoff]",
     "[nk-anchor:start:state_handoff",
+    HANDOFF_V2_START_PASSIVE.lower(),
 )
-
 
 _ROUTER_MANIFEST_CACHE: Dict[str, Tuple[int, int, Dict[str, Any]]] = {}
 
-__all__ = ['_AP10_PASSIVE_SLASH_RE', '_AP10_PROHIBITION_CONTEXT_RE', '_AP12_IMPERATIVE_LEAK_RE', '_AP13_COGNITIVE_TUNNELING_RE', '_BRIEF_HEADER_PHASE_RE', '_CLAUSE_SPLIT_RE', '_DOM04_TECHNICAL_AUDIT_KEYWORDS', '_HANDOFF_MUTATING_ORDER_RE', '_HANDOFF_START_PREFIXES', '_INTRINSIC_BOOST_KEYWORDS', '_INTRINSIC_PLAN_KEYWORDS', '_PROHIBITION_LINE_RE', '_ROUTER_MANIFEST_CACHE', '_SHA256_HEX64_RE', '_STATE_HANDOFF_MARKERS', '_TECH_CAMEL_ALLOWLIST']
+__all__ = [
+    "HANDOFF_V2_END_ACTIVE",
+    "HANDOFF_V2_END_PASSIVE",
+    "HANDOFF_V2_START_ACTIVE",
+    "HANDOFF_V2_START_PASSIVE",
+    "T12_END",
+    "T12_START",
+    "_AGENT_DIRECTIVE_CUE_RE",
+    "_AP10_PASSIVE_SLASH_RE",
+    "_AP10_PROHIBITION_CONTEXT_RE",
+    "_AP12_IMPERATIVE_LEAK_RE",
+    "_AP13_COGNITIVE_TUNNELING_RE",
+    "_BRIEF_HEADER_PHASE_RE",
+    "_CLAUSE_SPLIT_RE",
+    "_DOM04_TECHNICAL_AUDIT_KEYWORDS",
+    "_HANDOFF_MUTATING_ORDER_RE",
+    "_HANDOFF_START_PREFIXES",
+    "_INTRINSIC_BOOST_KEYWORDS",
+    "_INTRINSIC_PLAN_KEYWORDS",
+    "_OUTBOUND_CODE_EXCLUSION_RE",
+    "_OUTBOUND_HANDOFF_RE",
+    "_PROHIBITION_LINE_RE",
+    "_ROUTER_MANIFEST_CACHE",
+    "_SHA256_HEX64_RE",
+    "_STATE_HANDOFF_MARKERS",
+    "_TECH_CAMEL_ALLOWLIST",
+]

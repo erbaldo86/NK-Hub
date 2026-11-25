@@ -184,7 +184,7 @@ def main() -> None:
     if args.snapshot_out:
         out_p = Path(args.snapshot_out).resolve()
         out_p.parent.mkdir(parents=True, exist_ok=True)
-        out_p.write_text(result.content, encoding="utf-8")
+        out_p.write_text(result.content, encoding="utf-8", newline="\n")
         print(f"[+] Snapshot saved to: {out_p} ({result.token_count} tokens, {result.elapsed_ms}ms)")
 
     if args.json:

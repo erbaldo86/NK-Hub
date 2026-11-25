@@ -7,7 +7,8 @@
 
 ## 1. Sicurezza I/O Windows e Prevenzione Lock (`[WinError 32]`)
 * Prima di modificare il codice, ferma i server attivi con `NK_Hub/scripts/safe_cleanup_dev_servers.py` o `manage_task(Action="kill", TaskId="<id>")`.
-* Esegui tutte le promozioni da `.staging/` a produzione tramite `NK_Hub/scripts/win32_2pc_engine.py` con Named Mutex Win32.
+* Esegui tutte le promozioni da `.staging/` a produzione tramite `NK_Hub/scripts/win32_2pc_engine.py` con Named Mutex Win32 e anti-replay `v2`.
+* Blocca `--promote-staging` quando `nk_tracking/tensor_sessions/ACTIVE.json` manca di `accepted == True` o ha `staging_manifest_sha256` diverso.
 * Mantieni una singola connessione SQLite WAL persistente per istanza in `NK_Hub/scripts/deterministic_api_cache.py`.
 
 ## 2. Esecuzione Sottoprocessi, UTF-8 e Controllo Asincrono

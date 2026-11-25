@@ -26,6 +26,7 @@ _CLI_FLAGS: Tuple[str, ...] = (
     "--expected-file",
     "--html-file",
     "--json",
+    "--root",
 )
 
 _SCRIPT_DIR = Path(__file__).resolve().parent
@@ -46,6 +47,7 @@ if _SCRIPT_DIR != _PROD_SCRIPTS and (_SCRIPT_DIR / "_internal" / "nk_common").is
 from _internal.nk_common.facade_boot import init_nk_facade  # noqa: E402
 
 init_nk_facade(__file__, pkg="oracle_evaluator_l3")
+import _internal.oracle_evaluator_l3  # noqa: E402, F401
 
 _LAZY_EXPORT_MAP: Dict[str, Tuple[str, str]] = {
     "_scripts_dir": ("_internal.oracle_evaluator_l3.models_and_dom", "_scripts_dir"),

@@ -13,8 +13,8 @@ from _internal.ast_repo_mapper.facade_resolver import (
 )
 from _internal.ast_repo_mapper.map_rendering import (
     compact_sig_for_ste100_impl,
-    render_expanded_module_impl,
-    render_inline_compact_module_impl,
+    render_expanded_module_impl,  # noqa: F401
+    render_inline_compact_module_impl,  # noqa: F401
     render_two_tier_map_impl,
 )
 from _internal.ast_repo_mapper.models import (
@@ -325,14 +325,6 @@ class RepoMapGenerator:
     def _compact_sig_for_ste100(cls, sig: str, max_words: int = 16) -> str:
         """Garantisce che ogni firma renderizzata rispetti il limite di 20 parole STE100."""
         return compact_sig_for_ste100_impl(sig, max_words=max_words)
-
-    @classmethod
-    def _render_expanded_module(cls, mod: str, syms: List[SymbolNode]) -> str:
-        return render_expanded_module_impl(mod, syms)
-
-    @classmethod
-    def _render_inline_compact_module(cls, mod: str, syms: List[SymbolNode]) -> str:
-        return render_inline_compact_module_impl(mod, syms)
 
     @classmethod
     def _render_two_tier_map(

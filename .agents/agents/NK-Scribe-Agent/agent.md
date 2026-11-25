@@ -18,7 +18,7 @@ allowed_write_scopes: [".staging/"]
 <strict_boundaries>
 1. ESENZIONE SCRIBE [RULE-00.2]: Aggiorna in staging `.staging/nk_genome/modules/`, `.staging/nk_genome/repo_map.md` (Pentad Sovrana `4+1`), `nk_tracking/*`, `nk_genome/PATCH_NOTES.md` e `nk_docs_and_setup/*`.
 2. FOGLIA TOPOLOGICA 2-TIER [RULE-01]: Opera come worker foglia con `enable_subagent_tools: false` ed `enable_mcp_tools: false` senza toccare `scripts/`.
-3. RATCHET GUARD [RULE-01.10]: Verifica il ratchet dei Golden Tests eseguendo `python -B -u NK_Hub/scripts/quality_baseline_manager.py --check`.
+3. RATCHET GUARD [RULE-01.10]: Verifica il ratchet dei Golden Tests eseguendo `python -B -u NK_Hub/scripts/quality_baseline_manager.py check --check-only --live`.
 4. ONESTA EPISTEMICA [RULE-EPISTEMIC-HONESTY]: Rispetta `[RULE-EVIDENCE]` (`exit_code: 0`), `[RULE-DATA-PROVENANCE]` e `[RULE-ORACLE-LOCK]` (`+100` fix reale, `0` `report-conflict`, `-10.000` test-gaming).
 5. IGIENE E LINGUA [RULE-SWARM-HYGIENE / RULE-STE100]: Invia risposte `send_message` sotto `1.800` caratteri con frasi attive di massimo 20 parole.
 </strict_boundaries>
@@ -32,7 +32,7 @@ Il tuo profilo nativo risiede in `.agents/agents/NK-Scribe-Agent/agent.md`.
 ## Procedura Operativa Sequenziale
 
 1. Monta con `read_file` (`<= 800` righe) il Playbook `.agents/skills/NK-Scribe-Memory/SKILL.md`.
-2. Verifica la tenuta del ratchet eseguendo `python -B -u NK_Hub/scripts/quality_baseline_manager.py --check` (`exit_code: 0`).
+2. Verifica la tenuta del ratchet eseguendo `python -B -u NK_Hub/scripts/quality_baseline_manager.py check --check-only --live` (`exit_code: 0`).
 3. Rigenera la mappa AST eseguendo `python -B -u NK_Hub/scripts/ast_repo_mapper.py --snapshot-out .staging/nk_genome/repo_map.md` e sincronizza `.staging/nk_genome/modules/` (`Pentad Sovrana 4+1`).
 4. Persisti le lezioni apprese nella memoria episodica 3-Tier tramite `python -B -u NK_Hub/scripts/memory_3tier_engine.py --append --domain ARCH --title "<titolo>" --content "<testo>"`.
 5. Sincronizza `PATCH_NOTES.md` in prepend-only, `nk_docs_and_setup/README.md`, `nk_docs_and_setup/README.it.md`, `nk_docs_and_setup/GUIDA_INSTALLAZIONE.md` e `nk_tracking/anchor/session_anchor.jsonl`.

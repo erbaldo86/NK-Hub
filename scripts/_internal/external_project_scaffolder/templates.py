@@ -60,6 +60,10 @@ def build_baseline_json(project_name: str) -> str:
         "_version": SCAFFOLDER_VERSION,
         "project_name": project_name,
         "metrics": {
+            "unit_tests_total": {
+                "value": 1,
+                "direction": "higher_is_better",
+            },
             "unit_tests_pass_pct": {
                 "value": 100.0,
                 "direction": "higher_is_better",
@@ -138,7 +142,7 @@ def build_pentad_genome_templates(project_name: str) -> Dict[str, str]:
         "structural_tree.md": f"# Structural Tree: {project_name}\n\nAlbero strutturale DDD del progetto.\n",
         "implementation_plan.md": f"# Implementation Plan: {project_name}\n\nPiano esecutivo atomico.\n",
         "repo_map.md": f"# Repo Map: {project_name}\n\nMappa AST del repository.\n",
-        "changelog.md": f"# Changelog SSOT: {project_name}\n\nRegistro cronologico delle modifiche verificate.\n",
+        "PATCH_NOTES.md": f"# Patch Notes SSOT: {project_name}\n\nRegistro cronologico delle modifiche verificate.\n",
     }
 
 

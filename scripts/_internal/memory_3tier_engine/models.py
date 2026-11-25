@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
-from _internal.nk_common.constants import HIGH_CAPACITY_PROFILES, VERSION
+from _internal.nk_common.constants import VERSION
 from _internal.nk_common.facade_boot import resolve_facade_attr
 from _internal.nk_common.transcript_guards import (
     estimate_tokens as _shared_estimate_tokens,

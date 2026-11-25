@@ -3,7 +3,43 @@
 from __future__ import annotations
 
 import ast
-from typing import Any
+from typing import Any, Set
+
+_STANDALONE_DANGEROUS_ATTRS: Set[str] = {
+    "os.system",
+    "os.popen",
+    "nt.system",
+    "nt.popen",
+    "posix.system",
+    "posix.popen",
+    "pty.spawn",
+    "asyncio.create_subprocess_shell",
+    "pickle.loads",
+    "pickle.load",
+    "_pickle.loads",
+    "_pickle.load",
+    "marshal.loads",
+    "marshal.load",
+    "builtins.eval",
+    "builtins.exec",
+    "builtins.compile",
+    "builtins.__import__",
+    "__builtins__.eval",
+    "__builtins__.exec",
+    "__builtins__.compile",
+    "__builtins__.__import__",
+}
+
+
+def _is_standalone_dangerous_attr(resolved_attr: str) -> bool:
+    """Identifica riferimenti standalone a sink SAST senza bloccare subprocess.run/Popen."""
+    if resolved_attr in _STANDALONE_DANGEROUS_ATTRS:
+        return True
+    if "." in resolved_attr:
+        mod, attr = resolved_attr.rsplit(".", 1)
+        if mod in ("os", "nt", "posix") and attr.startswith(("exec", "spawn")):
+            return True
+    return False
 
 
 def check_binop_node(checker: Any, node: ast.BinOp) -> bool:
@@ -67,7 +103,7 @@ def check_constant_node(checker: Any, node: ast.Constant) -> None:
 
 def check_subscript_node(checker: Any, node: ast.Subscript) -> None:
     """Rileva lookup dinamici su sys.modules, namespace o slice invertiti."""
-    if checker.is_self_validator or not isinstance(node.ctx, ast.Load):
+    if not isinstance(node.ctx, ast.Load):
         return
     key_str = checker._eval_const_str_expr(node.slice)
     rev_slice = (
@@ -112,10 +148,25 @@ def check_subscript_node(checker: Any, node: ast.Subscript) -> None:
         )
 
 
+def _check_standalone_attr_reference(
+    checker: Any, node: ast.Attribute, resolved_attr: str
+) -> None:
+    """Rileva riferimenti standalone in Load a attributi pericolosi non chiamati direttamente."""
+    if (
+        resolved_attr
+        and isinstance(node.ctx, ast.Load)
+        and id(node) not in getattr(checker, "_direct_call_func_ids", ())
+        and _is_standalone_dangerous_attr(resolved_attr)
+    ):
+        checker._emit_sast(
+            resolved_attr,
+            node,
+            f"Unsafe standalone reference to dangerous attribute '{resolved_attr}' detected.",
+        )
+
+
 def check_attribute_node(checker: Any, node: ast.Attribute) -> None:
-    """Rileva accessi a ctypes.windll, MRO e attributi frame."""
-    if checker.is_self_validator:
-        return
+    """Rileva accessi a ctypes.windll, MRO, frame e riferimenti standalone a sink SAST."""
     resolved_attr = checker._resolve_symbol_expr(node)
     if resolved_attr == "ctypes.windll" or (
         isinstance(node.value, ast.Name)
@@ -138,11 +189,13 @@ def check_attribute_node(checker: Any, node: ast.Attribute) -> None:
             node,
             f"Prohibited frame attribute access '.{node.attr}' detected.",
         )
+    else:
+        _check_standalone_attr_reference(checker, node, resolved_attr)
 
 
 def check_compare_node(checker: Any, node: ast.Compare) -> None:
-    """Rileva sniffing di pytest in sys.modules e soglie gaming in src_app."""
-    if checker.is_test_file or checker.is_self_validator:
+    """Rileva sniffing di pytest in sys.modules e soglie gaming in src non-business."""
+    if checker.is_test_file:
         return
     left_const = checker._eval_const_str_expr(node.left)
     if left_const == "pytest":
@@ -155,7 +208,7 @@ def check_compare_node(checker: Any, node: ast.Compare) -> None:
                     node,
                     "sys.modules 'pytest' membership sniffing detected.",
                 )
-    if checker.in_src_app:
+    if checker.in_src_app and not getattr(checker, "in_business_app", False):
         operands = [node.left, *node.comparators]
         has_grant_or_snapshot_len = False
         has_threshold_int = False
@@ -219,11 +272,7 @@ def check_import_from_node(checker: Any, node: ast.ImportFrom) -> None:
                 node,
                 "Zero-Mock violation: unittest.mock / MagicMock import detected.",
             )
-        elif (
-            not checker.is_self_validator
-            and node.module == "ctypes"
-            and alias.name == "windll"
-        ):
+        elif node.module == "ctypes" and alias.name == "windll":
             checker._emit_sast(
                 "ctypes.windll",
                 node,

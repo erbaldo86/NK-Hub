@@ -31,15 +31,13 @@ def extract_pattern_bindings(pattern: Any, bindings: Set[str]) -> None:
     if pattern is None:
         return
     p_type = type(pattern).__name__
-
     if p_type == "MatchAs":
         if getattr(pattern, "name", None):
             bindings.add(pattern.name)
         if getattr(pattern, "pattern", None):
             extract_pattern_bindings(pattern.pattern, bindings)
-    elif p_type == "MatchStar":
-        if getattr(pattern, "name", None):
-            bindings.add(pattern.name)
+    elif p_type == "MatchStar" and getattr(pattern, "name", None):
+        bindings.add(pattern.name)
     elif p_type == "MatchMapping":
         for p in getattr(pattern, "patterns", []):
             extract_pattern_bindings(p, bindings)
@@ -53,55 +51,93 @@ def extract_pattern_bindings(pattern: Any, bindings: Set[str]) -> None:
                 extract_pattern_bindings(p, bindings)
 
 
+def _collect_walrus_in_comprehension(comp_node: ast.AST, local_scope: Set[str]) -> None:
+    stack: List[ast.AST] = list(ast.iter_child_nodes(comp_node))
+    while stack:
+        cur = stack.pop()
+        if isinstance(cur, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)):
+            continue
+        if isinstance(cur, ast.NamedExpr):
+            extract_target_names(cur.target, local_scope)
+        stack.extend(ast.iter_child_nodes(cur))
+
+
+def _record_match_or_with_bindings(child: ast.AST, local_scope: Set[str]) -> bool:
+    if isinstance(child, (ast.With, ast.AsyncWith)):
+        for item in child.items:
+            if item.optional_vars:
+                extract_target_names(item.optional_vars, local_scope)
+        return True
+    if type(child).__name__ == "Match":
+        for case in getattr(child, "cases", []):
+            extract_pattern_bindings(getattr(case, "pattern", None), local_scope)
+        return True
+    return False
+
+
+def _record_shared_decl(
+    child: ast.AST,
+    local_scope: Set[str],
+    declared_shared: Optional[Set[str]],
+    declared_globals: Optional[Set[str]],
+    declared_nonlocals: Optional[Set[str]],
+) -> None:
+    is_global = isinstance(child, ast.Global)
+    for name in getattr(child, "names", ()):
+        local_scope.add(name)
+        if declared_shared is not None:
+            declared_shared.add(name)
+        if is_global and declared_globals is not None:
+            declared_globals.add(name)
+        elif not is_global and declared_nonlocals is not None:
+            declared_nonlocals.add(name)
+
+
+def _record_stmt_binding(child: ast.AST, local_scope: Set[str]) -> None:
+    if isinstance(child, ast.Assign):
+        for t in child.targets:
+            extract_target_names(t, local_scope)
+    elif isinstance(child, (ast.AnnAssign, ast.AugAssign, ast.NamedExpr)):
+        extract_target_names(child.target, local_scope)
+    elif isinstance(child, (ast.For, ast.AsyncFor)):
+        extract_target_names(child.target, local_scope)
+    elif isinstance(child, ast.ExceptHandler) and child.name:
+        local_scope.add(child.name)
+    elif isinstance(child, ast.Import):
+        for alias in child.names:
+            name = alias.asname or alias.name
+            local_scope.update((name, name.split(".")[0]))
+    elif isinstance(child, ast.ImportFrom):
+        for alias in child.names:
+            local_scope.add(alias.asname or alias.name)
+
+
 def collect_func_local_bindings(
     nodes: List[ast.stmt],
     local_scope: Set[str],
     declared_shared: Optional[Set[str]] = None,
+    declared_globals: Optional[Set[str]] = None,
+    declared_nonlocals: Optional[Set[str]] = None,
 ) -> None:
     """Raccoglie i simboli locali della funzione senza scendere in funzioni o classi annidate."""
     stack: List[ast.AST] = list(nodes)
     while stack:
         child = stack.pop()
-        if isinstance(
-            child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
-        ):
+        if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
             local_scope.add(child.name)
             continue
-        if isinstance(
-            child,
-            (
-                ast.Lambda,
-                ast.ListComp,
-                ast.SetComp,
-                ast.GeneratorExp,
-                ast.DictComp,
-            ),
-        ):
+        if isinstance(child, ast.Lambda):
             continue
-        if isinstance(child, ast.Assign):
-            for t in child.targets:
-                extract_target_names(t, local_scope)
-        elif isinstance(child, (ast.AnnAssign, ast.AugAssign)):
-            extract_target_names(child.target, local_scope)
-        elif isinstance(child, (ast.For, ast.AsyncFor)):
-            extract_target_names(child.target, local_scope)
-        elif isinstance(child, ast.ExceptHandler) and child.name:
-            local_scope.add(child.name)
-        elif isinstance(child, (ast.With, ast.AsyncWith)):
-            for item in child.items:
-                if item.optional_vars:
-                    extract_target_names(item.optional_vars, local_scope)
-        elif isinstance(child, ast.Import):
-            for alias in child.names:
-                name = alias.asname or alias.name
-                local_scope.add(name)
-                local_scope.add(name.split(".")[0])
-        elif isinstance(child, ast.ImportFrom):
-            for alias in child.names:
-                local_scope.add(alias.asname or alias.name)
-        elif isinstance(child, (ast.Global, ast.Nonlocal)):
-            for name in child.names:
-                local_scope.add(name)
-                if declared_shared is not None:
-                    declared_shared.add(name)
+        if isinstance(child, (ast.ListComp, ast.SetComp, ast.GeneratorExp, ast.DictComp)):
+            _collect_walrus_in_comprehension(child, local_scope)
+            continue
+        if _record_match_or_with_bindings(child, local_scope):
+            stack.extend(ast.iter_child_nodes(child))
+            continue
+        if isinstance(child, (ast.Global, ast.Nonlocal)):
+            _record_shared_decl(
+                child, local_scope, declared_shared, declared_globals, declared_nonlocals
+            )
+        else:
+            _record_stmt_binding(child, local_scope)
         stack.extend(ast.iter_child_nodes(child))

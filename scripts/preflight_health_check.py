@@ -36,13 +36,6 @@ from _internal.nk_common.facade_boot import init_nk_facade as _init_phc_facade  
 
 _init_phc_facade(__file__, pkg="preflight_health_check")
 
-from _internal.preflight_health_check.checker import PreflightHealthChecker  # noqa: E402
-from _internal.preflight_health_check.cleanup_and_wal import (  # noqa: E402
-    safe_remove_dir,
-    safe_remove_file,
-)
-from _internal.preflight_health_check.cli import main  # noqa: E402
-
 _LAZY_EXPORT_MAP: Dict[str, tuple[str, str]] = {
     "PreflightHealthChecker": ("_internal.preflight_health_check.checker", "PreflightHealthChecker"),
     "safe_remove_dir": ("_internal.preflight_health_check.cleanup_and_wal", "safe_remove_dir"),

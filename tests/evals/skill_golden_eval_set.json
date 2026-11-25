@@ -102,9 +102,9 @@
       "node_id": "[8]",
       "name": "NK-Bug-Diagnostic-Engine",
       "skill_path": ".agents/skills/NK-Bug-Diagnostic-Engine/SKILL.md",
-      "rsi_level": "L1 + L2",
-      "rsi_profile": "CODE_RSI",
-      "retry_caps": [1, 2, 3],
+      "rsi_level": "L0",
+      "rsi_profile": "Producer",
+      "retry_caps": [0, 0, 0],
       "required_tools": ["read_file", "send_message"],
       "forbidden_tools": ["write_file", "edit_file", "run_command", "invoke_subagent"],
       "required_substrings": ["01_Bug_Diagnostics", "02_Development_Patterns", "CODE_RSI", "<rsi_micro_loop>"]

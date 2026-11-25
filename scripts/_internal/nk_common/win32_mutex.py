@@ -3,8 +3,11 @@
 
 from __future__ import annotations
 
+import hashlib
+import os
 import sys
-from typing import Any, Optional, Tuple
+from pathlib import Path
+from typing import Any, Optional, Tuple, Union
 
 WAIT_OBJECT_0 = 0x00000000
 WAIT_ABANDONED_0 = 0x00000080
@@ -13,6 +16,38 @@ ERROR_ACCESS_DENIED = 5
 SYNCHRONIZE = 0x00100000
 
 _KERNEL32_CACHE: Any = None
+
+
+def canonical_mutex_path(target_path: Union[str, Path]) -> str:
+    """Normalizza il percorso canonico in lowercase Win32 per nomi Named Mutex deterministici."""
+    return os.path.realpath(str(target_path)).lower().replace("/", "\\").rstrip("\\")
+
+
+def repo_path_hash(target_path: Union[str, Path], *, chars: int = 16) -> str:
+    """Restituisce il prefisso hex SHA-256 del percorso canonico lowercase."""
+    return hashlib.sha256(canonical_mutex_path(target_path).encode("utf-8")).hexdigest()[: max(1, int(chars))]
+
+
+def repo_path_hash12(target_path: Union[str, Path]) -> str:
+    """Restituisce i primi 12 caratteri esadecimali SHA-256 del percorso canonico lowercase."""
+    return repo_path_hash(target_path, chars=12)
+
+
+def get_named_mutex_name(
+    target_path: Union[str, Path], prefix: str, *, chars: int = 12
+) -> str:
+    """Restituisce un nome deterministico Win32NamedMutex per percorso e prefisso."""
+    return f"{prefix}_{repo_path_hash(target_path, chars=chars)}"
+
+
+def get_repo_batch_mutex_name(target_path: Union[str, Path]) -> str:
+    """Restituisce il nome canonico Global\\NK_RepoBatchLock_<sha16> condiviso per 2PC."""
+    return get_named_mutex_name(target_path, "Global\\NK_RepoBatchLock", chars=16)
+
+
+def get_tensor_active_mutex_name(root_path: Union[str, Path]) -> str:
+    """Restituisce il nome mutex condiviso per nk_tracking/tensor_sessions/ACTIVE.json."""
+    return get_named_mutex_name(root_path, "Local\\NK_TensorActive", chars=12)
 
 
 def get_kernel32() -> Any:

@@ -24,20 +24,16 @@ from _internal.nk_acs_fastguard.constants import (
 
 def _resolve_eff_root(payload: Dict[str, Any], cli_root: Optional[str]) -> str:
     """Risolve la root effettiva del workspace dal payload o dallo script."""
-    for raw in (
-        cli_root,
-        payload.get("projectRoot"),
-        payload.get("workspacePath"),
-        payload.get("workspace_root"),
-        os.environ.get("NK_PROJECT_ROOT"),
-        payload.get("cwd"),
-    ):
+    cands = (
+        cli_root, payload.get("projectRoot"), payload.get("workspacePath"),
+        payload.get("workspace_root"), os.environ.get("NK_PROJECT_ROOT"), payload.get("cwd"),
+    )
+    for raw in cands:
         if isinstance(raw, str):
             cand = raw.strip()
             if cand and _is_safe_dir(cand):
-                has_scripts = os.path.exists(os.path.join(cand, "scripts"))
-                has_staging = os.path.exists(os.path.join(cand, ".staging"))
-                if not has_scripts and not has_staging:
+                has_scripts = _is_safe_dir(os.path.join(cand, "scripts"))
+                if not has_scripts:
                     nk_sub = os.path.join(cand, "NK_Hub")
                     if _is_safe_dir(nk_sub) and _is_safe_dir(os.path.join(nk_sub, "scripts")):
                         return os.path.realpath(nk_sub)
@@ -45,22 +41,28 @@ def _resolve_eff_root(payload: Dict[str, Any], cli_root: Optional[str]) -> str:
     return str(_fg_attr("_WORKSPACE_ROOT", _WORKSPACE_ROOT))
 
 
+def _resolve_hub_and_project_roots(
+    payload: Dict[str, Any], cli_root: Optional[str] = None
+) -> Tuple[str, str]:
+    """Distingue hub_root e project_root preservando parent_ws -> parent_ws/NK_Hub."""
+    project_root = _resolve_eff_root(payload, cli_root)
+    base_ws = os.path.realpath(str(_fg_attr("_WORKSPACE_ROOT", _WORKSPACE_ROOT)))
+    if os.path.basename(project_root) == "NK_Hub" and _is_safe_dir(os.path.join(project_root, "scripts")):
+        return project_root, project_root
+    sib_hub = os.path.join(os.path.dirname(os.path.dirname(project_root)), "NK_Hub")
+    if _is_safe_dir(sib_hub) and _is_safe_dir(os.path.join(sib_hub, "scripts")):
+        return os.path.realpath(sib_hub), project_root
+    return base_ws, project_root
+
+
 def _is_valid_conv_id(raw: str) -> bool:
     """Valida l'identificativo conversazione in O(N) senza compilare regex."""
-    n = len(raw)
-    if n < 1 or n > 64:
-        return False
-    return all(ch in _CONV_ID_CHARS for ch in raw)
+    return 1 <= len(raw) <= 64 and all(ch in _CONV_ID_CHARS for ch in raw)
 
 
 def _resolve_explicit_conv_id(cli_id: Optional[str], payload: Dict[str, Any]) -> Optional[str]:
     """Restituisce un conversationId valido oppure None senza calcolare SHA-256."""
-    for raw in (
-        cli_id,
-        payload.get("conversationId"),
-        payload.get("conversation_id"),
-        os.environ.get("NK_CONVERSATION_ID"),
-    ):
+    for raw in (cli_id, payload.get("conversationId"), payload.get("conversation_id"), os.environ.get("NK_CONVERSATION_ID")):
         if isinstance(raw, str) and _is_valid_conv_id(raw):
             return raw
     return None
@@ -73,8 +75,7 @@ def _resolve_conv_id(cli_id: Optional[str], payload: Dict[str, Any], eff_root: s
         return valid
     import hashlib
 
-    norm = os.path.realpath(eff_root).lower().encode("utf-8")
-    return f"default_{hashlib.sha256(norm).hexdigest()[:10]}"
+    return f"default_{hashlib.sha256(os.path.realpath(eff_root).lower().encode('utf-8')).hexdigest()[:10]}"
 
 
 def _candidate_roots(eff_root: str) -> List[str]:
@@ -92,15 +93,11 @@ def _resolve_transcript_path(
 ) -> Optional[str]:
     """Individua il percorso sicuro del transcript.jsonl attivo."""
     raw = cli_tp or payload.get("transcriptPath") or payload.get("transcript_path")
-    if isinstance(raw, str):
-        cand = raw.strip()
-        if cand:
-            return cand if _is_safe_file(cand) is not None else None
+    if isinstance(raw, str) and raw.strip():
+        return raw.strip() if _is_safe_file(raw.strip()) is not None else None
     if conv_id and not conv_id.startswith("default_") and _is_valid_conv_id(conv_id):
         home = os.environ.get("USERPROFILE") or os.path.expanduser("~")
-        cand = os.path.join(
-            home, ".gemini", "antigravity", "brain", conv_id, ".system_generated", "logs", "transcript.jsonl"
-        )
+        cand = os.path.join(home, ".gemini", "antigravity", "brain", conv_id, ".system_generated", "logs", "transcript.jsonl")
         if _is_safe_file(cand) is not None:
             return cand
     return None
@@ -129,23 +126,12 @@ def _get_hooks_temp_dir() -> Optional[str]:
 def _default_state() -> Dict[str, Any]:
     """Restituisce uno stato iniziale pulito per fastguard."""
     return {
-        "version": 1,
-        "byte_offset": 0,
-        "steps": 0,
-        "fallback_steps": 0,
-        "last_actual_tokens": 0,
-        "prev_actual_tokens": 0,
-        "epoch_baseline_tokens": 0,
-        "compaction_epoch": 0,
-        "checkpoint_byte_offset": 0,
-        "reanchor_emitted_offset": -1,
-        "z1_epoch": -1,
-        "z3_pre_epoch": -1,
-        "z3_post_epoch": -1,
-        "z2_last_spawn_ts": 0.0,
-        "z2_last_spawn_epoch": -1,
-        "enforced_prompt_sha256": "",
-        "enforced_epoch": -1,
+        "version": 1, "byte_offset": 0, "steps": 0, "fallback_steps": 0,
+        "last_actual_tokens": 0, "prev_actual_tokens": 0, "epoch_baseline_tokens": 0,
+        "compaction_epoch": 0, "checkpoint_byte_offset": 0, "reanchor_emitted_offset": -1,
+        "z1_epoch": -1, "z3_pre_epoch": -1, "z3_post_epoch": -1,
+        "z2_last_spawn_ts": 0.0, "z2_last_spawn_epoch": -1,
+        "enforced_prompt_sha256": "", "enforced_epoch": -1, "session_start_ns": 0,
     }
 
 
@@ -153,24 +139,18 @@ def _reset_state_on_compaction(
     state: Dict[str, Any], comp_offset: int, *, new_epoch: int
 ) -> None:
     """Azzera metriche e gate epoch su compaction verificata preservando reanchor_emitted_offset."""
-    state["compaction_epoch"] = new_epoch
-    state["checkpoint_byte_offset"] = comp_offset
-    state["steps"] = 0
-    state["fallback_steps"] = 0
-    state["last_actual_tokens"] = 0
-    state["prev_actual_tokens"] = 0
-    state["epoch_baseline_tokens"] = 0
-    state["z1_epoch"] = -1
-    state["z3_pre_epoch"] = -1
-    state["z3_post_epoch"] = -1
-    state["z2_last_spawn_epoch"] = -1
-    state["z2_last_spawn_ts"] = 0.0
+    state["compaction_epoch"], state["checkpoint_byte_offset"] = new_epoch, comp_offset
+    state["steps"], state["fallback_steps"] = 0, 0
+    state["last_actual_tokens"], state["prev_actual_tokens"], state["epoch_baseline_tokens"] = 0, 0, 0
+    state["z1_epoch"], state["z3_pre_epoch"], state["z3_post_epoch"] = -1, -1, -1
+    state["z2_last_spawn_epoch"], state["z2_last_spawn_ts"] = -1, 0.0
 
 
 def _load_state_with_exists(state_path: Optional[str]) -> Tuple[Dict[str, Any], bool, bool]:
     """Carica lo stato JSON persistente in una singola stat restituendo (state, exists, recovered)."""
     state = _default_state()
     if state_path is None or _stat_safe_file(state_path) is None:
+        state["session_start_ns"] = time.time_ns()
         return state, False, False
     try:
         with open(state_path, "r", encoding="utf-8") as f:
@@ -182,10 +162,15 @@ def _load_state_with_exists(state_path: Optional[str]) -> Tuple[Dict[str, Any], 
                     isinstance(default_v, float) and isinstance(v, (int, float)) and not isinstance(v, bool)
                 ):
                     state[k] = float(v) if isinstance(default_v, float) else v
+            cur_ns = state.get("session_start_ns")
+            if not isinstance(cur_ns, int) or isinstance(cur_ns, bool) or cur_ns <= 0:
+                state["session_start_ns"] = time.time_ns()
             return state, True, False
     except Exception:
         pass
-    return _default_state(), True, True
+    state = _default_state()
+    state["session_start_ns"] = time.time_ns()
+    return state, True, True
 
 
 def _load_state(state_path: Optional[str]) -> Dict[str, Any]:
@@ -259,9 +244,7 @@ def _acquire_fastguard_mutex(conv_id: str) -> Optional[int]:
                 sys.path.insert(0, base_d)
         from _internal.nk_common.win32_mutex import create_or_open_named_mutex
 
-        handle, acquired, _ = create_or_open_named_mutex(
-            f"Global\\NK_FastguardState_{conv_id}", wait_ms=1000
-        )
+        handle, acquired, _ = create_or_open_named_mutex(f"Global\\NK_FastguardState_{conv_id}", wait_ms=1000)
         return handle if acquired else None
     except Exception:
         return None

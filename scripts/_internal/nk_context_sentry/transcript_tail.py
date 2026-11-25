@@ -17,6 +17,11 @@ from _internal.nk_context_sentry.thresholds_proxy import (
     has_compaction_candidate_bytes,
 )
 
+_MD_LINK_RE = re.compile(r"\[([^\]]*)\]\([^\)]+\)")
+_CODE_SPAN_RE = re.compile(r"`[^`]+`")
+_MD_PUNCT_RE = re.compile(r"[\|\-\*\#\>\_\~]+")
+_MULTI_WS_RE = re.compile(r"\s+")
+
 
 def _get_transcript_tools() -> Any:
     """Importa nk_transcript_tools al bisogno evitando cicli all'import."""
@@ -263,10 +268,10 @@ def analyze_transcript_impl(
                 net_body = net_body.replace("<passive_data_context>", "").replace(
                     "</passive_data_context>", ""
                 )
-                net_body = re.sub(r"\[([^\]]*)\]\([^\)]+\)", r"\1", net_body)
-                net_body = re.sub(r"`[^`]+`", "T", net_body)
-                net_body = re.sub(r"[\|\-\*\#\>\_\~]+", "", net_body)
-                msg_len = len(re.sub(r"\s+", " ", net_body).strip())
+                net_body = _MD_LINK_RE.sub(r"\1", net_body)
+                net_body = _CODE_SPAN_RE.sub("T", net_body)
+                net_body = _MD_PUNCT_RE.sub("", net_body)
+                msg_len = len(_MULTI_WS_RE.sub(" ", net_body).strip())
                 if msg_len > sentry.SWARM_MSG_MSS_CAP:
                     swarm_mss_warnings.append(
                         {

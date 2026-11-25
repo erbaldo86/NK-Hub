@@ -6,19 +6,15 @@ import os
 import re
 from typing import List, Optional, Tuple
 
-from _internal.nk_hook_gate.constants import (
-    _CMD_C_WRAPPER_RE,
-    _PS_COMMAND_WRAPPER_RE,
-    _strip_wrapping_quotes,
-)
+from _internal.nk_hook_gate.constants import _CMD_C_WRAPPER_RE, _PS_COMMAND_WRAPPER_RE, _strip_wrapping_quotes
+from _internal.nk_hook_gate.constants_patterns import extract_ps_command_payload, extract_ps_positional_payload
 
 
 def _norm_cmd_verb(tok: str) -> str:
-    """Normalizza il nome di un eseguibile shell eliminando il percorso e il suffisso .exe."""
-    base = os.path.basename(_strip_wrapping_quotes(tok).replace("\\", "/")).lower()
-    if base.endswith(".exe"):
-        return base[:-4]
-    return base
+    """Normalizza il nome di un eseguibile shell eliminando &, percorso e suffisso .exe."""
+    cleaned = _strip_wrapping_quotes(tok).lstrip("&").strip("\"'").replace("\\", "/")
+    base = os.path.basename(cleaned).lower()
+    return base[:-4] if base.endswith(".exe") else base
 
 
 def _has_unquoted_ps_backtick_obfuscation(cmd_str: str) -> bool:
@@ -225,22 +221,76 @@ def _tokenize_shell_tokens(seg: str) -> Optional[List[Tuple[str, str, bool]]]:
     return tokens
 
 
-def _unwrap_shell_subcommands(cmd_str: str) -> List[str]:
-    """Estrae i comandi annidati passati a powershell -c/-command, cmd /c o scriptblock & {...}."""
-    subcommands: List[str] = []
-    deobf = _deobfuscate_ps_backticks(cmd_str)
-    for rx in (_PS_COMMAND_WRAPPER_RE, _CMD_C_WRAPPER_RE):
-        m = rx.search(deobf)
-        if m:
-            inner = _strip_wrapping_quotes(m.group(1).strip())
-            if inner.startswith("{") and inner.endswith("}"):
-                inner = inner[1:-1].strip()
-            if inner and inner != cmd_str:
-                subcommands.append(inner)
+def _extract_leading_quoted(text: str) -> str:
+    """Estrae il payload dalla prima stringa quotata se seguita da fine o operatore shell."""
+    if len(text) < 2 or text[0] not in ('"', "'"):
+        return ""
+    q, idx, n = text[0], 1, len(text)
+    while idx < n:
+        ch = text[idx]
+        if q == '"' and ((ch == "\\" and idx + 1 < n and text[idx + 1] in ('"', "\\")) or (ch == "`" and idx + 1 < n)):
+            idx += 2
+            continue
+        if ch == q:
+            return text[1:idx].strip() if (idx + 1 == n or text[idx + 1] in " \t&|;\n\r)") else ""
+        idx += 1
+    return ""
+
+
+def _clean_wrapped_inner(raw: str) -> str:
+    """Normalizza il payload estratto da wrapper shell rimuovendo quote esterne, escape o graffe."""
+    inner = raw.strip()
+    if inner.startswith(('\\"', '`"')):
+        inner = inner.replace('\\"', '"').replace('`"', '"')
+    inner = _extract_leading_quoted(inner) or _strip_wrapping_quotes(inner)
+    if '\\"' in inner or '`"' in inner:
+        inner = inner.replace('\\"', '"').replace('`"', '"')
+    if inner.startswith("{") and inner.endswith("}"):
+        inner = inner[1:-1].strip()
+    return inner
+
+
+def _append_ps_positional(chunk: str, text: str, found: List[str]) -> None:
+    """Aggiunge il payload posizionale o multi-argomento PowerShell se non duplicato."""
+    toks = _tokenize_shell_tokens(chunk)
+    pos_raw, is_multi = extract_ps_command_payload(toks, _norm_cmd_verb) if toks else ("", False)
+    pos_inner = pos_raw if is_multi else _clean_wrapped_inner(pos_raw)
+    if pos_inner and pos_inner != text and pos_inner not in found:
+        found.append(pos_inner)
+
+
+def _unwrap_shell_once(text: str) -> List[str]:
+    """Estrae un livello di comandi annidati da powershell -c, cmd /c o scriptblock & {...}."""
+    found: List[str] = []
+    deobf = _deobfuscate_ps_backticks(text)
+    targets = [deobf, *(s for s in _split_shell_segments(deobf) if s != deobf)]
+    for chunk in targets:
+        for rx in (_PS_COMMAND_WRAPPER_RE, _CMD_C_WRAPPER_RE):
+            m = rx.search(chunk)
+            inner = _clean_wrapped_inner(m.group(1)) if m else ""
+            if inner and inner != text and inner not in found:
+                found.append(inner)
+        _append_ps_positional(chunk, text, found)
     for m_sb in re.finditer(r"(?<![>&])&(?!&)\s*\{([^{}]*)\}", deobf):
         sb_body = m_sb.group(1).strip()
-        if sb_body:
-            subcommands.append(sb_body)
+        if sb_body and sb_body not in found:
+            found.append(sb_body)
+    return found
+
+
+def _unwrap_shell_subcommands(cmd_str: str) -> List[str]:
+    """Estrae ricorsivamente (fino a 4 livelli) comandi annidati powershell -c, cmd /c e & {...}."""
+    subcommands: List[str] = []
+    seen = {cmd_str}
+    frontier = [cmd_str]
+    for _ in range(4):
+        candidates = [i for cur in frontier for i in _unwrap_shell_once(cur)]
+        next_frontier = [i for i in dict.fromkeys(candidates) if i not in seen]
+        if not next_frontier:
+            break
+        seen.update(next_frontier)
+        subcommands.extend(next_frontier)
+        frontier = next_frontier
     return subcommands
 
 

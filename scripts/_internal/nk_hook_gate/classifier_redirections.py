@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from _internal.nk_common.constants import NK_LOCK_FILENAMES
 from _internal.nk_hook_gate.constants import (
     _PROTECTED_FILE_EXTS,
     _PROTECTED_PROJECT_SEGMENTS,
@@ -17,8 +18,11 @@ from _internal.nk_hook_gate.constants import (
 )
 from _internal.nk_hook_gate.path_safety import (
     _canonical_path,
+    _deny_online_readonly,
     _has_ancestor_reparse_escape,
     _has_ntfs_ads_stream,
+    _is_nk_proget_locale_target,
+    _is_nk_proget_online_target,
     _is_safe_redirection_target,
     _is_valid_staging_path,
     _is_whitelisted_outside_staging,
@@ -42,6 +46,7 @@ _PATH_PREFIX_FLAGS = ("-path:", "-path=", "--path=", "-literalpath:", "-literalp
 _BARE_PROTECTED_NAMES = frozenset(
     ("scripts", ".agents", "tests", "nk_genome", "nk_tracking", "schemas", ".wal", "src_app", "src", "app", "core")
 )
+_LOCK_NAMES_LOW = frozenset(name.lower() for name in NK_LOCK_FILENAMES)
 
 
 def _looks_like_write_path_candidate(tok: str) -> bool:
@@ -153,6 +158,27 @@ def _extract_candidate_write_targets(cmd_str: str) -> List[str]:
     return out
 
 
+def _is_protected_redir_path(cand: Path, cand_parts_low: List[str]) -> bool:
+    """Verifica se una redirezione colpisce directory protette o percorsi NK Proget/Locale/."""
+    return _is_nk_proget_locale_target(cand) or any(
+        p in ("nk_external_projects", *_PROTECTED_PROJECT_SEGMENTS)
+        for p in cand_parts_low
+    )
+
+
+def _classify_gov_redir_artifact(cand: Path, cand_parts_low: List[str], cand_name_low: str) -> Optional[Dict[str, Any]]:
+    """Blocca redirezioni shell dirette verso file lock, tensor_sessions, baseline o checkpoint."""
+    if cand_name_low in _LOCK_NAMES_LOW:
+        return {"decision": "deny", "reason": f"Direct write to {cand.name} outside .staging/ is forbidden ([RULE-ORACLE-LOCK])."}
+    if "nk_tracking" in cand_parts_low and ("tensor_sessions" in cand_parts_low or cand_name_low == "active.json"):
+        return {"decision": "deny", "reason": "Direct shell redirection to nk_tracking/tensor_sessions/ or ACTIVE.json outside .staging/ is forbidden."}
+    if cand_name_low == "quality_baseline.json":
+        return {"decision": "deny", "reason": "Direct shell write to quality_baseline.json outside .staging/ is forbidden."}
+    if cand_name_low.startswith("checkpoint_") and cand_name_low.endswith(".json"):
+        return {"decision": "deny", "reason": "Direct shell redirection to checkpoint_*.json outside .staging/ is forbidden."}
+    return None
+
+
 def _classify_redirection_target_violation(
     redir_target: str, project_root: Path
 ) -> Optional[Dict[str, Any]]:
@@ -179,6 +205,8 @@ def _classify_redirection_target_violation(
             "reason": "Symlink or reparse point escape on redirection target is forbidden (anti-TOCTOU).",
         }
     cand = _resolve_target_path(redir_target, project_root)
+    if _is_nk_proget_online_target(cand):
+        return _deny_online_readonly()
     if _is_valid_staging_path(cand, project_root):
         return None
     cand_parts_low = [p.lower().rstrip(". ") for p in cand.parts]
@@ -188,24 +216,11 @@ def _classify_redirection_target_violation(
             "decision": "deny",
             "reason": "Destructive shell write to PATCH_NOTES.md is forbidden; use prepend-only edit_file.",
         }
-    if cand_name_low == "oracle_lock.json":
-        return {
-            "decision": "deny",
-            "reason": "Direct write to oracle_lock.json outside .staging/ is forbidden ([RULE-ORACLE-LOCK]).",
-        }
-    if cand_name_low == "quality_baseline.json":
-        return {
-            "decision": "deny",
-            "reason": "Direct shell write to quality_baseline.json outside .staging/ is forbidden.",
-        }
-    if cand_name_low.startswith("checkpoint_") and cand_name_low.endswith(".json"):
-        return {
-            "decision": "deny",
-            "reason": "Direct shell redirection to checkpoint_*.json outside .staging/ is forbidden.",
-        }
+    if gov_res := _classify_gov_redir_artifact(cand, cand_parts_low, cand_name_low):
+        return gov_res
     if _is_whitelisted_outside_staging(cand, project_root):
         return None
-    if any(p in ("nk_external_projects", *_PROTECTED_PROJECT_SEGMENTS) for p in cand_parts_low):
+    if _is_protected_redir_path(cand, cand_parts_low):
         return {
             "decision": "deny",
             "reason": "Shell redirection to protected directories outside .staging/ is blocked; use win32_2pc_engine.py.",

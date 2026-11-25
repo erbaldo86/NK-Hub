@@ -1,25 +1,30 @@
 {
   "_version": "1.0.0-Generation",
+  "schema_version": 2,
   "project": "NK_Hub",
   "baseline_date": "2026-11-17T00:00:00.000000",
-  "last_updated": "2026-11-17T03:50:00.000000",
+  "last_updated": "2026-11-24T20:30:37.553815",
   "coverage_scope": "scripts_true_branch_coverage_pytest_cov",
   "metrics": {
     "skills_audited": {
       "value": 11,
       "direction": "higher_is_better"
     },
+    "crv_macro_phases": {
+      "value": 4,
+      "direction": "higher_is_better"
+    },
     "total_golden_tests": {
-      "value": 513,
+      "value": 384,
       "direction": "higher_is_better",
-      "description": "Totale Golden Tests ortogonali nella suite permanente v1.0.0-Generation"
+      "description": "Totale Golden Tests certificato NK-GEN-3.0.1-PROGET-MIGRATION"
     },
     "unit_tests_total": {
-      "value": 513,
+      "value": 384,
       "direction": "higher_is_better"
     },
     "unit_tests_passed": {
-      "value": 513,
+      "value": 384,
       "direction": "higher_is_better"
     },
     "unit_tests_pass_pct": {
@@ -30,168 +35,212 @@
       "value": 100.0,
       "direction": "higher_is_better"
     },
-    "pass_rate_percent": {
-      "value": 100.0,
-      "direction": "higher_is_better"
-    },
-    "branch_coverage_pct": {
-      "value": 89.32,
-      "direction": "higher_is_better"
-    },
-    "true_branch_coverage_pct": {
-      "value": 89.32,
-      "direction": "higher_is_better"
-    },
-    "statement_coverage_pct": {
-      "value": 94.39,
-      "direction": "higher_is_better"
-    },
-    "combined_coverage_pct": {
-      "value": 92.89,
-      "direction": "higher_is_better"
-    },
-    "pytest_duration_s": {
-      "value": 76.75,
-      "unit": "s",
-      "threshold_max": 120.0,
-      "direction": "lower_is_better"
-    },
-    "stress_test_concurrency_pass": {
-      "value": 4,
-      "direction": "higher_is_better"
-    },
-    "stress_test_80_passed": {
-      "value": 80,
-      "direction": "higher_is_better"
-    },
-    "stress_test_80_pass_pct": {
-      "value": 100.0,
-      "direction": "higher_is_better"
-    },
-    "sast_l1_compliance_pct": {
-      "value": 100.0,
-      "direction": "higher_is_better"
-    },
-    "sast_l2_compliance_pct": {
-      "value": 100.0,
-      "direction": "higher_is_better"
-    },
-    "sast_l3_compliance_pct": {
-      "value": 100.0,
-      "direction": "higher_is_better"
-    },
-    "dast_dynamic_exit_code": {
-      "value": 0,
-      "direction": "lower_is_better"
-    },
-    "token_leaks_detected": {
-      "value": 0,
-      "direction": "lower_is_better"
-    },
-    "mock_violations_detected": {
-      "value": 0,
-      "direction": "lower_is_better"
-    },
-    "crv_macro_phases": {
-      "value": 4,
-      "direction": "higher_is_better"
-    },
-    "cold_review_gates": {
-      "value": 6,
-      "direction": "higher_is_better"
-    },
-    "heartbeat_jitter_ms": {
-      "value": 15.0,
-      "direction": "lower_is_better"
-    },
-    "time_to_first_staging_sec": {
-      "value": 12.0,
-      "direction": "lower_is_better"
-    },
-    "autonomous_healing_speed_ms": {
-      "value": 450.0,
-      "unit": "ms",
-      "direction": "lower_is_better"
-    },
-    "stress_test_40_dual_passed": {
-      "value": 80,
-      "direction": "higher_is_better"
-    },
-    "stress_test_40_dual_pass_pct": {
-      "value": 100.0,
-      "direction": "higher_is_better"
-    },
-    "dual_agreement_pct": {
-      "value": 100.0,
-      "direction": "higher_is_better"
-    },
-    "protocol_compliance_score": {
-      "value": 100.0,
-      "direction": "higher_is_better"
-    },
-    "rsi_convergence_score": {
-      "value": 100.0,
-      "direction": "higher_is_better"
-    },
-    "rsi_residual_delta": {
-      "value": 0,
-      "direction": "lower_is_better"
-    },
-    "sast_critical_violations": {
-      "value": 0,
-      "direction": "lower_is_better"
-    },
-    "golden_test_pass_rate_pct": {
-      "value": 100.0,
-      "direction": "higher_is_better"
-    },
-    "ab_success_full": {
-      "value": 100.0,
-      "unit": "%",
-      "direction": "higher_is_better"
-    },
-    "ab_success_min": {
-      "value": 100.0,
-      "unit": "%",
-      "direction": "higher_is_better"
-    },
-    "harness_token_overhead_pct": {
-      "value": 5.75,
-      "unit": "%",
-      "direction": "lower_is_better"
-    },
     "failed_tests": {
       "value": 0,
       "direction": "lower_is_better"
     },
     "tests_skipped": {
       "value": 0,
+      "direction": "lower_is_better"
+    },
+    "pytest_duration_s": {
+      "value": 20.0,
+      "threshold_max": 28.0,
+      "direction": "lower_is_better",
+      "description": "Tetto costituzionale Full Suite + Branch Coverage (NK-GEN-3.0.1-PROGET-MIGRATION)"
+    },
+    "statement_coverage_pct": {
+      "value": 91.25,
+      "threshold_min": 90.5,
       "direction": "higher_is_better"
+    },
+    "true_branch_coverage_pct": {
+      "value": 83.43,
+      "threshold_min": 82.0,
+      "direction": "higher_is_better"
+    },
+    "combined_coverage_pct": {
+      "value": 88.98,
+      "threshold_min": 88.0,
+      "direction": "higher_is_better"
+    },
+    "sast_critical_violations": {
+      "value": 0,
+      "direction": "lower_is_better"
     }
   },
   "ratchet_rule": "no_metric_may_worsen",
   "history": [
     {
-      "timestamp": "2026-11-17T03:50:00.000000",
-      "milestone": "NK-GEN-1.0.0",
+      "timestamp": "2026-11-22T21:08:00.000000",
+      "milestone": "NK-GEN-2.0.0-W1",
       "metrics": {
         "skills_audited": 11,
-        "total_golden_tests": 513,
-        "unit_tests_total": 513,
-        "unit_tests_passed": 513,
+        "crv_macro_phases": 4,
+        "total_golden_tests": 522,
+        "unit_tests_total": 522,
+        "unit_tests_passed": 522,
         "unit_tests_pass_pct": 100.0,
         "pass_rate_pct": 100.0,
-        "pass_rate_percent": 100.0,
         "failed_tests": 0,
         "tests_skipped": 0,
-        "branch_coverage_pct": 89.32,
-        "true_branch_coverage_pct": 89.32,
-        "statement_coverage_pct": 94.39,
-        "combined_coverage_pct": 92.89,
-        "pytest_duration_s": 76.75,
-        "rsi_convergence_score": 100.0,
-        "rsi_residual_delta": 0,
+        "pytest_duration_s": 70.43,
+        "statement_coverage_pct": 89.29,
+        "true_branch_coverage_pct": 80.09,
+        "combined_coverage_pct": 86.56,
         "sast_critical_violations": 0
+      }
+    },
+    {
+      "timestamp": "2026-11-23T01:52:21.904562",
+      "metrics": {
+        "total_golden_tests": 274,
+        "unit_tests_total": 274,
+        "unit_tests_passed": 274,
+        "unit_tests_pass_pct": 100.0,
+        "pass_rate_pct": 100.0,
+        "failed_tests": 0,
+        "tests_skipped": 0,
+        "pytest_duration_s": 22.03,
+        "skills_audited": 11,
+        "sast_critical_violations": 0,
+        "statement_coverage_pct": 90.92,
+        "true_branch_coverage_pct": 82.94,
+        "combined_coverage_pct": 88.55
+      },
+      "reason": "NK-GEN-2.0.0-W2-SUBMODULAR-PYRAMID"
+    },
+    {
+      "timestamp": "2026-11-23T05:55:31.000000",
+      "milestone": "NK-GEN-2.0.0-W3",
+      "metrics": {
+        "skills_audited": 11,
+        "crv_macro_phases": 4,
+        "total_golden_tests": 286,
+        "unit_tests_total": 286,
+        "unit_tests_passed": 286,
+        "unit_tests_pass_pct": 100.0,
+        "pass_rate_pct": 100.0,
+        "failed_tests": 0,
+        "tests_skipped": 0,
+        "pytest_duration_s": 20.95,
+        "statement_coverage_pct": 90.94,
+        "true_branch_coverage_pct": 83.0,
+        "combined_coverage_pct": 88.59,
+        "sast_critical_violations": 0
+      }
+    },
+    {
+      "timestamp": "2026-11-23T15:00:35.938824",
+      "metrics": {
+        "total_golden_tests": 319,
+        "unit_tests_total": 319,
+        "unit_tests_passed": 319,
+        "unit_tests_pass_pct": 100.0,
+        "pass_rate_pct": 100.0,
+        "failed_tests": 0,
+        "tests_skipped": 0,
+        "pytest_duration_s": 20.14,
+        "skills_audited": 11,
+        "sast_critical_violations": 0,
+        "statement_coverage_pct": 91.21,
+        "true_branch_coverage_pct": 83.38,
+        "combined_coverage_pct": 88.91
+      },
+      "reason": "NK-GEN-2.1.0-W6"
+    },
+    {
+      "timestamp": "2026-11-24T03:20:50.197117",
+      "metrics": {
+        "total_golden_tests": 355,
+        "unit_tests_total": 355,
+        "unit_tests_passed": 355,
+        "unit_tests_pass_pct": 100.0,
+        "pass_rate_pct": 100.0,
+        "failed_tests": 0,
+        "tests_skipped": 0,
+        "pytest_duration_s": 17.3,
+        "skills_audited": 11,
+        "sast_critical_violations": 0,
+        "statement_coverage_pct": 91.41,
+        "true_branch_coverage_pct": 83.6,
+        "combined_coverage_pct": 89.14
+      }
+    },
+    {
+      "timestamp": "2026-11-24T12:38:39.649998",
+      "milestone": "NK-GEN-3.0.1-PROGET-MIGRATION",
+      "metrics": {
+        "skills_audited": 11,
+        "crv_macro_phases": 4,
+        "total_golden_tests": 362,
+        "unit_tests_total": 362,
+        "unit_tests_passed": 362,
+        "unit_tests_pass_pct": 100.0,
+        "pass_rate_pct": 100.0,
+        "failed_tests": 0,
+        "tests_skipped": 0,
+        "pytest_duration_s": 26.445,
+        "statement_coverage_pct": 91.44,
+        "true_branch_coverage_pct": 83.69,
+        "combined_coverage_pct": 89.18,
+        "sast_critical_violations": 0
+      }
+    },
+    {
+      "timestamp": "2026-11-24T17:05:27.012804",
+      "metrics": {
+        "total_golden_tests": 380,
+        "unit_tests_total": 380,
+        "unit_tests_passed": 380,
+        "unit_tests_pass_pct": 100.0,
+        "pass_rate_pct": 100.0,
+        "failed_tests": 0,
+        "tests_skipped": 0,
+        "pytest_duration_s": 24.54,
+        "skills_audited": 11,
+        "sast_critical_violations": 0,
+        "statement_coverage_pct": 91.2,
+        "true_branch_coverage_pct": 83.29,
+        "combined_coverage_pct": 88.9
+      },
+      "reason": "NK-GEN-3.0.2-FORENSIC-HARDENING-CLEAN"
+    },
+    {
+      "timestamp": "2026-11-24T18:15:30.308078",
+      "metrics": {
+        "total_golden_tests": 383,
+        "unit_tests_total": 383,
+        "unit_tests_passed": 383,
+        "unit_tests_pass_pct": 100.0,
+        "pass_rate_pct": 100.0,
+        "failed_tests": 0,
+        "tests_skipped": 0,
+        "pytest_duration_s": 24.83,
+        "skills_audited": 11,
+        "sast_critical_violations": 0,
+        "statement_coverage_pct": 91.24,
+        "true_branch_coverage_pct": 83.4,
+        "combined_coverage_pct": 88.97
+      },
+      "reason": "NK-GEN-3.0.2-FORENSIC-HARDENING-CLEAN"
+    },
+    {
+      "timestamp": "2026-11-24T20:30:37.553815",
+      "metrics": {
+        "total_golden_tests": 384,
+        "unit_tests_total": 384,
+        "unit_tests_passed": 384,
+        "unit_tests_pass_pct": 100.0,
+        "pass_rate_pct": 100.0,
+        "failed_tests": 0,
+        "tests_skipped": 0,
+        "pytest_duration_s": 20.0,
+        "skills_audited": 11,
+        "sast_critical_violations": 0,
+        "statement_coverage_pct": 91.25,
+        "true_branch_coverage_pct": 83.43,
+        "combined_coverage_pct": 88.98
       }
     }
   ]

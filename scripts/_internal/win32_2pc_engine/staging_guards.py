@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Validatori JSON, cleanup staging, ratchet quality_baseline e scansione canonica."""
+"""Validatori JSON, cleanup staging, audit override, ratchet baseline e scansione canonica."""
 
 from __future__ import annotations
 
@@ -8,12 +8,16 @@ import json
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from . import constants as _consts
-from .constants import TwoPhaseCommitError
+from .constants import (
+    TwoPhaseCommitError,
+    compute_sha256,
+    validate_override_reason,  # noqa: F401
+)
+from .governance_auth import authorize_governance_override  # noqa: F401
 from .io_and_paths import (
-    _assert_no_external_reparse,
     _is_reparse_point,
     _unlink_with_retry,
     _win_long_path,
@@ -191,29 +195,53 @@ def record_session_anchor_commit(
             os.fsync(f.fileno())
 
 
-from _internal.win32_2pc_engine.guards_ratchet import (
+def record_governance_override_audit(
+    repo_root: Union[str, Path],
+    milestone_id: str,
+    reason: str,
+    overridden_paths: List[str],
+) -> Dict[str, Any]:
+    """Registra una voce firmata SHA-256 per ogni override di governance in session_anchor.jsonl."""
+    root = Path(repo_root).resolve()
+    anchor_dir = root / "nk_tracking" / "anchor"
+    anchor_dir.mkdir(parents=True, exist_ok=True)
+    anchor_file = anchor_dir / "session_anchor.jsonl"
+    now_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    payload: Dict[str, Any] = {
+        "timestamp": now_iso,
+        "ts": now_iso,
+        "event": "GOVERNANCE_OVERRIDE",
+        "act": "OVERRIDE_AUDIT",
+        "milestone_id": milestone_id or "2PC_PROMOTE",
+        "override_reason": str(reason).strip(),
+        "overridden_paths": sorted(set(overridden_paths)),
+        "pid": os.getpid(),
+    }
+    payload["audit_sha256"] = compute_sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    )
+    with Win32NamedMutex(anchor_file, timeout_ms=5000):
+        with open(_win_long_path(anchor_file), "a", encoding="utf-8") as f:
+            f.write(json.dumps(payload, ensure_ascii=False) + "\n")
+            f.flush()
+            os.fsync(f.fileno())
+    return payload
+
+
+from _internal.win32_2pc_engine.guards_ratchet import (  # noqa: E402, F401
     _extract_dual_schema_baseline,
     _scan_staging_canonical,
     _verify_quality_baseline_ratchet,
 )
 
-def validate_sandbox_report_not_dry_run(
-    report: Path | str | Dict[str, Any],
-) -> None:
-    """Blocca la promozione 2PC se il report sandbox risulta eseguito in dry-run."""
-    if isinstance(report, (str, Path)):
-        report_path = Path(report)
-        if not report_path.is_file():
-            raise TwoPhaseCommitError(f"Report sandbox assente: {report_path}")
-        payload = json.loads(report_path.read_text(encoding="utf-8"))
-    else:
-        payload = report
-
-    if not isinstance(payload, dict):
-        raise TwoPhaseCommitError("Report sandbox non valido: atteso dizionario JSON.")
-
-    status_val = str(payload.get("status", "")).upper()
-    if payload.get("is_dry_run") or payload.get("dry_run") or "DRY_RUN" in status_val:
-        raise TwoPhaseCommitError(
-            "Promozione bloccata: report sandbox in modalita dry-run non certificabile."
-        )
+from _internal.win32_2pc_engine.guards_sandbox import (  # noqa: E402, F401
+    _BLOCKED_SANDBOX_STATUSES,
+    _POSITIVE_SANDBOX_OUTCOMES,
+    _POSITIVE_SANDBOX_STATUSES,
+    _assert_sandbox_report_payload_valid,
+    _enforce_batch_baseline_ratchet,
+    _has_positive_sandbox_verdict,
+    _has_sandbox_failure_flag,
+    _validate_sandbox_evidence_in_batch,
+    validate_sandbox_report_not_dry_run,
+)

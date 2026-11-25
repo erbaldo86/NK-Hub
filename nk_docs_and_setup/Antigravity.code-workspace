@@ -5,7 +5,11 @@
       "path": ".."
     },
     {
-      "name": "NK_External_Projects",
+      "name": "NK Proget/Locale",
+      "path": "../../../NK Proget/Locale"
+    },
+    {
+      "name": "NK_External_Projects (Compat)",
       "path": "../../NK_External_Projects"
     }
   ],

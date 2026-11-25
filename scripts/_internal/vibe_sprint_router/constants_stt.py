@@ -209,7 +209,10 @@ _STT_INDEPENDENT_ACTION_START_RE = re.compile(
     r"come|perch[eé]|dove|quali|quale|cosa|chi|quando|quanti|quanto|non|vietato|evita|senza|"
     r"fermati|stop|annulla|lascia|ignora|esegui|fai|effettua|implementa|crea|modifica|aggiorna|"
     r"scrivi|correggi|aggiungi|sviluppa|progetta|forgia|sincronizza|allinea|cancella|elimina|"
-    r"rimuovi|rifai|sistema|risolvi|applica|avvia|lancia|costruisci|genera|migra|sposta|rinomina)\b",
+    r"rimuovi|rifai|sistema|risolvi|applica|avvia|lancia|costruisci|genera|migra|sposta|rinomina|"
+    r"inserisci|inserire|realizza|realizzare|integra|integrare|configura|configurare|"
+    r"imposta|impostare|predisponi|predisporre|"
+    r"dobbiamo|dovremo|bisogna|occorre|serve|servir[àa]|vorrei)\b",
     re.IGNORECASE,
 )
 _CODE_SPAN_RE = re.compile(r"(`{1,3}[\s\S]*?`{1,3})")

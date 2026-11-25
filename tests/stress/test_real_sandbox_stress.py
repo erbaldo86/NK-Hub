@@ -23,10 +23,14 @@ try:
 except ImportError:
     from tests.conftest import is_cov_instrumented, load_nk_script_module
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.stress]
 
 _sentry_mod = load_nk_script_module("nk_context_sentry")
 _compliance_mod = load_nk_script_module("nk_compliance_checker")
+_auto_heal_mod = load_nk_script_module("auto_heal_pipeline")
+load_nk_script_module("sbfl_pytest_bridge")
+from _internal.sbfl_pytest_bridge.frame_extractor import _parse_traceback_diagnostics  # noqa: E402
+
 NKContextSentry = _sentry_mod.NKContextSentry
 NKComplianceChecker = _compliance_mod.NKComplianceChecker
 
@@ -173,8 +177,72 @@ def test_vector_3_rapid_step_escalator_profile_thresholds(
     )
 
 
+def _write_single_swarm_transcript(path: Path, body: str) -> None:
+    """Scrive un transcript minimale con un messaggio swarm da analizzare."""
+    records = [
+        {"step_index": 1, "source": "USER_EXPLICIT", "content": "Inspect traceback", "tool_calls": []},
+        {"step_index": 2, "source": "MODEL", "content": "Delegating", "tool_calls": [{"name": "invoke_subagent"}]},
+        {"step_index": 3, "source": "SYSTEM", "content": f"[Message] Worker 0 traceback: {body}", "tool_calls": []},
+    ]
+    path.write_text("\n".join(json.dumps(r) for r in records) + "\n", encoding="utf-8")
+
+
+def _exercise_sentry_traceback_hygiene(
+    sandbox_path: Path, tb_str: str, root_cause_msg: str
+) -> None:
+    """Esercita compressione head-tail e controlli Swarm Hygiene su Sentry e Compliance."""
+    compressed = NKContextSentry.format_head_tail(tb_str, head_chars=400, tail_chars=800)
+    assert len(compressed) < 2000
+    assert "TRUNCATED BY NK-CONTEXT-SENTRY" in compressed
+    assert root_cause_msg in compressed
+    assert "Worker_Node_149_Failure" in compressed
+
+    raw_tp = sandbox_path / "tb_raw_transcript.jsonl"
+    comp_tp = sandbox_path / "tb_compressed_transcript.jsonl"
+    _write_single_swarm_transcript(raw_tp, tb_str)
+    _write_single_swarm_transcript(comp_tp, compressed)
+
+    sentry = NKContextSentry(workspace_root=sandbox_path)
+    checker = NKComplianceChecker(workspace_root=sandbox_path)
+    assert sentry.analyze_transcript(raw_tp)["swarm_hygiene_violations_count"] == 1
+    assert any(
+        "Swarm hygiene violation: 1 oversized" in p
+        for p in checker.audit_transcript(raw_tp).get("penalties", [])
+    )
+    assert sentry.analyze_transcript(comp_tp)["swarm_hygiene_violations_count"] == 0
+
+
+def _exercise_autoheal_and_sbfl_traceback(
+    sandbox_path: Path, tb_str: str, root_cause_msg: str
+) -> None:
+    """Esercita AutoHeal trim_code_slice_tokens, classify_failure e parser SBFL su tb_str."""
+    tb_lines = tb_str.splitlines()
+    root_line_idx = next(i + 1 for i, ln in enumerate(tb_lines) if root_cause_msg in ln)
+    raw_slice = _auto_heal_mod.CodeSlice(
+        start_line=1,
+        end_line=len(tb_lines),
+        target_line=root_line_idx,
+        content=tb_str,
+    )
+    trimmed_slice, tok_cnt = _auto_heal_mod.trim_code_slice_tokens(raw_slice, max_tokens=80)
+    assert 0 < tok_cnt <= 80
+    assert len(trimmed_slice.content) < 2000
+    assert root_cause_msg in trimmed_slice.content
+    assert _auto_heal_mod.classify_failure(tb_str) == "RUNTIME_ERROR"
+
+    pytest_lines = tb_lines + [
+        f"{sandbox_path.as_posix()}/worker_node.py:42: ValueError",
+        "> raise ValueError('Worker_Node_149_Failure')",
+        f"E   ValueError: {root_cause_msg}",
+    ]
+    err_t, err_m, ordered_locs, _, _ = _parse_traceback_diagnostics(pytest_lines, "worker_node.py")
+    assert err_t == "ValueError"
+    assert root_cause_msg in err_m
+    assert (f"{sandbox_path.as_posix()}/worker_node.py", 42) in ordered_locs
+
+
 def test_vector_4_traceback_bomb():
-    """V4: Traceback Bomb, comprime catene di eccezioni oltre 65 KB preservando la causa."""
+    """V4: Traceback Bomb, comprime catene oltre 65 KB con tool reali preservando RootCauseError."""
     root_cause_msg = "RootCauseError: Critical hardware failure in TPU node accelerator"
     curr_exc: Exception = RuntimeError(root_cause_msg)
     for i in range(150):
@@ -186,7 +254,10 @@ def test_vector_4_traceback_bomb():
 
     tb_str = "".join(traceback.format_exception(type(curr_exc), curr_exc, curr_exc.__traceback__))
     assert len(tb_str) >= 65000
-    assert root_cause_msg in tb_str and "Worker_Node_149_Failure" in tb_str
+    with tempfile.TemporaryDirectory(prefix="nk_stress_v4_") as tmp_dir:
+        sandbox_path = Path(tmp_dir)
+        _exercise_sentry_traceback_hygiene(sandbox_path, tb_str, root_cause_msg)
+        _exercise_autoheal_and_sbfl_traceback(sandbox_path, tb_str, root_cause_msg)
 
 
 def test_vector_5_corrupted_transcript_and_ddi_tools(shadow_sandbox: Path):

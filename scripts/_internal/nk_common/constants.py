@@ -9,16 +9,34 @@ VERSION: str = "1.0.0-Generation"
 DEFAULT_MILESTONE_ID: str = "NK-GEN-1.0.0"
 
 SUPPORTED_MODEL_PROFILES: Tuple[str, ...] = (
+    "neon",
     "generation",
     "carbon",
+    "carbon_gen",
+    "pro",
+    "flash",
     "argon",
     "standard",
 )
 
 HIGH_CAPACITY_PROFILES: Tuple[str, ...] = (
+    "neon",
     "generation",
     "carbon",
+    "carbon_gen",
+    "pro",
     "argon",
+)
+
+NK_MANDATORY_HUB_LOCKS: Tuple[str, ...] = (
+    "oracle_lock.json",
+    "oracle_lock_holdout.json",
+    "governance_lock.json",
+    "tensor_rsi_lock.json",
+)
+
+NK_LOCK_FILENAMES: Tuple[str, ...] = NK_MANDATORY_HUB_LOCKS + (
+    "tests_holdout_lock.json",
 )
 
 LEGACY_ONBOARDING_TRIGGERS: Tuple[str, ...] = (

@@ -9,11 +9,11 @@ Mappa i cinque domini funzionali, le skill Hot-Swap e i moduli Python certificat
 from __future__ import annotations
 
 import argparse
-import json
+import importlib
 import os
 import sys
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 _SCRIPT_DIR = Path(__file__).resolve().parent
 _PROD_SCRIPTS = (
@@ -35,29 +35,40 @@ if _SCRIPT_DIR != _PROD_SCRIPTS and (_SCRIPT_DIR / "_internal" / "nk_common").is
         _pkg_obj.__path__ = [_stg_dir] + [p for p in _cur_p if os.path.normcase(p) != os.path.normcase(_stg_dir)]
 
 from _internal.nk_common.facade_boot import init_nk_facade  # noqa: E402
-from _internal.nk_common.paths import reconfigure_streams  # noqa: E402
 
 init_nk_facade(__file__, pkg="nk_registry_indexer")
-reconfigure_streams()
 
-from _internal.nk_common.catalog import get_skill_routing_rules  # noqa: E402
-from _internal.nk_registry_indexer.indexer import (  # noqa: E402
-    NKRegistryIndexer,
-    generate_tas_certification_matrix,  # noqa: F401
-)
-_INDEXER_SKILL_RULES = get_skill_routing_rules()
-from _internal.nk_registry_indexer.taxonomy import (  # noqa: E402,F401
-    CRIT01_FORBIDDEN_TOOLS,
-    DEFAULT_GLOBAL_CONFIG_DIR,
-    DEV_UTILITY_SKILLS,
-    DOMAIN_TAXONOMY,
-    FORBIDDEN_PHANTOM_MCP_TOOLS,
-    GCP_DATA_SKILLS,
-    NATIVE_AGENT_DOMAIN_MAP,
-    TETRALOGY_FILENAMES,
-    _DEFAULT_WORKSPACE_ROOT,
-    _EXCLUDED_SUBPROCESS_FLAGS,
-)
+_LAZY_EXPORT_MAP: Dict[str, Tuple[str, str]] = {
+    "NKRegistryIndexer": ("_internal.nk_registry_indexer.indexer", "NKRegistryIndexer"),
+    "generate_tas_certification_matrix": ("_internal.nk_registry_indexer.indexer", "generate_tas_certification_matrix"),
+    "CRIT01_FORBIDDEN_TOOLS": ("_internal.nk_registry_indexer.taxonomy", "CRIT01_FORBIDDEN_TOOLS"),
+    "DEFAULT_GLOBAL_CONFIG_DIR": ("_internal.nk_registry_indexer.taxonomy", "DEFAULT_GLOBAL_CONFIG_DIR"),
+    "DEV_UTILITY_SKILLS": ("_internal.nk_registry_indexer.taxonomy", "DEV_UTILITY_SKILLS"),
+    "DOMAIN_TAXONOMY": ("_internal.nk_registry_indexer.taxonomy", "DOMAIN_TAXONOMY"),
+    "FORBIDDEN_PHANTOM_MCP_TOOLS": ("_internal.nk_registry_indexer.taxonomy", "FORBIDDEN_PHANTOM_MCP_TOOLS"),
+    "GCP_DATA_SKILLS": ("_internal.nk_registry_indexer.taxonomy", "GCP_DATA_SKILLS"),
+    "NATIVE_AGENT_DOMAIN_MAP": ("_internal.nk_registry_indexer.taxonomy", "NATIVE_AGENT_DOMAIN_MAP"),
+    "TETRALOGY_FILENAMES": ("_internal.nk_registry_indexer.taxonomy", "TETRALOGY_FILENAMES"),
+    "get_skill_routing_rules": ("_internal.nk_common.catalog", "get_skill_routing_rules"),
+    "_DEFAULT_WORKSPACE_ROOT": ("_internal.nk_registry_indexer.taxonomy", "_DEFAULT_WORKSPACE_ROOT"),
+    "_EXCLUDED_SUBPROCESS_FLAGS": ("_internal.nk_registry_indexer.taxonomy", "_EXCLUDED_SUBPROCESS_FLAGS"),
+    "reconfigure_streams": ("_internal.nk_common.paths", "reconfigure_streams"),
+}
+
+
+def __getattr__(name: str) -> Any:
+    """Risolve pigramente i simboli della facciata senza caricare moduli pesanti su --help."""
+    target = _LAZY_EXPORT_MAP.get(name)
+    if target is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    val = getattr(importlib.import_module(target[0]), target[1])
+    globals()[name] = val
+    return val
+
+
+def __dir__() -> List[str]:
+    """Elenca i simboli pubblici ed esportati pigramente dalla facciata."""
+    return sorted(set(globals()) | set(_LAZY_EXPORT_MAP))
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
@@ -127,10 +138,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         help="Genera e stampa la matrice Markdown certificata TAS di skill, script e sub-agenti",
     )
     args = parser.parse_args(argv)
+    import json
 
+    _self_mod = sys.modules[__name__]
+    getattr(_self_mod, "reconfigure_streams")()
     root_path = Path(args.root).resolve() if args.root else None
     stage_path = Path(args.stage_dir) if args.stage_dir else None
-    indexer = NKRegistryIndexer(workspace_root=root_path, stage_dir=stage_path)
+    indexer = getattr(_self_mod, "NKRegistryIndexer")(workspace_root=root_path, stage_dir=stage_path)
 
     if args.build_release_zip:
         res = indexer.build_release_zip(Path(args.build_release_zip))

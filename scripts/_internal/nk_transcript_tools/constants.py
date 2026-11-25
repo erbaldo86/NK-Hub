@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Costanti, tabella AP-1..AP-13 e helper base per nk_transcript_tools."""
+"""Costanti, tabella AP-1..AP-16 e helper base per nk_transcript_tools."""
 
 from __future__ import annotations
 
@@ -45,8 +45,6 @@ _SAFE_WRITE_MARKERS = (
     "appdata/local/temp",
     "/temp/",
     "brain/",
-    "patch_notes.md",
-    "readme",
 )
 
 _READONLY_CMD_MARKERS = (
@@ -119,6 +117,9 @@ CANONICAL_AP_TABLE: Dict[str, Dict[str, str]] = {
     "AP-11": {"code": "AP-11", "rule": "CANARY_HOLDOUT_LEAK", "severity": "CRITICAL", "description": "Holdout canary leak detected in outbound prompt ([RULE-ORACLE-LOCK])."},
     "AP-12": {"code": "AP-12", "rule": "STATE_HANDOFF_IMPERATIVE_LEAK", "severity": "CRITICAL", "description": "STATE_HANDOFF_IMPERATIVE_LEAK: Imperative directive or intrinsic protocol leak inside Passive Session State Handoff."},
     "AP-13": {"code": "AP-13", "rule": "STATE_HANDOFF_COGNITIVE_TUNNELING", "severity": "CRITICAL", "description": "STATE_HANDOFF_COGNITIVE_TUNNELING: Prescriptive track or option menu detected inside Passive Session State Handoff."},
+    "AP-14": {"code": "AP-14", "rule": "TRANSIENT_TASK_AND_TRANSCRIPT_CONTAMINATION", "severity": "CRITICAL", "description": "TRANSIENT_TASK_AND_TRANSCRIPT_CONTAMINATION: Raw transcript JSONL, tool-call dumps, or transient task chatter leaked inside handoff."},
+    "AP-15": {"code": "AP-15", "rule": "UNGUARDED_PII_AND_LIVE_ENDPOINT_EXPOSURE", "severity": "CRITICAL", "description": "UNGUARDED_PII_AND_LIVE_ENDPOINT_EXPOSURE: Unredacted PII, secrets, DSN credentials, or live external endpoints inside handoff or brief scope."},
+    "AP-16": {"code": "AP-16", "rule": "UNCLOSED_FENCE_SPOOF", "severity": "CRITICAL", "description": "UNCLOSED_FENCE_SPOOF: Unclosed code fence or non-conforming HANDOFF_V2 wire envelope."},
 }
 
 

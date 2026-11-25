@@ -1,0 +1,337 @@
+{
+  "schema_version": "3.0.0-TENSOR-CORE",
+  "milestone": "NK-GEN-3.0.0-TENSOR-CORE",
+  "version": "1.0.0-Generation",
+  "profiles": {
+    "vibe_sprint_micro_rsi": {
+      "profile_id": "P1",
+      "intent_track": "CODE_TRACK",
+      "intent_category": "MICRO_VIBE"
+    },
+    "code_rsi": {
+      "profile_id": "P2",
+      "intent_track": "CODE_TRACK",
+      "intent_category": "CODE_BUILD"
+    },
+    "spec_rsi": {
+      "profile_id": "P3",
+      "intent_track": "DOC_TRACK",
+      "intent_category": "SPEC_DOC"
+    },
+    "ui_ux_rsi": {
+      "profile_id": "P4",
+      "intent_track": "CODE_TRACK",
+      "intent_category": "CODE_BUILD"
+    },
+    "ste100_rsi": {
+      "profile_id": "P5",
+      "intent_track": "DOC_TRACK",
+      "intent_category": "SPEC_DOC"
+    },
+    "refactor_rsi": {
+      "profile_id": "P6",
+      "intent_track": "CODE_TRACK",
+      "intent_category": "CODE_BUILD"
+    }
+  },
+  "intent_tracks": {
+    "CODE_TRACK": {
+      "primary_invariants": [
+        "p_pass",
+        "k_mut",
+        "c_branch",
+        "critical_count",
+        "high_count"
+      ],
+      "secondary_epsilon": [0.015, 0.015, 0.04, 0.02],
+      "min_effect": 0.005,
+      "hard_floors": {
+        "min_kill_rate": 0.8,
+        "min_branch_coverage": 0.82
+      }
+    },
+    "DOC_TRACK": {
+      "primary_invariants": [
+        "p_pass",
+        "doc_drift_count",
+        "semantic_drift_count",
+        "critical_count",
+        "high_count"
+      ],
+      "secondary_epsilon": [0.01, 0.02, 0.03, 0.005],
+      "min_effect": 0.005,
+      "hard_floors": {
+        "min_kill_rate": 0.0,
+        "min_branch_coverage": 0.0
+      }
+    }
+  },
+  "classified_track_weights": {
+    "IMPROVEMENT": {
+      "intent_track": "CODE_TRACK",
+      "intent_category": "CODE_BUILD",
+      "weights": [0.35, 0.35, 0.2, 0.1],
+      "read_only": false
+    },
+    "OPTIMIZATION": {
+      "intent_track": "CODE_TRACK",
+      "intent_category": "CODE_BUILD",
+      "weights": [0.2, 0.3, 0.4, 0.1],
+      "read_only": false
+    },
+    "DOC_SPEC": {
+      "intent_track": "DOC_TRACK",
+      "intent_category": "SPEC_DOC",
+      "weights": [0.15, 0.3, 0.15, 0.4],
+      "read_only": false
+    },
+    "CONTROL": {
+      "intent_track": "CODE_TRACK",
+      "intent_category": "AUDIT_RO",
+      "weights": [0.35, 0.35, 0.2, 0.1],
+      "read_only": true
+    }
+  },
+  "model_tiers": {
+    "NEON": {
+      "profiles": ["neon"],
+      "tier1_token_cap": 1200,
+      "high_capacity": true
+    },
+    "CARBON_GEN": {
+      "profiles": ["generation", "carbon", "argon", "carbon_gen"],
+      "tier1_token_cap": 1200,
+      "high_capacity": true
+    },
+    "PRO": {
+      "profiles": ["pro"],
+      "tier1_token_cap": 1200,
+      "high_capacity": true
+    },
+    "FLASH": {
+      "profiles": ["flash"],
+      "tier1_token_cap": 800,
+      "high_capacity": false
+    },
+    "STANDARD": {
+      "profiles": ["standard"],
+      "tier1_token_cap": 350,
+      "high_capacity": false
+    }
+  },
+  "policy_matrix": {
+    "Z0": {
+      "NEON": {
+        "max_in_context_branches": 3,
+        "delegate_subagent_slices": false,
+        "subagent_slice_token_cap": 1200,
+        "max_subagent_fanout": 3,
+        "max_rsi_iterations_code": 4,
+        "max_rsi_iterations_micro": 2,
+        "pytest_mode": "FULL_ISOLATED_COV",
+        "recommend_compact": false,
+        "halt_for_handoff": false
+      },
+      "CARBON_GEN": {
+        "max_in_context_branches": 3,
+        "delegate_subagent_slices": false,
+        "subagent_slice_token_cap": 1200,
+        "max_subagent_fanout": 3,
+        "max_rsi_iterations_code": 4,
+        "max_rsi_iterations_micro": 2,
+        "pytest_mode": "FULL_ISOLATED_COV",
+        "recommend_compact": false,
+        "halt_for_handoff": false
+      },
+      "PRO": {
+        "max_in_context_branches": 2,
+        "delegate_subagent_slices": false,
+        "subagent_slice_token_cap": 1200,
+        "max_subagent_fanout": 2,
+        "max_rsi_iterations_code": 3,
+        "max_rsi_iterations_micro": 2,
+        "pytest_mode": "FULL_ISOLATED_COV",
+        "recommend_compact": false,
+        "halt_for_handoff": false
+      },
+      "FLASH": {
+        "max_in_context_branches": 1,
+        "delegate_subagent_slices": true,
+        "subagent_slice_token_cap": 800,
+        "max_subagent_fanout": 1,
+        "max_rsi_iterations_code": 2,
+        "max_rsi_iterations_micro": 1,
+        "pytest_mode": "FAST_MARK_ISOLATED",
+        "recommend_compact": false,
+        "halt_for_handoff": false
+      },
+      "STANDARD": {
+        "max_in_context_branches": 2,
+        "delegate_subagent_slices": false,
+        "subagent_slice_token_cap": 350,
+        "max_subagent_fanout": 1,
+        "max_rsi_iterations_code": 2,
+        "max_rsi_iterations_micro": 1,
+        "pytest_mode": "FULL_ISOLATED_COV",
+        "recommend_compact": false,
+        "halt_for_handoff": false
+      }
+    },
+    "Z1": {
+      "NEON": {
+        "max_in_context_branches": 1,
+        "delegate_subagent_slices": true,
+        "subagent_slice_token_cap": 1200,
+        "max_subagent_fanout": 2,
+        "max_rsi_iterations_code": 2,
+        "max_rsi_iterations_micro": 1,
+        "pytest_mode": "TARGETED_SLICE",
+        "recommend_compact": false,
+        "halt_for_handoff": false
+      },
+      "CARBON_GEN": {
+        "max_in_context_branches": 1,
+        "delegate_subagent_slices": true,
+        "subagent_slice_token_cap": 1200,
+        "max_subagent_fanout": 2,
+        "max_rsi_iterations_code": 2,
+        "max_rsi_iterations_micro": 1,
+        "pytest_mode": "TARGETED_SLICE",
+        "recommend_compact": false,
+        "halt_for_handoff": false
+      },
+      "PRO": {
+        "max_in_context_branches": 1,
+        "delegate_subagent_slices": true,
+        "subagent_slice_token_cap": 1200,
+        "max_subagent_fanout": 2,
+        "max_rsi_iterations_code": 2,
+        "max_rsi_iterations_micro": 1,
+        "pytest_mode": "TARGETED_SLICE",
+        "recommend_compact": false,
+        "halt_for_handoff": false
+      },
+      "FLASH": {
+        "max_in_context_branches": 1,
+        "delegate_subagent_slices": true,
+        "subagent_slice_token_cap": 800,
+        "max_subagent_fanout": 1,
+        "max_rsi_iterations_code": 1,
+        "max_rsi_iterations_micro": 1,
+        "pytest_mode": "TARGETED_SLICE",
+        "recommend_compact": true,
+        "halt_for_handoff": false
+      },
+      "STANDARD": {
+        "max_in_context_branches": 1,
+        "delegate_subagent_slices": true,
+        "subagent_slice_token_cap": 350,
+        "max_subagent_fanout": 1,
+        "max_rsi_iterations_code": 1,
+        "max_rsi_iterations_micro": 1,
+        "pytest_mode": "TARGETED_SLICE",
+        "recommend_compact": true,
+        "halt_for_handoff": false
+      }
+    },
+    "Z2": {
+      "DEFAULT": {
+        "max_in_context_branches": 1,
+        "delegate_subagent_slices": true,
+        "max_subagent_fanout": 1,
+        "max_rsi_iterations_code": 1,
+        "max_rsi_iterations_micro": 0,
+        "pytest_mode": "TARGETED_SLICE",
+        "recommend_compact": true,
+        "halt_for_handoff": false
+      }
+    },
+    "Z3": {
+      "DEFAULT": {
+        "max_in_context_branches": 0,
+        "delegate_subagent_slices": false,
+        "max_subagent_fanout": 0,
+        "max_rsi_iterations_code": 0,
+        "max_rsi_iterations_micro": 0,
+        "pytest_mode": "SKIP_READONLY",
+        "recommend_compact": true,
+        "halt_for_handoff": true
+      }
+    }
+  },
+  "macro_operators": [
+    {
+      "id": "O1",
+      "name": "SURGICAL_LOCAL_PATCH",
+      "tracks": ["CODE_TRACK"],
+      "description": "Modifica locale mirata sul simbolo individuato da SBFL o AST Guard."
+    },
+    {
+      "id": "O2",
+      "name": "DECOMPOSITION_HELPER_EXTRACT",
+      "tracks": ["CODE_TRACK"],
+      "description": "Estrazione helper e split modulare sotto 330 LOC e CC <= 15."
+    },
+    {
+      "id": "O3",
+      "name": "TEST_ORACLE_HARDENING",
+      "tracks": ["CODE_TRACK"],
+      "description": "Rafforzamento test zero-mock in staging su branch e mutanti."
+    },
+    {
+      "id": "O4",
+      "name": "ISOLATED_SUBAGENT_SLICE",
+      "tracks": ["CODE_TRACK"],
+      "description": "Delega slice isolata sotto 1200 token a sub-agente specializzato."
+    },
+    {
+      "id": "OD",
+      "name": "OP_DOC_ALIGN",
+      "tracks": ["DOC_TRACK"],
+      "description": "Allineamento deterministico documentazione, gemelli e STE100."
+    }
+  ],
+  "bandit": {
+    "cold_max_n": 12,
+    "warm_max_n": 30,
+    "decay_gamma": 0.92,
+    "prior_strength_m0": 4.0,
+    "ucb_cold_c": 0.25,
+    "brier_circuit_breaker": 0.25,
+    "mae_circuit_breaker": 0.35,
+    "pareto_archive_max": 12,
+    "flaky_rerun_count": 3
+  },
+  "gate_rules": {
+    "GATE_1_SCOPE": {
+      "order": 1,
+      "fail_closed": true,
+      "required_checks": ["scope_creep==0", "staging_confined"]
+    },
+    "GATE_2_CODE_GROUNDING": {
+      "order": 2,
+      "fail_closed": true,
+      "required_checks": ["ast_guard_passed", "hallucinated_refs==0"]
+    },
+    "GATE_3_BRIEF_GROUNDING": {
+      "order": 3,
+      "fail_closed": true,
+      "required_checks": ["contract_violations==0", "hypothesis_count>=2"]
+    },
+    "GATE_4_PRESERVATION": {
+      "order": 4,
+      "fail_closed": true,
+      "required_checks": ["conservation_ok", "tier1_no_regression"]
+    },
+    "GATE_5_TRUTH_DAST": {
+      "order": 5,
+      "fail_closed": true,
+      "required_checks": ["sast_critical==0", "dast_passed==1", "mock_count==0"]
+    },
+    "GATE_6_RSI_CONVERGENCE": {
+      "order": 6,
+      "fail_closed": true,
+      "required_checks": ["g_hard==1", "pareto_accepted_or_converged"]
+    }
+  }
+}

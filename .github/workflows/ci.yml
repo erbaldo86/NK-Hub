@@ -1,4 +1,4 @@
-name: NK Hub Generation Continuous Verification (v1.0.0-Generation)
+name: NK Hub Generation Continuous Verification (v3.0.2-Generation)
 
 on:
   push:
@@ -80,16 +80,33 @@ jobs:
       - name: Run Epistemic Oracle Lock Verification
         run: |
           python -B -u scripts/nk_transcript_tools.py oracle-lock verify
+          if [ -f "nk_tracking/oracle_lock_holdout.json" ]; then
+            python -B -u scripts/nk_transcript_tools.py oracle-lock verify --lock-file nk_tracking/oracle_lock_holdout.json --target nk_tracking/oracle_holdout
+          fi
+          if [ -f "nk_tracking/governance_lock.json" ]; then
+            python -B -u scripts/nk_transcript_tools.py oracle-lock verify --lock-file nk_tracking/governance_lock.json --target scripts
+          fi
+          if [ -f "nk_tracking/tensor_rsi_lock.json" ]; then
+            python -B -u scripts/nk_transcript_tools.py oracle-lock verify --lock-file nk_tracking/tensor_rsi_lock.json --target nk_genome/configs/tensor_rsi
+          fi
+
+      - name: Run Tier 1 Fast Gate (-m fast <= 8.0s)
+        run: |
+          JUNIT_XML="${RUNNER_TEMP//\\//}/pytest-results.xml"
+          python -B -u scripts/platform_runner.py --pytest-isolated --overlay-staging --workspace-root . --pytest-args "-m fast -q --junitxml=\"${JUNIT_XML}\"" --json > "${RUNNER_TEMP}/tier1_fast.json"
+          python -B -c "import json, os, sys; d = json.load(open(os.path.join(os.environ['RUNNER_TEMP'], 'tier1_fast.json'), encoding='utf-8')); dur = float(d.get('duration_s', 999.0)); print(f'[TIER-1] status={d.get(\"status\")} passed={d.get(\"passed\")} duration_s={dur}'); sys.exit(0 if d.get('exit_code') == 0 and dur <= 8.0 else 1)"
+
+      - name: Run Full T1+T2 Gate (<= 28.0s) & Branch Coverage (>= 88.0% / >= 82.0%)
+        run: |
+          JUNIT_XML="${RUNNER_TEMP//\\//}/pytest-results.xml"
+          python -B -u scripts/platform_runner.py --pytest-isolated --overlay-staging --workspace-root . --pytest-args "-m \"not stress\" -q --junitxml=\"${JUNIT_XML}\"" --json > "${RUNNER_TEMP}/t1_t2_clean.json"
+          python -B -c "import json, os, sys; d = json.load(open(os.path.join(os.environ['RUNNER_TEMP'], 't1_t2_clean.json'), encoding='utf-8')); dur = float(d.get('duration_s', 999.0)); print(f'[T1+T2 CLEAN] status={d.get(\"status\")} passed={d.get(\"passed\")} duration_s={dur}'); sys.exit(0 if d.get('exit_code') == 0 and dur <= 28.0 else 1)"
+          python -B -u scripts/platform_runner.py --pytest-isolated --overlay-staging --workspace-root . --coverage --pytest-args "-m \"not stress\" -q --junitxml=\"${JUNIT_XML}\"" --json > "${RUNNER_TEMP}/t1_t2_cov.json"
+          python -B -c "import json, os, sys; d = json.load(open(os.path.join(os.environ['RUNNER_TEMP'], 't1_t2_cov.json'), encoding='utf-8')); c = d.get('coverage', {}); comb = float(c.get('combined_coverage_pct', 0.0)); br = float(c.get('true_branch_coverage_pct', 0.0)); print(f'[T1+T2 COV] status={d.get(\"status\")} combined={comb}% true_branch={br}%'); sys.exit(0 if d.get('exit_code') == 0 and comb >= 88.0 and br >= 82.0 else 1)"
 
       - name: Run Bounded-RSI Strict Ecosystem Verification
         run: |
-          python -B -u scripts/rsi_convergence_engine.py --verify --strict-verify --benchmark-suite tests/test_rsi_convergence_engine.py
-
-      - name: Run Core Platform Test Suite with Branch Coverage (v1.0.0-Generation)
-        env:
-          COVERAGE_FILE: ${{ runner.temp }}/.coverage
-        run: |
-          python -B -u -m pytest tests -p no:cacheprovider --cov=scripts --cov-branch --cov-fail-under=85 -q --junitxml="$RUNNER_TEMP/pytest-results.xml"
+          python -B -u scripts/rsi_convergence_engine.py --verify --strict-verify --diff-aware --benchmark-suite tests/test_rsi_convergence_engine.py
 
       - name: Report Failing Tests Diagnostic
         if: failure()

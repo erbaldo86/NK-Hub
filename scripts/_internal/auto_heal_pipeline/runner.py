@@ -3,19 +3,39 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
-from typing import Any, Callable, Optional, Sequence
+from typing import Any, Callable, Optional, Sequence, Tuple
 
 import _internal.auto_heal_pipeline.models_and_slice as _ms
+from _internal.auto_heal_pipeline.diagnose_helper import (
+    _resolve_target_path,
+    run_diagnose_slice,
+)
 from _internal.auto_heal_pipeline.models_and_slice import (
     AutoHealSessionReport,
+    DiagnoseSliceReport,
     OchiaiBridgeLocation,
-    _ensure_ast_guard_loaded,
     _ensure_rsi_loaded,
     _ensure_sbfl_bridge_loaded,
     _facade_attr,
     classify_failure,
     normalize_test_command,
+)
+from _internal.auto_heal_pipeline.rsi_bridge_helpers import (
+    HypothesisKey,
+    _build_defect_vector,
+    _build_exhausted_message,
+    _cleanup_session_snapshots,
+    _compute_rsi_metrics,
+    _compute_rsi_metrics_with_vector,
+    _format_patch_note,
+    _hypothesis_key,
+    _invoke_repair_cb,
+    _resolve_iteration_metrics,
+    _resolve_prod_baseline_code,
+    _resolve_telemetry_target,
+    _update_strike_state,
 )
 from _internal.nk_common.paths import reconfigure_streams
 
@@ -25,66 +45,22 @@ except ImportError:
     from scripts.healing_snapshot_rollback import FitnessVerdict, HealingSnapshotManager
 
 
-def _build_defect_vector(
-    target_path: Optional[Path],
-    pre_code: str,
-    passed: int,
-    failed: int,
-) -> Any:
-    """Costruisce RSIDefectVector combinando risultati Pytest e controlli AST/SAST."""
-    _ensure_rsi_loaded()
-    vec_cls = _facade_attr("RSIDefectVector", _ms.RSIDefectVector)
-    if vec_cls is None or vec_cls is _ms._UNSET:
-        return None
-    sast_crit = 0
-    contract_viol = 0
-    if target_path is not None and target_path.exists():
-        _ensure_ast_guard_loaded()
-        guard_cls = _facade_attr("ASTGuardValidator", _ms.ASTGuardValidator)
-        if guard_cls is not None and guard_cls is not _ms._UNSET:
-            try:
-                post_code = target_path.read_bytes().decode("utf-8", errors="replace")
-                rep = guard_cls.validate_code_edit(
-                    pre_code or post_code, post_code, target_file=target_path.name
-                )
-                if not rep.is_valid:
-                    contract_viol = len(rep.violations)
-                sast_crit = len(
-                    guard_cls.check_sast_constructs(post_code, target_file=target_path.as_posix())
-                )
-            except Exception:
-                pass
-    return vec_cls(
-        sast_critical=sast_crit,
-        tests_passed=max(0, passed),
-        tests_failed=max(0, failed),
-        tests_total=max(1, passed + failed),
-        contract_violations=contract_viol,
+def _is_partial_progress_accepted(
+    monotonic_accepted: bool,
+    verdict: Any,
+    exit_code: int,
+    unresolved_collect: bool,
+) -> bool:
+    """Accetta miglioramento stretto oppure sblocco parziale da SyntaxError iniziale."""
+    if not monotonic_accepted:
+        return False
+    if verdict == FitnessVerdict.IMPROVED:
+        return True
+    return (
+        unresolved_collect
+        and verdict != FitnessVerdict.REGRESSION
+        and exit_code in (0, 1)
     )
-
-
-def _compute_rsi_metrics(
-    passed: int,
-    failed: int,
-    target_path: Optional[Path] = None,
-    pre_code: str = "",
-) -> tuple[int, float]:
-    """Calcola Delta_k e Q(S_k) usando il motore RSI oppure la formula analitica."""
-    _ensure_rsi_loaded()
-    vec_cls = _facade_attr("RSIDefectVector", _ms.RSIDefectVector)
-    cd_fn = _facade_attr("compute_delta", _ms.compute_delta)
-    cf_fn = _facade_attr("compute_fitness", _ms.compute_fitness)
-    if (
-        vec_cls is not None and vec_cls is not _ms._UNSET
-        and cd_fn is not None and cd_fn is not _ms._UNSET
-        and cf_fn is not None and cf_fn is not _ms._UNSET
-    ):
-        vec = _build_defect_vector(target_path, pre_code, passed, failed)
-        d_k = cd_fn(vec)
-        return d_k, cf_fn(vec, delta_k=d_k)
-    d_k = 10 * max(0, failed)
-    total = max(1, passed + failed)
-    return d_k, round(60.0 * (passed / total) + (40.0 / (1.0 + d_k / 25.0)), 4)
 
 
 class AutoHealPipeline:
@@ -103,11 +79,7 @@ class AutoHealPipeline:
         rsi_cls = _facade_attr("RSIConvergenceEngine", _ms.RSIConvergenceEngine)
         self.bridge = bridge_cls(cwd=self.cwd)
         self.snapshot_mgr = snap_cls()
-        telemetry_target = (
-            self.cwd / ".staging" / "nk_tracking" / "rsi_telemetry.jsonl"
-            if (self.cwd / ".staging" / "nk_tracking").exists()
-            else self.cwd / "nk_tracking" / "rsi_telemetry.jsonl"
-        )
+        telemetry_target = _resolve_telemetry_target(self.cwd)
         self.rsi_engine = (
             rsi_cls(workspace_root=self.cwd, telemetry_path=telemetry_target)
             if rsi_cls is not None and rsi_cls is not _ms._UNSET
@@ -124,14 +96,16 @@ class AutoHealPipeline:
         failed: int,
         verdict: str,
         rolled_back: bool = False,
+        precomputed: Optional[Tuple[int, float, Any]] = None,
     ) -> tuple[int, float]:
-        """Registra una iterazione in rsi_telemetry.jsonl tramite RSIConvergenceEngine."""
+        """Registra una iterazione in rsi_telemetry.jsonl tramite un solo passaggio AST/RSI."""
         _ensure_rsi_loaded()
-        d_k, q_k = _compute_rsi_metrics(passed, failed, target_path, pre_code)
+        d_k, q_k, vec = _resolve_iteration_metrics(
+            target_path, pre_code, passed, failed, precomputed
+        )
         rec_cls = _facade_attr("RSIIterationRecord", _ms.RSIIterationRecord)
         if self.rsi_engine is not None and rec_cls is not None and rec_cls is not _ms._UNSET:
             try:
-                vec = _build_defect_vector(target_path, pre_code, passed, failed)
                 s_hash = self.rsi_engine.compute_files_state_hash([target_path])
                 self.rsi_engine.append_telemetry_record(
                     rec_cls(
@@ -140,9 +114,117 @@ class AutoHealPipeline:
                         state_hash=s_hash, verdict=verdict, rolled_back=rolled_back,
                     )
                 )
-            except Exception:
-                pass
+            except Exception as exc:
+                sys.stderr.write(f"[auto_heal_pipeline] telemetry warning: {exc}\n")
         return d_k, q_k
+
+    def _handle_initial_green(
+        self,
+        session_id: str,
+        target_path: Path,
+        pre_code: str,
+        passed_count: int,
+    ) -> AutoHealSessionReport:
+        """Valida i gate AST/SAST quando tutti i test passano al ciclo 0."""
+        precomputed = _compute_rsi_metrics_with_vector(
+            passed_count, 0, target_path, pre_code
+        )
+        d_k, q_k, _ = precomputed
+        is_clean = d_k == 0
+        self._record_rsi_iteration(
+            session_id,
+            0,
+            target_path,
+            pre_code,
+            passed_count,
+            0,
+            "CONVERGED_OPTIMAL" if is_clean else "FAILED_AST_SAST_GATE",
+            False,
+            precomputed=precomputed,
+        )
+        msg = (
+            "Clean build: All tests passing on initial evaluation."
+            if is_clean
+            else f"Tests passed but AST/SAST defect delta is non-zero (delta_k={d_k})."
+        )
+        return AutoHealSessionReport(
+            success=is_clean,
+            cycles_used=0,
+            max_cycles=self.max_cycles,
+            initial_failed=0,
+            final_failed=0,
+            rsi_delta=d_k,
+            rsi_fitness_q=q_k,
+            message=msg,
+        )
+
+    def _rollback_cycle_snapshot(
+        self,
+        cycle_snap_id: Optional[str],
+        init_snap_id: str,
+        session_id: str,
+        cycle: int,
+        target_path: Path,
+        pre_code: str,
+        curr_passed: int,
+        curr_failed: int,
+    ) -> None:
+        """Registra il candidato respinto in telemetria prima di eseguire il rollback."""
+        self._record_rsi_iteration(
+            session_id,
+            cycle,
+            target_path,
+            pre_code,
+            curr_passed,
+            curr_failed,
+            "ROLLED_BACK_HARD_GATE",
+            True,
+        )
+        if cycle_snap_id is None:
+            return
+        rb_status = self.snapshot_mgr.rollback_to_snapshot(cycle_snap_id)
+        if rb_status and all(rb_status.values()) and cycle_snap_id != init_snap_id:
+            self.snapshot_mgr.cleanup(snapshot_id=cycle_snap_id)
+
+    def _finalize_exhausted_session(
+        self,
+        init_snap_id: str,
+        target_path: Path,
+        pre_code: str,
+        initial_passed: int,
+        initial_failed: int,
+        latest_loc: Optional[OchiaiBridgeLocation],
+        *,
+        cycles_used: Optional[int] = None,
+        escalation_required: bool = False,
+        hypothesis: Optional[HypothesisKey] = None,
+    ) -> AutoHealSessionReport:
+        """Ripristina lo snapshot iniziale e verifica integrita SHA-256 prima di chiudere."""
+        init_rb = self.snapshot_mgr.rollback(init_snap_id)
+        rb_ok = bool(init_rb) and all(init_rb.values())
+        if rb_ok:
+            self.snapshot_mgr.cleanup(snapshot_id=init_snap_id)
+        rsi_d, rsi_q = _compute_rsi_metrics(
+            initial_passed, initial_failed, target_path, pre_code
+        )
+        msg = _build_exhausted_message(rb_ok, escalation_required, hypothesis)
+        return AutoHealSessionReport(
+            success=False,
+            cycles_used=self.max_cycles if cycles_used is None else cycles_used,
+            max_cycles=self.max_cycles,
+            initial_failed=initial_failed,
+            final_failed=initial_failed,
+            fault_location=(
+                f"{latest_loc.file_path}:{latest_loc.line_number}" if latest_loc else None
+            ),
+            error_type=latest_loc.error_type if latest_loc else None,
+            ochiai_score=latest_loc.suspiciousness if latest_loc else None,
+            rolled_back=rb_ok,
+            escalation_required=escalation_required,
+            rsi_delta=rsi_d,
+            rsi_fitness_q=rsi_q,
+            message=msg,
+        )
 
     def run_pipeline(
         self,
@@ -152,16 +234,8 @@ class AutoHealPipeline:
     ) -> AutoHealSessionReport:
         """Esegue il ciclo di auto-riparazione sul file target guidato da test_cmd."""
         norm_test_cmd = normalize_test_command(test_cmd)
-        target_path = (
-            Path(self.cwd / target_file)
-            if not Path(target_file).is_absolute()
-            else Path(target_file)
-        )
-        pre_code = (
-            target_path.read_bytes().decode("utf-8", errors="replace")
-            if target_path.exists()
-            else ""
-        )
+        target_path = _resolve_target_path(self.cwd, target_file)
+        pre_code = _resolve_prod_baseline_code(target_path)
         session_id = f"HEAL-{target_path.stem}"
 
         summary, loc = self.bridge.run_and_diagnose(
@@ -173,14 +247,8 @@ class AutoHealPipeline:
             summary.exit_code == 0 and summary.failed_count == 0
             and initial_total > 0 and summary.passed_count > 0
         ):
-            self._record_rsi_iteration(
-                session_id, 0, target_path, pre_code,
-                summary.passed_count, 0, "CONVERGED_OPTIMAL", False,
-            )
-            return AutoHealSessionReport(
-                success=True, cycles_used=0, max_cycles=self.max_cycles,
-                initial_failed=0, final_failed=0, rsi_delta=0, rsi_fitness_q=100.0,
-                message="Clean build: All tests passing on initial evaluation.",
+            return self._handle_initial_green(
+                session_id, target_path, pre_code, summary.passed_count
             )
 
         effective_initial_failed = (
@@ -194,17 +262,17 @@ class AutoHealPipeline:
         init_snap_id = self.snapshot_mgr.create_snapshot([target_path])
         initial_passed = summary.passed_count
         initial_failed = effective_initial_failed
-        prev_failed = summary.failed_count
+        prev_failed = effective_initial_failed
         prev_passed = summary.passed_count
+        unresolved_collect = initial_total == 0
         latest_loc = loc
+        last_failed_hyp: Optional[HypothesisKey] = None
+        consecutive_strikes = 0
 
         for cycle in range(1, self.max_cycles + 1):
+            attempt_hyp = _hypothesis_key(latest_loc, target_path)
             cycle_snap_id = self.snapshot_mgr.create_snapshot([target_path])
-            if repair_callback and latest_loc:
-                try:
-                    repair_callback(latest_loc, cycle)
-                except Exception:
-                    pass
+            _invoke_repair_cb(repair_callback, latest_loc, cycle)
 
             new_summary, new_loc = self.bridge.run_and_diagnose(
                 test_cmd=norm_test_cmd, target_file_hint=str(target_file)
@@ -227,58 +295,78 @@ class AutoHealPipeline:
                 monotonic_accepted and fitness.verdict == FitnessVerdict.PASSED
                 and new_summary.exit_code == 0 and curr_failed == 0
             ):
-                self._record_rsi_iteration(
-                    session_id, cycle, target_path, pre_code,
-                    curr_passed, 0, "CONVERGED_OPTIMAL", False,
+                precomputed = _compute_rsi_metrics_with_vector(
+                    curr_passed, 0, target_path, pre_code
                 )
-                self.snapshot_mgr.cleanup()
-                patch_note = (
-                    f"- **[AUTO-HEALED]** `{latest_loc.error_type}` in "
-                    f"`{Path(latest_loc.file_path).name}:{latest_loc.line_number}` "
-                    f"(Cycles: {cycle}, Ochiai: {round(latest_loc.suspiciousness, 3)})"
-                    if latest_loc
-                    else ""
-                )
-                return AutoHealSessionReport(
-                    success=True, cycles_used=cycle, max_cycles=self.max_cycles,
-                    initial_failed=initial_failed, final_failed=0,
-                    fault_location=f"{latest_loc.file_path}:{latest_loc.line_number}" if latest_loc else None,
-                    error_type=latest_loc.error_type if latest_loc else None,
-                    ochiai_score=latest_loc.suspiciousness if latest_loc else None,
-                    patch_note_line=patch_note, rolled_back=False,
-                    rsi_delta=0, rsi_fitness_q=100.0,
-                    message=f"Healed successfully on cycle {cycle} via strict fitness gate.",
-                )
+                d_k, q_k, _ = precomputed
+                if d_k == 0:
+                    self._record_rsi_iteration(
+                        session_id, cycle, target_path, pre_code,
+                        curr_passed, 0, "CONVERGED_OPTIMAL", False,
+                        precomputed=precomputed,
+                    )
+                    _cleanup_session_snapshots(self.snapshot_mgr, cycle_snap_id, init_snap_id)
+                    return AutoHealSessionReport(
+                        success=True, cycles_used=cycle, max_cycles=self.max_cycles,
+                        initial_failed=initial_failed, final_failed=0,
+                        fault_location=f"{latest_loc.file_path}:{latest_loc.line_number}" if latest_loc else None,
+                        error_type=latest_loc.error_type if latest_loc else None,
+                        ochiai_score=latest_loc.suspiciousness if latest_loc else None,
+                        patch_note_line=_format_patch_note(latest_loc, cycle),
+                        rolled_back=False, escalation_required=False,
+                        rsi_delta=d_k, rsi_fitness_q=q_k,
+                        message=f"Healed successfully on cycle {cycle} via strict fitness gate.",
+                    )
 
-            if monotonic_accepted and fitness.verdict == FitnessVerdict.IMPROVED:
+            if _is_partial_progress_accepted(
+                monotonic_accepted, fitness.verdict, new_summary.exit_code, unresolved_collect
+            ):
+                unresolved_collect = False
                 prev_failed = curr_failed
                 prev_passed = curr_passed
                 latest_loc = new_loc
+                last_failed_hyp = None
+                consecutive_strikes = 0
                 if cycle_snap_id is not None and cycle_snap_id != init_snap_id:
-                    self.snapshot_mgr.cleanup(cycle_snap_id)
+                    self.snapshot_mgr.cleanup(snapshot_id=cycle_snap_id)
                 self._record_rsi_iteration(
                     session_id, cycle, target_path, pre_code,
                     prev_passed, prev_failed, "REFINING", False,
                 )
             else:
-                if cycle_snap_id is not None:
-                    self.snapshot_mgr.rollback_to_snapshot(cycle_snap_id)
-                    if cycle_snap_id != init_snap_id:
-                        self.snapshot_mgr.delete_snapshot(cycle_snap_id)
-                self._record_rsi_iteration(
-                    session_id, cycle, target_path, pre_code,
-                    curr_passed, curr_failed, "ROLLED_BACK_HARD_GATE", True,
+                self._rollback_cycle_snapshot(
+                    cycle_snap_id, init_snap_id, session_id, cycle,
+                    target_path, pre_code, curr_passed, curr_failed,
                 )
+                eff_hyp = attempt_hyp if latest_loc is not None else _hypothesis_key(new_loc, target_path)
+                last_failed_hyp, consecutive_strikes = _update_strike_state(
+                    last_failed_hyp, consecutive_strikes, eff_hyp
+                )
+                if consecutive_strikes >= 2:
+                    return self._finalize_exhausted_session(
+                        init_snap_id, target_path, pre_code, initial_passed,
+                        initial_failed, latest_loc, cycles_used=cycle,
+                        escalation_required=True, hypothesis=last_failed_hyp,
+                    )
 
-        self.snapshot_mgr.rollback(init_snap_id)
-        self.snapshot_mgr.cleanup()
-        rsi_d, rsi_q = _compute_rsi_metrics(initial_passed, initial_failed, target_path, pre_code)
-        return AutoHealSessionReport(
-            success=False, cycles_used=self.max_cycles, max_cycles=self.max_cycles,
-            initial_failed=initial_failed, final_failed=initial_failed,
-            fault_location=f"{latest_loc.file_path}:{latest_loc.line_number}" if latest_loc else None,
-            error_type=latest_loc.error_type if latest_loc else None,
-            ochiai_score=latest_loc.suspiciousness if latest_loc else None,
-            rolled_back=True, rsi_delta=rsi_d, rsi_fitness_q=rsi_q,
-            message="Exhausted maximum healing cycles. Rollback to original state completed.",
+        return self._finalize_exhausted_session(
+            init_snap_id, target_path, pre_code, initial_passed, initial_failed, latest_loc
+        )
+
+    def diagnose_slice(
+        self,
+        test_cmd: Sequence[str] | str,
+        target_file: Path | str,
+        *,
+        max_slice_tokens: int = 80,
+    ) -> DiagnoseSliceReport:
+        """Esegue diagnosi single-pass in sola lettura con Ochiai n_ep e slice <= 80 token."""
+        return run_diagnose_slice(
+            self.cwd,
+            self.bridge,
+            test_cmd,
+            target_file,
+            _resolve_prod_baseline_code,
+            _compute_rsi_metrics,
+            max_slice_tokens=max_slice_tokens,
         )

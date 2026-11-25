@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Suite di valutazione Zero-Mock per le 11 skill di NK Hub Generation 1.0.0-Generation.
+Suite di valutazione Zero-Mock Tier 3 per le 11 skill di NK Hub Generation 1.0.0-Generation.
 Modulo: tests/test_skill_evals.py.
 Valida tutte le regole di skill_golden_eval_set.json in overlay .staging/.agents/skills/ > .agents/skills/.
 """
@@ -14,6 +14,8 @@ from typing import Any, Dict, List
 
 import pytest
 from conftest import WORKSPACE_ROOT, load_nk_script_module
+
+pytestmark = pytest.mark.stress
 
 tr_mod = load_nk_script_module("nk_transcript_tools")
 
@@ -89,8 +91,15 @@ def _strip_frontmatter_and_code(content: str) -> str:
 _EVAL_CFG = _load_golden_eval_config()
 _SKILL_SPECS: List[Dict[str, Any]] = list(_EVAL_CFG.get("skills", []))
 
+_DOM04_SKILL_REFS: Dict[str, str] = {
+    "NK-Security-Auditor": "references/mode_sast_audit.md",
+    "NK-Oracle-Evaluator": "references/mode_oracle_gate.md",
+    "NK-Dynamic-Sandbox-StressTester": "references/mode_dast_e2e.md",
+    "NK-Bug-Diagnostic-Engine": "references/mode_rca_sbfl.md",
+}
 
-@pytest.mark.fast
+
+@pytest.mark.stress
 @pytest.mark.parametrize("skill_spec", _SKILL_SPECS, ids=[s["name"] for s in _SKILL_SPECS])
 def test_skill_golden_eval_contract_and_ste100(skill_spec: Dict[str, Any]) -> None:
     """Verifica contratto, tool RO/RW, substring obbligatorie, STE100 e assenza trattini."""
@@ -133,7 +142,7 @@ def test_skill_golden_eval_contract_and_ste100(skill_spec: Dict[str, Any]) -> No
     )
 
 
-@pytest.mark.fast
+@pytest.mark.stress
 def test_skill_golden_eval_covers_all_eleven_skills() -> None:
     """Verifica che il set golden eval copra tutte le undici skill e nodi Dashboard."""
     assert len(_SKILL_SPECS) == 11
@@ -141,7 +150,7 @@ def test_skill_golden_eval_covers_all_eleven_skills() -> None:
     assert "NK-Orchestrator" in names and "NK-Oracle-Evaluator" in names
 
 
-@pytest.mark.fast
+@pytest.mark.stress
 def test_all_domain_shards_valid_modes_and_budget() -> None:
     """Verifica che tutti gli shard DOM-00..DOM-06 rispettino il budget e i mode canonici."""
     stg_shards = WORKSPACE_ROOT / ".staging" / "nk_genome" / "shards"
@@ -159,3 +168,40 @@ def test_all_domain_shards_valid_modes_and_budget() -> None:
             for kw, val in table.items():
                 mode_val = val[1] if isinstance(val, list) else val
                 assert mode_val in valid_modes, f"{shard_file.name} {kw} mode invalido: {val}"
+
+
+def _resolve_overlay_skill_asset(skill_name: str, rel_subpath: str) -> Path:
+    """Risolve un file ausiliario di skill in overlay (.staging/ prima di produzione)."""
+    rel_path = f".agents/skills/{skill_name}/{rel_subpath}"
+    stg_cand = WORKSPACE_ROOT / ".staging" / rel_path
+    return stg_cand if stg_cand.is_file() else WORKSPACE_ROOT / rel_path
+
+
+@pytest.mark.stress
+@pytest.mark.parametrize("skill_name", sorted(_DOM04_SKILL_REFS.keys()))
+def test_dom04_skills_compact_budget_and_zero_retry_caps(skill_name: str) -> None:
+    """Verifica SKILL.md DOM-04 <= 40 righe e cap retry [0, 0, 0] in eval e body."""
+    spec_map = {spec["name"]: spec for spec in _SKILL_SPECS}
+    spec = spec_map[skill_name]
+    assert spec.get("retry_caps") == [0, 0, 0], f"{skill_name}: retry_caps atteso [0, 0, 0]"
+    skill_file = _resolve_overlay_skill_file(spec["skill_path"])
+    content = skill_file.read_text(encoding="utf-8")
+    lines = content.splitlines()
+    assert len(lines) <= 40, f"{skill_name}: SKILL.md ha {len(lines)} righe (> 40)"
+    assert "0 / 0 / 0" in content, f"{skill_name}: cap retry '0 / 0 / 0' assente in SKILL.md"
+
+
+@pytest.mark.stress
+@pytest.mark.parametrize("skill_name,ref_rel", sorted(_DOM04_SKILL_REFS.items()))
+def test_dom04_jit_references_exist_budget_and_ste100(skill_name: str, ref_rel: str) -> None:
+    """Verifica esistenza, budget <= 25 righe e conformita STE100 dei file JIT mode_*.md."""
+    ref_file = _resolve_overlay_skill_asset(skill_name, ref_rel)
+    assert ref_file.is_file(), f"{skill_name}: file JIT mancante {ref_rel}"
+    content = ref_file.read_text(encoding="utf-8")
+    lines = content.splitlines()
+    assert len(lines) <= 25, f"{skill_name}: {ref_rel} ha {len(lines)} righe (> 25)"
+    prose = _strip_frontmatter_and_code(content)
+    for dash in (" \u2014 ", " \u2013 ", " - "):
+        assert dash not in prose, f"{skill_name}/{ref_rel}: trattino spaziato {dash!r}"
+    ste_res = tr_mod.verify_ste100_compliance(content, max_sentence_words=20)
+    assert ste_res["passed"] is True, f"{skill_name}/{ref_rel}: {ste_res.get('violations')}"

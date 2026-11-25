@@ -82,12 +82,6 @@ MOCK_SYMBOLS: Set[str] = {
     "NonCallableMock",
     "PropertyMock",
 }
-MOCK_MODULE_EXPORTS: Set[str] = MOCK_SYMBOLS | {
-    "Mock",
-    "patch",
-    "mock_open",
-    "create_autospec",
-}
 PATH_CTORS: Set[str] = {
     "Path",
     "PurePath",

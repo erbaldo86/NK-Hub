@@ -1,4 +1,4 @@
-"""Controllo deterministico integrita scope lessicale e binding/del."""
+"""Controllo deterministico integrita scope lessicale, branch del e binding global/nonlocal."""
 
 from __future__ import annotations
 
@@ -10,10 +10,21 @@ from _internal.ast_guard_validator.models import GuardViolation, ViolationType
 from _internal.ast_guard_validator.scope_bindings import (
     collect_func_local_bindings,
     extract_deleted_names,
-    extract_pattern_bindings,
+    extract_pattern_bindings,  # noqa: F401
     extract_target_names,
 )
-
+from _internal.ast_guard_validator.scope_branch_helpers import (
+    bind_name_with_shared_decls,
+    collect_module_global_bindings,
+    push_scope_frames,
+    register_shared_decl_in_scope,
+    visit_comprehension_common_impl,
+    visit_func_annotations_impl,
+    visit_if_with_branch_merge,
+    visit_match_impl,
+    visit_named_expr_impl,
+    visit_type_alias_impl,
+)
 
 MODULE_DUNDERS: Set[str] = {
     "__name__", "__doc__", "__file__", "__package__", "__loader__",
@@ -22,7 +33,7 @@ MODULE_DUNDERS: Set[str] = {
 
 
 class ScopeIntegrityChecker(ast.NodeVisitor):
-    """Verifica che ogni variabile referenziata in lettura sia definita, non cancellata e non UnboundLocal."""
+    """Verifica che ogni variabile in lettura sia definita, non cancellata e non UnboundLocal."""
 
     def __init__(self, global_names: Set[str]) -> None:
         self.global_names = set(global_names) | MODULE_DUNDERS
@@ -32,8 +43,15 @@ class ScopeIntegrityChecker(ast.NodeVisitor):
         self.scope_is_class: List[bool] = [False]
         self.scope_all_bindings: List[Set[str]] = [set(self.global_names)]
         self.scope_future_locals: List[Set[str]] = [set()]
+        self.scope_global_decls: List[Set[str]] = [set()]
+        self.scope_nonlocal_decls: List[Set[str]] = [set()]
         self._comp_depth: int = 0
+        self._has_future_annotations: bool = False
         self.violations: List[GuardViolation] = []
+
+    def visit_Module(self, node: ast.Module) -> None:
+        self.scope_all_bindings[0].update(collect_module_global_bindings(node))
+        self.generic_visit(node)
 
     def _current_visible_names(self) -> Set[str]:
         names: Set[str] = set(self.builtins_set)
@@ -49,10 +67,7 @@ class ScopeIntegrityChecker(ast.NodeVisitor):
         return names
 
     def _bind_name_in_current_scope(self, name: str) -> None:
-        self.scope_stack[-1].add(name)
-        self.deleted_stack[-1].discard(name)
-        if self.scope_future_locals:
-            self.scope_future_locals[-1].discard(name)
+        bind_name_with_shared_decls(self, name)
 
     def _bind_target_names_in_current_scope(self, target_node: ast.AST) -> None:
         bound: Set[str] = set()
@@ -60,37 +75,51 @@ class ScopeIntegrityChecker(ast.NodeVisitor):
         for b_name in bound:
             self._bind_name_in_current_scope(b_name)
 
+    def _visit_and_bind_target(self, target_node: ast.AST) -> None:
+        if isinstance(target_node, (ast.Subscript, ast.Attribute)):
+            self.visit(target_node)
+        elif isinstance(target_node, (ast.Tuple, ast.List)):
+            for elt in target_node.elts:
+                self._visit_and_bind_target(elt)
+        elif isinstance(target_node, ast.Starred):
+            self._visit_and_bind_target(target_node.value)
+        else:
+            self._bind_target_names_in_current_scope(target_node)
+
+    def _visit_and_delete_target(self, target_node: ast.AST) -> None:
+        if isinstance(target_node, (ast.Subscript, ast.Attribute)):
+            self.visit(target_node)
+        elif isinstance(target_node, (ast.Tuple, ast.List)):
+            for elt in target_node.elts:
+                self._visit_and_delete_target(elt)
+        else:
+            deleted_names: Set[str] = set()
+            self._extract_deleted_names(target_node, deleted_names)
+            for d_name in deleted_names:
+                self.scope_stack[-1].discard(d_name)
+                self.deleted_stack[-1].add(d_name)
+
     def _extract_deleted_names(self, node: ast.AST, out: Set[str]) -> None:
         extract_deleted_names(node, out)
 
     def visit_Delete(self, node: ast.Delete) -> None:
         for target in node.targets:
-            if isinstance(target, (ast.Subscript, ast.Attribute)):
-                self.visit(target)
-                continue
-            deleted_names: Set[str] = set()
-            self._extract_deleted_names(target, deleted_names)
-            for d_name in deleted_names:
-                self.scope_stack[-1].discard(d_name)
-                self.deleted_stack[-1].add(d_name)
+            self._visit_and_delete_target(target)
+
+    def visit_If(self, node: ast.If) -> None:
+        visit_if_with_branch_merge(self, node)
 
     def visit_Assign(self, node: ast.Assign) -> None:
         self.visit(node.value)
         for t in node.targets:
-            if isinstance(t, (ast.Subscript, ast.Attribute)):
-                self.visit(t)
-            else:
-                self._bind_target_names_in_current_scope(t)
+            self._visit_and_bind_target(t)
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
-        if node.annotation:
+        if node.annotation and not self._has_future_annotations:
             self.visit(node.annotation)
         if node.value is not None:
             self.visit(node.value)
-            if isinstance(node.target, (ast.Subscript, ast.Attribute)):
-                self.visit(node.target)
-            else:
-                self._bind_target_names_in_current_scope(node.target)
+            self._visit_and_bind_target(node.target)
 
     def _record_undef(self, sym: str, node: ast.AST, message: str) -> None:
         self.violations.append(GuardViolation(
@@ -100,10 +129,10 @@ class ScopeIntegrityChecker(ast.NodeVisitor):
 
     def visit_AugAssign(self, node: ast.AugAssign) -> None:
         if isinstance(node.target, ast.Name):
-            is_future_local = bool(self.scope_future_locals and node.target.id in self.scope_future_locals[-1])
+            is_future = bool(self.scope_future_locals and node.target.id in self.scope_future_locals[-1])
             if (
                 node.target.id in self.deleted_stack[-1]
-                or is_future_local
+                or is_future
                 or node.target.id not in self._current_visible_names()
             ):
                 self._record_undef(
@@ -118,10 +147,8 @@ class ScopeIntegrityChecker(ast.NodeVisitor):
 
     def _visit_for_common(self, node: ast.For | ast.AsyncFor) -> None:
         self.visit(node.iter)
-        self._bind_target_names_in_current_scope(node.target)
-        for stmt in node.body:
-            self.visit(stmt)
-        for stmt in node.orelse:
+        self._visit_and_bind_target(node.target)
+        for stmt in (*node.body, *node.orelse):
             self.visit(stmt)
 
     def visit_For(self, node: ast.For) -> None:
@@ -134,7 +161,7 @@ class ScopeIntegrityChecker(ast.NodeVisitor):
         for item in node.items:
             self.visit(item.context_expr)
             if item.optional_vars:
-                self._bind_target_names_in_current_scope(item.optional_vars)
+                self._visit_and_bind_target(item.optional_vars)
         for stmt in node.body:
             self.visit(stmt)
 
@@ -155,14 +182,21 @@ class ScopeIntegrityChecker(ast.NodeVisitor):
     def _push_scope(
         self, local_scope: Set[str], is_class: bool = False,
         all_bindings: Set[str] | None = None, future_locals: Set[str] | None = None,
+        global_decls: Set[str] | None = None, nonlocal_decls: Set[str] | None = None,
     ) -> None:
-        self.scope_stack.append(local_scope)
-        self.deleted_stack.append(set())
-        self.scope_is_class.append(is_class)
-        self.scope_all_bindings.append(set(local_scope) if all_bindings is None else all_bindings)
-        self.scope_future_locals.append(set() if future_locals is None else future_locals)
+        push_scope_frames(
+            self,
+            local_scope,
+            is_class=is_class,
+            all_bindings=all_bindings,
+            future_locals=future_locals,
+            global_decls=global_decls,
+            nonlocal_decls=nonlocal_decls,
+        )
 
     def _pop_scope(self) -> None:
+        self.scope_nonlocal_decls.pop()
+        self.scope_global_decls.pop()
         self.scope_future_locals.pop()
         self.scope_all_bindings.pop()
         self.scope_is_class.pop()
@@ -177,11 +211,13 @@ class ScopeIntegrityChecker(ast.NodeVisitor):
         if args.kwarg:
             scope.add(args.kwarg.arg)
 
+    def _visit_func_annotations(
+        self, node: ast.FunctionDef | ast.AsyncFunctionDef, type_params: Set[str]
+    ) -> None:
+        visit_func_annotations_impl(self, node, type_params)
+
     def visit_Lambda(self, node: ast.Lambda) -> None:
-        for d in node.args.defaults:
-            if d is not None:
-                self.visit(d)
-        for d in getattr(node.args, "kw_defaults", []):
+        for d in (*node.args.defaults, *getattr(node.args, "kw_defaults", [])):
             if d is not None:
                 self.visit(d)
         local_scope: Set[str] = set()
@@ -197,7 +233,10 @@ class ScopeIntegrityChecker(ast.NodeVisitor):
             self.visit(expr)
         self._bind_name_in_current_scope(node.name)
         local_scope: Set[str] = {tp.name for tp in getattr(node, "type_params", []) if hasattr(tp, "name")}
-        self._push_scope(local_scope, is_class=True)
+        g_decls: Set[str] = set()
+        nl_decls: Set[str] = set()
+        collect_func_local_bindings(list(node.body), set(), declared_globals=g_decls, declared_nonlocals=nl_decls)
+        self._push_scope(local_scope, is_class=True, global_decls=g_decls, nonlocal_decls=nl_decls)
         try:
             for child in node.body:
                 self.visit(child)
@@ -216,34 +255,36 @@ class ScopeIntegrityChecker(ast.NodeVisitor):
         for d in (*node.args.defaults, *getattr(node.args, "kw_defaults", [])):
             if d is not None:
                 self.visit(d)
+        type_param_names: Set[str] = {tp.name for tp in getattr(node, "type_params", []) if hasattr(tp, "name")}
+        self._visit_func_annotations(node, type_param_names)
         self._bind_name_in_current_scope(node.name)
-        local_scope: Set[str] = {tp.name for tp in getattr(node, "type_params", []) if hasattr(tp, "name")}
+        local_scope: Set[str] = set(type_param_names)
         self._collect_signature_params(node.args, local_scope)
-
         all_func_bindings: Set[str] = set(local_scope)
-        declared_nonlocal_global: Set[str] = set()
-        self._collect_func_local_bindings(node.body, all_func_bindings, declared_nonlocal_global)
-        local_scope.update(declared_nonlocal_global)
-        self._push_scope(local_scope, all_bindings=all_func_bindings, future_locals=all_func_bindings - local_scope)
+        declared_shared: Set[str] = set()
+        g_decls: Set[str] = set()
+        nl_decls: Set[str] = set()
+        collect_func_local_bindings(
+            node.body, all_func_bindings, declared_shared,
+            declared_globals=g_decls, declared_nonlocals=nl_decls,
+        )
+        local_scope.update(declared_shared)
+        self._push_scope(
+            local_scope, all_bindings=all_func_bindings,
+            future_locals=all_func_bindings - local_scope,
+            global_decls=g_decls, nonlocal_decls=nl_decls,
+        )
         try:
             for child in node.body:
                 self.visit(child)
         finally:
             self._pop_scope()
 
-    def _collect_func_local_bindings(
-        self, nodes: List[ast.stmt], local_scope: Set[str], declared_shared: Set[str] | None = None,
-    ) -> None:
-        """Raccoglie i simboli locali della funzione senza scendere in funzioni o classi annidate."""
-        collect_func_local_bindings(nodes, local_scope, declared_shared)
-
     def visit_Global(self, node: ast.Global) -> None:
-        for name in node.names:
-            self._bind_name_in_current_scope(name)
+        register_shared_decl_in_scope(self, node.names, is_global=True)
 
     def visit_Nonlocal(self, node: ast.Nonlocal) -> None:
-        for name in node.names:
-            self._bind_name_in_current_scope(name)
+        register_shared_decl_in_scope(self, node.names, is_global=False)
 
     def _extract_target_names(self, node: ast.AST, target_set: Set[str]) -> None:
         extract_target_names(node, target_set)
@@ -254,56 +295,25 @@ class ScopeIntegrityChecker(ast.NodeVisitor):
             self._bind_name_in_current_scope(name)
             self._bind_name_in_current_scope(name.split(".")[0])
 
+    def _track_future_annotations(self, node: ast.ImportFrom) -> None:
+        if node.module == "__future__" and any(alias.name == "annotations" for alias in node.names):
+            self._has_future_annotations = True
+
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+        self._track_future_annotations(node)
         for alias in node.names:
             self._bind_name_in_current_scope(alias.asname or alias.name)
 
     def visit_Match(self, node: Any) -> None:
-        self.visit(node.subject)
-        for case in node.cases:
-            pattern_bindings: Set[str] = set()
-            self._extract_pattern_bindings(case.pattern, pattern_bindings)
-            for pb in pattern_bindings:
-                self._bind_name_in_current_scope(pb)
-            if case.guard:
-                self.visit(case.guard)
-            for stmt in case.body:
-                self.visit(stmt)
-
-    def _extract_pattern_bindings(self, pattern: Any, bindings: Set[str]) -> None:
-        extract_pattern_bindings(pattern, bindings)
+        visit_match_impl(self, node)
 
     def visit_TypeAlias(self, node: Any) -> None:
-        if hasattr(node, "name"):
-            if isinstance(node.name, ast.Name):
-                self._bind_name_in_current_scope(node.name.id)
-            elif isinstance(node.name, str):
-                self._bind_name_in_current_scope(node.name)
-        for tp in getattr(node, "type_params", []):
-            if hasattr(tp, "name"):
-                self._bind_name_in_current_scope(tp.name)
-        if hasattr(node, "value"):
-            self.visit(node.value)
+        visit_type_alias_impl(self, node)
 
     def _visit_comprehension_common(
         self, generators: List[ast.comprehension], visit_elts_fn: Any
     ) -> None:
-        if generators:
-            self.visit(generators[0].iter)
-        comp_scope: Set[str] = set()
-        self._push_scope(comp_scope)
-        self._comp_depth += 1
-        try:
-            for idx, gen in enumerate(generators):
-                if idx > 0:
-                    self.visit(gen.iter)
-                self._extract_target_names(gen.target, comp_scope)
-                for if_expr in gen.ifs:
-                    self.visit(if_expr)
-            visit_elts_fn()
-        finally:
-            self._comp_depth -= 1
-            self._pop_scope()
+        visit_comprehension_common_impl(self, generators, visit_elts_fn)
 
     def visit_ListComp(self, node: ast.ListComp) -> None:
         self._visit_comprehension_common(node.generators, lambda: self.visit(node.elt))
@@ -322,15 +332,7 @@ class ScopeIntegrityChecker(ast.NodeVisitor):
         self._visit_comprehension_common(node.generators, visit_kv)
 
     def visit_NamedExpr(self, node: ast.NamedExpr) -> None:
-        self.visit(node.value)
-        if isinstance(node.target, ast.Name):
-            self._bind_name_in_current_scope(node.target.id)
-            if self._comp_depth > 0:
-                target_idx = max(0, len(self.scope_stack) - 1 - self._comp_depth)
-                self.scope_stack[target_idx].add(node.target.id)
-                self.deleted_stack[target_idx].discard(node.target.id)
-                if target_idx < len(self.scope_future_locals):
-                    self.scope_future_locals[target_idx].discard(node.target.id)
+        visit_named_expr_impl(self, node)
 
     def visit_Name(self, node: ast.Name) -> None:
         if isinstance(node.ctx, ast.Load):

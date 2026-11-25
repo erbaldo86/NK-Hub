@@ -26,10 +26,10 @@ DOMAIN_TAXONOMY: Dict[str, Dict[str, Any]] = {
             "vibe_sprint_router.py",
             "win32_2pc_engine.py",
             "preflight_health_check.py",
-            "nk_swarm_messenger.py",
             "nk_registry_indexer.py",
             "nk_hook_gate.py",
             "nk_acs_fastguard.py",
+            "tensor_rsi.py",
             "schemas/dual_ledgers.py",
             "schemas/nk_ipc_contracts.py",
         ],
@@ -44,8 +44,6 @@ DOMAIN_TAXONOMY: Dict[str, Dict[str, Any]] = {
             "session",
             "swarm",
             "plan",
-            "dag",
-            "kahn",
             "index",
             "registry",
             "manifest",
@@ -103,8 +101,8 @@ DOMAIN_TAXONOMY: Dict[str, Dict[str, Any]] = {
         ],
         "scripts": [
             "auto_heal_pipeline.py",
+            "builder_mutation_gate.py",
             "healing_snapshot_rollback.py",
-            "invisible_healing_loop.py",
             "platform_runner.py",
             "deterministic_api_cache.py",
             "safe_cleanup_dev_servers.py",
@@ -148,7 +146,6 @@ DOMAIN_TAXONOMY: Dict[str, Dict[str, Any]] = {
             "ast_guard_validator.py",
             "dast_sandbox_runner.py",
             "oracle_evaluator_l3.py",
-            "sbfl_engine.py",
             "sbfl_pytest_bridge.py",
             "rsi_convergence_engine.py",
             "nk_transcript_tools.py",
@@ -186,9 +183,6 @@ DOMAIN_TAXONOMY: Dict[str, Dict[str, Any]] = {
         ],
         "scripts": [
             "memory_3tier_engine.py",
-            "micro_hud_renderer.py",
-            "nk_active_runtime_sentinel.py",
-            "nk_auto_inning.py",
             "nk_compliance_checker.py",
             "nk_context_sentry.py",
             "nk_session_handoff.py",
@@ -226,6 +220,28 @@ NATIVE_AGENT_DOMAIN_MAP: Dict[str, str] = {
     "NK-Security-DAST-Auditor": "DOM-04",
     "NK-RSI-Auditor": "DOM-04",
     "NK-Scribe-Agent": "DOM-05",
+}
+
+SKILL_PRIMARY_SCRIPTS: Dict[str, Tuple[str, ...]] = {
+    "NK-Security-Auditor": ("ast_guard_validator.py",),
+    "NK-Oracle-Evaluator": (
+        "oracle_evaluator_l3.py",
+        "rsi_convergence_engine.py",
+        "nk_transcript_tools.py",
+    ),
+    "NK-Dynamic-Sandbox-StressTester": (
+        "dast_sandbox_runner.py",
+        "oracle_evaluator_l3.py",
+    ),
+    "NK-Bug-Diagnostic-Engine": ("sbfl_pytest_bridge.py",),
+}
+
+SCRIPT_SKILL_MAP: Dict[str, str] = {
+    "oracle_evaluator_l3.py": "NK-Oracle-Evaluator",
+    "rsi_convergence_engine.py": "NK-Oracle-Evaluator",
+    "nk_transcript_tools.py": "NK-Oracle-Evaluator",
+    "dast_sandbox_runner.py": "NK-Dynamic-Sandbox-StressTester",
+    "sbfl_pytest_bridge.py": "NK-Bug-Diagnostic-Engine",
 }
 
 FORBIDDEN_PHANTOM_MCP_TOOLS: Tuple[str, ...] = (

@@ -49,6 +49,7 @@ HTML5_VOID_TAGS: Set[str] = {
 
 ALLOWED_HTML_EXTENSIONS: Tuple[str, ...] = (".html", ".htm")
 ALLOWED_EXPECTED_EXTENSIONS: Tuple[str, ...] = (".html", ".htm", ".md", ".json")
+_RAW_IGNORED_TEXT_TAGS: Set[str] = {"script", "style"}
 
 _HTML5_CLOSES_OPEN_P: Set[str] = {
     "address",
@@ -245,15 +246,60 @@ class _DOMBuilderParser(HTMLParser):
                     self.stack = self.stack[:i]
                     break
 
+    def _is_raw_ignored_context(self) -> bool:
+        """Verifica stack vuoto o contesto interno a <script>/<style>."""
+        return not self.stack or any(n.tag in _RAW_IGNORED_TEXT_TAGS for n in self.stack)
+
+    def _append_visible_text(self, cleaned: str) -> None:
+        """Accoda il testo normalizzato al nodo corrente nello stack DOM."""
+        curr = self.stack[-1]
+        curr.text = f"{curr.text} {cleaned}".strip() if curr.text else cleaned
+
     def handle_data(self, data: str) -> None:
         cleaned = data.strip()
-        if cleaned and self.stack:
-            curr = self.stack[-1]
-            curr.text = f"{curr.text} {cleaned}".strip() if curr.text else cleaned
+        if not cleaned or self._is_raw_ignored_context():
+            return
+        self._append_visible_text(cleaned)
+
+
+def _extract_subtree_text(node: DOMNode) -> str:
+    """Estrae ricorsivamente il testo visibile da node escludendo <script>/<style>."""
+    if node.tag in _RAW_IGNORED_TEXT_TAGS:
+        return ""
+    parts: List[str] = [node.text] if node.text else []
+    for child in node.children:
+        sub = _extract_subtree_text(child)
+        if sub:
+            parts.append(sub)
+    return " ".join(" ".join(parts).split())
+
+
+def _record_indexed_dom_node(
+    node: DOMNode,
+    tags: Set[str],
+    ids: Set[str],
+    classes: Set[str],
+    text_parts: List[str],
+    headings: Dict[str, List[str]],
+) -> None:
+    """Registra metadati tag, id, classi, testi e intestazioni di un singolo nodo DOM."""
+    tags.add(node.tag)
+    node_id = node.attrs.get("id", "")
+    if node_id:
+        ids.add(node_id)
+    cls_raw = node.attrs.get("class", "")
+    if cls_raw:
+        classes.update(cls_raw.split())
+    if node.text:
+        text_parts.append(node.text)
+    if node.tag in ("h1", "h2", "h3", "h4", "h5", "h6"):
+        h_txt = _extract_subtree_text(node)
+        if h_txt:
+            headings.setdefault(node.tag, []).append(h_txt)
 
 
 def _collect_dom_index(root: DOMNode) -> Dict[str, Any]:
-    """Indicizza tag, id, classi CSS, intestazioni e testo aggregato del DOM reale."""
+    """Indicizza tag, id, classi CSS, intestazioni annidate e testo escludendo <script>/<style>."""
     tags: Set[str] = set()
     ids: Set[str] = set()
     classes: Set[str] = set()
@@ -261,17 +307,10 @@ def _collect_dom_index(root: DOMNode) -> Dict[str, Any]:
     headings: Dict[str, List[str]] = {}
 
     def _walk(node: DOMNode) -> None:
+        if node.tag in _RAW_IGNORED_TEXT_TAGS:
+            return
         if node.tag != "__root__":
-            tags.add(node.tag)
-            if "id" in node.attrs and node.attrs["id"]:
-                ids.add(node.attrs["id"])
-            if "class" in node.attrs and node.attrs["class"]:
-                for cls_tok in node.attrs["class"].split():
-                    classes.add(cls_tok)
-            if node.text:
-                text_parts.append(node.text)
-            if node.tag in ("h1", "h2", "h3", "h4", "h5", "h6") and node.text:
-                headings.setdefault(node.tag, []).append(" ".join(node.text.split()))
+            _record_indexed_dom_node(node, tags, ids, classes, text_parts, headings)
         for child in node.children:
             _walk(child)
 

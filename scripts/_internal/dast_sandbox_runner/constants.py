@@ -9,6 +9,7 @@ from typing import Dict, List
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from _internal.nk_common.constants import NK_LOCK_FILENAMES
 from _internal.nk_common.isolated_test_runner import (
     WIN32_CREATE_NEW_PROCESS_GROUP,
     WIN32_CREATE_NO_WINDOW,
@@ -31,15 +32,24 @@ PROCESS_SET_QUOTA = 0x0100
 PROCESS_TERMINATE = 0x0001
 JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000
 JobObjectExtendedLimitInformation = 9
+DAST_MAX_OUTPUT_BYTES = 2048
 
-_BUILDER_STRIP_PATHS = (
-    "nk_tracking/oracle_lock.json",
+_BUILDER_STRIP_PATHS = tuple(f"nk_tracking/{name}" for name in NK_LOCK_FILENAMES) + (
+    "nk_tracking/tensor_sessions",
     "nk_tracking/oracle_holdout",
     "nk_tracking/benchmark_suite",
     "tests/evals",
 )
 
-_SENSITIVE_ENV_TOKENS = ("KEY", "SECRET", "TOKEN")
+_SENSITIVE_ENV_TOKENS = (
+    "KEY",
+    "SECRET",
+    "TOKEN",
+    "PASSWORD",
+    "PWD",
+    "AUTH",
+    "CREDENTIAL",
+)
 _BLOCKED_ENV_KEYS = {"NK_ALLOW_GOVERNANCE_OVERRIDE"}
 
 
@@ -160,7 +170,7 @@ class SandboxConfig(BaseModel):
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
-    timeout_sec: float = Field(default=10.0, gt=0.0, le=60.0)
+    timeout_sec: float = Field(default=10.0, gt=0.0, le=300.0)
     poll_interval_sec: float = Field(default=0.025, gt=0.0, le=0.5)
     max_memory_mb: float = Field(default=512.0, gt=0.0)
     env_vars: Dict[str, str] = Field(default_factory=dict)

@@ -14,7 +14,8 @@
 * I manifesti `.agents/skills.json` e `.agents/plugins.json` montano 11 skill, 6 sub-agenti nativi e `nk-gate`.
 * Gli 11 playbook risiedono in `NK_Hub/.agents/skills/`.
 * I `6` sub-agenti nativi risiedono in `NK_Hub/.agents/agents/` e nel plugin `nk-gate`.
-* I progetti applicativi esterni risiedono in `NK_External_Projects/<Nome>/`.
+* I progetti applicativi attivi risiedono in `NK Proget/Locale/<Nome>/` (compatibile con `NK_External_Projects/<Nome>/`).
+* La cartella `NK Proget/Online/` è un mirror di release in sola lettura.
 * Nessun agente esegue scansioni esplorative nella directory padre prima del bootstrap.
 
 ## 2. Bootstrap Fast-Stat e Onboarding Single-Pass (`O2` + `O3`)

@@ -142,6 +142,8 @@ DOMAIN_TO_NATIVE_SUBAGENT: Dict[str, str] = {
 
 _READ_ONLY_ROLES: Tuple[str, ...] = (
     "NK-Oracle-Evaluator",
+    "NK-Bug-Diagnostic-Engine",
+    "NK-Ideator",
     "NK-Security-DAST-Auditor",
     "NK-Security-Auditor",
     "NK-RSI-Auditor",
@@ -164,6 +166,7 @@ _FORGE_OVERRIDE_KEYWORDS: Tuple[str, ...] = (
     "forge",
     "playbook",
     "skill.md",
+    "agent.md",
     "strict_boundaries",
 )
 _NOMINALIZATION_SUFFIXES: Tuple[str, ...] = (
@@ -189,6 +192,25 @@ def _sanitize_tetralogia_filenames(text_low: str) -> str:
     return sanitized
 
 
+_DOM03_HIGH_PRIORITY_KWS = frozenset(
+    {
+        "refactoring",
+        "refactor",
+        "surgical refactor",
+        "refactoring chirurgico",
+        "estrai modulo",
+        "fastapi",
+        "asyncio",
+        "pydantic",
+        "playwright",
+        "react",
+        "typescript",
+        "tailwind",
+        "nextjs",
+        "next.js",
+        "sqlite",
+    }
+)
 _DOM04_HIGH_PRIORITY_KWS = frozenset(
     {
         "stress test",

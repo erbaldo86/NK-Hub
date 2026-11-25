@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Gestore del Ratchet di qualita per NK Hub Generation 1.0.0-Generation.
+Gestore del Ratchet di qualita per NK Hub Generation 1.0.0-Generation (Schema v2).
 Modulo: scripts/quality_baseline_manager.py.
 @domain_id: DOM-05
-Applica la regola [RULE-01.10] con soglia MIN_GOLDEN_TESTS_FLOOR = 93, misurazione Pytest reale e verifica oracle_lock.json.
+Applica [RULE-01.10] con soglia MIN_GOLDEN_TESTS_FLOOR = 93, 12 REQUIRED_RATCHET_KEYS e verifica oracle_lock.json.
 """
 
 from __future__ import annotations
@@ -27,6 +27,7 @@ _CLI_FLAGS: Tuple[str, ...] = (
     "--json",
     "--live",
     "--metrics",
+    "--reason",
     "--recalibrate",
     "--target-tests",
     "--update",
@@ -41,7 +42,7 @@ _PROD_SCRIPTS = (
 )
 for _p in (_PROD_SCRIPTS, _SCRIPT_DIR):
     if _p.is_dir() and str(_p) not in sys.path:
-        sys.path.insert(0, _p)
+        sys.path.insert(0, str(_p))
 if _SCRIPT_DIR != _PROD_SCRIPTS and (_SCRIPT_DIR / "_internal" / "nk_common").is_dir():
     import _internal as _stg_int, _internal.nk_common as _stg_nkc
 
@@ -57,12 +58,19 @@ _LAZY_EXPORT_MAP: Dict[str, Tuple[str, str]] = {
     "BASELINE_FILENAME": ("_internal.quality_baseline_manager.constants", "BASELINE_FILENAME"),
     "BASELINE_SCHEMA_VERSION": ("_internal.quality_baseline_manager.constants", "BASELINE_SCHEMA_VERSION"),
     "DEFAULT_BASELINE_VERSION": ("_internal.quality_baseline_manager.constants", "DEFAULT_BASELINE_VERSION"),
+    "SCHEMA_VERSION_V2": ("_internal.quality_baseline_manager.constants", "SCHEMA_VERSION_V2"),
     "MIN_GOLDEN_TESTS_FLOOR": ("_internal.quality_baseline_manager.constants", "MIN_GOLDEN_TESTS_FLOOR"),
     "CONSTITUTIONAL_GOLDEN_FLOOR": ("_internal.quality_baseline_manager.constants", "CONSTITUTIONAL_GOLDEN_FLOOR"),
+    "MAX_PYTEST_DURATION_CEIL": ("_internal.quality_baseline_manager.constants", "MAX_PYTEST_DURATION_CEIL"),
+    "MAX_PYTEST_FAST_DURATION_CEIL": ("_internal.quality_baseline_manager.constants", "MAX_PYTEST_FAST_DURATION_CEIL"),
+    "REQUIRED_RATCHET_KEYS": ("_internal.quality_baseline_manager.constants", "REQUIRED_RATCHET_KEYS"),
+    "SCHEMA_V2_LIVE_KEYS": ("_internal.quality_baseline_manager.constants", "SCHEMA_V2_LIVE_KEYS"),
+    "PHANTOM_V1_METRIC_KEYS": ("_internal.quality_baseline_manager.constants", "PHANTOM_V1_METRIC_KEYS"),
     "RECALIBRATED_COUNT_KEYS": ("_internal.quality_baseline_manager.constants", "RECALIBRATED_COUNT_KEYS"),
     "LOWER_IS_BETTER_KEYS": ("_internal.quality_baseline_manager.constants", "LOWER_IS_BETTER_KEYS"),
     "load_baseline": ("_internal.quality_baseline_manager.constants", "load_baseline"),
     "create_default_baseline": ("_internal.quality_baseline_manager.constants", "create_default_baseline"),
+    "extract_baseline_metrics_v1_fallback": ("_internal.quality_baseline_manager.constants", "extract_baseline_metrics_v1_fallback"),
     "_atomic_write_baseline": ("_internal.quality_baseline_manager.constants", "_atomic_write_baseline"),
     "_extract_numeric_metric": ("_internal.quality_baseline_manager.constants", "_extract_numeric_metric"),
     "_is_valid_gt68_recalibration": ("_internal.quality_baseline_manager.constants", "_is_valid_gt68_recalibration"),

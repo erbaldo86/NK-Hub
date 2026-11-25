@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Helper discovery, lettura, conteggio e idratazione transcript per nk_transcript_tools."""
+"""Helper discovery, lettura, conteggio, idratazione e parser unificato transcript."""
 
 from __future__ import annotations
 
@@ -10,7 +10,13 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from _internal.nk_common.transcript_guards import is_subagent_transcript_head
-from _internal.nk_transcript_tools.constants import classify_transcript_record
+from _internal.nk_transcript_tools.constants import (
+    _pop_correlated_tool_call,
+    classify_transcript_record,
+    clean_tool_str,
+    extract_tool_args,
+    extract_tool_name,
+)
 
 
 def is_subagent_transcript_file(transcript_path: Path) -> bool:
@@ -165,6 +171,124 @@ def load_transcript_records(
                     pass
 
     return [rec for _, rec in target_slice]
+
+
+def _extract_inline_tool_identity(
+    calls: List[Dict[str, Any]],
+) -> Tuple[Dict[str, Any], str, Dict[str, Any], str]:
+    """Estrae il primo tool con nome valido da una lista tool_calls inline."""
+    for call_item in calls:
+        cand_name = extract_tool_name(call_item)
+        if cand_name:
+            cand_args = extract_tool_args(call_item)
+            cand_cmd = clean_tool_str(
+                cand_args.get("CommandLine") or cand_args.get("command") or ""
+            )
+            return call_item, cand_name, cand_args, cand_cmd
+    return {}, "", {}, ""
+
+
+def _first_nonempty_text(*candidates: Any) -> str:
+    """Restituisce la prima rappresentazione stringa non vuota tra i candidati."""
+    for item in candidates:
+        if item:
+            return str(item)
+    return ""
+
+
+def _correlate_record_call(
+    cat: str,
+    calls: List[Dict[str, Any]],
+    has_inline: bool,
+    pending_tool_calls: List[Dict[str, Any]],
+    rec: Dict[str, Any],
+) -> Tuple[Dict[str, Any], str, Dict[str, Any], str]:
+    """Correla un record TOOL o inline alle chiamate pendenti senza sovrascriverle."""
+    if cat == "TOOL" and not calls:
+        corr_call = _pop_correlated_tool_call(pending_tool_calls, rec)
+        corr_args = extract_tool_args(corr_call)
+        corr_cmd = clean_tool_str(
+            _first_nonempty_text(corr_args.get("CommandLine"), corr_args.get("command"))
+        )
+        return corr_call, extract_tool_name(corr_call), corr_args, corr_cmd
+    if has_inline and calls:
+        return _extract_inline_tool_identity(calls)
+    return {}, "", {}, ""
+
+
+def _build_parsed_event(
+    step_num: int,
+    rec: Dict[str, Any],
+    cat: str,
+    calls: List[Dict[str, Any]],
+    has_inline: bool,
+    corr_tuple: Tuple[Dict[str, Any], str, Dict[str, Any], str],
+) -> Dict[str, Any]:
+    """Costruisce il dizionario evento normalizzato per un singolo record transcript."""
+    corr_call, corr_tool, corr_args, corr_cmd = corr_tuple
+    content = _first_nonempty_text(rec.get("content"), rec.get("output"))
+    output_text = _first_nonempty_text(
+        rec.get("output"), rec.get("tool_output"), rec.get("content")
+    )
+    if not output_text:
+        output_text = json.dumps(rec, ensure_ascii=False)
+    return {
+        "step_num": step_num,
+        "record": rec,
+        "category": cat,
+        "is_turn_boundary": cat in ("USER", "SYSTEM"),
+        "calls": calls,
+        "has_inline_tool_out": has_inline,
+        "corr_call": corr_call,
+        "corr_tool": corr_tool,
+        "corr_args": corr_args,
+        "corr_cmd": corr_cmd,
+        "content": content,
+        "output_text": output_text,
+        "status": str(rec.get("status") or "").upper(),
+    }
+
+
+def parse_transcript_events(
+    transcript_path: Path,
+    only_after_last_turn: bool = False,
+    hydrate_truncated: bool = True,
+) -> List[Dict[str, Any]]:
+    """Helper unificato: normalizza i record transcript correlando pending_tool_calls senza sovrascritture."""
+    records = load_transcript_records(
+        transcript_path,
+        only_after_last_turn=only_after_last_turn,
+        hydrate_truncated=hydrate_truncated,
+    )
+    events: List[Dict[str, Any]] = []
+    pending_tool_calls: List[Dict[str, Any]] = []
+
+    for step_num, rec in enumerate(records, start=1):
+        cat = classify_transcript_record(rec)
+        if cat in ("USER", "SYSTEM"):
+            pending_tool_calls.clear()
+
+        raw_calls = rec.get("tool_calls")
+        calls: List[Dict[str, Any]] = []
+        if isinstance(raw_calls, list):
+            for c_item in raw_calls:
+                if isinstance(c_item, dict):
+                    calls.append(c_item)
+        has_inline = bool(
+            _first_nonempty_text(
+                rec.get("output"), rec.get("tool_output"), rec.get("tool_results")
+            )
+        )
+        corr_tuple = _correlate_record_call(
+            cat, calls, has_inline, pending_tool_calls, rec
+        )
+        if calls and not has_inline and cat != "TOOL":
+            pending_tool_calls.extend(calls)
+
+        events.append(
+            _build_parsed_event(step_num, rec, cat, calls, has_inline, corr_tuple)
+        )
+    return events
 
 
 def locate_transcript(

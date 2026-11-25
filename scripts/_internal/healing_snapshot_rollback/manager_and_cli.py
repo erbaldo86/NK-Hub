@@ -22,7 +22,12 @@ from _internal.healing_snapshot_rollback.models_and_io import (
     _MANIFEST_LOCK,
     _atomic_write_bytes,
     _atomic_write_text,
+    _check_equivalent_green,
+    _check_regression_reason,
     _facade_attr,
+    _restore_single_entry,
+    _validate_snapshot_id,
+    _verify_restored_file,
 )
 from _internal.nk_common.paths import reconfigure_streams
 
@@ -44,6 +49,38 @@ class HealingSnapshotManager:
         self.manifest_path = self.base_temp_dir / "snapshot_manifest.json"
         self.active_snapshots: Dict[str, SnapshotBundle] = {}
         self._load_manifest()
+
+    def _resolve_confined_snapshot_dir(self, snapshot_id: str) -> Path:
+        """Valida snapshot_id e garantisce il confinamento stretto sotto base_temp_dir."""
+        clean_id = _validate_snapshot_id(snapshot_id)
+        base_resolved = self.base_temp_dir.resolve()
+        cand = (base_resolved / clean_id).resolve()
+        if cand == base_resolved or cand.parent != base_resolved or not cand.is_relative_to(base_resolved):
+            raise ValueError(f"Snapshot path escapes base_temp_dir: {cand}")
+        return cand
+
+    def _assert_dir_confined(self, target_dir: Path) -> Optional[Path]:
+        """Restituisce target_dir risolto se strettamente dentro base_temp_dir, altrimenti None."""
+        try:
+            base_resolved = self.base_temp_dir.resolve()
+            resolved = target_dir.resolve()
+        except OSError:
+            return None
+        if resolved == base_resolved or not resolved.is_relative_to(base_resolved):
+            return None
+        return resolved
+
+    def _read_disk_manifest_unlocked(self) -> Dict[str, Dict[str, Any]]:
+        """Legge il dizionario manifesto su disco senza alterare gli snapshot altrui."""
+        if not self.manifest_path.exists():
+            return {}
+        try:
+            raw = json.loads(
+                self.manifest_path.read_bytes().decode("utf-8", errors="replace")
+            )
+            return raw if isinstance(raw, dict) else {}
+        except (OSError, json.JSONDecodeError, ValueError):
+            return {}
 
     def _load_manifest(self) -> None:
         """Carica gli snapshot attivi mettendo in quarantena i manifesti corrotti."""
@@ -71,23 +108,26 @@ class HealingSnapshotManager:
                     f"Corrupt snapshot manifest quarantined to {corrupt_path}: {exc}"
                 ) from exc
 
-    def _save_manifest(self) -> None:
-        """Persiste atomicamente il dizionario degli snapshot in snapshot_manifest.json."""
+    def _persist_single_snapshot_entry(
+        self, snapshot_id: str, bundle: Optional[SnapshotBundle]
+    ) -> None:
+        """Aggiorna o rimuove una sola voce nel manifesto preservando le sessioni concorrenti."""
         write_txt = _facade_attr("_atomic_write_text", _atomic_write_text)
         with _MANIFEST_LOCK:
             self.base_temp_dir.mkdir(parents=True, exist_ok=True)
-            serialized = {
-                sid: bundle.model_dump()
-                for sid, bundle in self.active_snapshots.items()
-            }
-            write_txt(self.manifest_path, json.dumps(serialized, indent=2))
+            disk_map = self._read_disk_manifest_unlocked()
+            if bundle is not None:
+                disk_map[snapshot_id] = bundle.model_dump()
+            else:
+                disk_map.pop(snapshot_id, None)
+            write_txt(self.manifest_path, json.dumps(disk_map, indent=2))
 
     def create_snapshot(self, target_files: Sequence[Path | str]) -> str:
         """Cattura SHA-256 e byte grezzi dei file target senza alterare i contenuti."""
         write_bin = _facade_attr("_atomic_write_bytes", _atomic_write_bytes)
         write_txt = _facade_attr("_atomic_write_text", _atomic_write_text)
         snapshot_id = f"snap_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
-        snap_temp_dir = self.base_temp_dir / snapshot_id
+        snap_temp_dir = self._resolve_confined_snapshot_dir(snapshot_id)
         snap_temp_dir.mkdir(parents=True, exist_ok=True)
 
         bundle = SnapshotBundle(
@@ -132,7 +172,7 @@ class HealingSnapshotManager:
 
         with _MANIFEST_LOCK:
             self.active_snapshots[snapshot_id] = bundle
-        self._save_manifest()
+        self._persist_single_snapshot_entry(snapshot_id, bundle)
         return snapshot_id
 
     def evaluate_fitness(
@@ -142,55 +182,28 @@ class HealingSnapshotManager:
         prev_passed: int,
         prev_failed: int,
         exit_code: int,
+        *,
+        allow_equivalent_green: bool = False,
+        delta_cc: int = 0,
+        ast_sast_violations: int = 0,
     ) -> FitnessReport:
-        """Applica lo Strict Monotonic Fitness Gate rifiutando suite vuote o contratte."""
+        """Applica lo Strict Monotonic Fitness Gate H2* supportando refactoring equivalente verde."""
+        reg_reason = _check_regression_reason(
+            current_passed, current_failed, prev_passed, prev_failed, exit_code
+        )
+        if reg_reason is not None:
+            return FitnessReport(
+                verdict=FitnessVerdict.REGRESSION,
+                current_passed=current_passed,
+                current_failed=current_failed,
+                prev_passed=prev_passed,
+                prev_failed=prev_failed,
+                exit_code=exit_code,
+                reason=reg_reason,
+            )
+
         curr_total = current_passed + current_failed
         prev_total = prev_passed + prev_failed
-
-        if curr_total <= 0:
-            return FitnessReport(
-                verdict=FitnessVerdict.REGRESSION,
-                current_passed=current_passed,
-                current_failed=current_failed,
-                prev_passed=prev_passed,
-                prev_failed=prev_failed,
-                exit_code=exit_code,
-                reason="Zero tests executed (0/0 test run rejected).",
-            )
-
-        if curr_total < prev_total:
-            return FitnessReport(
-                verdict=FitnessVerdict.REGRESSION,
-                current_passed=current_passed,
-                current_failed=current_failed,
-                prev_passed=prev_passed,
-                prev_failed=prev_failed,
-                exit_code=exit_code,
-                reason=f"Total test count decreased from {prev_total} to {curr_total}.",
-            )
-
-        if current_passed < prev_passed:
-            return FitnessReport(
-                verdict=FitnessVerdict.REGRESSION,
-                current_passed=current_passed,
-                current_failed=current_failed,
-                prev_passed=prev_passed,
-                prev_failed=prev_failed,
-                exit_code=exit_code,
-                reason=f"Passed tests decreased from {prev_passed} to {current_passed}.",
-            )
-
-        if current_failed > prev_failed:
-            return FitnessReport(
-                verdict=FitnessVerdict.REGRESSION,
-                current_passed=current_passed,
-                current_failed=current_failed,
-                prev_passed=prev_passed,
-                prev_failed=prev_failed,
-                exit_code=exit_code,
-                reason=f"Failed tests increased from {prev_failed} to {current_failed}.",
-            )
-
         monotonic_gain = (
             curr_total >= prev_total
             and curr_total > 0
@@ -208,7 +221,7 @@ class HealingSnapshotManager:
                 reason="All tests passed successfully with strict monotonic gain (0 failures).",
             )
 
-        if monotonic_gain and current_failed < prev_failed:
+        if monotonic_gain and current_failed < prev_failed and exit_code in (0, 1):
             return FitnessReport(
                 verdict=FitnessVerdict.IMPROVED,
                 current_passed=current_passed,
@@ -219,15 +232,24 @@ class HealingSnapshotManager:
                 reason=f"Failures reduced from {prev_failed} to {current_failed} (passed: {current_passed}).",
             )
 
-        if exit_code != 0 and current_failed == 0 and prev_failed == 0:
+        if _check_equivalent_green(
+            allow_equivalent_green,
+            exit_code,
+            current_passed,
+            current_failed,
+            prev_passed,
+            prev_failed,
+            delta_cc,
+            ast_sast_violations,
+        ):
             return FitnessReport(
-                verdict=FitnessVerdict.REGRESSION,
+                verdict=FitnessVerdict.REFACTOR_EQUIVALENT,
                 current_passed=current_passed,
                 current_failed=current_failed,
                 prev_passed=prev_passed,
                 prev_failed=prev_failed,
                 exit_code=exit_code,
-                reason=f"Non-zero exit code ({exit_code}) without test improvement.",
+                reason="Equivalent green refactoring accepted (0 failures, delta_cc <= 0, 0 AST/SAST violations).",
             )
 
         return FitnessReport(
@@ -240,79 +262,91 @@ class HealingSnapshotManager:
             reason="Test count unchanged or no monotonic gain.",
         )
 
-    def rollback(self, snapshot_id: str) -> Dict[str, bool]:
-        """Ripristina i byte esatti dei file tracciati allo stato originale dello snapshot."""
-        write_bin = _facade_attr("_atomic_write_bytes", _atomic_write_bytes)
+    def _resolve_snapshot_bundle(self, snapshot_id: str, snap_dir: Path) -> SnapshotBundle:
+        """Recupera lo SnapshotBundle validato in memoria o sotto la directory confinata."""
         if snapshot_id not in self.active_snapshots:
             self._load_manifest()
         if snapshot_id not in self.active_snapshots:
-            local_manifest = (
-                self.base_temp_dir / snapshot_id / "snapshot_manifest.json"
-            )
-            if local_manifest.exists():
-                bundle = SnapshotBundle.model_validate_json(
-                    local_manifest.read_bytes().decode("utf-8", errors="replace")
-                )
-                self.active_snapshots[snapshot_id] = bundle
-            else:
+            local_manifest = snap_dir / "snapshot_manifest.json"
+            if not local_manifest.exists():
                 raise KeyError(f"Unknown snapshot ID: {snapshot_id}")
+            bundle = SnapshotBundle.model_validate_json(
+                local_manifest.read_bytes().decode("utf-8", errors="replace")
+            )
+            self.active_snapshots[snapshot_id] = bundle
+        return self.active_snapshots[snapshot_id]
 
-        bundle = self.active_snapshots[snapshot_id]
+    def rollback(self, snapshot_id: str) -> Dict[str, bool]:
+        """Ripristina i byte esatti dei file tracciati verificando l'integrita SHA-256 post scrittura."""
+        snap_dir = self._resolve_confined_snapshot_dir(snapshot_id)
+        write_bin = _facade_attr("_atomic_write_bytes", _atomic_write_bytes)
+        bundle = self._resolve_snapshot_bundle(snapshot_id, snap_dir)
+        confined_backup = self._assert_dir_confined(Path(bundle.temp_backup_dir))
+        backup_dir_str = str(confined_backup if confined_backup is not None else snap_dir)
+
         restoration_status: Dict[str, bool] = {}
-
         for file_path_str, file_snap in bundle.files.items():
-            target_path = Path(file_path_str)
-            try:
-                if file_snap.exists_before:
-                    prefix = hashlib.sha256(
-                        str(target_path).encode("utf-8")
-                    ).hexdigest()[:8]
-                    backup_src = (
-                        Path(bundle.temp_backup_dir)
-                        / f"{prefix}_{file_snap.relative_path}"
-                    )
-                    if file_snap.content_b64:
-                        raw_bytes = base64.b64decode(
-                            file_snap.content_b64.encode("ascii")
-                        )
-                    elif backup_src.exists() and backup_src.is_file():
-                        raw_bytes = backup_src.read_bytes()
-                    else:
-                        raw_bytes = file_snap.content.encode("utf-8")
-                    write_bin(target_path, raw_bytes)
-                    restoration_status[file_path_str] = True
-                else:
-                    if target_path.exists():
-                        target_path.unlink(missing_ok=True)
-                    restoration_status[file_path_str] = True
-            except Exception:
-                restoration_status[file_path_str] = False
+            restoration_status[file_path_str] = _restore_single_entry(
+                Path(file_path_str), file_snap, backup_dir_str, write_bin
+            )
 
         return restoration_status
 
+    def _cleanup_single_snapshot(self, snapshot_id: str) -> None:
+        """Elimina solo lo snapshot indicato preservando tutti gli altri snapshot attivi."""
+        snap_dir = self._resolve_confined_snapshot_dir(snapshot_id)
+        with _MANIFEST_LOCK:
+            bundle = self.active_snapshots.pop(snapshot_id, None)
+        self._persist_single_snapshot_entry(snapshot_id, None)
+        if bundle is not None:
+            confined = self._assert_dir_confined(Path(bundle.temp_backup_dir))
+            if confined is not None and confined.exists():
+                shutil.rmtree(confined, ignore_errors=True)
+        if snap_dir.exists():
+            shutil.rmtree(snap_dir, ignore_errors=True)
+
+    def _cleanup_all_snapshots(self) -> None:
+        """Rimuove tutti gli snapshot tracciati dall'istanza corrente."""
+        with _MANIFEST_LOCK:
+            bundles = list(self.active_snapshots.values())
+            self.active_snapshots.clear()
+            if self.manifest_path.exists():
+                try:
+                    self.manifest_path.unlink()
+                except OSError as exc:
+                    _ = str(exc)
+        for bundle in bundles:
+            confined = self._assert_dir_confined(Path(bundle.temp_backup_dir))
+            if confined is not None and confined.exists():
+                shutil.rmtree(confined, ignore_errors=True)
+
     def cleanup(self, snapshot_id: Optional[str] = None) -> None:
-        """Rimuove le directory temporanee degli snapshot e aggiorna il manifesto."""
-        if snapshot_id:
-            with _MANIFEST_LOCK:
-                bundle = self.active_snapshots.pop(snapshot_id, None)
-            if bundle and Path(bundle.temp_backup_dir).exists():
-                shutil.rmtree(bundle.temp_backup_dir, ignore_errors=True)
-            self._save_manifest()
-        else:
-            with _MANIFEST_LOCK:
-                bundles = list(self.active_snapshots.values())
-                self.active_snapshots.clear()
-                if self.manifest_path.exists():
-                    try:
-                        self.manifest_path.unlink()
-                    except Exception:
-                        pass
-            for bundle in bundles:
-                if Path(bundle.temp_backup_dir).exists():
-                    shutil.rmtree(bundle.temp_backup_dir, ignore_errors=True)
+        """Rimuove lo snapshot specificato oppure tutti gli snapshot se snapshot_id e None."""
+        if snapshot_id is not None:
+            self._cleanup_single_snapshot(snapshot_id)
+            return
+        self._cleanup_all_snapshots()
+
+    def cleanup_snapshot(self, snapshot_id: str) -> None:
+        """Elimina selettivamente un singolo snapshot validato e confinato."""
+        self.cleanup(snapshot_id=snapshot_id)
 
     rollback_to_snapshot = rollback
     delete_snapshot = cleanup
+
+
+def _handle_rollback_cli(mgr: Any, snap_id: str) -> int:
+    """Esegue il rollback CLI con uscita fail-closed su ID ignoto/invalido o file non verificati."""
+    try:
+        status = mgr.rollback(snap_id)
+    except (KeyError, ValueError) as exc:
+        print(f"🔴 [SNAPSHOT-ROLLBACK-FAILED] {exc}")
+        return 1
+    if not status or not all(status.values()):
+        print(f"🔴 [SNAPSHOT-ROLLBACK-FAILED] ID: {snap_id} Status: {status}")
+        return 1
+    print(f"🔄 [SNAPSHOT-ROLLED-BACK] ID: {snap_id} Status: {status}")
+    return 0
 
 
 def _run_cli_args(args: Any) -> int:
@@ -326,9 +360,7 @@ def _run_cli_args(args: Any) -> int:
         print(f"🟢 [SNAPSHOT-CREATED] ID: {sid} (Tracked files: {len(args.create)})")
         return 0
     if args.rollback:
-        status = mgr.rollback(args.rollback)
-        print(f"🔄 [SNAPSHOT-ROLLED-BACK] ID: {args.rollback} Status: {status}")
-        return 0
+        return _handle_rollback_cli(mgr, args.rollback)
     if args.cleanup:
         mgr.cleanup()
         print("🧹 [SNAPSHOT-CLEANUP] Completed.")

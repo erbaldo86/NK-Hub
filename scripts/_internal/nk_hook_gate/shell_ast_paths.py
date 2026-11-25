@@ -18,6 +18,9 @@ from _internal.nk_hook_gate.constants import (
 )
 from _internal.nk_hook_gate.path_safety import (
     _canonical_path,
+    _cmd_mentions_nk_proget_online,
+    _is_nk_proget_locale_target,
+    _is_nk_proget_online_target,
     _is_safe_redirection_target,
     _is_safe_temp_marker_path,
     _is_valid_staging_path,
@@ -79,6 +82,20 @@ def _is_temp_or_scratch_script_token(tok: str) -> bool:
     return False
 
 
+def _is_online_or_unstaged_external_arg(
+    val: str, low: str, project_root: Path
+) -> Optional[bool]:
+    """Valuta un argomento verso NK Proget/Online o Locale; True=blocca, False=consenti."""
+    cand = _resolve_target_path(val, project_root)
+    if _cmd_mentions_nk_proget_online(low) or _is_nk_proget_online_target(cand):
+        return True
+    if ".staging/" in low and _is_valid_staging_path(cand, project_root):
+        return False
+    if _is_nk_proget_locale_target(cand):
+        return True
+    return None
+
+
 def _arg_targets_protected_outside_staging(raw_arg: str, project_root: Path) -> bool:
     """Verifica se un argomento di script Temp punta a dir o file protetti fuori da .staging/."""
     val = _strip_wrapping_quotes(raw_arg)
@@ -90,10 +107,9 @@ def _arg_targets_protected_outside_staging(raw_arg: str, project_root: Path) -> 
     low = norm.lower()
     if not low or low.startswith("-"):
         return False
-    if ".staging/" in low:
-        cand = _resolve_target_path(val, project_root)
-        if _is_valid_staging_path(cand, project_root):
-            return False
+    ext_decision = _is_online_or_unstaged_external_arg(val, low, project_root)
+    if ext_decision is not None:
+        return ext_decision
     if _is_safe_temp_marker_path(low):
         return False
     if (

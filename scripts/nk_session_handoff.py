@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Generatore della capsula di handoff e compilatore Template 11 e Template 12 per NK Hub Generation 1.0.0-Generation.
+Generatore della capsula di handoff e compilatore Template 11, Template 12 e HANDOFF_V2 per NK Hub Generation.
 Modulo: scripts/nk_session_handoff.py.
 @domain_id: DOM-05
 """
@@ -49,12 +49,17 @@ _TC = "_internal.nk_session_handoff.transcript_cursor"
 _TM = "_internal.nk_session_handoff.templates_compiler"
 _HE = "_internal.nk_session_handoff.handoff_engine"
 _CV = "_internal.nk_session_handoff.context_view"
+_ES = "_internal.nk_session_handoff.ecosystem_scanner"
 
 _LAZY_EXPORT_MAP: Dict[str, tuple[str, str]] = {
     "HANDOFF_SCHEMA_VERSION": (_C, "HANDOFF_SCHEMA_VERSION"),
     "HANDOFF_VERSION": (_C, "HANDOFF_VERSION"),
     "VERSION": (_C, "VERSION"),
     "DEFAULT_MILESTONE_ID": (_C, "DEFAULT_MILESTONE_ID"),
+    "HANDOFF_V2_START_PASSIVE": (_C, "HANDOFF_V2_START_PASSIVE"),
+    "HANDOFF_V2_END_PASSIVE": (_C, "HANDOFF_V2_END_PASSIVE"),
+    "HANDOFF_V2_START_ACTIVE": (_C, "HANDOFF_V2_START_ACTIVE"),
+    "HANDOFF_V2_END_ACTIVE": (_C, "HANDOFF_V2_END_ACTIVE"),
     "_workspace_root": (_C, "_workspace_root"),
     "_FILE_HASH_MEMO": (_C, "_FILE_HASH_MEMO"),
     "_BASELINE_MEMO": (_C, "_BASELINE_MEMO"),
@@ -75,6 +80,7 @@ _LAZY_EXPORT_MAP: Dict[str, tuple[str, str]] = {
     "_parse_optional_turn": (_SS, "_parse_optional_turn"),
     "_has_dirty_staging_inprocess": (_SS, "_has_dirty_staging_inprocess"),
     "_check_git_dirty_fast": (_SS, "_check_git_dirty_fast"),
+    "resolve_baseline_verification_source": (_SS, "resolve_baseline_verification_source"),
     "Win32NamedMutex": (_SS, "Win32NamedMutex"),
     "Win32LockTimeoutError": ("_internal.nk_session_handoff.cli", "Win32LockTimeoutError"),
     "Win32LockError": ("_internal.nk_session_handoff.cli", "Win32LockError"),
@@ -85,6 +91,17 @@ _LAZY_EXPORT_MAP: Dict[str, tuple[str, str]] = {
     "_eval_transcript_line": (_TC, "_eval_transcript_line"),
     "_inspect_transcript_fast": (_TC, "_inspect_transcript_fast"),
     "_read_transcript_summary_fast": (_TC, "_read_transcript_summary_fast"),
+    "extract_transcript_telemetry_v2": (_TC, "extract_transcript_telemetry_v2"),
+    "compile_envelope_v2_markdown": (_TM, "compile_envelope_v2_markdown"),
+    "serialize_handoff_v2": (_HE, "serialize_handoff_v2"),
+    "build_handoff_manifest_v1": (_HE, "build_handoff_manifest_v1"),
+    "record_idle_checkpoint_anchor": (_HE, "record_idle_checkpoint_anchor"),
+    "resolve_hub_and_project_roots": (_ES, "resolve_hub_and_project_roots"),
+    "discover_ecosystem_repos": (_ES, "discover_ecosystem_repos"),
+    "resolve_session_start_ns": (_ES, "resolve_session_start_ns"),
+    "walk_staging_entries_recursive": (_ES, "walk_staging_entries_recursive"),
+    "extract_patch_notes_head": (_ES, "extract_patch_notes_head"),
+    "scan_ecosystem_snapshots": (_ES, "scan_ecosystem_snapshots"),
     "_collect_staging_relative_files": (_CV, "_collect_staging_relative_files"),
     "_read_latest_handoff_state": (_CV, "_read_latest_handoff_state"),
     "_format_handoff_list_field": (_CV, "_format_handoff_list_field"),

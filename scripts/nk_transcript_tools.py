@@ -40,7 +40,7 @@ from _internal.nk_transcript_tools.constants import (  # noqa: E402
 from _internal.nk_transcript_tools.evidence_and_ears import check_evidence  # noqa: E402
 from _internal.nk_transcript_tools.locate_and_compliance import (  # noqa: E402
     analyze_compliance, count_transcript_steps, discover_active_main_transcript,
-    is_subagent_transcript_file, load_transcript_records, locate_transcript,
+    is_subagent_transcript_file, load_transcript_records, locate_transcript, parse_transcript_events,
 )
 from _internal.nk_transcript_tools.oracle_and_grounding import (  # noqa: E402
     handle_oracle_lock, handle_report_conflict, verify_report_grounding,
@@ -53,7 +53,6 @@ _C = "_internal.nk_transcript_tools.constants"
 _LC = "_internal.nk_transcript_tools.locate_and_compliance"
 _EV = "_internal.nk_transcript_tools.evidence_and_ears"
 _OG = "_internal.nk_transcript_tools.oracle_and_grounding"
-_PS = "_internal.nk_transcript_tools.prompt_and_ste100"
 
 _LAZY_EXPORT_MAP: Dict[str, tuple[str, str]] = {
     "DIRECT_TOOLS": (_C, "DIRECT_TOOLS"),

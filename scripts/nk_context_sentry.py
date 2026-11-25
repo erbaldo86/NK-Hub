@@ -59,6 +59,24 @@ _LAZY_EXPORT_MAP: Dict[str, tuple[str, str]] = {
     "CARBON_RED_TOKEN_THRESHOLD": ("_internal.nk_context_sentry.thresholds_proxy", "CARBON_RED_TOKEN_THRESHOLD"),
     "CARBON_ACTUAL_WARN_TOKENS": ("_internal.nk_context_sentry.thresholds_proxy", "CARBON_ACTUAL_WARN_TOKENS"),
     "CARBON_ACTUAL_RED_TOKENS": ("_internal.nk_context_sentry.thresholds_proxy", "CARBON_ACTUAL_RED_TOKENS"),
+    "NEON_GREEN_STEP_THRESHOLD": ("_internal.nk_context_sentry.thresholds_proxy", "NEON_GREEN_STEP_THRESHOLD"),
+    "NEON_RED_STEP_THRESHOLD": ("_internal.nk_context_sentry.thresholds_proxy", "NEON_RED_STEP_THRESHOLD"),
+    "NEON_GREEN_TOKEN_THRESHOLD": ("_internal.nk_context_sentry.thresholds_proxy", "NEON_GREEN_TOKEN_THRESHOLD"),
+    "NEON_RED_TOKEN_THRESHOLD": ("_internal.nk_context_sentry.thresholds_proxy", "NEON_RED_TOKEN_THRESHOLD"),
+    "NEON_ACTUAL_WARN_TOKENS": ("_internal.nk_context_sentry.thresholds_proxy", "NEON_ACTUAL_WARN_TOKENS"),
+    "NEON_ACTUAL_RED_TOKENS": ("_internal.nk_context_sentry.thresholds_proxy", "NEON_ACTUAL_RED_TOKENS"),
+    "PRO_GREEN_STEP_THRESHOLD": ("_internal.nk_context_sentry.thresholds_proxy", "PRO_GREEN_STEP_THRESHOLD"),
+    "PRO_RED_STEP_THRESHOLD": ("_internal.nk_context_sentry.thresholds_proxy", "PRO_RED_STEP_THRESHOLD"),
+    "PRO_GREEN_TOKEN_THRESHOLD": ("_internal.nk_context_sentry.thresholds_proxy", "PRO_GREEN_TOKEN_THRESHOLD"),
+    "PRO_RED_TOKEN_THRESHOLD": ("_internal.nk_context_sentry.thresholds_proxy", "PRO_RED_TOKEN_THRESHOLD"),
+    "PRO_ACTUAL_WARN_TOKENS": ("_internal.nk_context_sentry.thresholds_proxy", "PRO_ACTUAL_WARN_TOKENS"),
+    "PRO_ACTUAL_RED_TOKENS": ("_internal.nk_context_sentry.thresholds_proxy", "PRO_ACTUAL_RED_TOKENS"),
+    "FLASH_GREEN_STEP_THRESHOLD": ("_internal.nk_context_sentry.thresholds_proxy", "FLASH_GREEN_STEP_THRESHOLD"),
+    "FLASH_RED_STEP_THRESHOLD": ("_internal.nk_context_sentry.thresholds_proxy", "FLASH_RED_STEP_THRESHOLD"),
+    "FLASH_GREEN_TOKEN_THRESHOLD": ("_internal.nk_context_sentry.thresholds_proxy", "FLASH_GREEN_TOKEN_THRESHOLD"),
+    "FLASH_RED_TOKEN_THRESHOLD": ("_internal.nk_context_sentry.thresholds_proxy", "FLASH_RED_TOKEN_THRESHOLD"),
+    "FLASH_ACTUAL_WARN_TOKENS": ("_internal.nk_context_sentry.thresholds_proxy", "FLASH_ACTUAL_WARN_TOKENS"),
+    "FLASH_ACTUAL_RED_TOKENS": ("_internal.nk_context_sentry.thresholds_proxy", "FLASH_ACTUAL_RED_TOKENS"),
     "ARGON_ACTUAL_WARN_TOKENS": ("_internal.nk_context_sentry.thresholds_proxy", "ARGON_ACTUAL_WARN_TOKENS"),
     "ARGON_ACTUAL_RED_TOKENS": ("_internal.nk_context_sentry.thresholds_proxy", "ARGON_ACTUAL_RED_TOKENS"),
     "PLATFORM_COMPACTION_TOKEN_LIMIT": ("_internal.nk_context_sentry.thresholds_proxy", "PLATFORM_COMPACTION_TOKEN_LIMIT"),
@@ -80,7 +98,7 @@ _LAZY_EXPORT_MAP: Dict[str, tuple[str, str]] = {
 
 def __getattr__(name: str) -> Any:
     """Risolve pigramente soglie e simboli del pacchetto _internal/nk_context_sentry."""
-    if name in ("_THRESHOLDS_DATA", "_PROFILES_DATA", "_STD_CS", "_CARB_CS", "_GEN_CS"):
+    if name in ("_THRESHOLDS_DATA", "_PROFILES_DATA", "_STD_CS", "_CARB_CS", "_GEN_CS", "_NEON_CS", "_PRO_CS", "_FLASH_CS"):
         proxy = importlib.import_module("_internal.nk_context_sentry.thresholds_proxy")
         return proxy.get_lazy_threshold_attr(name)
     target = _LAZY_EXPORT_MAP.get(name)
@@ -96,7 +114,7 @@ def __dir__() -> List[str]:
     return sorted(
         set(globals())
         | set(_LAZY_EXPORT_MAP)
-        | {"_THRESHOLDS_DATA", "_PROFILES_DATA", "_STD_CS", "_CARB_CS", "_GEN_CS"}
+        | {"_THRESHOLDS_DATA", "_PROFILES_DATA", "_STD_CS", "_CARB_CS", "_GEN_CS", "_NEON_CS", "_PRO_CS", "_FLASH_CS"}
     )
 
 

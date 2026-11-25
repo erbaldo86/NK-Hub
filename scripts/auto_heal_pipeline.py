@@ -21,6 +21,8 @@ __nk_facade__: str = "auto_heal_pipeline"
 
 _CLI_FLAGS: Tuple[str, ...] = (
     "--cwd",
+    "--diagnose-slice",
+    "--fail-on-empty-staging",
     "--json",
     "--max-cycles",
     "--target-file",
@@ -65,6 +67,8 @@ _LAZY_EXPORT_MAP: Dict[str, Tuple[str, str]] = {
     "_ensure_rsi_loaded": ("_internal.auto_heal_pipeline.models_and_slice", "_ensure_rsi_loaded"),
     "_ensure_ast_guard_loaded": ("_internal.auto_heal_pipeline.models_and_slice", "_ensure_ast_guard_loaded"),
     "CodeSlice": ("_internal.auto_heal_pipeline.models_and_slice", "CodeSlice"),
+    "DiagnoseSliceReport": ("_internal.auto_heal_pipeline.models_and_slice", "DiagnoseSliceReport"),
+    "trim_code_slice_tokens": ("_internal.auto_heal_pipeline.models_and_slice", "trim_code_slice_tokens"),
     "HealingCycleLog": ("_internal.auto_heal_pipeline.models_and_slice", "HealingCycleLog"),
     "HealingResult": ("_internal.auto_heal_pipeline.models_and_slice", "HealingResult"),
     "DSPyTelemetryRecord": ("_internal.auto_heal_pipeline.models_and_slice", "DSPyTelemetryRecord"),

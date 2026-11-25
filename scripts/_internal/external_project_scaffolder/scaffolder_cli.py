@@ -19,7 +19,20 @@ from _internal.external_project_scaffolder.templates import (
     build_pentad_genome_templates,
     build_static_project_templates,
 )
-from _internal.nk_common.paths import reconfigure_streams
+from _internal.nk_common.paths import (
+    is_nk_proget_online_path,
+    reconfigure_streams,
+    resolve_nk_proget_roots,
+)
+
+
+def _resolve_default_external_root(ws_root: Path) -> Path:
+    """Risolve la radice predefinita dei progetti esterni preferendo NK Proget/Locale."""
+    locale_root, _ = resolve_nk_proget_roots(ws_root)
+    if locale_root is not None and locale_root.exists():
+        return locale_root
+    legacy_inner = ws_root / "NK_External_Projects"
+    return legacy_inner if legacy_inner.exists() else (ws_root.parent / "NK_External_Projects")
 
 
 class ExternalProjectScaffolder:
@@ -44,6 +57,14 @@ class ExternalProjectScaffolder:
         self.dry_run = bool(dry_run)
         self.force = bool(force)
         self._validate_isolation()
+
+    def _assert_not_readonly_online(self, real_target: Path) -> None:
+        """Blocca lo scaffolding sul mirror read-only NK Proget/Online."""
+        for cand in (self._raw_target, self.target_dir, real_target):
+            if is_nk_proget_online_path(cand):
+                raise ValueError(
+                    f"Violazione [NK_PROGET_ONLINE_READONLY]: il mirror read-only '{self.target_dir}' e protetto da scrittura."
+                )
 
     def _validate_isolation(self) -> None:
         """Rifiuta traversal, symlink, escape e percorsi interni a NK-Hub."""
@@ -102,6 +123,7 @@ class ExternalProjectScaffolder:
 
         real_target = Path(os.path.realpath(str(self._raw_target)))
         real_hub = Path(os.path.realpath(str(self.hub_root)))
+        self._assert_not_readonly_online(real_target)
 
         for cand_t, cand_h in (
             (self.target_dir, self.hub_root),
@@ -268,11 +290,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     reconfigure_streams()
     args = _build_cli_parser().parse_args(argv)
     ws_root = Path(_facade_attr("_workspace_root", _workspace_root))
-    default_ext_root = (
-        ws_root / "NK_External_Projects"
-        if (ws_root / "NK_External_Projects").exists()
-        else ws_root.parent / "NK_External_Projects"
-    )
+    default_ext_root = _resolve_default_external_root(ws_root)
     target_str = args.target if args.target is not None else str(default_ext_root / args.name)
     try:
         scaffolder = ExternalProjectScaffolder(

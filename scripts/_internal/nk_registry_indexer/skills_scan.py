@@ -2,20 +2,15 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import re
-import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from _internal.nk_common.constants import VERSION
-from _internal.nk_common.io import atomic_write_text
-from _internal.nk_registry_indexer.taxonomy import (
-    DOMAIN_TAXONOMY,
-    TETRALOGY_FILENAMES,
-)
+from _internal.nk_common.io import atomic_write_text  # noqa: F401
+from _internal.nk_registry_indexer.taxonomy import DOMAIN_TAXONOMY
 
 
 def load_staging_deleted_paths_impl(self) -> Set[str]:

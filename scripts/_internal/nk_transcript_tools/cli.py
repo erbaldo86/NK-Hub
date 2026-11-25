@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Tuple
 
 from _internal.nk_common.paths import resolve_workspace_root
 from _internal.nk_transcript_tools.evidence_and_ears import check_evidence
@@ -24,6 +24,80 @@ from _internal.nk_transcript_tools.prompt_and_ste100 import (
     lint_prompt_text,
     verify_ste100_compliance,
 )
+
+
+def _resolve_cli_path(
+    raw_val: str, root_dir: Path, require_exists: bool, has_explicit_root: bool
+) -> Path:
+    """Risolve un path CLI relativo rispetto a root_dir o cwd."""
+    cand = Path(raw_val)
+    if cand.is_absolute():
+        return cand.resolve()
+    if has_explicit_root:
+        return (root_dir / cand).resolve()
+    if cand.exists() or (not require_exists and cand.parent.exists()):
+        return cand.resolve()
+    return (root_dir / cand).resolve()
+
+
+def _read_saved_lock_target(lock_p: Path, default_root: Path) -> Optional[Path]:
+    """Legge il campo target da un file lock esistente verificando confinamento in root."""
+    if not lock_p.is_file():
+        return None
+    try:
+        saved = json.loads(lock_p.read_text(encoding="utf-8-sig"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    raw_t = saved.get("target") if isinstance(saved, dict) else None
+    if not isinstance(raw_t, str) or not raw_t.strip():
+        return None
+    cand = Path(raw_t.strip()).resolve()
+    if (cand == default_root or default_root in cand.parents) and cand.exists():
+        return cand
+    return None
+
+
+_DEFAULT_LOCK_TARGETS = {
+    "oracle_lock_holdout.json": ("nk_tracking", "oracle_holdout"),
+    "governance_lock.json": ("scripts",),
+    "tensor_rsi_lock.json": ("nk_genome", "configs", "tensor_rsi"),
+}
+
+
+def _infer_default_lock_target(act: str, lock_p: Path, default_root: Path) -> Path:
+    """Determina la directory target di default in base all'azione e al tipo lock-file."""
+    if act == "verify":
+        saved_t = _read_saved_lock_target(lock_p, default_root)
+        if saved_t is not None:
+            return saved_t
+    sub_parts = _DEFAULT_LOCK_TARGETS.get(lock_p.name.lower())
+    if sub_parts is not None:
+        cand = default_root.joinpath(*sub_parts).resolve()
+        if cand.exists():
+            return cand
+    return (default_root / "tests").resolve()
+
+
+def _resolve_oracle_lock_args(args: argparse.Namespace) -> Tuple[str, Path, Path]:
+    """Risolve azione, target e lock_file per il sottocomando oracle-lock."""
+    act = args.action if args.action in ("create", "freeze", "verify") else "verify"
+    has_root = bool(args.root)
+    default_root = (
+        Path(args.root).resolve()
+        if has_root
+        else Path(resolve_workspace_root(__file__)).resolve()
+    )
+    lock_p = (
+        _resolve_cli_path(args.lock_file, default_root, False, has_root)
+        if args.lock_file
+        else (default_root / "nk_tracking" / "oracle_lock.json").resolve()
+    )
+    target_p = (
+        _resolve_cli_path(args.target, default_root, True, has_root)
+        if args.target
+        else _infer_default_lock_target(act, lock_p, default_root)
+    )
+    return act, target_p, lock_p
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
@@ -91,14 +165,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             tr_path_str = str(loc_res.get("transcript_path", "")) if loc_code == 0 else None
         res, code = check_evidence(Path(tr_path_str) if tr_path_str else None, args.message)
     elif args.subcommand == "oracle-lock":
-        act = args.action if args.action in ("create", "freeze", "verify") else "verify"
-        default_root = (
-            Path(args.root).resolve()
-            if args.root
-            else Path(resolve_workspace_root(__file__)).resolve()
-        )
-        target_p = Path(args.target) if args.target else (default_root / "tests")
-        lock_p = Path(args.lock_file) if args.lock_file else (default_root / "nk_tracking" / "oracle_lock.json")
+        act, target_p, lock_p = _resolve_oracle_lock_args(args)
         res, code = handle_oracle_lock(act, target_p, lock_p)
     elif args.subcommand == "report-conflict":
         res, code = handle_report_conflict(

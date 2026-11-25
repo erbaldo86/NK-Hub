@@ -10,13 +10,14 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+from _internal.nk_common.paths import is_nk_proget_online_path
+
 from . import constants as _consts
 from . import staging_guards as _guards
 from .constants import TwoPhaseCommitError, compute_crc32, compute_sha256
 from .engine import TwoPhaseCommitEngine
 from .io_and_paths import (
     _assert_no_external_reparse,
-    _is_reparse_point,
     _resolve_repo_root,
     _unlink_with_retry,
     _win_long_path,
@@ -24,66 +25,59 @@ from .io_and_paths import (
 )
 from .journal import BatchJournalV2
 from .mutex import Win32NamedMutex
+from .nonce_store import governance_batch_nonce_scope
 from .promoter_helpers import (
     collect_staged_payloads,
     collect_validated_deletions,
-    run_git_sync,
+    run_git_sync,  # noqa: F401
+)
+from .tensor_session_guard import (
+    _finalize_promotion_records,
+    _prune_deleted_parent_dirs,
+    _resolve_tensor_nonce_enforce,
+    close_active_tensor_session_post_commit,
+    compute_staging_manifest_sha256,
+    verify_staged_payloads_tensor_session,
 )
 
-_PROTECTED_PRUNE_DIRS = frozenset({
-    "",
-    ".",
-    ".agents",
-    ".agents/plugins",
-    ".agents/plugins/nk-gate",
-    ".agents/skills",
-    ".agents/agents",
-    "scripts",
-    "tests",
-    "nk_tracking",
-    "nk_tracking/reports_and_briefs",
-    "nk_genome",
-})
+
+def _assert_repo_not_readonly_online(root: Path, real_root: Path, staging_dir: Path) -> None:
+    """Blocca qualsiasi promozione 2PC verso il mirror read-only NK Proget/Online."""
+    for cand in (root, real_root, staging_dir):
+        if is_nk_proget_online_path(cand):
+            raise TwoPhaseCommitError(
+                f"[NK_PROGET_ONLINE_READONLY] Promozione 2PC vietata sul mirror read-only: {root}"
+            )
 
 
-def _prune_deleted_parent_dirs(
-    deleted_parents: List[Path], root: Path, real_root: Path
+def _filter_to_promote_entries(
+    staged_payloads: List[Tuple[Path, Path, Path, bytes, str]],
+    unchanged: List[str],
+) -> List[Tuple[Path, Path, Path, bytes, str]]:
+    """Separa i file modificati da quelli identici rispetto alla produzione."""
+    to_promote: List[Tuple[Path, Path, Path, bytes, str]] = []
+    for stg_file, rel_path, prod_file, stg_bytes, stg_sha in staged_payloads:
+        prod_lp = _win_long_path(prod_file)
+        if prod_lp.exists() and prod_lp.is_file() and stg_sha == compute_sha256(prod_lp.read_bytes()):
+            unchanged.append(str(rel_path))
+            continue
+        to_promote.append((stg_file, rel_path, prod_file, stg_bytes, stg_sha))
+    return to_promote
+
+
+def _verify_in_memory_tensor_payloads(
+    root: Path,
+    staged_payloads: List[Tuple[Path, Path, Path, bytes, str]],
+    deleted_manifest: Path,
 ) -> None:
-    """Rimuove dal basso verso l'alto le cartelle svuotate non protette."""
-    for start_parent in sorted(
-        set(deleted_parents),
-        key=lambda p: len(p.parts),
-        reverse=True,
-    ):
-        curr = start_parent
-        while True:
-            if curr == root or curr == real_root or curr.parent == curr:
-                break
-            try:
-                rel_dir = curr.relative_to(root).as_posix().lower()
-            except ValueError:
-                break
-            if rel_dir in _PROTECTED_PRUNE_DIRS:
-                break
-            real_curr = Path(os.path.realpath(str(curr)))
-            if real_curr == real_root or real_root not in real_curr.parents:
-                break
-            if _is_reparse_point(curr):
-                break
-            curr_lp = _win_long_path(curr)
-            if not curr_lp.exists():
-                curr = curr.parent
-                continue
-            if not curr_lp.is_dir() or _is_reparse_point(curr_lp):
-                break
-            try:
-                with os.scandir(curr_lp) as dir_it:
-                    if next(dir_it, None) is not None:
-                        break
-                os.rmdir(curr_lp)
-            except OSError:
-                break
-            curr = curr.parent
+    """Verifica i payload staged in memoria (incluso .deleted_files.json) contro ACTIVE.json."""
+    in_mem_payloads: Dict[str, bytes] = {
+        rel_path.as_posix(): stg_bytes
+        for _stg_file, rel_path, _prod_file, stg_bytes, _stg_sha in staged_payloads
+    }
+    if deleted_manifest.exists() and deleted_manifest.is_file():
+        in_mem_payloads[".deleted_files.json"] = _win_long_path(deleted_manifest).read_bytes()
+    verify_staged_payloads_tensor_session(root, in_mem_payloads)
 
 
 def promote_staging_to_production(
@@ -95,16 +89,23 @@ def promote_staging_to_production(
     verify_baseline: bool = False,
     cleanup_staging: bool = True,
     allow_governance_override: bool = False,
+    governance_override_reason: Optional[str] = None,
+    sandbox_report: Optional[Union[str, Path, Dict[str, Any]]] = None,
+    governance_token: Optional[str] = None,
+    enforce_nonce_replay: bool = True,
 ) -> Dict[str, Any]:
-    """Promuove in modo atomico i file modificati da .staging/ alla produzione purgando __pycache__."""
+    """Promuove in modo atomico i file da .staging/ alla produzione purgando __pycache__."""
     root = _resolve_repo_root(repo_root)
     real_root = Path(os.path.realpath(str(root)))
     staging_dir = root / staging_dirname
+    _assert_repo_not_readonly_online(root, real_root, staging_dir)
 
     committed: List[Dict[str, Any]] = []
     unchanged: List[str] = []
     deleted: List[str] = []
     failed: List[Dict[str, Any]] = []
+    overridden_paths: List[str] = []
+    effective_git_sync = False
 
     with Win32NamedMutex(
         get_repo_batch_mutex_name(root),
@@ -139,50 +140,52 @@ def promote_staging_to_production(
                 f"Validazione JSON pre-commit fallita in staging: {json_errors}"
             )
 
-        if verify_baseline:
-            dst_bl = root / "nk_tracking" / "quality_baseline.json"
-            stg_bl = staging_dir / "nk_tracking" / "quality_baseline.json"
-            if not dst_bl.exists() and not stg_bl.exists():
-                raise TwoPhaseCommitError(
-                    f"File quality_baseline.json mancante sia in produzione ({dst_bl}) sia in staging ({stg_bl})."
-                )
-            ratchet_fn = _consts._get_facade_attr(
-                "_verify_quality_baseline_ratchet",
-                _guards._verify_quality_baseline_ratchet,
+        _guards._validate_sandbox_evidence_in_batch(
+            sandbox_report, staging_files, staging_dir
+        )
+
+        stg_manifest_sha = compute_staging_manifest_sha256(staging_dir)
+
+        with governance_batch_nonce_scope(
+            enforce=_resolve_tensor_nonce_enforce(root, staging_dir, enforce_nonce_replay)
+        ):
+            _guards._enforce_batch_baseline_ratchet(
+                root,
+                staging_dir,
+                staging_files,
+                verify_baseline,
+                bool(allow_governance_override),
+                governance_override_reason,
+                overridden_paths,
+                governance_token=governance_token,
+                staging_manifest_sha256=stg_manifest_sha,
             )
-            try:
-                ratchet_fn(
-                    dst_bl,
-                    stg_bl,
-                    allow_ratchet_down=bool(allow_governance_override),
-                )
-            except TwoPhaseCommitError:
-                raise
-            except Exception as exc:
-                raise TwoPhaseCommitError(
-                    f"Errore durante la verifica del baseline: {exc}"
-                ) from exc
 
-        validated_deletions = collect_validated_deletions(
-            deleted_manifest, root, real_root, bool(allow_governance_override)
-        )
-        staged_payloads = collect_staged_payloads(
-            staging_files,
-            staging_dir,
-            root,
-            real_root,
-            bool(allow_governance_override),
-        )
+            validated_deletions = collect_validated_deletions(
+                deleted_manifest,
+                root,
+                real_root,
+                bool(allow_governance_override),
+                governance_override_reason=governance_override_reason,
+                overridden_out=overridden_paths,
+                governance_token=governance_token,
+                staging_manifest_sha256=stg_manifest_sha,
+            )
+            staged_payloads = collect_staged_payloads(
+                staging_files,
+                staging_dir,
+                root,
+                real_root,
+                bool(allow_governance_override),
+                governance_override_reason=governance_override_reason,
+                overridden_out=overridden_paths,
+                governance_token=governance_token,
+                staging_manifest_sha256=stg_manifest_sha,
+            )
 
-        to_promote: List[Tuple[Path, Path, Path, bytes, str]] = []
-        for stg_file, rel_path, prod_file, stg_bytes, stg_sha in staged_payloads:
-            prod_lp = _win_long_path(prod_file)
-            if prod_lp.exists() and prod_lp.is_file():
-                prod_bytes = prod_lp.read_bytes()
-                if stg_sha == compute_sha256(prod_bytes):
-                    unchanged.append(str(rel_path))
-                    continue
-            to_promote.append((stg_file, rel_path, prod_file, stg_bytes, stg_sha))
+        _verify_in_memory_tensor_payloads(root, staged_payloads, deleted_manifest)
+
+        to_promote = _filter_to_promote_entries(staged_payloads, unchanged)
 
         batch_targets: List[Tuple[str, Path]] = [
             (str(rel_path), prod_file)
@@ -202,10 +205,12 @@ def promote_staging_to_production(
 
         def _rollback_batch() -> None:
             if active_manifest is not None:
+                rollback_ok = False
                 try:
                     BatchJournalV2.rollback_from_manifest(active_manifest, batch_dir)
+                    rollback_ok = True
                 finally:
-                    if journal_root is not None:
+                    if rollback_ok and journal_root is not None:
                         BatchJournalV2.cleanup_journal(journal_root, batch_dir)
 
         for _stg_file, rel_path, prod_file, stg_bytes, stg_sha in to_promote:
@@ -282,21 +287,21 @@ def promote_staging_to_production(
                 promoted_files=staging_files,
                 deleted_manifest=deleted_manifest if deleted_manifest.exists() else None,
             )
+        close_active_tensor_session_post_commit(root)
         purge_fn = _consts._get_facade_attr(
             "_purge_production_bytecode", _guards._purge_production_bytecode
         )
         purge_fn(root)
 
-        tracking_dir = root / "nk_tracking"
-        if (tracking_dir.is_dir() or milestone) and (
-            committed or deleted or milestone
-        ):
-            anchor_fn = _consts._get_facade_attr(
-                "record_session_anchor_commit", _guards.record_session_anchor_commit
-            )
-            anchor_fn(root, milestone or "2PC_PROMOTE", committed, deleted)
-
-    effective_git_sync = run_git_sync(root, committed, deleted) if git_sync else False
+        effective_git_sync = _finalize_promotion_records(
+            root,
+            milestone,
+            committed,
+            deleted,
+            overridden_paths,
+            governance_override_reason,
+            git_sync,
+        )
 
     return {
         "status": "SUCCESS",
@@ -305,5 +310,6 @@ def promote_staging_to_production(
         "committed_files": committed,
         "unchanged_files": unchanged,
         "deleted_files": deleted,
-        "git_sync": effective_git_sync if git_sync else False,
+        "git_sync": effective_git_sync,
+        "governance_override_recorded": bool(overridden_paths),
     }

@@ -10,7 +10,7 @@ import re
 import sys
 import threading
 from pathlib import Path
-from typing import Any, List, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 from _internal.nk_common.facade_boot import resolve_facade_attr
 from _internal.nk_common.paths import resolve_scripts_dir
@@ -135,10 +135,61 @@ RETRY_ATTEMPTS_IO = 5
 RETRY_DELAY_SEC_IO = 0.025
 IGNORED_STAGING_SUFFIXES: Tuple[str, ...] = (".pyc", ".pyo", ".tmp", ".bak")
 _PATCH_NOTES_HEADER_RE = re.compile(r"^\s*##\s+`?\[[^\]]+\].*$", re.MULTILINE)
-PROTECTED_GOVERNANCE_DENYLIST: Tuple[str, ...] = (
-    "nk_tracking/oracle_lock.json",
-    "oracle_lock.json",
+from _internal.nk_common.constants import NK_LOCK_FILENAMES
+
+_LOCK_DENY_ENTRIES: Tuple[str, ...] = tuple(
+    item
+    for name in NK_LOCK_FILENAMES
+    for item in (f"nk_tracking/{name.lower()}", name.lower())
 )
+_LOCK_BASES: Tuple[str, ...] = tuple(name.lower() for name in NK_LOCK_FILENAMES)
+PROTECTED_GOVERNANCE_DENYLIST: Tuple[str, ...] = _LOCK_DENY_ENTRIES + (
+    "nk_tracking/quality_baseline.json",
+    "quality_baseline.json",
+    "nk_tracking/tensor_sessions/active.json",
+    "nk_tracking/tensor_sessions",
+    "active.json",
+    ".deleted_files.json",
+    "tests",
+    "tests/evals/skill_golden_eval_set.json",
+    "scripts/win32_2pc_engine.py",
+    "scripts/nk_hook_gate.py",
+    "scripts/ast_guard_validator.py",
+    "scripts/rsi_convergence_engine.py",
+    "scripts/tensor_rsi.py",
+)
+PROTECTED_GOVERNANCE_PREFIXES: Tuple[str, ...] = (
+    "nk_tracking/oracle_holdout/",
+    "nk_tracking/benchmark_suite/",
+    "nk_tracking/tensor_sessions/",
+    "tests/",
+    "scripts/_internal/win32_2pc_engine/",
+    "scripts/_internal/nk_hook_gate/",
+    "scripts/_internal/ast_guard_validator/",
+    "scripts/_internal/rsi_convergence_engine/",
+    "scripts/_internal/tensor_rsi/",
+    "nk_genome/configs/tensor_rsi/",
+)
+
+
+def _normalize_rel_gov_path(rel_norm: str) -> str:
+    """Normalizza separatori e prefissi './' preservando i file dotfile (es. .deleted_files.json)."""
+    norm = str(rel_norm).replace("\\", "/").strip().lower()
+    while norm.startswith("./"):
+        norm = norm[2:]
+    return norm.lstrip("/")
+
+
+def is_protected_governance_path(rel_norm: str) -> bool:
+    """Verifica se un percorso relativo appartiene a file o directory di governance protetti."""
+    norm = _normalize_rel_gov_path(rel_norm)
+    base = Path(norm).name
+    return (
+        norm in PROTECTED_GOVERNANCE_DENYLIST
+        or norm.startswith(PROTECTED_GOVERNANCE_PREFIXES)
+        or base in (*_LOCK_BASES, "active.json", ".deleted_files.json")
+    )
+
 
 if sys.platform == "win32":
     _kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
@@ -217,6 +268,16 @@ class Win32LockTimeoutError(TimeoutError):
 
 class TwoPhaseCommitError(RuntimeError):
     """Sollevata quando il commit atomico 2PC fallisce i controlli di integrita."""
+
+
+def validate_override_reason(reason: Optional[str], context_path: str) -> str:
+    """Richiede una motivazione non vuota (>= 8 char) per ogni override di governance."""
+    if not isinstance(reason, str) or len(reason.strip()) < 8:
+        raise TwoPhaseCommitError(
+            f"Override di governance bloccato per {context_path}: "
+            "richiesto --override-reason (>= 8 caratteri)."
+        )
+    return reason.strip()
 
 
 def compute_sha256(data: Union[bytes, str]) -> str:
