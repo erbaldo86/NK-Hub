@@ -53,9 +53,10 @@ jobs:
             python -B -u -m pip install -r requirements.txt
           fi
 
-      - name: Initialize Tracked Runtime Directories
+      - name: Initialize Tracked Runtime Directories & Off-Repo Canary Holdout
         run: |
           mkdir -p .staging nk_tracking/manifests
+          python -B -u -c "import sys; sys.path.insert(0, 'scripts'); from rsi_convergence_engine import ensure_canary_holdout_file; print('[CANARY-INIT]', ensure_canary_holdout_file())"
 
       - name: Run Pre-Flight Environment Capability Discovery
         run: |

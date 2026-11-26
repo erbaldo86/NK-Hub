@@ -739,6 +739,7 @@ def test_m3_cli_and_consolidator_extra_branches(tmp_path: Path, monkeypatch: pyt
     from _internal.win32_2pc_engine.constants import TwoPhaseCommitError
 
     sf = tmp_path / "fg_unlocked.json"
+    monkeypatch.setattr(fg_eval.sys, "platform", "win32")
     monkeypatch.setattr(fg_eval, "is_fastguard_mutex_acquired", lambda: False)
     fg_eval._safe_persist_state(str(sf), {"steps": 1}, None)
     assert not sf.exists()
@@ -1054,6 +1055,3 @@ def test_m3_mutation_guard_delta_regate_edges(tmp_path: Path, monkeypatch: pytes
     monkeypatch.setattr(dr, "_eval_regate_baseline", lambda *_a, **_kw: (False, ""))
     fail_res = dr._default_regate_checks(mir, tmp_path, tmp_path, "l_edge", 1)
     assert fail_res["passed"] is False and fail_res["violations"] == []
-
-
-

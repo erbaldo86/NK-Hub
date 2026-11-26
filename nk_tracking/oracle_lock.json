@@ -27,7 +27,7 @@
     "test_parallel_m2_mutation_fast.py": "d3e2776962b07788c861da9dd859febd376771960c11a8ae64aff414b7f1241f",
     "test_parallel_m2_security_fast.py": "ee1b32d63501705cbdd2bd9c855f9ad1a4b9b7a789af77bf4d7bdeb41a0c2587",
     "test_parallel_m3_cli.py": "7a7266b30c726c78e52852a1585c832a71527dd2b2088e7ee5ab53dfd8dd901e",
-    "test_parallel_m3_fast.py": "2fe1186891e7f0c836484da27d56db8516000a57ea865945c4d9dd50392530a6",
+    "test_parallel_m3_fast.py": "77dc4ac354781465cd4acaa6d5a0adbee0c9457e048023324a490784b89bea57",
     "test_parallel_m4_cli.py": "6300b18de69283e4998e1d1c940613171fd7b893893086077d1068d47251c0ab",
     "test_parallel_m4_fast.py": "af124ba6e0ca177d822a97772c13c4ce41719de15132ccd1369a38b9f8d78883",
     "test_platform_bootstrap_and_cache.py": "0d83a4d7ff6a3c1b8deb79aa172ac08f9dffdd39d122edbc711585ea407ffd43",
@@ -446,7 +446,7 @@
     "../.github/ISSUE_TEMPLATE/bug_report.yml": "0f2d7f40f3a9b681257069c0e2db3bf199e595ee5f1e401ccf86928a03c94eda",
     "../.github/ISSUE_TEMPLATE/feature_request.yml": "0afb3b0f219d33b3da0b1b708996310f0146a9108adf9e2eb18cb827805174b3",
     "../.github/README.md": "81155eeff2985cfe22827739b372d8f853671ae717961a1c94e4ab8f967d0673",
-    "../.github/workflows/ci.yml": "a9094570e5d97dd7236deb1a1f96203f1c35883981b0b95a489cafb522d00273",
+    "../.github/workflows/ci.yml": "44b651743dfb49cacc4dbc05c1696d0f65ec1bfb7635477edd23e7cda0b4f2d1",
     "../nk_genome/00_GENOME_INDEX.md": "368ac1ab2493ffa387a3a1f759e02e0a6ca1d44031f06dbad17cac8b37016005",
     "../nk_genome/concept_map.md": "919bee2c9a8ae01c4ce297f3ea774f70aba80fa78806ed3d1beb6405bd1d5452",
     "../nk_genome/idea_canvas.md": "dced5f233862bdd8392a11593a6d566f77f3ba97b6b3598169d6c5ed809bf6c1",
@@ -461,5 +461,5 @@
     "../nk_genome/modules/SYSTEM_GRAPHS_DAG_DSM_RTM_HEATMAP.md": "02b350571ca440013be4e1cca764ff3904e7f35db4e069ac2fe7a08de4335136",
     "../nk_genome/structural_tree.md": "685fe4dc0cda0a4f214960c56aca33bc18871601a78b59f9703d07b8745c914a"
   },
-  "combined_sha256": "672bdd5fd3e9f3307dc2226cd3a3a72b1b1041cb7ed5ec05a5b55f1842ae0112"
+  "combined_sha256": "8f93ae05fedf170014d2bfc45829593aaed8bfb91d82e7ac83acf5b004a0d16e"
 }
