@@ -26,10 +26,7 @@ from _internal.nk_transcript_tools.prompt_and_ste100 import (
 )
 
 
-def _resolve_cli_path(
-    raw_val: str, root_dir: Path, require_exists: bool, has_explicit_root: bool
-) -> Path:
-    """Risolve un path CLI relativo rispetto a root_dir o cwd."""
+def _resolve_cli_path(raw_val: str, root_dir: Path, require_exists: bool, has_explicit_root: bool) -> Path:
     cand = Path(raw_val)
     if cand.is_absolute():
         return cand.resolve()
@@ -41,7 +38,6 @@ def _resolve_cli_path(
 
 
 def _read_saved_lock_target(lock_p: Path, default_root: Path) -> Optional[Path]:
-    """Legge il campo target da un file lock esistente verificando confinamento in root."""
     if not lock_p.is_file():
         return None
     try:
@@ -65,7 +61,6 @@ _DEFAULT_LOCK_TARGETS = {
 
 
 def _infer_default_lock_target(act: str, lock_p: Path, default_root: Path) -> Path:
-    """Determina la directory target di default in base all'azione e al tipo lock-file."""
     if act == "verify":
         saved_t = _read_saved_lock_target(lock_p, default_root)
         if saved_t is not None:
@@ -79,45 +74,20 @@ def _infer_default_lock_target(act: str, lock_p: Path, default_root: Path) -> Pa
 
 
 def _resolve_oracle_lock_args(args: argparse.Namespace) -> Tuple[str, Path, Path]:
-    """Risolve azione, target e lock_file per il sottocomando oracle-lock."""
     act = args.action if args.action in ("create", "freeze", "verify") else "verify"
     has_root = bool(args.root)
-    default_root = (
-        Path(args.root).resolve()
-        if has_root
-        else Path(resolve_workspace_root(__file__)).resolve()
-    )
-    lock_p = (
-        _resolve_cli_path(args.lock_file, default_root, False, has_root)
-        if args.lock_file
-        else (default_root / "nk_tracking" / "oracle_lock.json").resolve()
-    )
-    target_p = (
-        _resolve_cli_path(args.target, default_root, True, has_root)
-        if args.target
-        else _infer_default_lock_target(act, lock_p, default_root)
-    )
+    default_root = Path(args.root).resolve() if has_root else Path(resolve_workspace_root(__file__)).resolve()
+    lock_p = _resolve_cli_path(args.lock_file, default_root, False, has_root) if args.lock_file else (default_root / "nk_tracking" / "oracle_lock.json").resolve()
+    target_p = _resolve_cli_path(args.target, default_root, True, has_root) if args.target else _infer_default_lock_target(act, lock_p, default_root)
     return act, target_p, lock_p
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
     """Punto di ingresso CLI per gli strumenti transcript, STE100 e prompt linter."""
-    parser = argparse.ArgumentParser(
-        description="NK Hub Generation 1.0.0-Generation Transcript & Prompt Tools"
-    )
+    parser = argparse.ArgumentParser(description="NK Hub Generation 1.0.0-Generation Transcript & Prompt Tools")
     parser.add_argument(
         "subcommand",
-        choices=(
-            "locate",
-            "compliance",
-            "evidence",
-            "oracle-lock",
-            "lint-prompt",
-            "report-conflict",
-            "lint-ears",
-            "verify-grounding",
-            "lint-ste100",
-        ),
+        choices=("locate", "compliance", "evidence", "oracle-lock", "lint-prompt", "report-conflict", "lint-ears", "verify-grounding", "lint-ste100"),
     )
     parser.add_argument("action", nargs="?", default="")
     parser.add_argument("--transcript", type=str, default=None)
@@ -127,6 +97,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("--root", type=str, default="")
     parser.add_argument("--target", type=str, default="")
     parser.add_argument("--lock-file", type=str, default="")
+    parser.add_argument("--lane-id", type=str, default=None)
     parser.add_argument("--test-a", type=str, default="")
     parser.add_argument("--test-b", type=str, default="")
     parser.add_argument("--reason", type=str, default="")
@@ -169,11 +140,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         res, code = handle_oracle_lock(act, target_p, lock_p)
     elif args.subcommand == "report-conflict":
         res, code = handle_report_conflict(
-            root=Path(args.root) if args.root else None,
-            test_a=args.test_a,
-            test_b=args.test_b,
-            reason=args.reason,
-            output=Path(args.output) if args.output else None,
+            root=Path(args.root) if args.root else None, test_a=args.test_a, test_b=args.test_b,
+            reason=args.reason, output=Path(args.output) if args.output else None, lane_id=args.lane_id,
         )
     elif args.subcommand == "lint-ears":
         txt_ears = args.text or (Path(args.file).read_text(encoding="utf-8", errors="replace") if args.file else "")

@@ -19,6 +19,30 @@ class NKSessionBootstrap:
 
     _MEMORY_CACHE: Dict[str, Dict[str, Any]] = {}
 
+    @staticmethod
+    def _resolve_hub_root_for_ws(resolved_ws: Path, fallback_hub: Path) -> Path:
+        if resolved_ws.name == "NK_Hub" and (resolved_ws / "scripts").is_dir():
+            return resolved_ws
+        if (resolved_ws.parent.parent / "NK_Hub" / "scripts").is_dir():
+            return (resolved_ws.parent.parent / "NK_Hub").resolve()
+        return fallback_hub
+
+    @staticmethod
+    def _resolve_bootstrap_cache_paths(
+        resolved_ws: Path, conversation_id: str
+    ) -> tuple[str, Path, Path, Path]:
+        ws_hash = hashlib.sha256(os.path.realpath(str(resolved_ws)).lower().encode("utf-8")).hexdigest()[:12]
+        cid_suffix = (
+            f"_{hashlib.sha256(conversation_id.encode('utf-8')).hexdigest()[:8]}"
+            if conversation_id
+            else ""
+        )
+        mem_key = f"{resolved_ws}::{conversation_id or 'global'}"
+        temp_dir = Path(tempfile.gettempdir()) / "nk_bootstrap"
+        state_file = temp_dir / f"session_bootstrap_state_{ws_hash}{cid_suffix}.json"
+        fast_cache_file = temp_dir / f".bootstrap_fast_cache_{ws_hash}{cid_suffix}.json"
+        return mem_key, temp_dir, state_file, fast_cache_file
+
     def __init__(
         self,
         workspace_root: Optional[Path] = None,
@@ -43,12 +67,7 @@ class NKSessionBootstrap:
         self.handoff_verify = bool(handoff_verify)
         self.handoff_file = Path(handoff_file).resolve() if handoff_file else None
         hub_root = Path(_consts._get_facade_attr("HUB_ROOT", _consts.HUB_ROOT)).resolve()
-        if resolved_ws.name == "NK_Hub" and (resolved_ws / "scripts").is_dir():
-            self.hub_root = resolved_ws
-        elif (resolved_ws.parent.parent / "NK_Hub" / "scripts").is_dir():
-            self.hub_root = (resolved_ws.parent.parent / "NK_Hub").resolve()
-        else:
-            self.hub_root = hub_root
+        self.hub_root = self._resolve_hub_root_for_ws(resolved_ws, hub_root)
         self._conv_id_unspecified = conversation_id is None
         if conversation_id is not None:
             self.conversation_id = conversation_id.strip()
@@ -59,10 +78,12 @@ class NKSessionBootstrap:
             self.conversation_id = raw_conv_id
         self.explicit_transcript_path = Path(transcript_path).resolve() if transcript_path else None
         self.transcript_path = self.explicit_transcript_path
-        ws_hash = hashlib.sha256(os.path.realpath(str(resolved_ws)).lower().encode("utf-8")).hexdigest()[:12]
-        self.temp_bootstrap_dir = Path(tempfile.gettempdir()) / "nk_bootstrap"
-        self.state_file = self.temp_bootstrap_dir / f"session_bootstrap_state_{ws_hash}.json"
-        self.fast_cache_file = self.temp_bootstrap_dir / f".bootstrap_fast_cache_{ws_hash}.json"
+        (
+            self._cache_mem_key,
+            self.temp_bootstrap_dir,
+            self.state_file,
+            self.fast_cache_file,
+        ) = self._resolve_bootstrap_cache_paths(resolved_ws, self.conversation_id)
         self.temp_bootstrap_dir.mkdir(parents=True, exist_ok=True)
         raw_prof = os.environ.get("NK_MODEL_PROFILE", "generation").strip().lower()
         self.model_profile = raw_prof if raw_prof in _consts.SUPPORTED_MODEL_PROFILES else (raw_prof or "generation")

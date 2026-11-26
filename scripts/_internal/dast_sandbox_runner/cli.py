@@ -13,6 +13,8 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
+from _internal.nk_common.lane_paths import resolve_staging_dir
+
 _HARNESS_ERR_RE = re.compile(
     r"(?:^|\n)\s*(?:ModuleNotFoundError|ImportError|SyntaxError|IndentationError|TabError)(?::|\s|$)"
 )
@@ -37,6 +39,12 @@ def _build_cli_parser() -> argparse.ArgumentParser:
         type=str,
         default=None,
         help="Percorso opzionale alla cartella .staging/ per --overlay-staging",
+    )
+    parser.add_argument(
+        "--lane-id",
+        type=str,
+        default=None,
+        help="ID lane isolata in .staging/lanes/<id>/",
     )
     parser.add_argument(
         "--profile",
@@ -113,12 +121,10 @@ def _prepare_verify_holdout_args(args: Any, sys_mod: Any) -> Optional[int]:
     return None
 
 
-def _run_overlay_cli(
-    args: Any, overlay_fn: Any, write_rep_fn: Any
-) -> int:
-    """Esegue la verifica DAST Shadow Sandbox in modalita --overlay-staging."""
-    shadow_timeout = max(float(args.timeout), 120.0)
-    overlay_root = Path(args.overlay_staging)
+def _build_overlay_call_kwargs(
+    args: Any, overlay_root: Path, shadow_timeout: float
+) -> Dict[str, Any]:
+    """Compone i keyword argomenti per run_staging_shadow_verification mantenendo retrocompatibilita stub."""
     call_kwargs: Dict[str, Any] = {
         "repo_root": overlay_root,
         "staging_dir": Path(args.staging_dir) if args.staging_dir else None,
@@ -127,6 +133,19 @@ def _run_overlay_cli(
     }
     if args.verify_holdout:
         call_kwargs["verify_holdout"] = True
+    lane_arg = getattr(args, "lane_id", None)
+    if lane_arg:
+        call_kwargs["lane_id"] = lane_arg
+    return call_kwargs
+
+
+def _run_overlay_cli(
+    args: Any, overlay_fn: Any, write_rep_fn: Any
+) -> int:
+    """Esegue la verifica DAST Shadow Sandbox in modalita --overlay-staging."""
+    shadow_timeout = max(float(args.timeout), 120.0)
+    overlay_root = Path(args.overlay_staging)
+    call_kwargs = _build_overlay_call_kwargs(args, overlay_root, shadow_timeout)
     res = overlay_fn(**call_kwargs)
     if args.output or args.report_to_tracking:
         tracking_base = overlay_root.resolve() / "nk_tracking"
@@ -239,6 +258,20 @@ def _save_compact_poc_report(
     return write_rep_fn(compact_payload, diag_dir, explicit_output=poc_path)
 
 
+def _resolve_script_staging_dir(
+    overlay_root: Optional[Path], args: Any
+) -> Optional[Path]:
+    """Risolve la cartella staging (o lane) per _run_script_cli."""
+    if overlay_root is not None:
+        stg_dir, _ = resolve_staging_dir(
+            overlay_root,
+            lane_id=getattr(args, "lane_id", None),
+            staging_dir=args.staging_dir,
+        )
+        return stg_dir
+    return Path(args.staging_dir).resolve() if args.staging_dir else None
+
+
 def _run_script_cli(
     args: Any,
     sys_mod: Any,
@@ -270,11 +303,7 @@ def _run_script_cli(
             sys_mod.stderr.write(f"[FAIL] {err_msg}\n")
         return 1
 
-    stg_dir = (
-        Path(args.staging_dir).resolve()
-        if args.staging_dir
-        else ((overlay_root / ".staging").resolve() if overlay_root is not None else None)
-    )
+    stg_dir = _resolve_script_staging_dir(overlay_root, args)
     sandbox_cls = _facade_attr("ShadowSandbox", ShadowSandbox)
     cfg_cls = _facade_attr("SandboxConfig", SandboxConfig)
     runner_cls = _facade_attr("DASTSandboxRunner", DASTSandboxRunner)

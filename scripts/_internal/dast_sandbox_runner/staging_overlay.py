@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 import json
 import os
 import shutil
+import tempfile
 from pathlib import Path
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, Iterator, List, Optional, Tuple
 
 from _internal.nk_common.isolated_test_runner import _MIRROR_DIRS, _is_reparse_entry
+from _internal.nk_common.lane_leases import allocate_lane_loopback_port
+from _internal.nk_common.lane_paths import is_lane_container_entry, validate_lane_id
+from _internal.nk_common.nvme_mirror_helpers import _ROOT_ALLOWED_SUFFIXES, _ROOT_FILES, safe_rmtree
 from _internal.nk_common.tas_ssot_io import parse_deleted_files_manifest
 
 from .sandbox_fs import (
@@ -99,33 +104,48 @@ def _build_sandbox_ignore_fn(
     return _sandbox_ignore_heavy
 
 
+def _filter_safe_walk_subdirs(
+    walk_p: Path, dirs: List[str], stg_resolved: Path, is_top: bool
+) -> List[str]:
+    """Filtra le sottodirectory sicure durante la raccolta overlay staging."""
+    safe_dirs: List[str] = []
+    for dname in sorted(dirs):
+        if is_top and is_lane_container_entry((dname,)):
+            continue
+        dpath = walk_p / dname
+        if _is_blocked_reparse(dpath, stg_resolved):
+            raise ValueError(f"Symlink esterno o junction bloccato nell'overlay staging: {dpath}")
+        if dname != "__pycache__" and not _is_reparse_entry(dpath):
+            safe_dirs.append(dname)
+    return safe_dirs
+
+
+def _collect_safe_walk_files(
+    walk_p: Path, files: List[str], stg_resolved: Path, is_top: bool
+) -> List[Path]:
+    """Raccoglie i file validi in una directory staging escludendo metadati e reparse."""
+    out: List[Path] = []
+    for fname in sorted(files):
+        if is_top and is_lane_container_entry((fname,)):
+            continue
+        fpath = walk_p / fname
+        if _is_blocked_reparse(fpath, stg_resolved):
+            raise ValueError(f"Symlink esterno o junction bloccato nell'overlay staging: {fpath}")
+        if not fpath.is_file() or "__pycache__" in fpath.parts or fname in (".gitkeep", ".deleted_files.json"):
+            continue
+        out.append(fpath)
+    return out
+
+
 def _collect_safe_staging_files(stg: Path, stg_resolved: Path) -> List[Path]:
-    """Raccoglie i file in .staging/ con walk manuale bloccando symlink esterni e junction."""
+    """Raccoglie i file staged bloccando reparse esterni e saltando lanes/ in legacy."""
+    excl_lanes = stg_resolved.name == ".staging"
     collected: List[Path] = []
     for walk_root, dirs, files in os.walk(stg, followlinks=False):
-        safe_dirs: List[str] = []
-        for dname in sorted(dirs):
-            dpath = Path(walk_root) / dname
-            if _is_blocked_reparse(dpath, stg_resolved):
-                raise ValueError(
-                    f"Symlink esterno o junction bloccato nell'overlay staging: {dpath}"
-                )
-            if dname != "__pycache__" and not _is_reparse_entry(dpath):
-                safe_dirs.append(dname)
-        dirs[:] = safe_dirs
-        for fname in sorted(files):
-            fpath = Path(walk_root) / fname
-            if _is_blocked_reparse(fpath, stg_resolved):
-                raise ValueError(
-                    f"Symlink esterno o junction bloccato nell'overlay staging: {fpath}"
-                )
-            if (
-                not fpath.is_file()
-                or "__pycache__" in fpath.parts
-                or fname in (".gitkeep", ".deleted_files.json")
-            ):
-                continue
-            collected.append(fpath)
+        walk_p = Path(walk_root)
+        is_top = excl_lanes and walk_p.resolve() == stg_resolved
+        dirs[:] = _filter_safe_walk_subdirs(walk_p, dirs, stg_resolved, is_top)
+        collected.extend(_collect_safe_walk_files(walk_p, files, stg_resolved, is_top))
     return sorted(collected, key=lambda p: p.relative_to(stg).as_posix())
 
 
@@ -179,11 +199,8 @@ def _copy_allowed_root_files(
     copied_dirs: Optional[set[str]] = None,
 ) -> None:
     """Copia directory extra non escluse e file radice autorizzati nella ShadowSandbox."""
-    allowed_root_names = {".gitignore", "VERSION", "pytest.ini", "pyproject.toml", "setup.cfg"}
-    allowed_root_exts = {
-        ".py", ".md", ".json", ".ini", ".toml", ".cfg",
-        ".txt", ".yaml", ".yml", ".bat", ".cmd", ".sh",
-    }
+    allowed_root_names = set(_ROOT_FILES)
+    allowed_root_exts = {".py", *_ROOT_ALLOWED_SUFFIXES}
     excluded_root_suffixes = (".db", ".sqlite", ".sqlite3", ".env", ".zip", ".wal", ".shm")
     seen_dirs = copied_dirs if copied_dirs is not None else set(_MIRROR_DIRS)
     for item in root.iterdir():
@@ -289,3 +306,66 @@ def prepare_staging_overlay(
         stripped_holdouts = _strip_builder_holdouts_from_sandbox(sb.sandbox_dir)
 
     return overlay_files, deleted_applied, stripped_holdouts
+
+
+def allocate_dast_port(lane_id: Optional[str]) -> int:
+    """Alloca una porta loopback libera dedicata alla lane DAST."""
+    lease_key = f"dast-{validate_lane_id(lane_id)}" if lane_id else "dast-legacy"
+    return allocate_lane_loopback_port(lease_key)
+
+
+def resolve_dast_lane_report_path(diag_dir: Path, lane_id: Optional[str]) -> Path:
+    """Risolve il percorso report DAST isolato per lane nella diag_dir."""
+    if lane_id:
+        return diag_dir / f"dast_last_report_{validate_lane_id(lane_id)}.json"
+    return diag_dir / "dast_last_report.json"
+
+
+def snapshot_overlay_staging_to_nvme(
+    stg: Path, norm_lane: Optional[str]
+) -> Tuple[Path, Optional[Path]]:
+    """Crea uno snapshot NVMe isolato di .staging/[lanes/<id>/] con marker anti-override."""
+    if not (stg.exists() and stg.is_dir() and not _is_reparse_entry(stg)):
+        return stg, None
+    snap_root = Path(tempfile.mkdtemp(prefix="nk_dast_stg_")).resolve()
+    (snap_root / ".nk_dast_snapshot_marker").write_text(
+        "dast_nvme_snapshot\n", encoding="utf-8"
+    )
+    snap_stg = (
+        (snap_root / ".staging" / "lanes" / norm_lane)
+        if norm_lane
+        else (snap_root / ".staging")
+    )
+    snap_stg.mkdir(parents=True, exist_ok=True)
+    try:
+        stg_resolved = stg.resolve()
+        for stg_file in _collect_safe_staging_files(stg, stg_resolved):
+            rel = stg_file.relative_to(stg)
+            dst_file = snap_stg / rel
+            dst_file.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(stg_file, dst_file)
+        del_m = stg / ".deleted_files.json"
+        if del_m.exists() and del_m.is_file() and not _is_reparse_entry(del_m):
+            shutil.copy2(del_m, snap_stg / ".deleted_files.json")
+    except Exception:
+        safe_rmtree(snap_root)
+        raise
+    return snap_stg, snap_root
+
+
+def cleanup_nvme_staging_snapshot(snap_root: Optional[Path]) -> None:
+    """Rimuove in sicurezza la radice dello snapshot NVMe DAST."""
+    if snap_root is not None:
+        safe_rmtree(snap_root)
+
+
+@contextmanager
+def nvme_staging_snapshot_ctx(
+    stg: Path, norm_lane: Optional[str]
+) -> Iterator[Path]:
+    """Context manager per snapshot NVMe temporaneo dell'overlay staging."""
+    snap_stg, snap_root = snapshot_overlay_staging_to_nvme(stg, norm_lane)
+    try:
+        yield snap_stg
+    finally:
+        cleanup_nvme_staging_snapshot(snap_root)

@@ -23,6 +23,12 @@ from .constants import (
 from .io_and_paths import get_mutex_name_for_path
 
 
+def _clear_win32_last_error() -> None:
+    """Azzera il codice di errore Win32 thread-local su piattaforme supportate."""
+    if hasattr(ctypes, "set_last_error"):
+        ctypes.set_last_error(0)
+
+
 class Win32NamedMutex:
     """Gestore di contesto RAII rientrante per Named Mutex di Windows con fallback POSIX flock."""
 
@@ -135,14 +141,14 @@ class Win32NamedMutex:
                     time.sleep(0.005)
 
         current_thread = k32.GetCurrentThreadId()
-        ctypes.set_last_error(0)
+        _clear_win32_last_error()
         handle = k32.CreateMutexW(None, False, self.name)
         err = _consts._get_win32_last_error()
 
         if (
             not handle or handle == _consts.INVALID_HANDLE_VALUE
         ) and err == _consts.ERROR_ACCESS_DENIED:
-            ctypes.set_last_error(0)
+            _clear_win32_last_error()
             handle = k32.CreateMutexW(None, False, self._local_fallback_name)
             err = _consts._get_win32_last_error()
 
@@ -152,7 +158,7 @@ class Win32NamedMutex:
             )
 
         self.handle = handle
-        ctypes.set_last_error(0)
+        _clear_win32_last_error()
         wait_res = k32.WaitForSingleObject(
             self.handle,
             ctypes.c_uint32(self.timeout_ms),

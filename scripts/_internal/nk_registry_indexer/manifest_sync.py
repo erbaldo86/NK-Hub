@@ -4,16 +4,17 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sys
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from _internal.nk_common.io import atomic_write_bytes, atomic_write_text
-from _internal.nk_common.win32_mutex import (
+from _internal.nk_common.io import atomic_write_bytes, atomic_write_json, atomic_write_text
+from _internal.nk_common.nvme_storage_guards import FailClosedNamedMutex
+from _internal.nk_common.win32_mutex import (  # noqa: F401
     create_or_open_named_mutex,
     release_win32_mutex,
 )
+from _internal.nk_registry_indexer.scripts_and_agents import collect_internal_integrity_index
 from _internal.nk_registry_indexer.shards import (
     build_shards_and_slim_manifest,
     rehydrate_manifest_from_shards,
@@ -94,10 +95,52 @@ def sync_nk_gate_plugin_mirrors_impl(
     return synced_paths
 
 
+def _write_genome_bundle_unlocked(
+    genome_dir: Path,
+    shards_payload: Dict[str, str],
+    manifest_json: str,
+    md_content: str,
+    check_unchanged: bool = False,
+) -> None:
+    """Scrive shards, nk_registry_manifest.json e SKILL_INDEX.md assumendo mutex gia' acquisito."""
+    genome_dir.mkdir(parents=True, exist_ok=True)
+    shards_dir = genome_dir / "shards"
+    shards_dir.mkdir(parents=True, exist_ok=True)
+    for s_name, s_json in shards_payload.items():
+        s_path = shards_dir / s_name
+        if not check_unchanged or not s_path.exists() or s_path.read_text(encoding="utf-8", errors="replace") != s_json:
+            atomic_write_text(s_path, s_json)
+    m_path = genome_dir / "nk_registry_manifest.json"
+    if not check_unchanged or not m_path.exists() or m_path.read_text(encoding="utf-8", errors="replace") != manifest_json:
+        atomic_write_text(m_path, manifest_json)
+    sk_path = genome_dir / "SKILL_INDEX.md"
+    if not check_unchanged or not sk_path.exists() or sk_path.read_text(encoding="utf-8", errors="replace") != md_content:
+        atomic_write_text(sk_path, md_content)
+
+
+def _sync_integrity_index_unlocked(self_obj: Any, write_to_staging: bool) -> bool:
+    """Aggiorna internal_integrity_index.json sotto il mutex globale GenomeSync."""
+    try:
+        integrity_payload = collect_internal_integrity_index(
+            self_obj.workspace_root,
+            self_obj.stage_dir,
+            self_obj._load_staging_deleted_paths(),
+        )
+        tgt_track = (
+            (self_obj.stage_dir if write_to_staging else self_obj.workspace_root)
+            / "nk_tracking"
+            / "internal_integrity_index.json"
+        )
+        ok, _ = atomic_write_json(tgt_track, integrity_payload)
+        return bool(ok)
+    except (OSError, ValueError, TypeError, RuntimeError):
+        return False
+
+
 def sync_impl(
     self, sync_staging: bool = False, allow_ratchet_down: bool = False
 ) -> Dict[str, Any]:
-    """Genera nk_registry_manifest.json e SKILL_INDEX.md preservando la pulizia di .staging/."""
+    """Genera manifest, shard, 6/6 mirror e indice integrita sotto mutex fail-closed."""
     t0 = time.perf_counter()
     manifest = self.build_manifest()
     root_genome, is_legacy = self.resolve_genome_dir(self.workspace_root)
@@ -140,99 +183,51 @@ def sync_impl(
     new_scripts = len(manifest.get("scripts_index", {}))
     if (new_skills < prev_skills or new_scripts < prev_scripts) and not allow_ratchet_down:
         return {
-            "passed": False,
-            "status": "RATCHET_BLOCKED",
-            "error_code": "ERR_REGISTRY_RATCHET_DOWN",
-            "prev_skills": prev_skills,
-            "new_skills": new_skills,
-            "prev_scripts": prev_scripts,
-            "new_scripts": new_scripts,
+            "passed": False, "status": "RATCHET_BLOCKED", "error_code": "ERR_REGISTRY_RATCHET_DOWN",
+            "prev_skills": prev_skills, "new_skills": new_skills,
+            "prev_scripts": prev_scripts, "new_scripts": new_scripts,
             "sync_staging": bool(write_to_staging),
             "elapsed_ms": round((time.perf_counter() - t0) * 1000.0, 2),
         }
 
     slim_manifest, shards_payload = build_shards_and_slim_manifest(self, manifest)
 
-    # Preserva generated_at se il manifesto leggero su disco resta semanticamente identico
     if root_manifest_path.exists():
         try:
-            existing_data = json.loads(
-                root_manifest_path.read_text(encoding="utf-8")
-            )
+            existing_data = json.loads(root_manifest_path.read_text(encoding="utf-8"))
             if isinstance(existing_data, dict):
-                curr_cmp = {
-                    k: v for k, v in slim_manifest.items() if k != "generated_at"
-                }
-                exist_cmp = {
-                    k: v for k, v in existing_data.items() if k != "generated_at"
-                }
+                curr_cmp = {k: v for k, v in slim_manifest.items() if k != "generated_at"}
+                exist_cmp = {k: v for k, v in existing_data.items() if k != "generated_at"}
                 if curr_cmp == exist_cmp and "generated_at" in existing_data:
                     slim_manifest["generated_at"] = existing_data["generated_at"]
         except Exception:
             pass
 
     md_content = self.render_skill_index_markdown(manifest)
-    manifest_json = (
-        json.dumps(slim_manifest, separators=(",", ":"), ensure_ascii=False) + "\n"
-    )
-
-    def _write_genome_bundle(genome_dir: Path, check_unchanged: bool = False) -> None:
-        m_hash = hashlib.sha256(str(genome_dir.resolve()).lower().encode("utf-8")).hexdigest()[:16]
-        m_handle, m_acq, _ = (
-            create_or_open_named_mutex(f"Global\\NK_GenomeSync_{m_hash}", wait_ms=3000)
-            if sys.platform == "win32"
-            else (None, False, "non_win32")
-        )
-        try:
-            genome_dir.mkdir(parents=True, exist_ok=True)
-            shards_dir = genome_dir / "shards"
-            shards_dir.mkdir(parents=True, exist_ok=True)
-            for s_name, s_json in shards_payload.items():
-                s_path = shards_dir / s_name
-                if not check_unchanged or not s_path.exists() or s_path.read_text(encoding="utf-8", errors="replace") != s_json:
-                    atomic_write_text(s_path, s_json)
-            m_path = genome_dir / "nk_registry_manifest.json"
-            if not check_unchanged or not m_path.exists() or m_path.read_text(encoding="utf-8", errors="replace") != manifest_json:
-                atomic_write_text(m_path, manifest_json)
-            sk_path = genome_dir / "SKILL_INDEX.md"
-            if not check_unchanged or not sk_path.exists() or sk_path.read_text(encoding="utf-8", errors="replace") != md_content:
-                atomic_write_text(sk_path, md_content)
-        finally:
-            if m_acq and m_handle is not None:
-                release_win32_mutex(m_handle)
+    manifest_json = json.dumps(slim_manifest, separators=(",", ":"), ensure_ascii=False) + "\n"
 
     primary_manifest_path = root_manifest_path
     primary_skill_index_path = root_genome / "SKILL_INDEX.md"
+    m_hash = hashlib.sha256(str(root_genome.resolve()).lower().encode("utf-8")).hexdigest()[:16]
 
-    if write_to_staging:
-        target_genome_dir = self.stage_dir / "nk_genome"
-        _write_genome_bundle(target_genome_dir, check_unchanged=False)
-        primary_manifest_path = target_genome_dir / "nk_registry_manifest.json"
-        primary_skill_index_path = target_genome_dir / "SKILL_INDEX.md"
+    with FailClosedNamedMutex(f"Global\\NK_GenomeSync_{m_hash}", wait_ms=5000):
+        if write_to_staging:
+            target_genome_dir = self.stage_dir / "nk_genome"
+            _write_genome_bundle_unlocked(
+                target_genome_dir, shards_payload, manifest_json, md_content, check_unchanged=False
+            )
+            primary_manifest_path = target_genome_dir / "nk_registry_manifest.json"
+            primary_skill_index_path = target_genome_dir / "SKILL_INDEX.md"
 
-    if self.workspace_root != _DEFAULT_WORKSPACE_ROOT or not write_to_staging:
-        _write_genome_bundle(root_genome, check_unchanged=True)
+        if self.workspace_root != _DEFAULT_WORKSPACE_ROOT or not write_to_staging:
+            _write_genome_bundle_unlocked(
+                root_genome, shards_payload, manifest_json, md_content, check_unchanged=True
+            )
 
-    self._sync_nk_gate_plugin_mirrors(
-        write_to_staging=write_to_staging, root_genome=root_genome
-    )
-    try:
-        from _internal.nk_common.io import atomic_write_json
-        from _internal.nk_registry_indexer.scripts_and_agents import (
-            collect_internal_integrity_index,
+        self._sync_nk_gate_plugin_mirrors(
+            write_to_staging=write_to_staging, root_genome=root_genome
         )
-
-        integrity_payload = collect_internal_integrity_index(
-            self.workspace_root, self.stage_dir, self._load_staging_deleted_paths()
-        )
-        tgt_track = (
-            (self.stage_dir if write_to_staging else self.workspace_root)
-            / "nk_tracking"
-            / "internal_integrity_index.json"
-        )
-        atomic_write_json(tgt_track, integrity_payload)
-    except Exception:
-        pass
+        _sync_integrity_index_unlocked(self, write_to_staging)
 
     type(self)._MANIFEST_CACHE.clear()
     self._last_verify_cache = None

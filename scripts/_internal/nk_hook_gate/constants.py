@@ -147,6 +147,16 @@ _CMD_WRITE_INDICATORS = (
     "clear-content",
     "rename-item",
     "tee-object",
+    "export-csv",
+    "export-clixml",
+    "set-itemproperty",
+    "new-itemproperty",
+    "remove-itemproperty",
+    "copy-itemproperty",
+    "move-itemproperty",
+    "rename-itemproperty",
+    "clear-itemproperty",
+    "clear-item",
     "start-process",
     "[system.io.file]::",
     "[io.file]::",
@@ -308,3 +318,50 @@ def _strip_wrapping_quotes(raw_str: str) -> str:
     if len(s) >= 2 and s[0] == s[-1] and s[0] in ("'", '"'):
         return s[1:-1].strip()
     return s
+
+
+def _cd_verb_start_and_inline(
+    tokens: list[tuple[str, str, bool]], norm_verb_fn: Any, cd_verbs: Any
+) -> tuple[int, str, bool]:
+    """Individua l'indice comando cd/chdir/Set-Location e l'eventuale path incollato (cd/d, chdir..)."""
+    idx = 0
+    while idx < len(tokens) and tokens[idx][1] in ("&", "(", "{", "$(", "@("):
+        idx += 1
+    if idx >= len(tokens):
+        return -1, "", False
+    raw_t0 = tokens[idx][1].lstrip("&({")
+    low_r = raw_t0.lower()
+    if low_r.startswith(("cd/d", "chdir/d")):
+        tail = raw_t0[4 if low_r.startswith("cd/d") else 7 :].rstrip(")}")
+        return idx, _strip_wrapping_quotes(tail), True
+    if low_r.startswith(("cd.", "cd\\", 'cd"', "cd'", "chdir.", "chdir\\", 'chdir"', "chdir'")):
+        tail = raw_t0[2 if low_r.startswith("cd") else 5 :].rstrip(")}")
+        return idx, _strip_wrapping_quotes(tail), True
+    tok0 = _strip_wrapping_quotes(raw_t0).strip("\"'")
+    return (idx, "", True) if norm_verb_fn(tok0) in cd_verbs else (-1, "", False)
+
+
+def extract_cd_target(
+    tokens: list[tuple[str, str, bool]],
+    norm_verb_fn: Any,
+    cd_verbs: Any,
+    skip_flags: Any,
+    inline_prefixes: tuple[str, ...],
+) -> str:
+    """Estrae il path target da cd/cd/d/chdir/Set-Location inclusi prefissi incollati."""
+    idx, inline_tgt, matched = _cd_verb_start_and_inline(tokens, norm_verb_fn, cd_verbs)
+    if not matched:
+        return ""
+    if inline_tgt:
+        return inline_tgt
+    for _, unq, was_q in tokens[idx + 1 :]:
+        clean_u = unq if was_q else unq.rstrip(")}")
+        low = clean_u.lower()
+        if clean_u and (was_q or low not in skip_flags):
+            for pfx in inline_prefixes:
+                if low.startswith(pfx):
+                    return _strip_wrapping_quotes(clean_u[len(pfx) :])
+            if was_q or not low.startswith("-"):
+                arg = clean_u[2:] if low.startswith("/d") and not was_q and len(clean_u) > 2 else clean_u
+                return _strip_wrapping_quotes(arg)
+    return ""

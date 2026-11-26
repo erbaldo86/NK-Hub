@@ -101,6 +101,25 @@ def link_cross_file_calls_impl(
                     )
 
 
+def _can_reuse_repo_map_cache(
+    c_entry: Any, rel_str: str, mtime: float, size: int, file_path: Path
+) -> bool:
+    """Valuta la validita del record cache inclusa corrispondenza abs_path e __init__.py."""
+    if not (
+        c_entry
+        and c_entry.get("mtime") == mtime
+        and c_entry.get("size") == size
+        and c_entry.get("abs_path") == str(file_path)
+        and "edges" in c_entry
+        and "scope_calls" in c_entry
+        and internal_deps_still_valid(c_entry)
+    ):
+        return False
+    if rel_str.startswith("scripts/") and rel_str.endswith("/__init__.py"):
+        return any(nd.get("symbol_type") != SymbolType.IMPORT.value for nd in c_entry.get("nodes", []))
+    return True
+
+
 def generate_repo_map_impl(
     cls: type, root_dir: Path, config: Optional[RepoMapConfig] = None
 ) -> RepoMapResult:
@@ -138,7 +157,7 @@ def generate_repo_map_impl(
     staging_root = root_dir / ".staging"
     if staging_root.is_dir():
         non_staging_excluded = cls.EXCLUDED_DIRS - {".staging"}
-        for sub_name in ("scripts", "tests"):
+        for sub_name in ("scripts", "tests", "src", "src_app", "app"):
             sub_dir = staging_root / sub_name
             if not sub_dir.is_dir():
                 continue
@@ -160,22 +179,7 @@ def generate_repo_map_impl(
         size = file_path.stat().st_size
 
         c_entry = cached_files.get(rel_str)
-        if (
-            c_entry
-            and c_entry.get("mtime") == mtime
-            and c_entry.get("size") == size
-            and "edges" in c_entry
-            and "scope_calls" in c_entry
-            and internal_deps_still_valid(c_entry)
-            and not (
-                rel_str.startswith("scripts/")
-                and rel_str.endswith("/__init__.py")
-                and not any(
-                    nd.get("symbol_type") != SymbolType.IMPORT.value
-                    for nd in c_entry.get("nodes", [])
-                )
-            )
-        ):
+        if _can_reuse_repo_map_cache(c_entry, rel_str, mtime, size, file_path):
             for nd in c_entry.get("nodes", []):
                 try:
                     master_graph.add_node(SymbolNode.model_validate(nd))

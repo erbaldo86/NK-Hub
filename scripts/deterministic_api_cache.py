@@ -39,9 +39,29 @@ try:
 except ImportError:
     from scripts.platform_runner import reconfigure_streams
 
+from _internal.nk_common.nvme_storage_guards import (
+    ensure_nvme_local_dir,
+    is_cloud_mount_path,
+)
+from _internal.nk_common.win32_mutex import repo_path_hash12
+
 
 class DeterministicApiCache:
     """Cache SQLite in modalita WAL con connessione persistente per chiamate di rete."""
+
+    @staticmethod
+    def _resolve_cache_db_path(db_path: Optional[Path]) -> Path:
+        """Risolve db_path su NVMe locale evitando mount cloud Drive FS."""
+        if db_path is None:
+            cache_dir = Path(tempfile.gettempdir()) / "nk_cache"
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            return cache_dir / "deterministic_api_cache.db"
+        cand = Path(db_path)
+        if is_cloud_mount_path(cand):
+            safe_dir = ensure_nvme_local_dir(cand.parent, f"api_cache_{repo_path_hash12(cand)}")
+            return safe_dir / cand.name
+        cand.parent.mkdir(parents=True, exist_ok=True)
+        return cand
 
     def __init__(
         self,
@@ -49,13 +69,7 @@ class DeterministicApiCache:
         ttl_seconds: float = 86400.0,
     ) -> None:
         reconfigure_streams()
-        if db_path is None:
-            cache_dir = Path(tempfile.gettempdir()) / "nk_cache"
-            cache_dir.mkdir(parents=True, exist_ok=True)
-            self.db_path = cache_dir / "deterministic_api_cache.db"
-        else:
-            self.db_path = Path(db_path)
-            self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self.db_path = self._resolve_cache_db_path(db_path)
 
         self.ttl_seconds = ttl_seconds
         self._lock = threading.RLock()
@@ -81,6 +95,7 @@ class DeterministicApiCache:
                     try:
                         conn.execute("PRAGMA journal_mode = WAL;")
                         conn.execute("PRAGMA synchronous = NORMAL;")
+                        conn.execute("PRAGMA wal_autocheckpoint = 1000;")
                         break
                     except sqlite3.OperationalError:
                         if attempt + 1 >= self._SQLITE_MAX_RETRIES:
@@ -113,14 +128,21 @@ class DeterministicApiCache:
                 yield conn
 
     def close(self) -> None:
-        """Chiude esplicitamente la connessione SQLite persistente."""
+        """Chiude esplicitamente la connessione SQLite persistente eseguendo checkpoint WAL."""
         with self._lock:
-            if self._conn is not None:
+            conn = self._conn
+            self._conn = None
+            if conn is None:
+                return
+            try:
+                conn.execute("PRAGMA wal_checkpoint(TRUNCATE);")
+            except sqlite3.Error as exc:
+                sys.stderr.write(f"[NK_WARN] wal_checkpoint skipped: {exc}\n")
+            finally:
                 try:
-                    self._conn.close()
-                except Exception:
-                    pass
-                self._conn = None
+                    conn.close()
+                except sqlite3.Error as exc:
+                    sys.stderr.write(f"[NK_WARN] sqlite close skipped: {exc}\n")
 
     def __enter__(self) -> "DeterministicApiCache":
         return self
@@ -171,7 +193,7 @@ class DeterministicApiCache:
         body: Optional[str] = None,
         force_refresh: bool = False,
     ) -> Optional[Tuple[int, str, Dict[str, str]]]:
-        """Recupera la risposta salvata se presente e non scaduta."""
+        """Recupera la risposta salvata in sola lettura su cache hit, purgando solo record scaduti."""
         if force_refresh or os.environ.get("NK_FORCE_NETWORK_REFRESH") == "1":
             return None
 
@@ -198,10 +220,6 @@ class DeterministicApiCache:
                 )
                 return None
 
-            conn.execute(
-                "UPDATE api_cache SET hit_count = hit_count + 1 WHERE request_hash = ?",
-                (req_hash,),
-            )
             headers = json.loads(headers_json) if headers_json else {}
             return (status_code, resp_body, headers)
 

@@ -39,7 +39,7 @@ _CLI_STR_FLAGS: Tuple[Tuple[str, str], ...] = (
     ("--mutation-report", "Path report JSON mutation"), ("--dast-report", "Path report JSON DAST"),
     ("--test-report", "Path report JSON test suite"), ("--coverage-report", "Path report JSON coverage"),
     ("--allowed-files", "CSV file consentiti in .staging/"), ("--profile", "Profilo Tensor-RSI (P1..P6)"),
-    ("--root", "Directory radice"),
+    ("--lane-id", "ID lane di staging isolata"), ("--root", "Directory radice"),
 )
 
 
@@ -125,12 +125,18 @@ class RSIConvergenceEngine:
     def run_ab_benchmark(self, suite_path: Optional[Path] = None, repetitions: int = 3) -> Dict[str, Any]:
         """Wrapper fail-closed dismesso: utilizzare run_benchmark_suite con pytest reale."""
         return run_ab_benchmark(workspace_root=self.workspace_root, suite_path=suite_path, repetitions=repetitions)
-    def run_benchmark_suite(self, benchmark_suite: Path | str, root_dir: Optional[Path] = None) -> Dict[str, Any]:
-        return run_benchmark_suite_impl(self, benchmark_suite, root_dir=root_dir)
+    def run_benchmark_suite(
+        self, benchmark_suite: Path | str, root_dir: Optional[Path] = None,
+        lane_id: Optional[str] = None, staging_dir: Optional[Path] = None,
+    ) -> Dict[str, Any]:
+        return run_benchmark_suite_impl(self, benchmark_suite, root_dir=root_dir, lane_id=lane_id, staging_dir=staging_dir)
     @staticmethod
     def _load_staging_deleted_set(root: Path) -> Set[str]: return load_staging_deleted_set_impl(root)
-    def _scan_sast_and_mojibake(self, root: Path, sast_report: Optional[Path | str] = None) -> Dict[str, Any]:
-        return scan_sast_and_mojibake_impl(self, root, sast_report=sast_report)
+    def _scan_sast_and_mojibake(
+        self, root: Path, sast_report: Optional[Path | str] = None,
+        lane_id: Optional[str] = None, staging_dir: Optional[Path] = None,
+    ) -> Dict[str, Any]:
+        return scan_sast_and_mojibake_impl(self, root, sast_report=sast_report, lane_id=lane_id, staging_dir=staging_dir)
     def verify_convergence(self, *args: Any, **kwargs: Any) -> Dict[str, Any]: return self.verify_ecosystem(*args, **kwargs)
 
     def verify_ecosystem(
@@ -139,7 +145,7 @@ class RSIConvergenceEngine:
         persist_telemetry: bool = False, test_report: Optional[Dict[str, Any]] = None, dast_report: Optional[Path | str] = None,
         mutation_report: Optional[Any] = None, allowed_files: Optional[Union[str, Sequence[str]]] = None, scan_prod_frontend: bool = False,
         coverage_report: Optional[Path | str] = None, strict_profile: bool = False, diff_aware: bool = False, allow_injected_test_report: bool = True,
-        strict_unmeasured_gate: bool = False,
+        strict_unmeasured_gate: bool = False, lane_id: Optional[str] = None, staging_dir: Optional[Path] = None,
     ) -> Dict[str, Any]:
         return verify_ecosystem_impl(
             self, root_dir=root_dir, run_pytest=run_pytest, profile=profile, benchmark_suite=benchmark_suite,
@@ -147,19 +153,19 @@ class RSIConvergenceEngine:
             test_report=test_report, dast_report=dast_report, mutation_report=mutation_report,
             allowed_files=allowed_files, scan_prod_frontend=scan_prod_frontend, coverage_report=coverage_report,
             strict_profile=strict_profile, diff_aware=diff_aware, allow_injected_test_report=allow_injected_test_report,
-            strict_unmeasured_gate=strict_unmeasured_gate,
+            strict_unmeasured_gate=strict_unmeasured_gate, lane_id=lane_id, staging_dir=staging_dir,
         )
 
     def emit_gt14_bundle(
         self, workspace_root: Optional[Union[str, Path]] = None, with_dast: bool = False, strict_verify: bool = False,
         output_path: Optional[Union[str, Path]] = None, mutation_report: Optional[Any] = None, dast_report: Optional[Union[str, Path]] = None,
         allowed_files: Optional[Union[str, Sequence[str]]] = None, scan_prod_frontend: bool = False,
-        diff_aware: bool = False, profile: Optional[str] = None,
+        diff_aware: bool = False, profile: Optional[str] = None, lane_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         return emit_gt14_bundle_impl(
             self, workspace_root=workspace_root, with_dast=with_dast, strict_verify=strict_verify, output_path=output_path,
             mutation_report=mutation_report, dast_report=dast_report, allowed_files=allowed_files, scan_prod_frontend=scan_prod_frontend,
-            diff_aware=diff_aware, profile=profile,
+            diff_aware=diff_aware, profile=profile, lane_id=lane_id,
         )
 
 
@@ -167,14 +173,14 @@ def emit_gt14_bundle(
     workspace_root: Optional[Union[str, Path]] = None, with_dast: bool = False, strict_verify: bool = False,
     output_path: Optional[Union[str, Path]] = None, mutation_report: Optional[Any] = None, dast_report: Optional[Union[str, Path]] = None,
     allowed_files: Optional[Union[str, Sequence[str]]] = None, scan_prod_frontend: bool = False,
-    diff_aware: bool = False, profile: Optional[str] = None,
+    diff_aware: bool = False, profile: Optional[str] = None, lane_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Funzione di modulo per eseguire emit_gt14_bundle in-process."""
     root = Path(workspace_root).resolve() if workspace_root else _workspace_root
     return RSIConvergenceEngine(workspace_root=root, root=root).emit_gt14_bundle(
         workspace_root=root, with_dast=with_dast, strict_verify=strict_verify, output_path=output_path,
         mutation_report=mutation_report, dast_report=dast_report, allowed_files=allowed_files, scan_prod_frontend=scan_prod_frontend,
-        diff_aware=diff_aware, profile=profile,
+        diff_aware=diff_aware, profile=profile, lane_id=lane_id,
     )
 
 
@@ -260,6 +266,7 @@ def _run_cli_bundle_cmd(engine: RSIConvergenceEngine, root_path: Path, args: Any
         ("scan_prod_frontend", True if args.scan_prod_frontend else None),
         ("diff_aware", True if args.diff_aware else None),
         ("profile", args.profile),
+        ("lane_id", getattr(args, "lane_id", None)),
     ))
     bundle_res = _dispatch_with_opt(engine.emit_gt14_bundle, lambda **kw: emit_gt14_bundle_impl(engine, **kw), b_base, b_opt)
     if args.json:
@@ -279,6 +286,7 @@ def _build_verify_opt_kwargs(args: Any) -> Dict[str, Any]:
         ("strict_profile", True if args.strict_profile else None),
         ("diff_aware", True if args.diff_aware else None),
         ("allow_injected_test_report", False if args.strict_verify else None),
+        ("lane_id", getattr(args, "lane_id", None)),
     ))
 
 

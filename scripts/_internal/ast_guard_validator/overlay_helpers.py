@@ -1,11 +1,18 @@
-"""Helper pure-stdlib per overlay .staging/ su produzione con esclusione .deleted_files.json."""
+"""Helper pure-stdlib per overlay .staging/[lanes/<id>/] su produzione."""
 
 from __future__ import annotations
 
 import os
+import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
+from _internal.nk_common.lane_paths import (
+    is_lane_container_entry,
+    resolve_staging_dir,
+    strip_staging_rel_parts,
+)
+from _internal.nk_common.staging_manifest import is_reparse_entry
 from _internal.nk_common.tas_ssot_io import parse_deleted_files_manifest
 
 _DEFAULT_ROOT_CANDIDATES: Tuple[str, ...] = ("scripts", "src_app", "tests")
@@ -27,17 +34,33 @@ def is_deleted_rel_path(rel_posix: str, deleted_norm: Set[str]) -> bool:
     return key in deleted_norm or any(key.startswith(f"{d}/") for d in deleted_norm)
 
 
+def _is_dast_snapshot_root(parts: Tuple[str, ...], idx: int) -> bool:
+    """True se il prefisso prima di .staging risiede in TEMP e ospita il marker DAST non-reparse."""
+    snap_root = Path(*parts[:idx]).resolve()
+    temp_root = Path(tempfile.gettempdir()).resolve()
+    marker = snap_root / ".nk_dast_snapshot_marker"
+    return snap_root.is_relative_to(temp_root) and marker.is_file() and not is_reparse_entry(marker)
+
+
+def _resolve_explicit_overlay_roots(
+    prod_root: Path, stage_arg: Optional[str], lane_arg: Optional[str]
+) -> Tuple[Path, Path]:
+    """Risolve (prod_root, stage_root) da --stage-dir o --lane-id."""
+    stage_root, _lane = resolve_staging_dir(prod_root, lane_id=lane_arg, staging_dir=stage_arg)
+    idx, _rel, _det_lane = strip_staging_rel_parts(stage_root.parts)
+    if idx > 0 and not _is_dast_snapshot_root(stage_root.parts, idx):
+        prod_root = Path(*stage_root.parts[:idx])
+    return prod_root, stage_root
+
+
 def resolve_overlay_roots(
     args: Any, scan_root: Path, raw_targets: Sequence[Tuple[str, bool]]
 ) -> Tuple[Path, Path]:
-    """Individua (prod_root, stage_root) per la modalita --overlay-staging."""
+    """Individua (prod_root, stage_root) supportando --stage-dir e --lane-id."""
     prod_root = scan_root.resolve()
-    stage_arg = getattr(args, "stage_dir", None)
-    if stage_arg:
-        stage_root = Path(stage_arg).resolve()
-        if stage_root.name == ".staging":
-            prod_root = stage_root.parent
-        return prod_root, stage_root
+    stage_arg, lane_arg = getattr(args, "stage_dir", None), getattr(args, "lane_id", None)
+    if stage_arg or lane_arg:
+        return _resolve_explicit_overlay_roots(prod_root, stage_arg, lane_arg)
     stage_root = (prod_root / ".staging").resolve()
     if stage_root.is_dir():
         return prod_root, stage_root
@@ -90,12 +113,16 @@ def _add_stg_py_tree(
     deleted_norm: Set[str],
     overlay_map: Dict[str, Path],
 ) -> None:
-    """Sovrappone file .py di staging su overlay_map rimuovendo i path deleted."""
+    """Sovrappone file .py di staging su overlay_map saltando lanes/ in legacy."""
+    excl_lanes = stage_root.name == ".staging"
     for f in _iter_py_entries(stg_sub):
         res = f.resolve()
         if not res.is_relative_to(stage_root):
             continue
-        rel_k = res.relative_to(stage_root).as_posix()
+        rel_p = res.relative_to(stage_root)
+        if excl_lanes and is_lane_container_entry(rel_p.parts):
+            continue
+        rel_k = rel_p.as_posix()
         n_key = _norm_rel(rel_k)
         if is_deleted_rel_path(rel_k, deleted_norm):
             overlay_map.pop(n_key, None)
@@ -122,7 +149,7 @@ def _collect_all_overlay(
     overlay_map: Dict[str, Path],
     targets_out: List[Path],
 ) -> None:
-    """Raccoglie l'intero albero sovrapposto (scripts, src_app, tests + tutto .staging)."""
+    """Raccoglie l'intero albero sovrapposto (scripts, src_app, tests + staging corrente)."""
     for cand in _DEFAULT_ROOT_CANDIDATES:
         prod_sub = prod_root / cand
         stg_sub = stage_root / cand
@@ -249,6 +276,24 @@ def _iter_fe_entries(sub: Path, ext_set: Set[str], skip_set: Set[str]) -> List[P
     return []
 
 
+def _merge_fe_entry(
+    fpath: Path, base: Path, is_stg: bool, excl_lanes: bool, deleted_norm: Set[str], fe_map: Dict[str, Path]
+) -> None:
+    """Inserisce o rimuove un file Frontend nella mappa overlay gestendo lanes e tombstone."""
+    res = fpath.resolve()
+    if not res.is_relative_to(base):
+        return
+    rel_p = res.relative_to(base)
+    if (not is_stg and ".staging" in rel_p.parts) or (is_stg and excl_lanes and is_lane_container_entry(rel_p.parts)):
+        return
+    rel_k = rel_p.as_posix()
+    n_key = _norm_rel(rel_k)
+    if is_deleted_rel_path(rel_k, deleted_norm):
+        fe_map.pop(n_key, None)
+    else:
+        fe_map[n_key] = fpath
+
+
 def collect_overlay_frontend_files(
     targets_to_scan: Sequence[Path],
     prod_root: Path,
@@ -259,21 +304,10 @@ def collect_overlay_frontend_files(
 ) -> List[Path]:
     """Costruisce la lista overlaid dei file Frontend sotto targets_to_scan."""
     fe_map: Dict[str, Path] = {}
-    ext_set = {e.lower() for e in fe_exts}
-    skip_set = set(skip_dirs)
+    ext_set, skip_set = {e.lower() for e in fe_exts}, set(skip_dirs)
+    excl_lanes = stage_root.name == ".staging"
     for target in targets_to_scan:
         for sub, base, is_stg in _iter_fe_subroots(target, prod_root, stage_root):
             for fpath in _iter_fe_entries(sub, ext_set, skip_set):
-                res = fpath.resolve()
-                if not res.is_relative_to(base):
-                    continue
-                rel_p = res.relative_to(base)
-                if not is_stg and ".staging" in rel_p.parts:
-                    continue
-                rel_k = rel_p.as_posix()
-                n_key = _norm_rel(rel_k)
-                if is_deleted_rel_path(rel_k, deleted_norm):
-                    fe_map.pop(n_key, None)
-                else:
-                    fe_map[n_key] = fpath
+                _merge_fe_entry(fpath, base, is_stg, excl_lanes, deleted_norm, fe_map)
     return sorted(dict.fromkeys(fe_map.values()))

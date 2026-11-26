@@ -81,6 +81,41 @@ def get_hooks_temp_dir_common(create: bool = True) -> Path:
     return hooks_dir
 
 
+def _append_unique_dir_cand(
+    out: List[Path], seen: set[str], raw: Optional[Path | str]
+) -> None:
+    """Aggiunge un candidato directory normalizzato evitando duplicati case-insensitive."""
+    raw_s = str(raw or "").strip()
+    if not raw_s:
+        return
+    try:
+        cand = Path(raw_s).expanduser().resolve()
+    except OSError:
+        cand = Path(raw_s)
+    key = os.path.normcase(str(cand))
+    if key not in seen:
+        seen.add(key)
+        out.append(cand)
+
+
+def iter_hooks_temp_dir_candidates(
+    primary_dir: Optional[Path | str] = None,
+) -> Tuple[Path, ...]:
+    """Restituisce in ordine deterministico le directory candidate per gli stati L0/hook."""
+    out: List[Path] = []
+    seen: set[str] = set()
+    _append_unique_dir_cand(out, seen, primary_dir)
+    _append_unique_dir_cand(out, seen, os.environ.get("NK_HOOKS_TEMP_DIR", "").strip())
+    _append_unique_dir_cand(out, seen, Path(tempfile.gettempdir()) / "nk_hooks")
+    try:
+        from _internal.nk_common.nvme_storage_guards import resolve_local_appdata_dir
+
+        _append_unique_dir_cand(out, seen, resolve_local_appdata_dir() / "nk_hub" / "hooks")
+    except (ImportError, OSError):
+        pass
+    return tuple(out)
+
+
 def _strip_win32_device_prefix(raw: str) -> str:
     """Rimuove virgolette esterne e prefissi Win32 UNC/device da un percorso grezzo."""
     s = raw.strip().strip("\"'").strip()

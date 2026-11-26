@@ -5,21 +5,20 @@ from __future__ import annotations
 import os
 import re
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
+from _internal.nk_common.lane_paths import (
+    is_unsafe_lane_staged_token,
+    is_valid_lane_plan_rel_parts,
+    is_valid_lane_subpath_no_reparse,
+    strip_staging_rel_parts,
+)
 from _internal.nk_common.paths import (
-    cmd_mentions_external_project,
-    cmd_mentions_nk_proget_online,
-    is_external_projects_staging_path,
-    is_nk_proget_locale_path,
-    is_nk_proget_online_path,
+    cmd_mentions_external_project, cmd_mentions_nk_proget_online, is_external_projects_staging_path,
+    is_nk_proget_locale_path, is_nk_proget_online_path,
 )
 from _internal.nk_hook_gate.constants import (
-    _PROD_DIR_PREFIXES,
-    _SAFE_DIR_COMPONENTS,
-    _SAFE_ROOT_FILENAMES,
-    _WORKSPACE_ROOT,
-    _strip_wrapping_quotes,
+    _PROD_DIR_PREFIXES, _SAFE_DIR_COMPONENTS, _SAFE_ROOT_FILENAMES, _WORKSPACE_ROOT, _strip_wrapping_quotes,
 )
 from _internal.nk_hook_gate.json_io import _is_path_reparse_point
 
@@ -112,6 +111,20 @@ def _resolve_effective_hub_root(project_root: Path) -> Path:
     return root
 
 
+def _is_reparse_escaping_target(
+    curr: Path, eff_root: Path, proj_canon: Path, staging_canon: Path, in_lexical_staging: bool
+) -> bool:
+    """True se curr e un reparse point interno a .staging o con destinazione esterna a root."""
+    if not _is_path_reparse_point(curr):
+        return False
+    if any(pt.lower().rstrip(". ") == ".staging" for pt in curr.parts):
+        return True
+    real_curr = Path(os.path.normpath(os.path.realpath(str(curr))))
+    if in_lexical_staging and real_curr != staging_canon and staging_canon not in real_curr.parents:
+        return True
+    return real_curr != eff_root and eff_root not in real_curr.parents and real_curr != proj_canon and proj_canon not in real_curr.parents
+
+
 def _has_ancestor_reparse_escape(target_str: str, project_root: Path) -> bool:
     """Verifica symlink o reparse point sugli antenati esistenti contro evasioni TOCTOU."""
     cleaned = _strip_wrapping_quotes(target_str)
@@ -121,49 +134,26 @@ def _has_ancestor_reparse_escape(target_str: str, project_root: Path) -> bool:
         cleaned = "\\\\" + cleaned[8:]
     elif cleaned.startswith(("\\\\?\\", "//?/", "\\\\.\\", "//./")):
         cleaned = cleaned[4:]
-    cleaned = cleaned.replace("/", os.sep).replace("\\", os.sep)
-    raw_p = Path(os.path.normpath(cleaned))
+    raw_p = Path(os.path.normpath(cleaned.replace("/", os.sep).replace("\\", os.sep)))
     proj_canon = _canonical_path(project_root)
     eff_root = _resolve_effective_hub_root(proj_canon)
     if raw_p.is_absolute():
         lex_p = raw_p
     elif raw_p.parts and raw_p.parts[0].lower() == "nk_hub":
-        base = proj_canon.parent if proj_canon.name.lower() == "nk_hub" else proj_canon
-        lex_p = Path(os.path.normpath(str(base / raw_p)))
+        lex_p = Path(os.path.normpath(str((proj_canon.parent if proj_canon.name.lower() == "nk_hub" else proj_canon) / raw_p)))
     else:
         lex_p = Path(os.path.normpath(str(eff_root / raw_p)))
 
-    lex_parts_low = [pt.lower().rstrip(". ") for pt in lex_p.parts]
-    in_lexical_staging = ".staging" in lex_parts_low
+    in_lexical_staging = ".staging" in [pt.lower().rstrip(". ") for pt in lex_p.parts]
     staging_canon = _canonical_path(eff_root / ".staging")
-
-    curr = lex_p
-    visited = set()
+    curr, visited = lex_p, set()
     while True:
         key = str(curr).lower()
-        if (
-            key in visited
-            or curr == eff_root
-            or curr == proj_canon
-            or curr.parent == curr
-        ):
+        if key in visited or curr in (eff_root, proj_canon) or curr.parent == curr:
             break
         visited.add(key)
-        if curr.exists() or curr.is_symlink():
-            if _is_path_reparse_point(curr):
-                real_curr = Path(os.path.normpath(os.path.realpath(str(curr))))
-                if in_lexical_staging and (
-                    real_curr != staging_canon
-                    and staging_canon not in real_curr.parents
-                ):
-                    return True
-                if (
-                    real_curr != eff_root
-                    and eff_root not in real_curr.parents
-                    and real_curr != proj_canon
-                    and proj_canon not in real_curr.parents
-                ):
-                    return True
+        if (curr.exists() or curr.is_symlink()) and _is_reparse_escaping_target(curr, eff_root, proj_canon, staging_canon, in_lexical_staging):
+            return True
         curr = curr.parent
     return False
 
@@ -190,8 +180,23 @@ def _resolve_target_path(target_str: str, project_root: Path) -> Path:
     return cand_direct
 
 
+def _is_valid_external_staging_path(cand_res: Path) -> bool:
+    """Valida path staging di progetti esterni bloccando sotto-percorsi lane malformati."""
+    return is_external_projects_staging_path(cand_res) and not is_unsafe_lane_staged_token(cand_res.as_posix())
+
+
+def _is_forbidden_staged_subpath(tok: str) -> bool:
+    """True per riferimenti Online o sotto-percorsi .staging/lanes/ non consentiti."""
+    return cmd_mentions_nk_proget_online(tok) or is_unsafe_lane_staged_token(tok)
+
+
 def _is_valid_staging_path(cand: Path, project_root: Path) -> bool:
     """Verifica che il percorso canonico risieda realmente sotto .staging/ di Hub, bridge o Locale."""
+    stg_idx, _rel, _lane = strip_staging_rel_parts(cand.parts)
+    if stg_idx >= 0:
+        raw_stg = Path(*cand.parts[: stg_idx + 1])
+        if not is_valid_lane_subpath_no_reparse(cand, raw_stg):
+            return False
     cand_res = _canonical_path(cand)
     if is_nk_proget_online_path(cand_res):
         return False
@@ -201,7 +206,7 @@ def _is_valid_staging_path(cand: Path, project_root: Path) -> bool:
     for base_root in (root_res, hub_res, root_res / "NK_Hub", ws_res):
         staging_root = _canonical_path(base_root / ".staging")
         if cand_res == staging_root or staging_root in cand_res.parents:
-            return True
+            return is_valid_lane_subpath_no_reparse(cand_res, staging_root)
         if base_root.name.lower() == "nk_hub":
             parent_bridge_stg = _canonical_path(
                 base_root.parent / ".staging" / ".agents" / "AGENTS.md"
@@ -213,7 +218,7 @@ def _is_valid_staging_path(cand: Path, project_root: Path) -> bool:
                 parent_bridge_dir.parent,
             ):
                 return True
-    return is_external_projects_staging_path(cand_res)
+    return _is_valid_external_staging_path(cand_res)
 
 
 def _has_forbidden_redir_prefix(cleaned: str, raw_target: str, low: str) -> bool:
@@ -282,8 +287,8 @@ def _is_safe_redirection_target(raw_target: str, project_root: Path) -> bool:
 
 
 def _is_unsafe_staged_token(tok: str) -> bool:
-    """Identifica token .staging/ non sanitizzabili (traversal, .wal o Online)."""
-    return ".." in tok or ".wal" in tok or cmd_mentions_nk_proget_online(tok)
+    """Identifica token .staging/ non sanitizzabili (traversal, .wal, lane malformate o Online)."""
+    return ".." in tok or ".wal" in tok or _is_forbidden_staged_subpath(tok)
 
 
 def _sanitize_staged_tokens_in_cmd(cmd_low: str) -> str:
@@ -342,6 +347,25 @@ def _is_non_workspace_whitelisted(cand: Path, cand_norm_posix: str) -> bool:
     return cand == temp_root or temp_root in cand.parents
 
 
+def _is_rel_parts_whitelisted(raw_parts: Tuple[str, ...]) -> bool:
+    """Valuta la whitelist sui segmenti relativi a una root canonica."""
+    rel_parts = [p.lower().rstrip(". ") for p in raw_parts]
+    if not rel_parts:
+        return False
+    first = rel_parts[0]
+    if first in _SAFE_DIR_COMPONENTS or first.startswith("nk_sandbox_") or is_valid_lane_plan_rel_parts(raw_parts):
+        return True
+    if len(rel_parts) >= 2 and rel_parts[:2] in (
+        ["nk_tracking", "reports_and_briefs"],
+        ["nk_tracking", "anchor"],
+        ["nk_tracking", "sessions"],
+    ):
+        return True
+    if len(rel_parts) == 1 and first in _SAFE_ROOT_FILENAMES:
+        return True
+    return len(rel_parts) == 2 and first == "nk_docs_and_setup" and rel_parts[1] in _SAFE_ROOT_FILENAMES
+
+
 def _is_whitelisted_outside_staging(cand: Path, project_root: Path) -> bool:
     """Verifica se un target fuori da .staging/ appartiene alla whitelist esplicita e sicura."""
     cand = _canonical_path(cand)
@@ -363,28 +387,9 @@ def _is_whitelisted_outside_staging(cand: Path, project_root: Path) -> bool:
     for base_r in (eff_root, proj_canon, ws_root):
         if cand == base_r or base_r in cand.parents:
             try:
-                rel_parts = [
-                    p.lower().rstrip(". ") for p in cand.relative_to(base_r).parts
-                ]
+                raw_parts = cand.relative_to(base_r).parts
             except ValueError:
                 continue
-            if not rel_parts:
-                return False
-            first = rel_parts[0]
-            if first in _SAFE_DIR_COMPONENTS or first.startswith("nk_sandbox_"):
-                return True
-            if len(rel_parts) >= 2 and rel_parts[:2] in (
-                ["nk_tracking", "reports_and_briefs"],
-                ["nk_tracking", "anchor"],
-                ["nk_tracking", "sessions"],
-            ):
-                return True
-            if len(rel_parts) == 1 and first in _SAFE_ROOT_FILENAMES:
-                return True
-            if (
-                len(rel_parts) == 2
-                and first == "nk_docs_and_setup"
-                and rel_parts[1] in _SAFE_ROOT_FILENAMES
-            ):
+            if _is_rel_parts_whitelisted(raw_parts):
                 return True
     return False

@@ -22,7 +22,7 @@ __nk_facade__: str = "tensor_rsi"
 
 
 def _build_cli_parser() -> argparse.ArgumentParser:
-    """Costruisce il parser CLI con i 5 flag pubblici DOM-01 prima degli import pesanti."""
+    """Costruisce il parser CLI DOM-01 prima degli import pesanti."""
     parser = argparse.ArgumentParser(
         description="Tensor-RSI Co-Execution Control Plane (DOM-01)"
     )
@@ -49,6 +49,12 @@ def _build_cli_parser() -> argparse.ArgumentParser:
         type=str,
         default=None,
         help="Percorso alla radice del repository NK_Hub",
+    )
+    parser.add_argument(
+        "--lane-id",
+        type=str,
+        default=None,
+        help="Lane di staging isolata (.staging/lanes/<id>)",
     )
     parser.add_argument(
         "--json",

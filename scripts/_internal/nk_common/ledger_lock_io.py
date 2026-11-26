@@ -1,4 +1,4 @@
-"""Lock cooperativo PIDFileLock e wrapper Win32 kernel32."""
+"""Lock cooperativo PIDFileLock, LedgerMutexLock RAM e wrapper Win32 kernel32."""
 
 from __future__ import annotations
 
@@ -10,6 +10,13 @@ import time
 import uuid
 from pathlib import Path
 from typing import Any, Optional, Tuple
+
+from _internal.nk_common.nvme_storage_guards import (
+    FailClosedNamedMutex,
+    ensure_nvme_local_dir,
+    is_cloud_mount_path,
+)
+from _internal.nk_common.win32_mutex import repo_path_hash
 
 PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
 STILL_ACTIVE = 259
@@ -49,6 +56,29 @@ def _active_kernel32() -> Any:
     return _kernel32
 
 
+class LedgerMutexLock:
+    """Lock puro in memoria su Win32 Named Mutex per operazioni ledger senza file I/O."""
+
+    def __init__(self, target_path: Path, wait_ms: int = 5000) -> None:
+        h16 = repo_path_hash(target_path, chars=16)
+        self._mutex = FailClosedNamedMutex(f"Local\\NK_LedgerLock_{h16}", wait_ms=wait_ms)
+
+    def __enter__(self) -> "LedgerMutexLock":
+        self._mutex.acquire()
+        return self
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        self._mutex.release()
+
+
+def _resolve_physical_lock_path(lock_file: Path) -> Path:
+    """Redirige lockfile da cloud-mount verso LOCALAPPDATA/nk_hub/ledger_locks."""
+    if is_cloud_mount_path(lock_file):
+        lock_dir = ensure_nvme_local_dir(lock_file.parent, "ledger_locks")
+        return lock_dir / f"{repo_path_hash(lock_file, chars=16)}.lock"
+    return lock_file
+
+
 class PIDFileLock:
     """Gestisce un file di lock cooperativo con nonce atomico e verifica di vitalita del PID."""
 
@@ -58,7 +88,7 @@ class PIDFileLock:
         stale_timeout_sec: float = 30.0,
         acquire_timeout_sec: float = -1.0,
     ) -> None:
-        self.lock_file = Path(lock_file)
+        self.lock_file = _resolve_physical_lock_path(Path(lock_file))
         self.stale_timeout_sec = stale_timeout_sec
         self.acquire_timeout_sec = acquire_timeout_sec
         self.acquired = False

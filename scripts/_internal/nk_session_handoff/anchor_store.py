@@ -7,12 +7,16 @@ import json
 import os
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Mapping, Optional, Tuple
+from typing import Any, Dict, Mapping, Optional, Sequence, Tuple
 
 from _internal.nk_common.facade_boot import resolve_facade_attr
 from _internal.nk_session_handoff.constants import DEFAULT_MILESTONE_ID, _drift_response, _idle_anchor_state_key, _is_fsm_checkpoint_rec, _is_meaningful_milestone, _iter_anchor_lines_reversed, _workspace_root, resolve_session_tracking_dir
 from _internal.nk_session_handoff.ecosystem_helpers import _clean_str, _load_json_dict, _read_tail_lines
-from _internal.nk_session_handoff.session_state import SESSION_RETENTION_LIMIT, Win32NamedMutex, _compute_staging_state_sha256, _compute_workspace_state_sha256, _parse_ts_ns_value, get_repo_batch_mutex_name, prune_session_tracking_dirs, write_bytes_via_2pc_locked
+from _internal.nk_session_handoff.session_state import (  # noqa: F401
+    SESSION_RETENTION_LIMIT, Win32NamedMutex, _compute_staging_state_sha256,
+    _compute_workspace_state_sha256, _parse_ts_ns_value, get_handoff_state_mutex_name,
+    get_repo_batch_mutex_name, prune_session_tracking_dirs, write_bytes_via_2pc_locked,
+)
 
 _FACADES = ("nk_session_handoff", "scripts.nk_session_handoff")
 ANCHOR_MAX_LINES: int = 200
@@ -88,12 +92,12 @@ def _write_single_anchor_target(dst: Path, record: Mapping[str, Any], line_strip
         return True
 
 def _append_anchor_record(record: Dict[str, Any], target_root: Path, conversation_id: Optional[str]) -> Dict[str, Any]:
-    """Appende atomicamente un record JSONL in session_anchor.jsonl con dedup idle, cap 200 e retention sessioni."""
+    """Appende atomicamente un record JSONL in session_anchor.jsonl con dedup idle e cap 200."""
     anchor_file = target_root / "nk_tracking" / "anchor" / "session_anchor.jsonl"
     sess_dir = resolve_session_tracking_dir(target_root, conversation_id)
     line_stripped = json.dumps(record, ensure_ascii=False)
     targets = [anchor_file] + ([sess_dir / "session_anchor.jsonl"] if sess_dir is not None else [])
-    with Win32NamedMutex(get_repo_batch_mutex_name(target_root), timeout_ms=2000, is_path=False):
+    with Win32NamedMutex(get_handoff_state_mutex_name(target_root), timeout_ms=2000, is_path=False):
         wrote_flags = [_write_single_anchor_target(dst, record, line_stripped) for dst in targets]
         prune_session_tracking_dirs(target_root, active_conversation_id=conversation_id, max_sessions=SESSION_RETENTION_LIMIT)
     wrote_any = any(wrote_flags)
@@ -125,6 +129,39 @@ def record_fsm_checkpoint(turn: int, gate_status: str, milestone_id: str = "", r
 def record_idle_checkpoint_anchor(gate_status: str = "PASS", milestone_id: str = "", root: Optional[Path] = None, state_sha256_override: Optional[str] = None, staging_state_sha256: Optional[str] = None, conversation_id: Optional[str] = None, handoff_template: str = "Template 12") -> Dict[str, Any]:
     """Registra una traccia passiva di auto-checkpoint senza promuovere turni FSM attivi."""
     return _build_and_append_anchor("auto_checkpoint_idle", {"turn_phase": "IDLE_CHECKPOINT", "template": str(handoff_template or "Template 12").strip()}, gate_status, milestone_id, root, state_sha256_override, staging_state_sha256, conversation_id)
+
+
+def record_wave_dispatch_anchor(
+    wave_index: int,
+    tasks: Sequence[Mapping[str, Any]],
+    *,
+    milestone_id: str = "",
+    gate_status: str = "DISPATCHED",
+    root: Optional[Path] = None,
+    state_sha256_override: Optional[str] = None,
+    staging_state_sha256: Optional[str] = None,
+    conversation_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Registra atomicamente una wave di dispatch parallelo nell'anchor JSONL."""
+    if isinstance(wave_index, bool):
+        raise ValueError(f"wave_index non puo essere booleano: {wave_index}")
+    try:
+        wave_val = int(wave_index)
+    except (ValueError, TypeError) as exc:
+        raise ValueError(f"wave_index deve essere un intero >= 0: {wave_index}") from exc
+    if wave_val < 0:
+        raise ValueError(f"wave_index deve essere >= 0: {wave_val}")
+    norm_tasks = [dict(t) for t in tasks]
+    return _build_and_append_anchor(
+        "wave_dispatch",
+        {"wave_index": wave_val, "tasks": norm_tasks, "task_count": len(norm_tasks)},
+        gate_status,
+        milestone_id,
+        root,
+        state_sha256_override,
+        staging_state_sha256,
+        conversation_id,
+    )
 
 
 def _resolve_anchor_file_path(target_root: Path, conversation_id: Optional[str]) -> Path:

@@ -11,11 +11,11 @@
 |DOM-05|NK-Scribe-Agent|read_file, write_file, edit_file, run_command, manage_task, send_message|[9] NK-Scribe-Memory|
 ## 2. Protocollo CLI
 1. Bootstrap/L0: `nk_session_bootstrap.py` (`generation`/`carbon`, `hooks.json`), `vibe_sprint_router.py --meta-prompt-gate --prompt "<t>"`.
-2. Lookup/Swarm: `nk_registry_indexer.py --lookup "<q>"`, `send_message` (`< 1.800` char).
+2. Lookup/Swarm: `nk_registry_indexer.py --lookup "<q>"`, `dag_wave_scheduler.py`, `preflight_conflict_predictor.py`, `send_message` (`< 1.800` char).
 3. Fast-Bypass: `Mode D` read-only. `Mode C` (`<= 150` LOC): `rsi_convergence_engine.py --vibe-check .staging --profile code_rsi`.
 4. Triplo Lock: `nk_transcript_tools.py oracle-lock freeze`; triplo lock `SHA-256`, `HMAC` (`oracle_lock.json`).
 5. Dual-Execution (`GT-14`): Auditor (`EnableWriteTools=False`) no `run_command`; sonde `nk_diagnostics/` via `read_file`.
-6. Capsule NVMe: `python -B -u scripts/platform_runner.py --pytest-isolated` (`--overlay-staging`); no `read_file` ciechi, batch `<= 3`.
-7. Watchdog/Handoff: `150/250` step (`CHECKPOINT`/`<CONTEXT_SUMMARY>`), `nk_session_handoff.py --compile-handoff-prompt` / `--compile-template-11`.
-8. Commit 2PC: stop demoni, `win32_2pc_engine.py --promote-staging --repo-root "<r>" --milestone "<id>"`. Verifica `quality_baseline_manager.py --check-only --live --with-coverage` (`Q_v2(S_k)`), `NK-Scribe-Agent`.
+6. Capsule NVMe: `python -B -u scripts/platform_runner.py --pytest-isolated` (`--overlay-staging`, `fe_shadow.py` TS/JS); batch `<= 3`.
+7. Watchdog/Handoff: `150/250` step (`CHECKPOINT`/`<CONTEXT_SUMMARY>`), `nk_session_handoff.py --compile-handoff-prompt`, `nk_genome/plans/<lane_id>.md`.
+8. Commit 2PC: stop demoni, `win32_2pc_engine.py --promote-staging` o `--consolidate-sublanes --parent-lane <id>`. Verifica `quality_baseline_manager.py --check-only --live --with-coverage`, `NK-Scribe-Agent`.
 9. `/compact`: UI host; `NK_RepoBatchLock`; `nk_tracking/active_context.md` post `CHECKPOINT`.

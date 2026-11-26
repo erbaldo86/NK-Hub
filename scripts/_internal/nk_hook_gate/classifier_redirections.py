@@ -250,7 +250,7 @@ def _classify_non_redirection_write_targets(
 
 
 def _check_inline_python_ast_blocks(
-    cmd_str: str, cmd_deobf: str, project_root: Path
+    cmd_str: str, cmd_deobf: str, project_root: Path, conv_id: str = ""
 ) -> Tuple[Optional[Dict[str, Any]], bool]:
     """Verifica con ast.parse gli inline python -c; restituisce (denial, saw_python_c)."""
     from _internal.nk_hook_gate.ast_inline_guard import (
@@ -274,7 +274,7 @@ def _check_inline_python_ast_blocks(
                 continue
             saw_python_c = True
             for code_str in payloads:
-                denial = inspect_python_source_mutations(code_str, project_root)
+                denial = inspect_python_source_mutations(code_str, project_root, conv_id=conv_id)
                 if denial is not None:
                     return denial, True
     return None, saw_python_c

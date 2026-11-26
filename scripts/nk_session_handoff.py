@@ -96,6 +96,7 @@ _LAZY_EXPORT_MAP: Dict[str, tuple[str, str]] = {
     "serialize_handoff_v2": (_HE, "serialize_handoff_v2"),
     "build_handoff_manifest_v1": (_HE, "build_handoff_manifest_v1"),
     "record_idle_checkpoint_anchor": (_HE, "record_idle_checkpoint_anchor"),
+    "record_wave_dispatch_anchor": (_HE, "record_wave_dispatch_anchor"),
     "resolve_hub_and_project_roots": (_ES, "resolve_hub_and_project_roots"),
     "discover_ecosystem_repos": (_ES, "discover_ecosystem_repos"),
     "resolve_session_start_ns": (_ES, "resolve_session_start_ns"),

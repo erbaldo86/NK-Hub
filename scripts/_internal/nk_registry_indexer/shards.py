@@ -60,8 +60,15 @@ def _append_full_skill_fields(out: Dict[str, Any], sk_meta: Dict[str, Any]) -> N
         out["description"] = _trim_text(sk_meta.get("description"), 44)
 
 
+def _compact_classes_field(out: Dict[str, Any], classes: List[str], compact_mode: int, trim_classes_only: bool) -> None:
+    if compact_mode < 2:
+        out["classes"] = classes[:3] if (trim_classes_only and classes) else classes
+    elif classes:
+        out["classes"] = classes[:2]
+
+
 def _compact_script_entry(
-    sc_meta: Dict[str, Any], compact_mode: int = 0
+    sc_meta: Dict[str, Any], compact_mode: int = 0, trim_classes_only: bool = False
 ) -> Dict[str, Any]:
     """Compatta una voce script mantenendo chiavi funzionali AST e SHA-256."""
     classes = list(sc_meta.get("classes", []))
@@ -69,10 +76,7 @@ def _compact_script_entry(
     out: Dict[str, Any] = {"sha256": sc_meta.get("sha256", "")}
     if compact_mode < 2 or cli_flags:
         out["cli_flags"] = cli_flags if compact_mode < 3 else cli_flags[:6]
-    if compact_mode < 2:
-        out["classes"] = classes
-    elif classes:
-        out["classes"] = classes[:2]
+    _compact_classes_field(out, classes, compact_mode, trim_classes_only)
     src_layer = sc_meta.get("source_layer", "production")
     if compact_mode == 0 or src_layer != "production":
         out["source_layer"] = src_layer
@@ -136,6 +140,7 @@ def _build_domain_shard_payload(
     dom_agents: Dict[str, Dict[str, Any]],
     dom_intents: Dict[str, Any],
     mode: int,
+    trim_classes_only: bool = False,
 ) -> Dict[str, Any]:
     """Costruisce il dizionario dello shard di dominio al livello di compattazione mode."""
     dom_name = str(dom_meta.get("name", ""))
@@ -162,7 +167,7 @@ def _build_domain_shard_payload(
             for k, v in dom_skills.items()
         },
         "scripts_index": {
-            k: _compact_script_entry(v, compact_mode=mode)
+            k: _compact_script_entry(v, compact_mode=mode, trim_classes_only=trim_classes_only)
             for k, v in dom_scripts.items()
         },
         "native_agents_index": {
@@ -184,7 +189,7 @@ def _serialize_domain_shard_with_cap(
 ) -> str:
     """Serializza lo shard DOM-01..DOM-05 garantendo dimensione compatta entro il budget."""
     last_raw = ""
-    for mode in (0, 1, 2, 3):
+    for mode, trim_cls in ((0, False), (1, False), (1, True), (2, False), (3, False)):
         payload = _build_domain_shard_payload(
             dom_id=dom_id,
             dom_meta=dom_meta,
@@ -193,6 +198,7 @@ def _serialize_domain_shard_with_cap(
             dom_agents=dom_agents,
             dom_intents=dom_intents,
             mode=mode,
+            trim_classes_only=trim_cls,
         )
         last_raw = _compact_json(payload)
         if len(last_raw.encode("utf-8")) <= max_bytes:

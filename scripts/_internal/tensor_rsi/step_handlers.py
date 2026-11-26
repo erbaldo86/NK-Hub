@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
-"""Handler FSM T0..T7 separati per mantenere co_executor.py e step_handlers.py <= 220 LOC."""
+"""Handler FSM T0..T7 separati con supporto multi-lane e claim atomico slot (BS-04)."""
 
 from __future__ import annotations
 
 import hashlib, secrets, time, uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+from _internal.nk_common.lane_paths import validate_lane_id
 from _internal.tensor_rsi.cold_warm_bandit import (
     NoveltyGate, check_conservation_invariants, select_operator_cold_warm, select_prior_signature,
 )
 from _internal.tensor_rsi.config_loader import resolve_profile_for_track
 from _internal.tensor_rsi.gate_mapper import (
-    append_tensor_ledger_entry, close_active_session, ensure_no_foreign_active_session,
-    map_gates, read_tensor_ledger_entries, write_active_session,
+    append_tensor_ledger_entry, claim_active_session_slot, close_active_session,
+    ensure_no_foreign_active_session, map_gates, read_tensor_ledger_entries, write_active_session,  # noqa: F401
 )
 from _internal.tensor_rsi.materializer import (
     commit_accepted_candidate, compute_staging_manifest_sha256, materialize_and_evaluate,
@@ -52,6 +53,11 @@ def _next_ticket(
         prev_ticket_sha256=prev_tkt_sha, issued_at=int(time.time()), nonce_hex=secrets.token_hex(16),
     )
 
+def _resolve_lane_id(raw: Any) -> Optional[str]:
+    if raw is None or not str(raw).strip():
+        return None
+    return validate_lane_id(str(raw))
+
 def _confine_target_files(root: Path, raw_files: Any) -> List[Path]:
     root_res, confined = root.resolve(), []
     for rel in (raw_files or ()):
@@ -64,7 +70,7 @@ def _confine_target_files(root: Path, raw_files: Any) -> List[Path]:
         confined.append(cand.resolve())
     return confined
 
-def _eval_ro_from_input(root: Path, cell: PolicyCell, inp: Dict[str, Any]) -> Tuple[MetricSnapshot, bool]:
+def _eval_ro_from_input(root: Path, cell: PolicyCell, inp: Dict[str, Any], *, lane_id: Optional[str] = None, staging_dir: Optional[Path] = None) -> Tuple[MetricSnapshot, bool]:
     snap, raw_res = evaluate_ecosystem_ro(
         root, profile=resolve_profile_for_track(cell.classified_track, root), intent_track=cell.intent_track,
         run_pytest=bool(inp.get("run_pytest", False)), strict_verify=bool(inp.get("strict_verify", False)),
@@ -74,6 +80,7 @@ def _eval_ro_from_input(root: Path, cell: PolicyCell, inp: Dict[str, Any]) -> Tu
         loc_delta=(int(inp["loc_delta"]) if inp.get("loc_delta") is not None else -1),
         assert_count=(int(inp["assert_count"]) if inp.get("assert_count") is not None else -1),
         doc_link_count=(int(inp["doc_link_count"]) if inp.get("doc_link_count") is not None else -1),
+        lane_id=lane_id, staging_dir=staging_dir,
     )
     ast_ok = snap.sast_critical == 0 and snap.contract_violations == 0 and snap.invalid_json == 0 and snap.mojibake == 0
     if isinstance(raw_res, dict) and isinstance(raw_res.get("checks"), dict):
@@ -90,24 +97,42 @@ def _resolve_intake_track(inp: Dict[str, Any]) -> str:
         return track
     return classify_intent_track(str(inp.get("prompt", "Miglioramento codice staging")))
 
-def _resolve_intake_baseline(root: Path, cell: PolicyCell, inp: Dict[str, Any], halted: bool, baseline_snapshot: Optional[MetricSnapshot]) -> Optional[MetricSnapshot]:
+def _resolve_intake_baseline(root: Path, cell: PolicyCell, inp: Dict[str, Any], halted: bool, baseline_snapshot: Optional[MetricSnapshot], lane_id: Optional[str] = None) -> Optional[MetricSnapshot]:
     if baseline_snapshot is not None:
         return baseline_snapshot if isinstance(baseline_snapshot, MetricSnapshot) else MetricSnapshot.model_validate(baseline_snapshot)
-    return None if halted else _eval_ro_from_input(root, cell, inp)[0]
+    return None if halted else _eval_ro_from_input(root, cell, inp, lane_id=lane_id)[0]
+
+def _claim_and_commit_intake(
+    root: Path, key_path: Optional[Any], cell: PolicyCell, sid: str, norm_lane: Optional[str],
+    stg_sha: str, base_sha: str, halted: bool, inp: Dict[str, Any], baseline_snapshot: Optional[MetricSnapshot],
+) -> Dict[str, Any]:
+    claim_active_session_slot(
+        root, sid, lane_id=norm_lane, phase="INTAKE", accepted=False,
+        staging_manifest_sha256=stg_sha, key_path=key_path, write_file=not halted,
+    )
+    try:
+        base_snap = _resolve_intake_baseline(root, cell, inp, halted, baseline_snapshot, lane_id=norm_lane)
+        tkt = _next_ticket(None, session_id=sid, step_seq=1, iteration=0, phase="INTAKE", cell=cell, baseline_sha=base_sha, prev_tkt_sha="0" * 64)
+        extra_state = {
+            "policy_cell": cell.model_dump(), "clade_id": str(inp.get("clade_id", "default")),
+            "lane_id": norm_lane, "baseline_snapshot": base_snap.model_dump() if base_snap else None, "seen_novelty": [],
+        }
+        raw_tkt, _ = commit_session_ticket(root, tkt, extra_state, key_path=key_path, closed=bool(halted))
+        return raw_tkt
+    except Exception:
+        if not halted:
+            close_active_session(root, session_id=sid, key_path=key_path, lane_id=norm_lane)
+        raise
 
 def handle_intake(root: Path, key_path: Optional[Any], inp: Dict[str, Any], *, baseline_snapshot: Optional[MetricSnapshot] = None) -> TensorRSIStepOutput:
+    norm_lane = _resolve_lane_id(inp.get("lane_id"))
     cell = build_policy_cell(root, _resolve_intake_track(inp), model_tier=inp.get("model_tier"), acs_zone=inp.get("acs_zone"), conversation_id=inp.get("conversation_id"), is_micro=bool(inp.get("is_micro", False)), tokens_override=inp.get("tokens"), steps_override=inp.get("steps"))  # type: ignore[arg-type]
     sid = str(inp.get("session_id") or f"TRSI-{int(time.time())}-{uuid.uuid4().hex[:6]}")
-    ensure_no_foreign_active_session(root, sid, key_path=key_path)
-    stg_sha = compute_staging_manifest_sha256(root)
     target_files = _confine_target_files(root, inp.get("target_files"))
+    stg_sha = compute_staging_manifest_sha256(root, lane_id=norm_lane)
     base_sha = RSIConvergenceEngine.compute_files_state_hash(target_files) if target_files else stg_sha
     halted = cell.halt_for_handoff or cell.intent == "AUDIT_RO" or cell.max_rsi_iterations == 0
-    base_snap = _resolve_intake_baseline(root, cell, inp, halted, baseline_snapshot)
-    tkt = _next_ticket(None, session_id=sid, step_seq=1, iteration=0, phase="INTAKE", cell=cell, baseline_sha=base_sha, prev_tkt_sha="0" * 64)
-    raw_tkt, _ = commit_session_ticket(root, tkt, {"policy_cell": cell.model_dump(), "clade_id": str(inp.get("clade_id", "default")), "baseline_snapshot": base_snap.model_dump() if base_snap else None, "seen_novelty": []}, key_path=key_path, closed=bool(halted))
-    if not halted:
-        write_active_session(root, sid, "INTAKE", False, stg_sha, key_path=key_path)
+    raw_tkt = _claim_and_commit_intake(root, key_path, cell, sid, norm_lane, stg_sha, base_sha, halted, inp, baseline_snapshot)
     reason = "HALT_CONTEXT_BUDGET" if (halted and cell.max_rsi_iterations == 0 and cell.intent != "AUDIT_RO") else "OK"
     return TensorRSIStepOutput(status="HALT" if halted else "OK", step="intake", phase="INTAKE", session_id=sid, step_seq=1, iteration=0, ticket=raw_tkt, policy_cell=cell, summary=f"Intake {reason} {cell.classified_track} ({cell.model_tier}/{cell.acs_zone}, max_iter={cell.max_rsi_iterations}).")
 
@@ -123,16 +148,18 @@ def handle_diagnose(root: Path, key_path: Optional[Any], prev_tkt: TensorRSIStat
     hyp_hash = hashlib.sha256(canonical_json_bytes(frame.model_dump())).hexdigest()
     tkt = _next_ticket(prev_tkt, session_id=prev_tkt.session_id, step_seq=prev_tkt.step_seq + 1, iteration=next_iter, phase="DIAGNOSE", cell=cell, baseline_sha=prev_tkt.baseline_state_sha256, prev_tkt_sha=str(state["active_ticket_sha256"]), hyp_sha=hyp_hash, reset_iter=reset_iter)
     raw_tkt, _ = commit_session_ticket(root, tkt, {**clean_state, "reasoning_frame": frame.model_dump()}, key_path=key_path, expected_ticket_sha256=str(state["active_ticket_sha256"]))
-    write_active_session(root, tkt.session_id, "DIAGNOSE", False, compute_staging_manifest_sha256(root), key_path=key_path)
+    lane_id = state.get("lane_id")
+    write_active_session(root, tkt.session_id, "DIAGNOSE", False, compute_staging_manifest_sha256(root, lane_id=lane_id), key_path=key_path, lane_id=lane_id)
     return TensorRSIStepOutput(status="OK", step="diagnose", phase="DIAGNOSE", session_id=tkt.session_id, step_seq=tkt.step_seq, iteration=tkt.iteration, ticket=raw_tkt, policy_cell=cell, summary=f"Diagnosi registrata ({len(frame.hypotheses)} ipotesi, iter={tkt.iteration}).")
 
 def handle_propose(root: Path, key_path: Optional[Any], prev_tkt: TensorRSIStateTicket, state: Dict[str, Any], cell: PolicyCell, inp: Dict[str, Any]) -> TensorRSIStepOutput:
     scope_files = (state.get("reasoning_frame") or {}).get("scope_files") or ()
+    lane_id = state.get("lane_id")
     allowed_ops = allowed_operators_for_cell(cell, file_count=max(1, len(scope_files)), workspace_root=root)
     if not allowed_ops:
         tkt_c = _next_ticket(prev_tkt, session_id=prev_tkt.session_id, step_seq=prev_tkt.step_seq + 1, iteration=prev_tkt.iteration, phase=prev_tkt.phase, cell=cell, baseline_sha=prev_tkt.baseline_state_sha256, prev_tkt_sha=str(state["active_ticket_sha256"]))
         commit_session_ticket(root, tkt_c, state, key_path=key_path, closed=True, expected_ticket_sha256=str(state["active_ticket_sha256"]))
-        close_active_session(root, session_id=prev_tkt.session_id, key_path=key_path)
+        close_active_session(root, session_id=prev_tkt.session_id, key_path=key_path, lane_id=lane_id)
         return TensorRSIStepOutput(status="HALT", step="propose", phase=prev_tkt.phase, session_id=prev_tkt.session_id, step_seq=tkt_c.step_seq, iteration=prev_tkt.iteration, policy_cell=cell, summary="HALT_CONTEXT_BUDGET: mutazioni bloccate da PolicyCell (Z3/AUDIT_RO).")
     hist, tail_h = read_tensor_ledger_entries(root, cell.intent_track, str(state.get("clade_id", "default")))
     base_s = MetricSnapshot.model_validate(state["baseline_snapshot"]) if isinstance(state.get("baseline_snapshot"), dict) else None
@@ -141,7 +168,7 @@ def handle_propose(root: Path, key_path: Optional[Any], prev_tkt: TensorRSIState
     tkt = _next_ticket(prev_tkt, session_id=prev_tkt.session_id, step_seq=prev_tkt.step_seq + 1, iteration=prev_tkt.iteration, phase="PROPOSE", cell=cell, baseline_sha=prev_tkt.baseline_state_sha256, prev_tkt_sha=str(state["active_ticket_sha256"]), op=cw.selected_operator, pred_p=cw.predicted_accept_prob, seed_dig=cw.thompson_seed_digest)
     raw_tkt, _ = commit_session_ticket(root, tkt, {**state, "cold_warm": cw.model_dump()}, key_path=key_path, closed=bool(cw.voi_should_stop), expected_ticket_sha256=str(state["active_ticket_sha256"]))
     if cw.voi_should_stop:
-        close_active_session(root, session_id=tkt.session_id, key_path=key_path)
+        close_active_session(root, session_id=tkt.session_id, key_path=key_path, lane_id=lane_id)
     prefix = "HALT_VOI_EXHAUSTED | " if cw.voi_should_stop else ""
     return TensorRSIStepOutput(status="HALT" if cw.voi_should_stop else "OK", step="propose", phase="PROPOSE", session_id=tkt.session_id, step_seq=tkt.step_seq, iteration=tkt.iteration, ticket=raw_tkt, policy_cell=cell, cold_warm=cw, summary=f"{prefix}Regime {cw.regime} (N={cw.n_samples}): operatore {cw.selected_operator}.")
 
@@ -153,12 +180,13 @@ def handle_evaluate(root: Path, key_path: Optional[Any], prev_tkt: TensorRSIStat
             raise TicketAuthError(f"Patch duplicata scartata da NoveltyGate ({fp[:12]}).")
         seen_nov.append(fp)
     cand_id = str(inp.get("candidate_id") or "").strip() or None
-    def _do_eval() -> Tuple[MetricSnapshot, bool]:
+    lane_id = state.get("lane_id")
+    def _do_eval(staging_dir: Optional[Path] = None) -> Tuple[MetricSnapshot, bool]:
         if candidate_snapshot is not None:
             s_obj = candidate_snapshot if isinstance(candidate_snapshot, MetricSnapshot) else MetricSnapshot.model_validate(candidate_snapshot)
             return s_obj, (s_obj.sast_critical == 0 and s_obj.contract_violations == 0)
-        return _eval_ro_from_input(root, cell, inp)
-    (snap, ast_ok), stg_sha, mat_info = materialize_and_evaluate(root, prev_tkt.session_id, cand_id, _do_eval)
+        return _eval_ro_from_input(root, cell, inp, lane_id=lane_id, staging_dir=staging_dir)
+    (snap, ast_ok), stg_sha, mat_info = materialize_and_evaluate(root, prev_tkt.session_id, cand_id, _do_eval, lane_id=lane_id)
     frame = RSIReasoningFrame.model_validate(state["reasoning_frame"]) if state.get("reasoning_frame") else None
     gates = map_gates(snap, reasoning_frame=frame, ast_ok=ast_ok, workspace_root=root)
     tkt = _next_ticket(prev_tkt, session_id=prev_tkt.session_id, step_seq=prev_tkt.step_seq + 1, iteration=prev_tkt.iteration, phase="EVALUATE", cell=cell, baseline_sha=prev_tkt.baseline_state_sha256, prev_tkt_sha=str(state["active_ticket_sha256"]), stg_sha=stg_sha)
@@ -170,6 +198,7 @@ def handle_decide(root: Path, key_path: Optional[Any], prev_tkt: TensorRSIStateT
     if not isinstance(raw_base, dict):
         raise TicketAuthError("MISSING_BASELINE_SNAPSHOT: baseline_snapshot assente nello stato sessione.")
     cand, base = MetricSnapshot.model_validate(state["candidate_snapshot"]), MetricSnapshot.model_validate(raw_base)
+    lane_id = state.get("lane_id")
     stg_sha = toctou_fn(root, prev_tkt, state)
     base_c = {"tests_total": base.tests_total, "assert_count": base.assert_count, "doc_link_count": base.doc_link_count, "skill_count": base.skill_count}
     curr_c = {"tests_total": cand.tests_total, "assert_count": cand.assert_count, "doc_link_count": cand.doc_link_count, "skill_count": cand.skill_count}
@@ -179,7 +208,7 @@ def handle_decide(root: Path, key_path: Optional[Any], prev_tkt: TensorRSIStateT
         pareto = ParetoDecisionResult(verdict="REJECT_TIER0_HARD_GATE", accepted=False, tier_stopped_at=0, directional_projection=0.0, min_effect=pareto.min_effect, delta_secondary=pareto.delta_secondary, band_violations=dropped, rationale=f"Violazione conservazione: {dropped}")
     if pareto.accepted and state.get("candidate_id"):
         stg_sha = commit_fn(root, prev_tkt, state, stg_sha)
-    write_active_session(root, prev_tkt.session_id, "DECIDE", pareto.accepted, stg_sha, key_path=key_path)
+    write_active_session(root, prev_tkt.session_id, "DECIDE", pareto.accepted, stg_sha, key_path=key_path, lane_id=lane_id)
     frame = RSIReasoningFrame.model_validate(state["reasoning_frame"]) if state.get("reasoning_frame") else None
     gates = map_gates(cand, reasoning_frame=frame, pareto=pareto, conservation_ok=cons_ok, tier1_ok=(pareto.verdict != "REJECT_TIER1_REGRESSION"), ast_ok=state.get("ast_ok"), workspace_root=root)
     tkt = _next_ticket(prev_tkt, session_id=prev_tkt.session_id, step_seq=prev_tkt.step_seq + 1, iteration=prev_tkt.iteration, phase="DECIDE", cell=cell, baseline_sha=prev_tkt.baseline_state_sha256, prev_tkt_sha=str(state["active_ticket_sha256"]), verdict=pareto.verdict, stg_sha=stg_sha)
@@ -195,7 +224,7 @@ def handle_record(root: Path, key_path: Optional[Any], prev_tkt: TensorRSIStateT
     cand, base = MetricSnapshot.model_validate(state["candidate_snapshot"]), MetricSnapshot.model_validate(raw_base)
     append_tensor_ledger_entry(root, state, prev_tkt, cell, pareto, cand, base)
     append_v1_telemetry_projection(root, cand, prev_tkt, cell, pareto)
-    close_active_session(root, session_id=prev_tkt.session_id, key_path=key_path)
+    close_active_session(root, session_id=prev_tkt.session_id, key_path=key_path, lane_id=state.get("lane_id"))
     tkt = _next_ticket(prev_tkt, session_id=prev_tkt.session_id, step_seq=prev_tkt.step_seq + 1, iteration=prev_tkt.iteration, phase="RECORDED", cell=cell, baseline_sha=prev_tkt.baseline_state_sha256, prev_tkt_sha=str(state["active_ticket_sha256"]), verdict=pareto.verdict)
     raw_tkt, _ = commit_session_ticket(root, tkt, state, key_path=key_path, closed=True, expected_ticket_sha256=str(state["active_ticket_sha256"]))
     return TensorRSIStepOutput(status="CONVERGED_OPTIMAL" if pareto.verdict == "CONVERGED_OPTIMAL" else "OK", step="record", phase="RECORDED", session_id=tkt.session_id, step_seq=tkt.step_seq, iteration=tkt.iteration, ticket=raw_tkt, policy_cell=cell, pareto_decision=pareto, summary=f"Record salvato in ledger/telemetria ({pareto.verdict}).")

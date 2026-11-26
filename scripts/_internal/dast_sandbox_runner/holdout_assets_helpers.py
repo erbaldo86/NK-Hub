@@ -37,9 +37,10 @@ _HUB_MARKER_DIRS = (
 
 
 def _is_external_app_repo(sb_dir: Path, root: Optional[Path] = None) -> bool:
-    """True per repo app esterne con src_app/ prive di asset holdout Hub-only."""
+    """True per repo app esterne con src_app/, src/ o app/ prive di asset holdout Hub-only."""
     roots = (sb_dir, root) if root is not None else (sb_dir,)
-    return any((r / "src_app").is_dir() for r in roots) and not any(
+    has_app_dir = any((r / d).is_dir() for r in roots for d in ("src_app", "src", "app"))
+    return has_app_dir and not any(
         r.joinpath(*p).is_dir() for r in roots for p in _HUB_MARKER_DIRS
     )
 

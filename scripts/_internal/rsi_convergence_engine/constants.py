@@ -12,12 +12,18 @@ import threading
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
+from _internal.nk_common.lane_paths import (
+    is_lane_container_entry,
+    resolve_staging_dir,
+    strip_staging_rel_parts,
+)
 from _internal.nk_common.paths import (
     reconfigure_streams as _nk_reconfigure_streams,
     resolve_scripts_dir,
     resolve_workspace_root,
 )
 from _internal.nk_common.repo_snapshot_cache import get_repo_snapshot_cache
+from _internal.nk_common.staging_manifest import is_reparse_entry
 from _internal.nk_common.tas_ssot_io import parse_deleted_files_manifest
 
 _scripts_dir = Path(resolve_scripts_dir(__file__))
@@ -100,20 +106,29 @@ def _strip_leading_prefix(clean: str, prefix: str, allow_strip: bool) -> Tuple[s
     return clean, False
 
 
+def _strip_root_and_staging_prefix(clean: str, prefix: str, can_strip_prod: bool, is_stg: bool) -> Tuple[str, bool]:
+    """Rimuove un ciclo di prefisso root o .staging/ da clean restituendo (clean, stripped)."""
+    clean, stripped = _strip_leading_prefix(clean, prefix, can_strip_prod)
+    if not stripped and is_stg:
+        c_idx, c_rel, _c_lane = strip_staging_rel_parts(tuple(clean.split("/")))
+        if c_idx == 0:
+            return "/".join(c_rel).lstrip("/"), True
+    return clean, stripped
+
+
 def normalize_rel_for_root(root: Path, rel_path: str) -> str:
     """Normalizza un path relativo rimuovendo prefissi duplicati NK_Hub/ (fix P0-02)."""
     clean = str(rel_path or "").strip().replace("\\", "/").lstrip("/")
     while clean.startswith("./"):
         clean = clean[2:].lstrip("/")
     resolved_root = Path(root).resolve()
-    is_stg = resolved_root.name == ".staging"
-    prod_root = resolved_root.parent if is_stg else resolved_root
+    stg_idx, _rel, _lane = strip_staging_rel_parts(resolved_root.parts)
+    is_stg = resolved_root.name == ".staging" or stg_idx >= 0
+    prod_root = Path(*resolved_root.parts[:stg_idx]) if stg_idx >= 0 else resolved_root
     prefix = f"{prod_root.name}/" if prod_root.name else ""
     can_strip_prod = bool(prefix) and (prod_root.name == "NK_Hub" or not (prod_root / prod_root.name).is_dir())
     while clean:
-        clean, stripped = _strip_leading_prefix(clean, prefix, can_strip_prod)
-        if not stripped:
-            clean, stripped = _strip_leading_prefix(clean, ".staging/", is_stg)
+        clean, stripped = _strip_root_and_staging_prefix(clean, prefix, can_strip_prod, is_stg)
         if not stripped:
             break
     return clean
@@ -130,6 +145,22 @@ def _parse_deleted_manifest_rels(deleted_manifest: Path) -> Set[str]:
     return {str(item).strip().replace("\\", "/").lstrip("/") for item in items if item is not None and str(item).strip()}
 
 
+def _should_include_md_entry(
+    md_p: Path, base_dir: Path, excluded_dirs: Set[str], deleted_rels: Set[str], clean_sub: str
+) -> Optional[str]:
+    """Restituisce rel_inside se md_p e attivo ed escluso da deleted_rels/lanes."""
+    if not md_p.is_file():
+        return None
+    rel_inside = md_p.relative_to(base_dir).as_posix()
+    rel_parts = Path(rel_inside).parts
+    if (base_dir.name == ".staging" and rel_parts and is_lane_container_entry(rel_parts)):
+        return None
+    full_rel = f"{clean_sub}/{rel_inside}" if clean_sub else rel_inside
+    if any(part in excluded_dirs for part in rel_parts) or full_rel in deleted_rels:
+        return None
+    return rel_inside
+
+
 def _scan_md_tree(base_dir: Path, recursive: bool, excluded_dirs: Set[str], deleted_rels: Set[str], clean_sub: str) -> Dict[str, Path]:
     """Raccoglie file Markdown da una directory escludendo cartelle ignorate e rimossi."""
     out: Dict[str, Path] = {}
@@ -137,22 +168,34 @@ def _scan_md_tree(base_dir: Path, recursive: bool, excluded_dirs: Set[str], dele
         return out
     iterator = base_dir.rglob("*.md") if recursive else base_dir.glob("*.md")
     for md_p in sorted(iterator):
-        if not md_p.is_file():
-            continue
-        rel_inside = md_p.relative_to(base_dir).as_posix()
-        full_rel = f"{clean_sub}/{rel_inside}" if clean_sub else rel_inside
-        if not any(part in excluded_dirs for part in Path(rel_inside).parts) and full_rel not in deleted_rels:
+        rel_inside = _should_include_md_entry(md_p, base_dir, excluded_dirs, deleted_rels, clean_sub)
+        if rel_inside is not None:
             out[rel_inside] = md_p
     return out
 
 
-def _collect_overlay_md_files(root: Path, rel_subdir: str, recursive: bool = True) -> List[Path]:
+def resolve_effective_staging(
+    root: Path, lane_id: Optional[str] = None, staging_dir: Optional[Path] = None
+) -> Path:
+    """Risolve staging_dir esplicito (es. NVMe eval) oppure .staging/[lanes/<id>/]."""
+    if staging_dir is not None:
+        raw_p = Path(staging_dir)
+        if is_reparse_entry(raw_p):
+            raise OSError(f"Reparse point vietato su staging_dir: {raw_p}")
+        return raw_p.resolve()
+    return resolve_staging_dir(root, lane_id=lane_id)[0]
+
+
+def _collect_overlay_md_files(
+    root: Path, rel_subdir: str, recursive: bool = True, lane_id: Optional[str] = None, staging_dir: Optional[Path] = None,
+) -> List[Path]:
     """Unisce i file Markdown di produzione con gli override presenti in .staging/."""
     resolved_root = Path(root).resolve()
     clean_sub = normalize_rel_for_root(resolved_root, rel_subdir).strip("/")
-    is_stg = resolved_root.name == ".staging"
-    prod_root = resolved_root.parent if is_stg else resolved_root
-    stg_root = resolved_root if is_stg else resolved_root / ".staging"
+    stg_idx, _r, _l = strip_staging_rel_parts(resolved_root.parts)
+    is_stg = resolved_root.name == ".staging" or stg_idx >= 0
+    prod_root = Path(*resolved_root.parts[:stg_idx]) if stg_idx >= 0 else resolved_root
+    stg_root = resolved_root if is_stg else resolve_effective_staging(prod_root, lane_id=lane_id, staging_dir=staging_dir)
     prod_base, stg_base = (prod_root / clean_sub if clean_sub else prod_root), (stg_root / clean_sub if clean_sub else stg_root)
     deleted_rels = _parse_deleted_manifest_rels(stg_root / ".deleted_files.json")
     overlay_map = _scan_md_tree(prod_base, recursive, EXCLUDED_SCAN_DIRS, deleted_rels, clean_sub)
@@ -170,10 +213,11 @@ def _is_excluded_rel_path(path: Path, base_root: Path) -> bool:
     return any(part in EXCLUDED_SCAN_DIRS for part in rel_parts)
 
 
-def resolve_candidate_impl(root: Path, rel_path: str) -> Path:
+def resolve_candidate_impl(root: Path, rel_path: str, lane_id: Optional[str] = None, staging_dir: Optional[Path] = None) -> Path:
     """Risolve un file privilegiando .staging/ senza duplicare il prefisso NK_Hub/ (P0-02)."""
     norm_rel = normalize_rel_for_root(root, rel_path)
-    for cand in (root / ".staging" / norm_rel, root / norm_rel):
+    stg_dir = resolve_effective_staging(root, lane_id=lane_id, staging_dir=staging_dir)
+    for cand in (stg_dir / norm_rel, root / norm_rel):
         if cand.exists():
             return cand
     if root.name == ".staging" and (root.parent / norm_rel).exists():
@@ -181,10 +225,11 @@ def resolve_candidate_impl(root: Path, rel_path: str) -> Path:
     return root / norm_rel
 
 
-def load_staging_deleted_set_impl(root: Path) -> Set[str]:
+def load_staging_deleted_set_impl(root: Path, lane_id: Optional[str] = None, staging_dir: Optional[Path] = None) -> Set[str]:
     """Carica i percorsi relativi destinati a cancellazione da .staging/.deleted_files.json."""
     base = Path(root)
-    return _parse_deleted_manifest_rels(base / ".deleted_files.json" if base.name == ".staging" else base / ".staging" / ".deleted_files.json")
+    stg_dir = resolve_effective_staging(base, lane_id=lane_id, staging_dir=staging_dir) if (staging_dir is not None or lane_id is not None or base.name != ".staging") else base
+    return _parse_deleted_manifest_rels(stg_dir / ".deleted_files.json")
 
 
 def register_lazy_hooks(

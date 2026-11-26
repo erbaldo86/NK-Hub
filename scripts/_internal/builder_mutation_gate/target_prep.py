@@ -16,6 +16,7 @@ from _internal.builder_mutation_gate.report_builders import (
     _build_syntax_error_report,
 )
 from _internal.dast_sandbox_runner.sandbox_fs import _build_sanitized_sandbox_env
+from _internal.nk_common.lane_paths import LANE_CONTAINER_DIRNAME, strip_staging_rel_parts
 
 try:
     from _internal.nk_common.repo_snapshot_cache import get_repo_snapshot_cache
@@ -29,17 +30,19 @@ except ImportError:
 
 
 def _strip_workspace_prefixes(raw: str, workspace_root: Path) -> str:
-    """Rimuove prefissi relativi del workspace e .staging/ in modo dinamico."""
+    """Rimuove prefissi relativi del workspace e .staging/[lanes/<id>/] in modo dinamico."""
     cleaned = raw[2:] if raw.startswith("./") else raw
     ws_name = workspace_root.resolve().name
-    prefixes = [f"{ws_name}/.staging/", f"{ws_name}/"] if ws_name else []
-    for base_pref in ("NK_Hub/.staging/", ".staging/", "NK_Hub/"):
-        if base_pref not in prefixes:
-            prefixes.append(base_pref)
+    prefixes = [f"{ws_name}/"] if ws_name else []
+    if "NK_Hub/" not in prefixes:
+        prefixes.append("NK_Hub/")
     for prefix in prefixes:
         if cleaned.startswith(prefix):
             cleaned = cleaned[len(prefix) :]
             break
+    idx, rel_parts, _lane = strip_staging_rel_parts(Path(cleaned.lstrip("/")).parts)
+    if idx == 0:
+        return "/".join(rel_parts)
     if cleaned.startswith(".staging/"):
         cleaned = cleaned[len(".staging/") :]
     return cleaned.lstrip("/")
@@ -90,23 +93,34 @@ def _normalize_target_rel_path(workspace_root: Path, target_rel_path: str) -> st
     return _ensure_confined_stripped_path(workspace_root, ws_res, rel_raw, target_rel_path)
 
 
+def _normalize_explicit_staged_abs(ws_root: Path, stg_dir: Path, cand: Path) -> Tuple[bool, Optional[str]]:
+    """Risolve un target assoluto rispetto a stg_dir o ws_root."""
+    res_cand = cand.resolve()
+    if res_cand.is_relative_to(stg_dir.resolve()):
+        return True, None
+    try:
+        return False, res_cand.relative_to(ws_root.resolve()).as_posix()
+    except ValueError:
+        return (".staging" in cand.parts), None
+
+
 def _is_explicit_staged_target(ws_root: Path, stg_dir: Path, target_rel_path: str) -> bool:
-    """Rileva se target_rel_path indica esplicitamente un file sotto .staging/."""
+    """Rileva se target_rel_path indica esplicitamente un file sotto .staging/ o staging lane."""
     raw = str(target_rel_path).replace("\\", "/").strip()
     if raw.startswith("./"):
         raw = raw[2:]
     cand = Path(raw)
     if cand.is_absolute():
-        res_cand = cand.resolve()
-        if res_cand.is_relative_to(stg_dir.resolve()):
-            return True
-        try:
-            raw = res_cand.relative_to(ws_root.resolve()).as_posix()
-        except ValueError:
-            return ".staging" in cand.parts
+        matched, norm_rel = _normalize_explicit_staged_abs(ws_root, stg_dir, cand)
+        if norm_rel is None:
+            return matched
+        raw = norm_rel
+    idx, rel_parts, _lane = strip_staging_rel_parts(Path(raw).parts)
+    if idx >= 0 and rel_parts:
+        return True
     ws_name = ws_root.resolve().name
     staged_prefixes = [".staging/", "NK_Hub/.staging/"] + ([f"{ws_name}/.staging/"] if ws_name else [])
-    return any(raw.startswith(pref) for pref in staged_prefixes)
+    return any(raw.startswith(pref) for pref in staged_prefixes) or f".staging/{LANE_CONTAINER_DIRNAME}/" in raw
 
 
 def _read_text_via_cache(file_path: Path) -> str:

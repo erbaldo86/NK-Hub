@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 import json
 import os
 import sys
@@ -58,72 +59,102 @@ def _extract_user_text_from_record(rec: Dict[str, Any]) -> Optional[str]:
     return None
 
 
+def _collect_env_transcript_candidates() -> List[Path]:
+    """Raccoglie eventuali path transcript espliciti dalle variabili ambiente."""
+    cands: List[Path] = []
+    for env_k in ("NK_TRANSCRIPT_PATH", "ANTIGRAVITY_TRANSCRIPT_PATH"):
+        if env_v := os.environ.get(env_k, "").strip():
+            cands.append(Path(env_v))
+    return cands
+
+
+def _collect_brain_transcript_candidates(
+    brain_dir: Path, conversation_id: Optional[str]
+) -> List[Path]:
+    """Risolve il transcript da CID esplicito o fails-closed su ambiguita multi-chat (BS-08)."""
+    if not brain_dir.is_dir():
+        return []
+    explicit_cid = (
+        (conversation_id or "").strip()
+        or os.environ.get("NK_CONVERSATION_ID", "").strip()
+        or os.environ.get("ANTIGRAVITY_CONVERSATION_ID", "").strip()
+    )
+    if explicit_cid:
+        return [brain_dir / explicit_cid / ".system_generated" / "logs" / "transcript.jsonl"]
+    now_ts = time.time()
+    recent_logs: List[Tuple[float, Path]] = []
+    try:
+        for conv_dir in brain_dir.iterdir():
+            if not conv_dir.is_dir():
+                continue
+            tp = conv_dir / ".system_generated" / "logs" / "transcript.jsonl"
+            if tp.is_file() and (now_ts - (st_mtime := tp.stat().st_mtime)) <= 1800.0:
+                recent_logs.append((st_mtime, tp))
+    except OSError:
+        return []
+    if not recent_logs:
+        return []
+    recent_logs.sort(key=lambda item: item[0], reverse=True)
+    if len(recent_logs) >= 2 and (recent_logs[0][0] - recent_logs[1][0]) < 15.0:
+        return []
+    return [recent_logs[0][1]]
+
+
+def _read_tail_user_input(tp: Path) -> Optional[str]:
+    """Estrae l'ultimo USER_INPUT dalla coda di un file transcript.jsonl."""
+    try:
+        if not tp.exists() or not tp.is_file() or (fsize := tp.stat().st_size) <= 0:
+            return None
+        with tp.open("rb") as fh:
+            if fsize > 131072:
+                fh.seek(fsize - 131072)
+            tail_bytes = fh.read()
+        for raw_line in reversed(tail_bytes.decode("utf-8", errors="replace").splitlines()):
+            line_s = raw_line.strip()
+            if not line_s or not line_s.startswith("{"):
+                continue
+            try:
+                rec = json.loads(line_s)
+            except ValueError:
+                continue
+            if isinstance(rec, dict) and (extracted := _extract_user_text_from_record(rec)):
+                return extracted
+    except OSError:
+        return None
+    return None
+
+
 def _read_latest_user_input_from_transcript(
     transcript_arg: Optional[str] = None,
+    conversation_id: Optional[str] = None,
 ) -> Optional[str]:
-    """Legge l'ultimo USER_INPUT dal transcript attivo (CLI, env o brain Antigravity)."""
-    cand_paths: List[Path] = []
+    """Legge l'ultimo USER_INPUT dal transcript isolato per conversazione (BS-08)."""
+    brain_dir = Path.home() / ".gemini" / "antigravity" / "brain"
     if transcript_arg:
-        cand_paths.append(Path(transcript_arg))
+        cand_paths = [Path(transcript_arg)]
+    elif (conversation_id or "").strip():
+        cand_paths = _collect_brain_transcript_candidates(brain_dir, conversation_id)
     else:
-        for env_k in ("NK_TRANSCRIPT_PATH", "ANTIGRAVITY_TRANSCRIPT_PATH"):
-            env_v = os.environ.get(env_k, "").strip()
-            if env_v:
-                cand_paths.append(Path(env_v))
-
-        brain_dir = Path.home() / ".gemini" / "antigravity" / "brain"
-        for cid_env in ("NK_CONVERSATION_ID", "ANTIGRAVITY_CONVERSATION_ID"):
-            cid = os.environ.get(cid_env, "").strip()
-            if cid and brain_dir.is_dir():
-                cand_paths.append(
-                    brain_dir / cid / ".system_generated" / "logs" / "transcript.jsonl"
-                )
-
-        if not cand_paths and brain_dir.is_dir():
-            now_ts = time.time()
-            recent_logs: List[Tuple[float, Path]] = []
-            try:
-                for conv_dir in brain_dir.iterdir():
-                    if not conv_dir.is_dir():
-                        continue
-                    tp = conv_dir / ".system_generated" / "logs" / "transcript.jsonl"
-                    if tp.is_file():
-                        st_mtime = tp.stat().st_mtime
-                        if now_ts - st_mtime <= 1800.0:
-                            recent_logs.append((st_mtime, tp))
-                if recent_logs:
-                    recent_logs.sort(key=lambda item: item[0], reverse=True)
-                    cand_paths.append(recent_logs[0][1])
-            except Exception:
-                pass
-
+        cand_paths = _collect_env_transcript_candidates()
+        cand_paths.extend(_collect_brain_transcript_candidates(brain_dir, None))
     for tp in cand_paths:
-        try:
-            if not tp.exists() or not tp.is_file():
-                continue
-            fsize = tp.stat().st_size
-            if fsize <= 0:
-                continue
-            with tp.open("rb") as fh:
-                if fsize > 131072:
-                    fh.seek(fsize - 131072)
-                tail_bytes = fh.read()
-            lines = tail_bytes.decode("utf-8", errors="replace").splitlines()
-            for raw_line in reversed(lines):
-                line_s = raw_line.strip()
-                if not line_s or not line_s.startswith("{"):
-                    continue
-                try:
-                    rec = json.loads(line_s)
-                except Exception:
-                    continue
-                if isinstance(rec, dict):
-                    extracted = _extract_user_text_from_record(rec)
-                    if extracted:
-                        return extracted
-        except Exception:
-            continue
+        if extracted := _read_tail_user_input(tp):
+            return extracted
     return None
+
+
+def _invoke_transcript_reader(reader_fn: Any, args: Any) -> Optional[str]:
+    """Invoca il lettore transcript passando conversation_id solo se supportato."""
+    tp_arg = getattr(args, "transcript", None)
+    cid_arg = getattr(args, "conversation_id", None)
+    try:
+        params = inspect.signature(reader_fn).parameters
+        has_cid = "conversation_id" in params or any(
+            p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()
+        )
+    except (TypeError, ValueError):
+        has_cid = False
+    return reader_fn(tp_arg, conversation_id=cid_arg) if has_cid else reader_fn(tp_arg)
 
 
 def _resolve_effective_cli_prompt(
@@ -162,12 +193,11 @@ def _resolve_effective_cli_prompt(
         or getattr(args, "no_gate", False)
         or getattr(args, "transcript", None) is not None
     ):
-        from_transcript = _facade_attr(
+        reader_fn = _facade_attr(
             "_read_latest_user_input_from_transcript",
             _read_latest_user_input_from_transcript,
-        )(
-            getattr(args, "transcript", None)
         )
+        from_transcript = _invoke_transcript_reader(reader_fn, args)
         if from_transcript:
             return from_transcript
 

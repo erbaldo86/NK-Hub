@@ -19,6 +19,7 @@ from _internal.ast_guard_validator.frontend_static_rules import (
     _TS_BYPASS_COMMENT_RE,
 )
 from _internal.ast_guard_validator.quality_diff_rules import QualityDiffViolation
+from _internal.nk_common.lane_paths import is_lane_container_entry, strip_staging_rel_parts
 
 
 def _consume_quoted_span(code: str, start: int, quote: str) -> Tuple[str, int]:
@@ -322,43 +323,48 @@ def scan_frontend_code(
 def _resolve_frontend_pre_code(
     fpath: Path, root_dir: Path, pre_root: Optional[Path]
 ) -> Optional[str]:
-    """Risolve il codice baseline di produzione per file Frontend in .staging/ o pre_root."""
+    """Risolve il codice baseline di produzione per file Frontend in .staging/[lanes/<id>/]."""
     if pre_root is not None:
         rel = fpath.relative_to(root_dir) if root_dir.is_dir() else Path(fpath.name)
         cand = pre_root / rel
         return cand.read_text(encoding="utf-8-sig", errors="replace") if cand.is_file() else ""
     resolved = fpath.resolve()
-    parts = list(resolved.parts)
-    if ".staging" not in parts:
+    idx, rel_parts, _lane = strip_staging_rel_parts(resolved.parts)
+    if idx < 0:
         return None
-    idx = parts.index(".staging")
-    rel_parts = parts[idx + 1 :]
     if not rel_parts:
         return ""
-    prod_cand = Path(*parts[:idx]).joinpath(*rel_parts) if idx > 0 else Path(*rel_parts)
+    prod_cand = Path(*resolved.parts[:idx]).joinpath(*rel_parts) if idx > 0 else Path(*rel_parts)
     if prod_cand.is_file() and prod_cand != resolved:
         return prod_cand.read_text(encoding="utf-8-sig", errors="replace")
     return ""
 
 
+def _collect_frontend_candidates(root_dir: Path) -> List[Path]:
+    """Raccoglie i file Frontend ordinati escludendo vendor dir e lanes/."""
+    if root_dir.is_file():
+        return [root_dir]
+    excl_lanes = root_dir.resolve().name == ".staging"
+    out: List[Path] = []
+    for f in sorted(root_dir.rglob("*")):
+        if not f.is_file() or f.suffix.lower() not in FRONTEND_EXTENSIONS:
+            continue
+        if any(part in _SKIP_DIRS for part in f.parts):
+            continue
+        if excl_lanes and is_lane_container_entry(f.relative_to(root_dir).parts):
+            continue
+        out.append(f)
+    return out
+
+
 def scan_frontend_directory(
     root_dir: Path, pre_root: Optional[Path] = None
 ) -> List[QualityDiffViolation]:
-    """Scansiona ricorsivamente i file Frontend sotto root_dir escludendo vendor dir."""
+    """Scansiona ricorsivamente i file Frontend sotto root_dir escludendo vendor dir e lanes/."""
     if not root_dir.exists():
         return []
     violations: List[QualityDiffViolation] = []
-    if root_dir.is_file():
-        candidates = [root_dir]
-    else:
-        candidates = sorted(
-            f
-            for f in root_dir.rglob("*")
-            if f.is_file()
-            and f.suffix.lower() in FRONTEND_EXTENSIONS
-            and not any(part in _SKIP_DIRS for part in f.parts)
-        )
-    for fpath in candidates:
+    for fpath in _collect_frontend_candidates(root_dir):
         content = fpath.read_text(encoding="utf-8-sig", errors="replace")
         pre_code = _resolve_frontend_pre_code(fpath, root_dir, pre_root)
         violations.extend(scan_frontend_code(content, fpath.as_posix(), pre_code=pre_code))

@@ -16,11 +16,20 @@ from _internal.nk_common.io import win_long_path
 
 _MANIFEST_SKIP_SUFFIXES = frozenset({".pyc", ".pyo", ".tmp", ".bak"})
 _HEX_CHARS = frozenset("0123456789abcdefABCDEF")
+LANE_CONTAINER_DIRNAME = "lanes"
+LANE_REGISTRY_FILENAME = "lane_registry.json"
 _ASYNC_TEST_LINE_RE = re.compile(
     r"^\s*(?:async\s+def\s+test_|@pytest\.mark\.(?:asyncio|anyio)\b|@anyio\b)|\banyio_backend\b|pytestmark\s*=[^\n]*\b(?:asyncio|anyio)\b",
     re.MULTILINE,
 )
 _ASYNC_FILE_CACHE: Dict[Tuple[str, int, int], bool] = {}
+
+
+def is_lane_container_entry(rel_parts: Sequence[str]) -> bool:
+    """True se il primo segmento relativo a .staging/ appartiene al contenitore lanes/."""
+    if not rel_parts:
+        return False
+    return str(rel_parts[0]).lower() in (LANE_CONTAINER_DIRNAME, LANE_REGISTRY_FILENAME)
 
 
 def file_has_async_marker(fp: Path) -> bool:
@@ -114,7 +123,9 @@ def canonical_json_bytes(
         raise exc_cls(f"Serializzazione JSON canonica fallita: {exc}") from exc
 
 
-def compute_payloads_manifest_sha256(payloads: Mapping[str, bytes]) -> str:
+def compute_payloads_manifest_sha256(
+    payloads: Mapping[str, bytes], *, exclude_lanes: bool = True
+) -> str:
     """Calcola lo SHA-256 canonico a partire dai byte in memoria dei payload staged."""
     manifest: Dict[str, str] = {}
     for rel_key in sorted(payloads.keys()):
@@ -126,14 +137,31 @@ def compute_payloads_manifest_sha256(payloads: Mapping[str, bytes]) -> str:
             or name == ".gitkeep"
             or "__pycache__" in parts
             or Path(norm).suffix.lower() in _MANIFEST_SKIP_SUFFIXES
+            or (exclude_lanes and is_lane_container_entry(parts))
         ):
             continue
         manifest[norm] = hashlib.sha256(payloads[rel_key]).hexdigest()
     return hashlib.sha256(canonical_json_bytes(manifest)).hexdigest()
 
 
+def _should_skip_manifest_file(cand: Path, rel: Path, exclude_lanes: bool) -> bool:
+    """True se il file va ignorato dal manifest SHA-256 dello staging."""
+    if exclude_lanes and is_lane_container_entry(rel.parts):
+        return True
+    return cand.name == ".gitkeep" or "__pycache__" in rel.parts or cand.suffix.lower() in _MANIFEST_SKIP_SUFFIXES
+
+
+def _assert_manifest_entry_safe(cand: Path, reject_symlinks: bool) -> bool:
+    """Rifiuta symlink/reparse o restituisce False se non leggibile."""
+    if is_reparse_entry(cand):
+        if reject_symlinks:
+            raise ValueError(f"Symlink/reparse point vietato in staging: {cand}")
+        return False
+    return cand.is_file()
+
+
 def compute_staging_manifest_sha256(
-    staging_dir: Path, *, reject_symlinks: bool = True
+    staging_dir: Path, *, reject_symlinks: bool = True, exclude_lanes: bool = True
 ) -> str:
     """Calcola lo SHA-256 canonico di .staging/ usando win_long_path e controllo reparse."""
     payloads: Dict[str, bytes] = {}
@@ -142,18 +170,9 @@ def compute_staging_manifest_sha256(
         if reject_symlinks and is_reparse_entry(stg):
             raise ValueError(f"Reparse point vietato nella root staging: {stg}")
         for cand in sorted(stg.rglob("*"), key=lambda p: p.as_posix()):
-            if is_reparse_entry(cand):
-                if reject_symlinks:
-                    raise ValueError(f"Symlink/reparse point vietato in staging: {cand}")
-                continue
-            if not cand.is_file():
-                continue
             rel = cand.relative_to(stg)
-            if (
-                cand.name == ".gitkeep"
-                or "__pycache__" in rel.parts
-                or cand.suffix.lower() in _MANIFEST_SKIP_SUFFIXES
-            ):
+            if _should_skip_manifest_file(cand, rel, exclude_lanes):
                 continue
-            payloads[rel.as_posix()] = win_long_path(cand).read_bytes()
-    return compute_payloads_manifest_sha256(payloads)
+            if _assert_manifest_entry_safe(cand, reject_symlinks):
+                payloads[rel.as_posix()] = win_long_path(cand).read_bytes()
+    return compute_payloads_manifest_sha256(payloads, exclude_lanes=exclude_lanes)

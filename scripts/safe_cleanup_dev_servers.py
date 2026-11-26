@@ -22,7 +22,9 @@ __nk_facade__: str = "safe_cleanup_dev_servers"
 _CLI_FLAGS: Tuple[str, ...] = (
     "--dry-run",
     "--json",
+    "--lane-id",
     "--ports",
+    "--strict-scope",
     "--workspace-root",
 )
 

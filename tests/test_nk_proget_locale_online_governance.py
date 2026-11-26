@@ -339,7 +339,7 @@ def test_high07_cleanup_ports_and_compliance_scanners(
 
 
 def _assert_shell_write_bypasses(hub_dir: Path) -> None:
-    """Verifica blocco write gate su powershell posizionale/multi-arg, stdin pipe e scriptblock."""
+    """Verifica blocco write gate su powershell/python inline, alias, stdin pipe e parentesi."""
     shell_write_bypass_cmds = (
         'powershell -NoProfile "echo x > scripts/pwn.py"',
         r'''C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile "echo x > scripts/pwn.py"''',
@@ -356,6 +356,18 @@ def _assert_shell_write_bypasses(hub_dir: Path) -> None:
         'echo "echo x > scripts/pwn.py" | &"pwsh"',
         'echo "echo x > scripts/pwn.py" | &"cmd.exe"',
         '&"powershell" -NoProfile "echo ok;" "echo x > scripts/pwn.py"',
+        'powershell -NoProfile "cpi README.md scripts/pwn.py"',
+        'powershell -NoProfile "mkdir scripts/pwn_dir"',
+        'echo x | tee scripts/pwn.py',
+        'python -Bc "from pathlib import Path; f=\'scripts/pwn.py\'; p=Path(f); p.write_text(\'x\')"',
+        'type payload.txt | (powershell -NoProfile -)',
+        'type payload.txt | ( pwsh -c - )',
+        'echo x | { cmd }',
+        'python -c "open(file=\'scripts/pwn.py\', mode=\'w\').write(\'x\')"',
+        'python -c "from pathlib import Path; Path(\'scripts/pwn.py\').open(\'w\').write(\'x\')"',
+        'python -c "from pathlib import Path; Path((\'.staging/\', \'scripts/pwn.py\')[1]).write_text(\'x\')"',
+        'python -c "from pathlib import Path; Path((\'.staging/\', \'evil.py\')[1]).write_text(\'x\')"',
+        'python -c "open(**{\'file\': \'scripts/pwn.py\', \'mode\': \'w\'})"',
     )
     for sw_cmd in shell_write_bypass_cmds:
         res_sw = hook_gate_mod._handle_write_gate({}, hub_dir, False, "", sw_cmd, "")
@@ -366,7 +378,7 @@ def _assert_shell_write_bypasses(hub_dir: Path) -> None:
 def test_crit01_online_cd_redirection_bypass_and_mcp_space_paths(
     tmp_path: Path,
 ) -> None:
-    """Verifica blocco CRIT-01 su bypass cd+redirezione, cmd/powershell posizionale/stdin e path MCP."""
+    """Verifica blocco CRIT-01 su bypass cd/chdir+redirezione, python -Pc/Path.open/open(file=) e path MCP."""
     from _internal.nk_hook_gate.mcp_classifier import _extract_mcp_candidate_paths
 
     eco = _build_synthetic_ecosystem(tmp_path)
@@ -406,6 +418,18 @@ def test_crit01_online_cd_redirection_bypass_and_mcp_space_paths(
         'echo "Set-Location \'G:\\Il mio Drive\\NK Proget\\Online\\NK-Bandi\'; echo x > .staging/pwn.py" | powershell -Command -',
         'powershell -NoProfile "Set-Location \'G:\\Il mio Drive\\NK Proget\\Locale\\NK-Bandi\';" "Set-Location ..\\..\\Online\\NK-Bandi; echo x > .staging/pwn.py"',
         'powershell -Command "Set-Location \'G:\\Il mio Drive\\NK Proget\\Locale\\NK-Bandi\';" "Set-Location ..\\..\\Online\\NK-Bandi; echo x > .staging/pwn.py"',
+        'powershell -Command:"Set-Location \'G:\\Il mio Drive\\NK Proget\\Locale\\NK-Bandi\';" "Set-Location ..\\..\\Online\\NK-Bandi; echo x > .staging/pwn.py"',
+        r'cd /d "G:\Il mio Drive\NK Proget\Locale\NK-Bandi" && cd/d ..\..\Online\NK-Bandi && echo x > .staging/pwn.py',
+        r'''cd /d "G:\Il mio Drive\NK Proget\Locale\NK-Bandi" && cd/d"..\..\Online\NK-Bandi" && echo x > .staging/pwn.py''',
+        'powershell -NoProfile "cpi \'G:\\Il mio Drive\\NK Proget\\Locale\\NK-Bandi\\README.md\' \'G:\\Il mio Drive\\NK Proget\\Online\\NK-Bandi\\README.md\'"',
+        'powershell -NoProfile "mi \'G:\\Il mio Drive\\NK Proget\\Locale\\NK-Bandi\\README.md\' \'G:\\Il mio Drive\\NK Proget\\Online\\NK-Bandi\\README.md\'"',
+        'python -c "from pathlib import Path; f=\'G:/Il mio Drive/NK Proget/Online/NK-Bandi/d\'; p=Path(f); p.mkdir()"',
+        'python -Bc "from pathlib import Path; f=\'G:/Il mio Drive/NK Proget/Online/NK-Bandi/d\'; p=Path(f); p.mkdir()"',
+        'python -Pc "from pathlib import Path; f=\'G:/Il mio Drive/NK Proget/\'+\'Online/NK-Bandi/pwn.py\'; Path(f).write_text(\'x\')"',
+        'python -Rc "open(file=\'G:/Il mio Drive/NK Proget/Online/NK-Bandi/pwn.py\', mode=\'w\').write(\'x\')"',
+        'python -c "from pathlib import Path; Path(\'G:/Il mio Drive/NK Proget/Online/NK-Bandi/pwn.py\').open(\'w\').write(\'x\')"',
+        r'cd /d "G:\Il mio Drive\NK Proget\Locale\NK-Bandi" && chdir..\..\Online\NK-Bandi && echo x > .staging/pwn.py',
+        r'''cd /d "G:\Il mio Drive\NK Proget\Locale\NK-Bandi" && chdir"..\..\Online\NK-Bandi" && echo x > .staging/pwn.py''',
     )
     for b_cmd in bypass_cmds:
         res_b = hook_gate_mod._handle_write_gate({}, hub_dir, False, "", b_cmd, "")
@@ -421,6 +445,8 @@ def test_crit01_online_cd_redirection_bypass_and_mcp_space_paths(
         r'''C:\Windows\System32\cmd.exe /r "git -C 'G:/Il mio Drive/NK Proget/Online/NK-Bandi' status 2>nul" && echo ok''',
         'powershell -NoProfile "git -C \'G:/Il mio Drive/NK Proget/Online/NK-Bandi\' status 2>nul"',
         r'cd /d "G:\Il mio Drive\NK Proget\.\Online\NK-Bandi" && git status 2>nul',
+        'python -c "from pathlib import Path; p=Path(\'G:/Il mio Drive/NK Proget/Online/NK-Bandi/README.md\'); print(p.exists())"',
+        'python -c "from pathlib import Path; p=Path(\'G:/Il mio Drive/NK Proget/Online/NK-Bandi/README.md\'); f=p.open(\'r\'); f.close()"',
     )
     for ro_null_cmd in ro_null_cmds:
         assert hook_gate_mod._handle_write_gate({}, hub_dir, False, "", ro_null_cmd, "") == {}

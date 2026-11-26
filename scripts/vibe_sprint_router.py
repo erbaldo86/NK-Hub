@@ -27,6 +27,7 @@ def _build_router_cli_parser() -> argparse.ArgumentParser:
     parser.add_argument("--stdin", action="store_true", help="Legge il prompt completo da stdin")
     parser.add_argument("--transcript", type=str, default=None, help="Percorso al file transcript.jsonl")
     parser.add_argument("--conversation-id", dest="conversation_id", type=str, default=None, help="ID conversazione per l'envelope L0")
+    parser.add_argument("--lane-id", dest="lane_id", type=str, default=None, help="Lane di staging isolata (.staging/lanes/<id>/)")
     parser.add_argument("--classify-prompt", nargs="?", const="__USE_PROMPT__", default=None, help="Classifica l'intento del prompt")
     parser.add_argument("--meta-prompt-gate", action="store_true", help="Costruisce e valida MetaPromptGateContract")
     parser.add_argument("--no-gate", action="store_true", help="Disabilita il Meta-Prompt Gate")
@@ -49,15 +50,15 @@ if __name__ == "__main__" and any(a in ("-h", "--help") for a in sys.argv[1:]):
     raise SystemExit(0)
 
 _SCRIPT_DIR = Path(__file__).resolve().parent
-_PROD_SCRIPTS_DIR = _SCRIPT_DIR.parent.parent / "scripts" if _SCRIPT_DIR.parent.name == ".staging" else _SCRIPT_DIR
-for _cand in (_PROD_SCRIPTS_DIR, _SCRIPT_DIR):
+_PROD_SCRIPTS = _SCRIPT_DIR.parent.parent / "scripts" if _SCRIPT_DIR.parent.name == ".staging" else _SCRIPT_DIR
+for _cand in (_PROD_SCRIPTS, _SCRIPT_DIR):
     if _cand.exists():
         _cand_s = str(_cand)
         if _cand_s in sys.path:
             sys.path.remove(_cand_s)
         sys.path.insert(0, _cand_s)
 
-if _SCRIPT_DIR != _PROD_SCRIPTS_DIR and (_SCRIPT_DIR / "_internal" / "nk_common").is_dir():
+if _SCRIPT_DIR != _PROD_SCRIPTS and (_SCRIPT_DIR / "_internal" / "nk_common").is_dir():
     import _internal as _stg_int
     if hasattr(_stg_int, "__path__"):
         import _internal.nk_common as _stg_nkc

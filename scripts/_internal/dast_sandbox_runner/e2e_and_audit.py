@@ -10,11 +10,19 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from _internal.nk_common.lane_paths import resolve_staging_dir
+
 from .constants import DAST_MAX_OUTPUT_BYTES, _facade_attr
 from .holdout_verify import verify_sandbox_holdouts
 from .process_runner import _run_job_isolated_subprocess, write_atomic_dast_report
 from .sandbox_fs import ShadowSandbox, _build_sanitized_sandbox_env, _truncate_utf8_bytes
-from .staging_overlay import prepare_staging_overlay
+from .staging_overlay import (
+    allocate_dast_port,
+    cleanup_nvme_staging_snapshot,
+    nvme_staging_snapshot_ctx,
+    prepare_staging_overlay,
+    resolve_dast_lane_report_path,
+)
 
 
 def _resolve_prod_ast_guard_path(staging_dir: Optional[Path] = None) -> Path:
@@ -47,29 +55,12 @@ def _has_staged_changes(staging_dir: Optional[Path]) -> bool:
 
 
 def _build_ast_guard_cmd(
-    guard_script: Path,
-    sb_dir: Path,
-    repo_root: Optional[Path],
-    staging_dir: Optional[Path],
-    sys_mod: Any,
+    guard_script: Path, sb_dir: Path, repo_root: Optional[Path], staging_dir: Optional[Path], sys_mod: Any,
 ) -> Tuple[List[str], Path]:
     """Compone il comando singolo di ast_guard_validator con --overlay-staging --quality-diff se disponibile."""
-    has_overlay_guard = (
-        guard_script.parent / "_internal" / "ast_guard_validator" / "overlay_helpers.py"
-    ).is_file()
-    if has_overlay_guard and _has_staged_changes(staging_dir) and repo_root is not None:
-        cmd = [
-            sys_mod.executable,
-            "-B",
-            str(guard_script),
-            "--target",
-            "all",
-            "--overlay-staging",
-            "--stage-dir",
-            str(staging_dir),
-            "--quality-diff",
-            "--json",
-        ]
+    has_overlay = (guard_script.parent / "_internal" / "ast_guard_validator" / "overlay_helpers.py").is_file()
+    if has_overlay and _has_staged_changes(staging_dir) and repo_root is not None:
+        cmd = [sys_mod.executable, "-B", str(guard_script), "--target", "all", "--overlay-staging", "--stage-dir", str(staging_dir), "--quality-diff", "--json"]
         return cmd, repo_root
     return [sys_mod.executable, "-B", str(guard_script), "--target", "all", "--json"], sb_dir
 
@@ -125,26 +116,13 @@ def _run_ast_guard_on_sandbox(
 
     cmd, run_cwd = _build_ast_guard_cmd(guard_script, sb_dir, repo_root, staging_dir, sys_mod)
     try:
-        proc_ast = run_sub_fn(
-            cmd,
-            cwd=run_cwd,
-            env=env,
-            timeout_sec=min(timeout_sec, 150.0),
-        )
-        return _parse_ast_guard_output(
-            proc_ast.returncode, proc_ast.stdout or "", proc_ast.stderr or ""
-        )
+        proc_ast = run_sub_fn(cmd, cwd=run_cwd, env=env, timeout_sec=min(timeout_sec, 150.0))
+        return _parse_ast_guard_output(proc_ast.returncode, proc_ast.stdout or "", proc_ast.stderr or "")
     except Exception as exc:
         err_str = str(exc)
         return {
-            "executed": True,
-            "passed": False,
-            "exit_code": -1,
-            "files_checked": 0,
-            "violations": 1,
-            "error": err_str,
-            "stdout": "",
-            "stderr": _truncate_utf8_bytes(err_str, DAST_MAX_OUTPUT_BYTES),
+            "executed": True, "passed": False, "exit_code": -1, "files_checked": 0, "violations": 1,
+            "error": err_str, "stdout": "", "stderr": _truncate_utf8_bytes(err_str, DAST_MAX_OUTPUT_BYTES),
         }
 
 
@@ -197,18 +175,17 @@ def _run_pytest_on_sandbox(
     sys_mod: Any,
     time_mod: Any,
 ) -> Dict[str, Any]:
-    """Esegue pytest isolato nella sandbox con gate fail-closed su tests/ assente o zero test."""
+    """Esegue pytest isolato nella sandbox con basetemp dedicato e gate fail-closed."""
     if not (sb_dir / "tests").is_dir():
         return {
             "executed": True, "passed": False, "exit_code": 5, "no_tests_collected": True,
             "error": "Cartella tests mancante o rimossa (exit code 5)", "stdout": "", "stderr": "",
         }
+    basetemp = Path(tempfile.mkdtemp(prefix="nk_dast_pt_"))
     try:
         pt_t0 = time_mod.perf_counter()
-        proc_pt = run_sub_fn(
-            [sys_mod.executable, "-B", "-m", "pytest", "tests", "-p", "no:cacheprovider", "-q", "--tb=short"],
-            cwd=sb_dir, env=env, timeout_sec=timeout_sec,
-        )
+        pt_cmd = [sys_mod.executable, "-B", "-m", "pytest", "tests", "-p", "no:cacheprovider", f"--basetemp={basetemp.as_posix()}", "-q", "--tb=short"]
+        proc_pt = run_sub_fn(pt_cmd, cwd=sb_dir, env=env, timeout_sec=timeout_sec)
         return _build_pytest_metrics(
             proc_pt.returncode, proc_pt.stdout or "", proc_pt.stderr or "", time_mod.perf_counter() - pt_t0
         )
@@ -218,6 +195,8 @@ def _run_pytest_on_sandbox(
             "executed": True, "passed": False, "exit_code": -1, "error": err_str,
             "stdout": "", "stderr": _truncate_utf8_bytes(err_str, DAST_MAX_OUTPUT_BYTES),
         }
+    finally:
+        cleanup_nvme_staging_snapshot(basetemp)
 
 
 def _reject_invalid_holdout_profile(
@@ -226,24 +205,25 @@ def _reject_invalid_holdout_profile(
     """Costruisce il payload fail-closed quando --verify-holdout non usa profilo evaluator."""
     holdout_fail = verify_sandbox_holdouts(root, root, norm_prof, [], [])
     return {
-        "status": "FAIL",
-        "passed": False,
-        "is_dry_run": False,
-        "profile": norm_prof,
-        "repo_root": str(root),
-        "error": holdout_fail.get("error", "--verify-holdout richiede profilo evaluator"),
-        "holdout_verification": holdout_fail,
-        "duration_sec": round(time_mod.perf_counter() - t0, 4),
+        "status": "FAIL", "passed": False, "is_dry_run": False, "profile": norm_prof,
+        "repo_root": str(root), "error": holdout_fail.get("error", "--verify-holdout richiede profilo evaluator"),
+        "holdout_verification": holdout_fail, "duration_sec": round(time_mod.perf_counter() - t0, 4),
     }
 
 
-def _persist_diagnostic_report(report_payload: Dict[str, Any], write_rep_fn: Any) -> None:
-    """Salva il report diagnostico DAST in tempdir isolata."""
+def _persist_diagnostic_report(
+    report_payload: Dict[str, Any], write_rep_fn: Any, lane_id: Optional[str] = None
+) -> None:
+    """Salva il report diagnostico DAST in tempdir isolata per lane."""
     try:
         diag_dir = Path(tempfile.gettempdir()) / "nk_diagnostics"
         unique_diag_path = write_rep_fn(report_payload, diag_dir)
         report_payload["report_file"] = str(unique_diag_path)
-        write_rep_fn(report_payload, diag_dir, explicit_output=diag_dir / "dast_last_report.json")
+        write_rep_fn(
+            report_payload,
+            diag_dir,
+            explicit_output=resolve_dast_lane_report_path(diag_dir, lane_id),
+        )
     except OSError as exc:
         report_payload["diagnostic_warning"] = str(exc)
 
@@ -275,7 +255,9 @@ def _attach_failure_tails(
     report_payload["stderr_tail"] = _truncate_utf8_bytes(combined_stderr, DAST_MAX_OUTPUT_BYTES)
 
 
-def _build_shadow_probe_env(env_fn: Any, hooks_iso_dir: str, sb_dir: Path) -> Dict[str, str]:
+def _build_shadow_probe_env(
+    env_fn: Any, hooks_iso_dir: str, sb_dir: Path, lane_id: Optional[str] = None
+) -> Dict[str, str]:
     """Costruisce env sanitizzato isolato per i sottoprocessi AST Guard e pytest."""
     env = env_fn()
     env.pop("NK_CONVERSATION_ID", None)
@@ -286,7 +268,22 @@ def _build_shadow_probe_env(env_fn: Any, hooks_iso_dir: str, sb_dir: Path) -> Di
     env["PYTHONIOENCODING"] = "utf-8"
     env["PYTHONDONTWRITEBYTECODE"] = "1"
     env["PYTHONPATH"] = str(sb_dir)
+    env["NK_DAST_PORT"] = str(allocate_dast_port(lane_id))
     return env
+
+
+def _run_sandbox_suite_dispatch(
+    sb_dir: Path, root: Path, env: Dict[str, str], timeout_sec: float,
+    run_sub_fn: Any, sys_mod: Any, time_mod: Any, norm_lane: Optional[str],
+) -> Dict[str, Any]:
+    """Seleziona runner pytest o frontend shadow evitando falsi fail exit_code 5 su TS/JS."""
+    if (sb_dir / "tests").exists() or (root / "tests").exists():
+        return _run_pytest_on_sandbox(sb_dir, env, timeout_sec, run_sub_fn, sys_mod, time_mod)
+    from .fe_shadow import detect_frontend_project, evaluate_frontend_test_suite
+
+    if detect_frontend_project(sb_dir)["is_frontend"]:
+        return evaluate_frontend_test_suite(sb_dir, env, timeout_sec, run_sub_fn, lane_id=norm_lane)
+    return {"executed": False, "passed": True}
 
 
 def run_staging_shadow_verification(
@@ -297,8 +294,10 @@ def run_staging_shadow_verification(
     run_ast_guard: bool = True,
     profile: str = "builder",
     verify_holdout: bool = False,
+    *,
+    lane_id: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Copia il progetto in Shadow Sandbox, sovrappone .staging/ ed esegue AST Guard, pytest e holdout check."""
+    """Copia il progetto in Shadow Sandbox, sovrappone .staging/[lanes/<id>/] ed esegue AST Guard, pytest e holdout."""
     time_mod = _facade_attr("time", time)
     sys_mod = _facade_attr("sys", sys)
     sandbox_cls = _facade_attr("ShadowSandbox", ShadowSandbox)
@@ -317,33 +316,36 @@ def run_staging_shadow_verification(
     if verify_holdout and norm_prof != "evaluator":
         return _reject_invalid_holdout_profile(root, norm_prof, t0, time_mod)
 
-    stg = Path(staging_dir).resolve() if staging_dir is not None else (root / ".staging").resolve()
+    stg, norm_lane = resolve_staging_dir(root, lane_id=lane_id, staging_dir=staging_dir)
     ast_guard_res: Dict[str, Any] = {"executed": False, "passed": True}
     pytest_res: Dict[str, Any] = {"executed": False, "passed": True}
     holdout_res: Dict[str, Any] = {"executed": False, "passed": True}
     sb_id, sb_dir_str = "", ""
     overlay_files, deleted_applied, stripped_holdouts = [], [], []
 
-    with sandbox_cls() as sb, tempfile.TemporaryDirectory(prefix="nk_dast_hooks_") as hooks_iso_dir:
+    with (
+        sandbox_cls() as sb,
+        tempfile.TemporaryDirectory(prefix="nk_dast_hooks_") as hooks_iso_dir,
+        nvme_staging_snapshot_ctx(stg, norm_lane) as snap_stg,
+    ):
         sb_id, sb_dir_str = sb.sandbox_id, str(sb.sandbox_dir)
         overlay_files, deleted_applied, stripped_holdouts = prepare_staging_overlay(
-            root, stg, sb, norm_prof
+            root, snap_stg, sb, norm_prof
         )
         if verify_holdout:
             holdout_res = verify_sandbox_holdouts(
                 root, sb.sandbox_dir, norm_prof, overlay_files, deleted_applied
             )
 
-        env = _build_shadow_probe_env(env_fn, hooks_iso_dir, sb.sandbox_dir)
+        env = _build_shadow_probe_env(env_fn, hooks_iso_dir, sb.sandbox_dir, lane_id=norm_lane)
 
         if run_ast_guard:
             ast_guard_res = _run_ast_guard_on_sandbox(
-                sb.sandbox_dir, env, timeout_sec, run_sub_fn, sys_mod, repo_root=root, staging_dir=stg
+                sb.sandbox_dir, env, timeout_sec, run_sub_fn, sys_mod, repo_root=root, staging_dir=snap_stg
             )
-        tests_dir = sb.sandbox_dir / "tests"
-        if run_pytest and (tests_dir.exists() or (root / "tests").exists()):
-            pytest_res = _run_pytest_on_sandbox(
-                sb.sandbox_dir, env, timeout_sec, run_sub_fn, sys_mod, time_mod
+        if run_pytest:
+            pytest_res = _run_sandbox_suite_dispatch(
+                sb.sandbox_dir, root, env, timeout_sec, run_sub_fn, sys_mod, time_mod, norm_lane
             )
 
     sandbox_cleaned = not Path(sb_dir_str).exists()
@@ -354,28 +356,20 @@ def run_staging_shadow_verification(
         and sandbox_cleaned
     )
     report_payload: Dict[str, Any] = {
-        "status": "PASS" if overall_passed else "FAIL",
-        "passed": overall_passed,
-        "is_dry_run": False,
-        "profile": norm_prof,
-        "sandbox_id": sb_id,
-        "sandbox_dir": sb_dir_str,
-        "sandbox_cleaned": sandbox_cleaned,
-        "repo_root": str(root),
-        "staging_dir": str(stg),
-        "overlay_files_count": len(overlay_files),
-        "overlay_files": overlay_files,
-        "deleted_files": deleted_applied,
-        "stripped_holdouts": stripped_holdouts,
-        "ast_guard": ast_guard_res,
-        "pytest": pytest_res,
+        "status": "PASS" if overall_passed else "FAIL", "passed": overall_passed,
+        "is_dry_run": False, "profile": norm_prof, "lane_id": norm_lane,
+        "sandbox_id": sb_id, "sandbox_dir": sb_dir_str, "sandbox_cleaned": sandbox_cleaned,
+        "repo_root": str(root), "staging_dir": str(stg),
+        "overlay_files_count": len(overlay_files), "overlay_files": overlay_files,
+        "deleted_files": deleted_applied, "stripped_holdouts": stripped_holdouts,
+        "ast_guard": ast_guard_res, "pytest": pytest_res,
         "duration_sec": round(time_mod.perf_counter() - t0, 4),
     }
     _attach_holdout_verdict(report_payload, holdout_res, verify_holdout)
     if not overall_passed:
         _attach_failure_tails(report_payload, ast_guard_res, pytest_res, holdout_res)
 
-    _persist_diagnostic_report(report_payload, write_rep_fn)
+    _persist_diagnostic_report(report_payload, write_rep_fn, lane_id=norm_lane)
     return report_payload
 
 

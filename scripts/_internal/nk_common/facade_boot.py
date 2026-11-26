@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bootstrap unificato delle facciate CLI con supporto overlay .staging/ e produzione."""
+"""Bootstrap unificato delle facciate CLI con supporto overlay .staging/[lanes/<id>/] e produzione."""
 
 from __future__ import annotations
 
@@ -38,16 +38,21 @@ def _prepend_pkg_overlay(
                 pkg_path.append(prod_dir)
 
 
-def init_nk_facade(facade_file: str, pkg: Optional[str] = None) -> str:
-    """Configura sys.path e l'overlay __path__ di _internal per la facciata CLI."""
+def _resolve_facade_dirs(facade_file: str) -> tuple[str, str, bool]:
     script_dir = os.path.dirname(os.path.realpath(facade_file))
     parent_dir = os.path.dirname(script_dir)
-    is_staged = os.path.basename(parent_dir) == ".staging"
-    prod_scripts_dir = (
-        os.path.join(os.path.dirname(parent_dir), "scripts")
-        if is_staged
-        else script_dir
-    )
+    grand_dir = os.path.dirname(parent_dir)
+    great_dir = os.path.dirname(grand_dir)
+    if os.path.basename(parent_dir) == ".staging":
+        return script_dir, os.path.join(grand_dir, "scripts"), True
+    if os.path.basename(grand_dir) == "lanes" and os.path.basename(great_dir) == ".staging":
+        return script_dir, os.path.join(os.path.dirname(great_dir), "scripts"), True
+    return script_dir, script_dir, False
+
+
+def init_nk_facade(facade_file: str, pkg: Optional[str] = None) -> str:
+    """Configura sys.path e l'overlay __path__ di _internal per la facciata CLI."""
+    script_dir, prod_scripts_dir, is_staged = _resolve_facade_dirs(facade_file)
     stg_sibling_dir = os.path.join(
         os.path.dirname(prod_scripts_dir), ".staging", "scripts"
     )

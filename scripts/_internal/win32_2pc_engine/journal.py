@@ -214,6 +214,22 @@ class BatchJournalV2:
         except OSError:
             pass
 
+    @staticmethod
+    def _prune_orphan_v2_batch_dirs(j_lp: Path, active_manifest_file: Path) -> None:
+        """Elimina directory orfane V2 preservando active_batches di MultiBatchJournalV3."""
+        if _win_long_path(active_manifest_file).exists() or not j_lp.exists():
+            return
+        import shutil
+
+        for child in list(j_lp.iterdir()):
+            if child.is_dir() and child.name != "active_batches" and not _win_long_path(child / "active_batch.json").exists():
+                shutil.rmtree(child, ignore_errors=True)
+        try:
+            if j_lp.exists() and not any(j_lp.iterdir()):
+                j_lp.rmdir()
+        except OSError:
+            pass
+
     @classmethod
     def recover_crashed_batches(
         cls,
@@ -265,20 +281,7 @@ class BatchJournalV2:
                     "action": "ERROR",
                 })
 
-        if (
-            rollback_clean
-            and not _win_long_path(active_manifest_file).exists()
-            and j_lp.exists()
-        ):
-            import shutil
-
-            for child in list(j_lp.iterdir()):
-                if child.is_dir() and not _win_long_path(child / "active_batch.json").exists():
-                    shutil.rmtree(child, ignore_errors=True)
-            try:
-                if j_lp.exists() and not any(j_lp.iterdir()):
-                    j_lp.rmdir()
-            except OSError:
-                pass
+        if rollback_clean:
+            cls._prune_orphan_v2_batch_dirs(j_lp, active_manifest_file)
 
         return recovered, rolled_back_norms

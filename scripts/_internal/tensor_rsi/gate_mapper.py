@@ -1,27 +1,37 @@
 # -*- coding: utf-8 -*-
-"""Mappa deterministica GATE_1..6, ACTIVE.json firmato e ledger Tensor-RSI (DOM-01)."""
+"""Mappa deterministica GATE_1..6, ACTIVE/lane firmato e ledger Tensor-RSI (DOM-01)."""
 
 from __future__ import annotations
 
 import hashlib
 import hmac
-import json
 import math
 import os
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from _internal.nk_common.io import atomic_write_text, unlink_with_retry
+from _internal.nk_common.io import atomic_write_text, unlink_with_retry  # noqa: F401
 from _internal.nk_common.tas_ssot_io import read_last_jsonl_entry
+from _internal.tensor_rsi.active_slot_io import (
+    _read_slot_unlocked,
+    assert_slot_owner_or_idle,
+    claim_active_session_slot,
+    close_active_slot,
+    ensure_slot_available,
+    read_active_slot,
+    resolve_active_slot_mutex_name,
+    resolve_active_slot_path,
+    verify_slot_payload_integrity,
+)
 from _internal.tensor_rsi.config_loader import load_tensor_v3_config
-from _internal.tensor_rsi.helper_ops import next_ledger_prev_hash, parse_verified_active_file
+from _internal.tensor_rsi.helper_ops import next_ledger_prev_hash, parse_verified_active_file  # noqa: F401
 from _internal.tensor_rsi.schemas import (
     GateNameLiteral, GateStatusSummary, MetricSnapshot, ParetoDecisionResult,
     PolicyCell, RSIReasoningFrame, TensorRSILedgerEntry, TensorRSIStateTicket,
 )
 from _internal.tensor_rsi.ticket_auth import (
-    TicketAuthError, canonical_json_bytes, ensure_tensor_hmac_key,
+    TicketAuthError, canonical_json_bytes, ensure_tensor_hmac_key,  # noqa: F401
     repo_hash12, strict_json_loads, tensor_named_mutex,
 )
 
@@ -85,93 +95,95 @@ def map_gates(
     )
 
 
-def _active_session_path(root: Path) -> Path:
-    return root / "nk_tracking" / "tensor_sessions" / "ACTIVE.json"
+def _active_session_path(root: Path, lane_id: Optional[str] = None) -> Path:
+    return resolve_active_slot_path(root, lane_id=lane_id)
 
 
-def _active_mutex_name(root: Path) -> str:
-    resolved = os.path.realpath(str(root)).lower().replace("/", "\\").rstrip("\\")
-    return f"Local\\NK_TensorActive_{hashlib.sha256(resolved.encode('utf-8')).hexdigest()[:12]}"
+def _active_mutex_name(root: Path, lane_id: Optional[str] = None) -> str:
+    return resolve_active_slot_mutex_name(root, lane_id=lane_id)
 
 
-def _verify_active_hmac(payload: Dict[str, Any], key_path: Optional[Union[str, Path]]) -> None:
-    sig = str(payload.get("hmac_sha256", "")).strip().lower()
-    if len(sig) != 64:
-        raise TicketAuthError("ACTIVE_SESSION_CONFLICT: hmac_sha256 mancante o invalido in ACTIVE.json.")
-    body = {k: v for k, v in payload.items() if k != "hmac_sha256"}
-    exp = hmac.new(ensure_tensor_hmac_key(key_path), canonical_json_bytes(body), hashlib.sha256).hexdigest()
-    if not hmac.compare_digest(exp, sig):
-        raise TicketAuthError("ACTIVE_SESSION_CONFLICT: firma HMAC ACTIVE.json non valida.")
-    if not all(k in payload for k in ("issued_at", "ttl_seconds", "expires_at")):
-        raise TicketAuthError("ACTIVE_SESSION_CONFLICT: metadati TTL assenti in ACTIVE.json.")
+def _verify_active_hmac(
+    payload: Dict[str, Any],
+    key_path: Optional[Union[str, Path]],
+    *,
+    lane_id: Optional[str] = None,
+) -> None:
+    verify_slot_payload_integrity(payload, lane_id=lane_id, key_path=key_path)
 
 
 def _read_active_session_payload(
-    active_path: Path, *, key_path: Optional[Union[str, Path]] = None, allow_expired: bool = False,
+    active_path: Path,
+    *,
+    key_path: Optional[Union[str, Path]] = None,
+    allow_expired: bool = False,
+    lane_id: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
-    if active_path.is_symlink():
-        raise TicketAuthError("ACTIVE_SESSION_CONFLICT: ACTIVE.json symlink non consentito.")
-    if not active_path.exists():
-        return None
-    return parse_verified_active_file(active_path, key_path, allow_expired, _verify_active_hmac, unlink_with_retry, strict_json_loads, TicketAuthError)
+    return _read_slot_unlocked(active_path, lane_id=lane_id, key_path=key_path, allow_expired=allow_expired)
 
 
-def _assert_session_owner_or_idle(payload: Optional[Dict[str, Any]], session_id: Optional[str], *, strict_owner: bool = False) -> None:
-    if payload is None:
-        return
-    existing_sid = str(payload.get("session_id") or "").strip()
-    is_accepted = payload.get("accepted") is True
-    if not is_accepted and (not session_id or existing_sid != session_id):
-        raise TicketAuthError(f"ACTIVE_SESSION_CONFLICT: sessione attiva aperta ({existing_sid or 'UNKNOWN'}).")
-    if strict_owner and session_id is not None and existing_sid and existing_sid != session_id:
-        raise TicketAuthError(f"ACTIVE_SESSION_CONFLICT: ACTIVE.json appartiene alla sessione {existing_sid!r}.")
+def _assert_session_owner_or_idle(
+    payload: Optional[Dict[str, Any]], session_id: Optional[str], *, strict_owner: bool = False
+) -> None:
+    assert_slot_owner_or_idle(payload, session_id, strict_owner=strict_owner)
 
 
 def read_verified_active_session(
-    root: Path, *, key_path: Optional[Union[str, Path]] = None, allow_expired: bool = False,
+    root: Path,
+    *,
+    key_path: Optional[Union[str, Path]] = None,
+    allow_expired: bool = False,
+    lane_id: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
-    """Legge e verifica ACTIVE.json sotto Mutex nominato."""
-    with tensor_named_mutex(_active_mutex_name(root)):
-        return _read_active_session_payload(_active_session_path(root), key_path=key_path, allow_expired=allow_expired)
+    """Legge e verifica ACTIVE.json o slot lane sotto Mutex nominato."""
+    return read_active_slot(root, lane_id=lane_id, key_path=key_path, allow_expired=allow_expired)
 
 
-def ensure_no_foreign_active_session(root: Path, session_id: Optional[str] = None, *, key_path: Optional[Union[str, Path]] = None) -> None:
-    """Verifica sotto Mutex che non esista un'altra sessione aperta in ACTIVE.json."""
-    with tensor_named_mutex(_active_mutex_name(root)):
-        _assert_session_owner_or_idle(_read_active_session_payload(_active_session_path(root), key_path=key_path), session_id)
+def ensure_no_foreign_active_session(
+    root: Path,
+    session_id: Optional[str] = None,
+    *,
+    key_path: Optional[Union[str, Path]] = None,
+    lane_id: Optional[str] = None,
+) -> None:
+    """Verifica sotto Mutex che non esista un'altra sessione aperta nello slot ACTIVE/lane."""
+    ensure_slot_available(root, session_id=session_id, lane_id=lane_id, key_path=key_path)
 
 
 def write_active_session(
-    root: Path, session_id: str, phase: str, accepted: bool, stg_sha: str,
-    *, key_path: Optional[Union[str, Path]] = None, ttl_seconds: int = 1800,
+    root: Path,
+    session_id: str,
+    phase: str,
+    accepted: bool,
+    stg_sha: str,
+    *,
+    key_path: Optional[Union[str, Path]] = None,
+    ttl_seconds: int = 1800,
+    lane_id: Optional[str] = None,
 ) -> None:
-    """Aggiorna ACTIVE.json firmato HMAC con TTL in mutua esclusione."""
-    active_p = _active_session_path(root)
-    now_ts = int(time.time())
-    ttl_i = max(60, min(7200, int(ttl_seconds)))
-    body: Dict[str, Any] = {
-        "session_id": session_id, "phase": phase, "accepted": bool(accepted),
-        "staging_manifest_sha256": stg_sha, "issued_at": now_ts,
-        "ttl_seconds": ttl_i, "expires_at": now_ts + ttl_i,
-    }
-    sig = hmac.new(ensure_tensor_hmac_key(key_path), canonical_json_bytes(body), hashlib.sha256).hexdigest()
-    payload = {**body, "hmac_sha256": sig}
-    with tensor_named_mutex(_active_mutex_name(root)):
-        _assert_session_owner_or_idle(_read_active_session_payload(active_p, key_path=key_path), session_id)
-        ok, err = atomic_write_text(active_p, canonical_json_bytes(payload).decode("utf-8"), ensure_parent=True, fsync_data=True)
-        if not ok:
-            raise OSError(f"Scrittura ACTIVE.json fallita: {err}")
+    """Aggiorna ACTIVE.json o slot lane firmato HMAC con TTL in mutua esclusione."""
+    claim_active_session_slot(
+        root,
+        session_id,
+        lane_id=lane_id,
+        phase=phase,
+        accepted=accepted,
+        staging_manifest_sha256=stg_sha,
+        key_path=key_path,
+        ttl_seconds=ttl_seconds,
+        write_file=True,
+    )
 
 
-def close_active_session(root: Path, session_id: Optional[str] = None, *, key_path: Optional[Union[str, Path]] = None) -> None:
-    """Rimuove ACTIVE.json solo se appartiene alla sessione indicata o non ci sono sessioni aperte."""
-    p = _active_session_path(root)
-    with tensor_named_mutex(_active_mutex_name(root)):
-        payload = _read_active_session_payload(p, key_path=key_path, allow_expired=True)
-        if payload is None:
-            return
-        _assert_session_owner_or_idle(payload, session_id, strict_owner=True)
-        unlink_with_retry(p, raise_on_error=False)
+def close_active_session(
+    root: Path,
+    session_id: Optional[str] = None,
+    *,
+    key_path: Optional[Union[str, Path]] = None,
+    lane_id: Optional[str] = None,
+) -> None:
+    """Rimuove ACTIVE.json o slot lane solo se appartiene a session_id o non ci sono conflitti."""
+    close_active_slot(root, session_id=session_id, lane_id=lane_id, key_path=key_path)
 
 
 def _verify_and_read_ledger_unlocked(ledger_p: Path, intent_track: str, clade_id: str) -> Tuple[List[Dict[str, Any]], str]:
@@ -226,6 +238,7 @@ def _build_ledger_entry(
         "candidate_state_sha256": cand.state_hash, "prev_hash": prev_hash, "timestamp_utc": time.time(),
     }
     return TensorRSILedgerEntry(**body, record_hash=hashlib.sha256(canonical_json_bytes(body)).hexdigest())
+
 
 def append_tensor_ledger_entry(
     root: Path, state: Dict[str, Any], ticket: TensorRSIStateTicket, cell: PolicyCell, pareto: ParetoDecisionResult, cand: MetricSnapshot, base: MetricSnapshot

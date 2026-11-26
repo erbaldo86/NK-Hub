@@ -10,6 +10,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+from _internal.nk_common.lane_paths import is_lane_container_entry, resolve_staging_dir
 from _internal.nk_common.paths import is_nk_proget_online_path
 from _internal.nk_common.tas_ssot_io import parse_deleted_files_manifest
 
@@ -38,81 +39,78 @@ from .tensor_session_guard import (
 )
 
 
+def _move_staging_entries_to_quarantine(
+    staging_dir: Path, quarantine_root: Path, excl_lanes: bool
+) -> List[str]:
+    """Sposta i file staged (o lane) nella directory di quarantena saltando lanes/ in legacy."""
+    import shutil
+
+    moved_files: List[str] = []
+    for item in sorted(list(staging_dir.rglob("*"))):
+        try:
+            rel = item.relative_to(staging_dir)
+            if excl_lanes and is_lane_container_entry(rel.parts):
+                continue
+            if _is_reparse_point(item):
+                if item.is_dir() and not item.is_symlink():
+                    os.rmdir(_win_long_path(item))
+                else:
+                    _unlink_with_retry(item)
+                continue
+            if not item.is_file() or item.name == ".gitkeep":
+                continue
+            dest = quarantine_root / rel
+            _win_long_path(dest.parent).mkdir(parents=True, exist_ok=True)
+            shutil.move(str(_win_long_path(item)), str(_win_long_path(dest)))
+            moved_files.append(rel.as_posix())
+        except OSError:
+            pass
+    return moved_files
+
+
+def _prune_empty_staging_dirs(staging_dir: Path, excl_lanes: bool) -> None:
+    """Rimuove le sottodirectory vuote di staging preservando lanes/ in legacy."""
+    all_dirs = sorted(
+        (d for d in staging_dir.rglob("*") if d.is_dir() and not (excl_lanes and is_lane_container_entry(d.relative_to(staging_dir).parts))),
+        key=lambda p: len(p.parts),
+        reverse=True,
+    )
+    for d in all_dirs:
+        try:
+            if d.exists() and not any(d.iterdir()):
+                d.rmdir()
+        except OSError:
+            pass
+
+
 def quarantine_staging(
     repo_root: Optional[Union[str, Path]] = None,
     staging_dirname: str = ".staging",
+    *,
+    lane_id: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Sposta i contenuti correnti di .staging/ in una cartella isolata di quarantena in %TEMP%."""
+    """Sposta i contenuti correnti di .staging/ (o lane) in quarantena isolata in %TEMP%."""
     root = _resolve_repo_root(repo_root)
-    staging_dir = root / staging_dirname
-    quarantine_root = (
-        Path(tempfile.gettempdir())
-        / "nk_2pc_staging_quarantine"
-        / f"{_get_repo_hash16(root)}_{int(time.time() * 1000)}"
-    )
+    stg_arg = None if (lane_id is not None and staging_dirname == ".staging") else staging_dirname
+    staging_dir, norm_lane = resolve_staging_dir(root, lane_id=lane_id, staging_dir=stg_arg)
+    excl_lanes = norm_lane is None and staging_dir.name == ".staging"
+    quarantine_root = Path(tempfile.gettempdir()) / "nk_2pc_staging_quarantine" / f"{_get_repo_hash16(root)}_{norm_lane or 'legacy'}_{int(time.time() * 1000)}"
     moved_files: List[str] = []
 
-    with Win32NamedMutex(
-        get_repo_batch_mutex_name(root),
-        timeout_ms=10000,
-        is_path=False,
-    ):
-        assert_no_active_tensor_session_for_quarantine(root)
+    with Win32NamedMutex(get_repo_batch_mutex_name(root), timeout_ms=10000, is_path=False):
+        assert_no_active_tensor_session_for_quarantine(root, lane_id=norm_lane)
         if not staging_dir.exists():
             staging_dir.mkdir(parents=True, exist_ok=True)
             (staging_dir / ".gitkeep").write_text("", encoding="utf-8")
-            return {
-                "status": "SUCCESS",
-                "passed": True,
-                "quarantine_dir": None,
-                "quarantined_count": 0,
-                "quarantined_files": [],
-            }
-
-        import shutil
-
-        for item in sorted(list(staging_dir.rglob("*"))):
-            try:
-                if _is_reparse_point(item):
-                    if item.is_dir() and not item.is_symlink():
-                        os.rmdir(_win_long_path(item))
-                    else:
-                        _unlink_with_retry(item)
-                    continue
-                if not item.is_file() or item.name == ".gitkeep":
-                    continue
-                rel = item.relative_to(staging_dir)
-                dest = quarantine_root / rel
-                _win_long_path(dest.parent).mkdir(parents=True, exist_ok=True)
-                shutil.move(str(_win_long_path(item)), str(_win_long_path(dest)))
-                moved_files.append(rel.as_posix())
-            except OSError:
-                pass
-
-        all_dirs = sorted(
-            (d for d in staging_dir.rglob("*") if d.is_dir()),
-            key=lambda p: len(p.parts),
-            reverse=True,
-        )
-        for d in all_dirs:
-            try:
-                if d.exists() and not any(d.iterdir()):
-                    d.rmdir()
-            except OSError:
-                pass
-
+            return {"status": "SUCCESS", "passed": True, "lane_id": norm_lane, "quarantine_dir": None, "quarantined_count": 0, "quarantined_files": []}
+        moved_files = _move_staging_entries_to_quarantine(staging_dir, quarantine_root, excl_lanes)
+        _prune_empty_staging_dirs(staging_dir, excl_lanes)
         gitkeep = staging_dir / ".gitkeep"
         if not gitkeep.exists():
             staging_dir.mkdir(parents=True, exist_ok=True)
             gitkeep.write_text("", encoding="utf-8")
 
-    return {
-        "status": "SUCCESS",
-        "passed": True,
-        "quarantine_dir": str(quarantine_root) if moved_files else None,
-        "quarantined_count": len(moved_files),
-        "quarantined_files": moved_files,
-    }
+    return {"status": "SUCCESS", "passed": True, "lane_id": norm_lane, "quarantine_dir": str(quarantine_root) if moved_files else None, "quarantined_count": len(moved_files), "quarantined_files": moved_files}
 
 
 def _enforce_deletion_governance(
@@ -125,10 +123,11 @@ def _enforce_deletion_governance(
     overridden_out: Optional[List[str]],
     governance_token: Optional[str] = None,
     staging_manifest_sha256: Optional[str] = None,
+    repo_root: Optional[Path] = None,
 ) -> None:
     del_name_low = Path(rel_del_norm).name.lower()
     is_protected = (
-        is_protected_governance_path(rel_del_norm)
+        is_protected_governance_path(rel_del_norm, repo_root=repo_root)
         or rel_del_norm == "nk_tracking/quality_baseline.json"
         or (
             del_name_low.startswith("checkpoint_")
@@ -198,6 +197,7 @@ def collect_validated_deletions(
             overridden_out,
             governance_token=governance_token,
             staging_manifest_sha256=staging_manifest_sha256,
+            repo_root=root,
         )
         validated_deletions.append((clean_rel_del, del_target))
     return validated_deletions
@@ -214,6 +214,7 @@ def _enforce_staged_payload_governance(
     overridden_out: Optional[List[str]],
     governance_token: Optional[str] = None,
     staging_manifest_sha256: Optional[str] = None,
+    repo_root: Optional[Path] = None,
 ) -> None:
     rel_name_low = Path(rel_norm).name.lower()
     is_protected_cp = (
@@ -221,7 +222,7 @@ def _enforce_staged_payload_governance(
         and rel_name_low.endswith(".json")
         and _win_long_path(prod_file).exists()
     )
-    if is_protected_governance_path(rel_norm) or is_protected_cp:
+    if is_protected_governance_path(rel_norm, repo_root=repo_root) or is_protected_cp:
         if not allow_governance_override:
             raise TwoPhaseCommitError(
                 f"Promozione bloccata per file di governance protetto ({rel_path.as_posix()}): "
@@ -304,6 +305,7 @@ def collect_staged_payloads(
             overridden_out,
             governance_token=governance_token,
             staging_manifest_sha256=staging_manifest_sha256,
+            repo_root=root,
         )
         stg_sha = compute_sha256(stg_bytes)
         staged_payloads.append((stg_file, rel_path, prod_file, stg_bytes, stg_sha))

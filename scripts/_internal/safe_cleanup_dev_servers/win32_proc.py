@@ -172,8 +172,10 @@ def _matches_workspace_paths(
     proc_cwd: str,
     proc_exe: str,
     workspace_root: Optional[Path | str],
+    *,
+    strict_scope: bool = False,
 ) -> bool:
-    """Applica il filtro fail-closed su binario dev e percorso workspace o progetti esterni."""
+    """Applica il filtro fail-closed su binario dev e percorso workspace target."""
     if not any(kw in proc_name or kw in cmdline_str for kw in DEV_PROCESS_KEYWORDS):
         return False
 
@@ -185,7 +187,7 @@ def _matches_workspace_paths(
 
     if _matches_any_norm_root(proc_cwd, exe_norm, cmd_norm, (ws_norm,)):
         return True
-    if workspace_root is None or effective_ws == default_ws.resolve():
+    if not strict_scope and (workspace_root is None or effective_ws == default_ws.resolve()):
         return _matches_any_norm_root(proc_cwd, exe_norm, cmd_norm, _iter_external_workspace_norms(effective_ws))
     return False
 
@@ -193,6 +195,8 @@ def _matches_workspace_paths(
 def is_target_workspace_process(
     pid: int,
     workspace_root: Optional[Path | str] = None,
+    *,
+    strict_scope: bool = False,
 ) -> bool:
     """Verifica fail-closed se il processo appartiene al workspace target o a progetti esterni."""
     if pid <= 0 or pid in (os.getpid(), os.getppid()):
@@ -212,7 +216,7 @@ def is_target_workspace_process(
                 cwd_str = os.path.realpath(str(proc_dir / "cwd")).lower().replace("/", "\\").rstrip("\\")
                 exe_str = os.path.realpath(str(proc_dir / "exe"))
                 proc_name = os.path.basename(exe_str).lower()
-                return _matches_workspace_paths(proc_name, cmd_raw, cwd_str, exe_str, workspace_root)
+                return _matches_workspace_paths(proc_name, cmd_raw, cwd_str, exe_str, workspace_root, strict_scope=strict_scope)
             except OSError:
                 return False
         batch_cache = _CIM_BATCH_CACHE.get()
@@ -224,7 +228,7 @@ def is_target_workspace_process(
         if entry is None:
             return False
         proc_name, cmdline_str, proc_exe = entry
-        return _matches_workspace_paths(proc_name, cmdline_str, "", proc_exe, workspace_root)
+        return _matches_workspace_paths(proc_name, cmdline_str, "", proc_exe, workspace_root, strict_scope=strict_scope)
 
     try:
         proc = ps_mod.Process(pid)
@@ -234,9 +238,18 @@ def is_target_workspace_process(
             proc_cwd = os.path.realpath(str(proc.cwd())).lower().replace("/", "\\").rstrip("\\")
         except Exception:
             proc_cwd = ""
-        return _matches_workspace_paths(proc_name, cmdline_str, proc_cwd, "", workspace_root)
+        return _matches_workspace_paths(proc_name, cmdline_str, proc_cwd, "", workspace_root, strict_scope=strict_scope)
     except Exception:
         return False
+
+
+def _call_target_fn(target_fn: Any, pid: int, resolved_ws: Path, strict_scope: bool) -> bool:
+    if strict_scope:
+        try:
+            return bool(target_fn(pid, resolved_ws, strict_scope=True))
+        except TypeError:
+            pass
+    return bool(target_fn(pid, resolved_ws))
 
 
 def _scan_netstat_listening_pids(
@@ -244,6 +257,7 @@ def _scan_netstat_listening_pids(
     port_set: Optional[Set[int]] = None,
     port_range: Optional[Tuple[int, int]] = None,
     workspace_root: Optional[Path | str] = None,
+    strict_scope: bool = False,
 ) -> Set[int]:
     """Scansiona le porte LISTENING tramite netstat o ss con filtro fail-closed."""
     pids: Set[int] = set()
@@ -257,13 +271,7 @@ def _scan_netstat_listening_pids(
     scan_cmd = ["netstat", "-ano"] if sys_mod.platform == "win32" else ["ss", "-ltnp"]
     try:
         output = sub_mod.check_output(
-            scan_cmd,
-            shell=False,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            stderr=sub_mod.DEVNULL,
-            timeout=5.0,
+            scan_cmd, shell=False, text=True, encoding="utf-8", errors="replace", stderr=sub_mod.DEVNULL, timeout=5.0,
         )
         for line in output.splitlines():
             line = line.strip()
@@ -311,13 +319,13 @@ def _scan_netstat_listening_pids(
         token = _CIM_BATCH_CACHE.set(query_fn(sorted(candidate_pids)))
         try:
             for pid in candidate_pids:
-                if target_fn(pid, resolved_ws):
+                if _call_target_fn(target_fn, pid, resolved_ws, strict_scope):
                     pids.add(pid)
         finally:
             _CIM_BATCH_CACHE.reset(token)
         return pids
 
     for pid in candidate_pids:
-        if target_fn(pid, resolved_ws):
+        if _call_target_fn(target_fn, pid, resolved_ws, strict_scope):
             pids.add(pid)
     return pids

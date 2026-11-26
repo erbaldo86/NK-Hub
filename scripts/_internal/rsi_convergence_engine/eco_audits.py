@@ -3,22 +3,15 @@
 
 from __future__ import annotations
 
-import hashlib
-import importlib
-import importlib.util
-import json
-import pkgutil
-import sys
+import hashlib, importlib, importlib.util, json, pkgutil, sys
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union
 
 from _internal.nk_common.constants import VERSION
+from _internal.nk_common.lane_paths import is_lane_container_entry, resolve_staging_dir, strip_staging_rel_parts  # noqa: F401
 from _internal.rsi_convergence_engine.constants import (
-    _collect_overlay_md_files,
-    _scripts_dir,
-    _workspace_root,
-    load_staging_deleted_set_impl,
+    _collect_overlay_md_files, _scripts_dir, _workspace_root, load_staging_deleted_set_impl, resolve_effective_staging,
 )
 from _internal.rsi_convergence_engine.profiles import verify_ste100_compliance
 from _internal.rsi_convergence_engine.sast_scanner import audit_markdown_doc_references
@@ -45,7 +38,8 @@ def _logical_md_rel(md_file: Path, root: Path) -> str:
         rel_md = md_file.relative_to(root).as_posix()
     except ValueError:
         return md_file.name
-    return rel_md[len(".staging/") :] if rel_md.startswith(".staging/") else rel_md
+    stg_idx, rel_after, _lane = strip_staging_rel_parts(Path(rel_md).parts)
+    return "/".join(rel_after) if stg_idx == 0 else rel_md
 
 
 def _should_check_ste100(
@@ -292,7 +286,7 @@ def classify_quality_violations(violations: Sequence[Any]) -> Dict[str, Any]:
 
 def inspect_python_quality_staged(fpath: Path, baseline_text: str, current_text: str, rel_label: str, ws_root: Path) -> List[Any]:
     """Applica check_python_quality_diff ai file in .staging/ evitando falsi positivi legacy."""
-    if ".staging" not in fpath.parts:
+    if strip_staging_rel_parts(fpath.parts)[0] < 0:
         return []
     fn = _load_agv_symbol(ws_root, "quality_diff_checker", "check_python_quality_diff")
     return list(fn(baseline_text, current_text, target_file=rel_label)) if fn else [_make_import_fail_violation("QD-IMPORT-FAIL", rel_label, "quality_diff_checker.check_python_quality_diff")]
@@ -321,20 +315,38 @@ def _scan_staged_entry(root: Path, stg_root: Path, fpath: Path, viols: List[Any]
     return 0
 
 
-def _collect_staged_quality_violations(root: Path, stg_root: Path) -> Tuple[int, Set[str], List[Path], List[Any]]:
+def _collect_staged_entry_if_active(
+    fpath: Path, stg_root: Path, root: Path, viols: List[Any], exclude_lanes: Optional[bool] = None
+) -> Optional[Tuple[int, str, Optional[Path]]]:
+    """Restituisce (files_checked_delta, rel_posix, scope_file) se il file staging e attivo."""
+    if not fpath.is_file():
+        return None
+    rel_parts = fpath.relative_to(stg_root).parts
+    is_base_stg = (stg_root.name == ".staging") if exclude_lanes is None else bool(exclude_lanes)
+    if (is_base_stg and rel_parts and is_lane_container_entry(rel_parts)) or any(part in _SKIP_STG_PARTS for part in rel_parts):
+        return None
+    rel_posix = fpath.relative_to(stg_root).as_posix()
+    scope_fp = fpath if fpath.name != ".gitkeep" else None
+    return _scan_staged_entry(root, stg_root, fpath, viols), rel_posix, scope_fp
+
+
+def _collect_staged_quality_violations(
+    root: Path, stg_root: Path, exclude_lanes: Optional[bool] = None
+) -> Tuple[int, Set[str], List[Path], List[Any]]:
     viols: List[Any] = []
     files_checked, staged_rels, scope_files = 0, set(), []
     if not stg_root.is_dir():
         return files_checked, staged_rels, scope_files, viols
     for fpath in sorted(stg_root.rglob("*")):
-        if not fpath.is_file() or any(part in _SKIP_STG_PARTS for part in fpath.relative_to(stg_root).parts):
+        res = _collect_staged_entry_if_active(fpath, stg_root, root, viols, exclude_lanes=exclude_lanes)
+        if res is None:
             continue
-        staged_rels.add(fpath.relative_to(stg_root).as_posix())
-        if fpath.name != ".gitkeep":
-            scope_files.append(fpath)
-        files_checked += _scan_staged_entry(root, stg_root, fpath, viols)
+        checked_d, rel_posix, scope_fp = res
+        files_checked += checked_d
+        staged_rels.add(rel_posix)
+        if scope_fp is not None:
+            scope_files.append(scope_fp)
     return files_checked, staged_rels, scope_files, viols
-
 
 def _scan_prod_frontend(root: Path, staged_rels: Set[str], deleted_rels: Set[str], viols: List[Any]) -> int:
     checked = 0
@@ -352,20 +364,28 @@ def _scan_prod_frontend(root: Path, staged_rels: Set[str], deleted_rels: Set[str
             viols.extend(inspect_frontend_file(fpath, fpath.read_text(encoding="utf-8", errors="replace"), rel_posix, root))
     return checked
 
-
 def _normalize_allowed_patterns(allowed_files: Optional[Union[str, Sequence[str]]]) -> List[str]:
     if isinstance(allowed_files, str):
         return [p.strip() for p in allowed_files.split(",") if p.strip()]
     return [str(p).strip() for p in (allowed_files or []) if str(p).strip()]
 
+def _resolve_stg_and_deleted(root: Path, lane_id: Optional[str], staging_dir: Optional[Path]) -> Tuple[Path, bool, Set[str]]:
+    stg_root = resolve_effective_staging(root, lane_id=lane_id, staging_dir=staging_dir)
+    excl_lanes = lane_id is None and staging_dir is None and stg_root.name == ".staging"
+    deleted_rels = load_staging_deleted_set_impl(root, lane_id=lane_id, staging_dir=staging_dir) if stg_root.is_dir() else set()
+    return stg_root, excl_lanes, deleted_rels
 
-def audit_quality_and_frontend_impl(root: Path, allowed_files: Optional[Union[str, Sequence[str]]] = None, scan_prod_frontend: bool = False) -> Dict[str, Any]:
+
+def audit_quality_and_frontend_impl(
+    root: Path, allowed_files: Optional[Union[str, Sequence[str]]] = None, scan_prod_frontend: bool = False,
+    lane_id: Optional[str] = None, staging_dir: Optional[Path] = None,
+) -> Dict[str, Any]:
     """Scansiona .staging/ (e prod frontend se richiesto) con Quality-Diff AST e --allowed-files."""
-    stg_root, patterns = root / ".staging", _normalize_allowed_patterns(allowed_files)
+    stg_root, excl_lanes, deleted_rels = _resolve_stg_and_deleted(root, lane_id, staging_dir)
+    patterns = _normalize_allowed_patterns(allowed_files)
     if not stg_root.is_dir() and not scan_prod_frontend and not patterns:
         return {"passed": True, "skipped": True, "files_checked": 0, "semantic_drift_findings": 0, "high_findings": 0, "medium_findings": 0, "low_findings": 0, "violations": []}
-    deleted_rels = load_staging_deleted_set_impl(root) if stg_root.is_dir() else set()
-    files_checked, staged_rels, scope_files, viols = _collect_staged_quality_violations(root, stg_root)
+    files_checked, staged_rels, scope_files, viols = _collect_staged_quality_violations(root, stg_root, exclude_lanes=excl_lanes)
     if scan_prod_frontend:
         files_checked += _scan_prod_frontend(root, staged_rels, deleted_rels, viols)
     if patterns:

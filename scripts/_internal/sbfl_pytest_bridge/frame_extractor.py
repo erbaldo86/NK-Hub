@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import ast
 import json
-import os
 import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
@@ -29,16 +28,16 @@ def _lookup_passed_line_count(
     by_base = passed_line_counts.get((base_name, target_line))
     if by_base is not None:
         return by_base
-    norm_full = os.path.normcase(target_file.replace("\\", "/"))
-    norm_base = os.path.normcase(base_name)
+    norm_full = target_file.replace("\\", "/").lower()
+    norm_base = base_name.lower()
     base_match = 0
     for (k_path, k_line), cnt in passed_line_counts.items():
         if k_line != target_line:
             continue
-        k_norm = os.path.normcase(k_path.replace("\\", "/"))
+        k_norm = k_path.replace("\\", "/").lower()
         if k_norm == norm_full:
             return cnt
-        if os.path.normcase(Path(k_norm).name) == norm_base:
+        if Path(k_norm).name.lower() == norm_base:
             base_match = max(base_match, cnt)
     return base_match
 
@@ -47,7 +46,7 @@ def _matches_target_hint(fpath: str, norm_hint: Optional[str]) -> bool:
     """Confronta il filename del traceback con norm_hint in modo case-safe su Windows."""
     fname = Path(fpath).name
     if norm_hint:
-        return os.path.normcase(fname) == os.path.normcase(norm_hint)
+        return fname.lower() == norm_hint.lower()
     low = fname.lower()
     return low != "conftest.py" and "test_" not in low and not low.endswith("_test.py")
 
@@ -145,13 +144,13 @@ def _lookup_frame_code(
     exact = frame_code_map.get((target_file, target_line))
     if exact:
         return exact
-    norm_t = os.path.normcase(target_file.replace("\\", "/"))
-    norm_base = os.path.normcase(Path(norm_t).name)
+    norm_t = target_file.replace("\\", "/").lower()
+    norm_base = Path(norm_t).name.lower()
     for (fpath, lno), code_txt in frame_code_map.items():
         if lno != target_line or not code_txt:
             continue
-        norm_f = os.path.normcase(fpath.replace("\\", "/"))
-        if norm_f == norm_t or os.path.normcase(Path(norm_f).name) == norm_base:
+        norm_f = fpath.replace("\\", "/").lower()
+        if norm_f == norm_t or Path(norm_f).name.lower() == norm_base:
             return code_txt
     return ""
 

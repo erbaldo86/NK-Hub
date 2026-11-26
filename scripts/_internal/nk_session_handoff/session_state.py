@@ -15,6 +15,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from _internal.nk_common.facade_boot import resolve_facade_attr
 from _internal.nk_common.io import atomic_write_text
+from _internal.nk_common.lane_leases import get_active_leased_conversation_ids
+from _internal.nk_common.win32_mutex import get_named_mutex_name, repo_path_hash12
 from _internal.nk_session_handoff.constants import (  # noqa: F401
     _BASELINE_LOCK, _BASELINE_MEMO, _EXCLUDED_STATE_DIRS, _EXCLUDED_STATE_FILENAMES,
     _FILE_HASH_LOCK, _FILE_HASH_MEMO, _SAFE_SESSION_CONV_ID_RE,
@@ -35,6 +37,11 @@ _FACADES = ("nk_session_handoff", "scripts.nk_session_handoff")
 _METRIC_TEST_KEYS = ("unit_tests_total", "total_golden_tests", "tests_total", "tests_passed")
 _FLAT_TEST_KEYS = ("total_tests", "golden_tests_count", "unit_tests_total", "tests_total", "passed_tests", "tests_passed")
 SESSION_RETENTION_LIMIT: int = 5
+
+
+def get_handoff_state_mutex_name(target_path: Path) -> str:
+    """Restituisce il nome mutex dedicato a handoff/anchor isolato da NK_RepoBatchLock."""
+    return get_named_mutex_name(target_path, "Global\\NK_HandoffState", chars=16)
 
 
 def _extract_baseline_pair(data: Dict[str, Any]) -> Tuple[Optional[int], float]:
@@ -88,10 +95,11 @@ def prune_session_tracking_dirs(
     active_conversation_id: Optional[str] = None,
     max_sessions: int = SESSION_RETENTION_LIMIT,
 ) -> List[str]:
-    """Mantiene al massimo max_sessions directory in nk_tracking/sessions/ preservando quella attiva."""
+    """Mantiene fino a max_sessions directory preservando la sessione attiva e i lease vivi."""
     if max_sessions < 1:
         return []
-    sessions_dir = (Path(target_root).resolve() / "nk_tracking" / "sessions").resolve()
+    resolved_root = Path(target_root).resolve()
+    sessions_dir = (resolved_root / "nk_tracking" / "sessions").resolve()
     if not sessions_dir.is_dir() or sessions_dir.is_symlink():
         return []
     try:
@@ -104,6 +112,7 @@ def prune_session_tracking_dirs(
         return []
     candidates.sort(key=lambda row: (row[0], row[1]), reverse=True)
     keep_names = _select_retained_session_names(candidates, active_conversation_id, max_sessions)
+    keep_names.update(get_active_leased_conversation_ids(resolved_root))
     removed: List[str] = []
     for _, name, dir_path in candidates:
         if name not in keep_names:
@@ -251,10 +260,10 @@ def write_bytes_via_2pc_locked(dst: Path, raw_bytes: bytes) -> None:
 
 
 def _atomic_commit_bytes(root: Path, dst: Path, raw_bytes: bytes, timeout_ms: int = 2000) -> None:
-    """Scrive atomicamente tramite mutex Win32 e TwoPhaseCommitEngine."""
+    """Scrive atomicamente artefatti handoff sotto mutex dedicato Global\\NK_HandoffState."""
     root_resolved, dst_resolved = Path(root).resolve(), Path(dst).resolve()
     with (
-        Win32NamedMutex(get_repo_batch_mutex_name(root_resolved), timeout_ms=timeout_ms, is_path=False),
+        Win32NamedMutex(get_handoff_state_mutex_name(root_resolved), timeout_ms=timeout_ms, is_path=False),
         Win32NamedMutex(dst_resolved, timeout_ms=timeout_ms, is_path=True),
     ):
         write_bytes_via_2pc_locked(dst_resolved, raw_bytes)
@@ -341,7 +350,7 @@ def _read_fastguard_session_start_ns(root: Path, cid: str) -> int:
 def resolve_baseline_verification_source(
     repo_root: Path, conversation_id: str, session_start_ns: int = 0
 ) -> Tuple[int, float, bool, str]:
-    """Verifica evidenza pytest live di sessione o baseline su disco del repository."""
+    """Verifica evidenza pytest live scoped per repository/sessione o baseline su disco."""
     repo_res, cid_s = Path(repo_root).resolve(), str(conversation_id or "").strip()
     sess_dir = resolve_session_tracking_dir(repo_res, cid_s)
     sess_start_ns = session_start_ns if (isinstance(session_start_ns, int) and not isinstance(session_start_ns, bool) and session_start_ns > 0) else 0
@@ -349,11 +358,14 @@ def resolve_baseline_verification_source(
         sess_start_ns = _read_fastguard_session_start_ns(repo_res, cid_s)
     cands: List[Path] = [sess_dir / n for n in ("pytest_iso_last.json", "pytest_result.json", "live_pytest_result.json")] if sess_dir is not None else []
     diag_env = os.environ.get("NK_DIAGNOSTICS_DIR", "").strip()
-    diag_last = (Path(diag_env) if diag_env else (Path(tempfile.gettempdir()) / "nk_diagnostics")) / "pytest_iso_last.json"
-    cands.extend([repo_res / "nk_tracking" / "diagnostics" / "pytest_iso_last.json", diag_last])
+    diag_dir = Path(diag_env) if diag_env else (Path(tempfile.gettempdir()) / "nk_diagnostics")
+    diag_repo_last = diag_dir / f"pytest_iso_last_{repo_path_hash12(repo_res)}.json"
+    diag_last = diag_dir / "pytest_iso_last.json"
+    cands.extend([repo_res / "nk_tracking" / "diagnostics" / "pytest_iso_last.json", diag_repo_last, diag_last])
     for cand in cands:
         try:
-            if not cand.is_file() or (cand == diag_last and (sess_start_ns <= 0 or cand.stat().st_mtime_ns < sess_start_ns)):
+            is_diag_shared = cand in (diag_repo_last, diag_last)
+            if not cand.is_file() or (is_diag_shared and (sess_start_ns <= 0 or cand.stat().st_mtime_ns < sess_start_ns)):
                 continue
             data = json.loads(cand.read_text(encoding="utf-8"))
             if not isinstance(data, dict) or (data.get("mirror_dir") and Path(str(data["mirror_dir"])).name != repo_res.name):

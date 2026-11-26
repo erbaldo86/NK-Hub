@@ -495,6 +495,7 @@ def test_w1_cleanup_dev_servers_and_deterministic_api_cache(
         run=lambda *_a, **_k: SimpleNamespace(returncode=0, stdout=cim_payload, stderr=""),
         check_output=lambda *_a, **_k: "  TCP    127.0.0.1:59998   0.0.0.0:0   LISTENING   4242\n",
     )
+    monkeypatch.setattr(sys, "platform", "win32")
     monkeypatch.setattr(clean_mod, "_HAS_PSUTIL", False)
     monkeypatch.setattr(clean_mod, "subprocess", fake_sub)
     assert (clean_mod.is_target_workspace_process(999999, ws_target), clean_mod.is_target_workspace_process(4242, ws_target)) == (False, True)

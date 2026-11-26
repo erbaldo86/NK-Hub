@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from _internal.ast_guard_validator.signature_collector import SignatureCollector
 from _internal.ast_guard_validator.validator_helpers import load_file_ast_cached
+from _internal.nk_common.lane_paths import LANE_CONTAINER_DIRNAME, strip_staging_rel_parts
 
 try:
     from _internal.nk_common.ast_exports import (
@@ -63,36 +64,62 @@ def _resolve_target_path(target_file: str) -> Path:
         return base
 
 
+def _staging_hub_from_scripts_anc(anc: Path) -> Optional[Path]:
+    """Restituisce hub_root se anc e .staging/scripts oppure .staging/lanes/<id>/scripts."""
+    if anc.parent.name == ".staging":
+        return anc.parent.parent
+    if anc.parent.parent.name == LANE_CONTAINER_DIRNAME and anc.parent.parent.parent.name == ".staging":
+        return anc.parent.parent.parent.parent
+    return None
+
+
+def _collect_roots_from_staging_dir(anc: Path, resolved: Path) -> List[Path]:
+    """Raccoglie le root scripts/ dalla directory .staging/ o dalla sua lane."""
+    idx, _rel, lane = strip_staging_rel_parts(resolved.parts)
+    stg_scripts = (anc / LANE_CONTAINER_DIRNAME / lane / "scripts") if (idx >= 0 and lane) else (anc / "scripts")
+    prod_scripts = anc.parent / "scripts"
+    roots: List[Path] = []
+    if stg_scripts.is_dir():
+        roots.append(stg_scripts)
+    if prod_scripts.is_dir():
+        roots.append(prod_scripts)
+    return roots
+
+
+def _resolve_prod_from_staging_dir(anc: Path, resolved: Path) -> Tuple[List[Path], Optional[Path]]:
+    """Restituisce (prod_roots, pre_cur) per file dentro .staging/ o lane."""
+    prod_scripts = anc.parent / "scripts"
+    roots = [prod_scripts] if prod_scripts.is_dir() else []
+    _idx, rel_parts, _lane = strip_staging_rel_parts(resolved.parent.parts)
+    cand_dir = anc.parent.joinpath(*rel_parts) if rel_parts else None
+    pre_cur = cand_dir if (cand_dir is not None and cand_dir.is_dir()) else None
+    return roots, pre_cur
+
+
 def _resolve_local_import_roots(
     target_file: str,
 ) -> Tuple[List[Path], Optional[Path]]:
-    """Determina le directory scripts overlay (staging > prod) e la directory del file target."""
+    """Determina le directory scripts overlay (staging/lane > prod) e la directory target."""
     if not target_file or target_file.startswith("<"):
         return [], None
     resolved = _resolve_target_path(target_file)
     roots: List[Path] = []
     for anc in (resolved.parent, *resolved.parent.parents):
         if anc.name == "scripts":
-            if anc.parent.name == ".staging":
-                hub_root = anc.parent.parent
+            hub_from_stg = _staging_hub_from_scripts_anc(anc)
+            if hub_from_stg is not None:
                 roots.append(anc)
-                prod_scripts = hub_root / "scripts"
+                prod_scripts = hub_from_stg / "scripts"
                 if prod_scripts.is_dir() and prod_scripts != anc:
                     roots.append(prod_scripts)
             else:
-                hub_root = anc.parent
-                stg_scripts = hub_root / ".staging" / "scripts"
+                stg_scripts = anc.parent / ".staging" / "scripts"
                 if stg_scripts.is_dir() and stg_scripts != anc:
                     roots.append(stg_scripts)
                 roots.append(anc)
             break
         if anc.name == ".staging":
-            stg_scripts = anc / "scripts"
-            prod_scripts = anc.parent / "scripts"
-            if stg_scripts.is_dir():
-                roots.append(stg_scripts)
-            if prod_scripts.is_dir():
-                roots.append(prod_scripts)
+            roots.extend(_collect_roots_from_staging_dir(anc, resolved))
             break
     cur_dir = resolved.parent if resolved.parent.is_dir() else None
     return roots, cur_dir
@@ -107,23 +134,17 @@ def _resolve_prod_import_roots(
     resolved = _resolve_target_path(target_file)
     for anc in (resolved.parent, *resolved.parent.parents):
         if anc.name == "scripts":
-            if anc.parent.name == ".staging":
-                prod_scripts = anc.parent.parent / "scripts"
+            hub_from_stg = _staging_hub_from_scripts_anc(anc)
+            if hub_from_stg is not None:
+                prod_scripts = hub_from_stg / "scripts"
                 if not prod_scripts.is_dir():
                     return [], None
-                rel = resolved.parent.relative_to(anc)
-                cand_dir = prod_scripts / rel
-                pre_cur = cand_dir if cand_dir.is_dir() else prod_scripts
-                return [prod_scripts], pre_cur
+                cand_dir = prod_scripts / resolved.parent.relative_to(anc)
+                return [prod_scripts], (cand_dir if cand_dir.is_dir() else prod_scripts)
             cur_dir = resolved.parent if resolved.parent.is_dir() else None
             return [anc], cur_dir
         if anc.name == ".staging":
-            prod_scripts = anc.parent / "scripts"
-            roots = [prod_scripts] if prod_scripts.is_dir() else []
-            rel = resolved.parent.relative_to(anc)
-            cand_dir = anc.parent / rel
-            pre_cur = cand_dir if cand_dir.is_dir() else None
-            return roots, pre_cur
+            return _resolve_prod_from_staging_dir(anc, resolved)
     cur_dir = resolved.parent if resolved.parent.is_dir() else None
     return [], cur_dir
 

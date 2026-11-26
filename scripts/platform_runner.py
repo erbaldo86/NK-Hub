@@ -289,6 +289,7 @@ def _run_pytest_isolated_cli(args: object) -> int:
         workspace_root=ws_root, targets=tuple(getattr(args, "targets", None) or ("tests",)),
         extra_args=extra_args, timeout_sec=float(timeout_val) if timeout_val is not None else 180.0,
         coverage=bool(getattr(args, "coverage", False)), apply_overlay=bool(getattr(args, "overlay_staging", False)),
+        lane_id=getattr(args, "lane_id", None),
     )
     if getattr(args, "json", False):
         sys.stdout.write(json.dumps(res, indent=2, ensure_ascii=False) + "\n")
@@ -317,6 +318,7 @@ def main() -> int:
     parser.add_argument("--workspace-root", type=str, default=None, help="Radice del workspace da replicare su NVMe")
     parser.add_argument("--coverage", action="store_true", help="Abilita la raccolta coverage con pytest-cov")
     parser.add_argument("--overlay-staging", action="store_true", help="Sovrappone .staging/ su produzione nel mirror")
+    parser.add_argument("--lane-id", type=str, default=None, help="Lane di staging isolata in .staging/lanes/<id>/")
     parser.add_argument("--pytest-args", type=str, default=None, help="Argomenti extra passati a pytest")
     parser.add_argument("--json", action="store_true", help="Stampa il risultato isolato in formato JSON")
     args = parser.parse_args()
@@ -328,7 +330,7 @@ def main() -> int:
         _ensure_nk_common_paths()
         from _internal.nk_common.isolated_test_runner import mirror_workspace_to_nvme, safe_rmtree
         ws_root = Path(args.workspace_root or args.cwd or ".").resolve()
-        mirror_dir = mirror_workspace_to_nvme(ws_root, prefix="nk_cmd_iso_", apply_overlay=True, mirror_siblings=False)
+        mirror_dir = mirror_workspace_to_nvme(ws_root, prefix="nk_cmd_iso_", apply_overlay=True, mirror_siblings=False, lane_id=args.lane_id)
         ov_env = {"PYTHONPATH": os.pathsep.join([str(mirror_dir)] + ([os.environ["PYTHONPATH"]] if os.environ.get("PYTHONPATH") else []))}
         try:
             rc, stdout, stderr = safe_subprocess_run(cmd=args.cmd, cwd=mirror_dir, timeout=args.timeout, capture=not args.no_capture, env=ov_env)

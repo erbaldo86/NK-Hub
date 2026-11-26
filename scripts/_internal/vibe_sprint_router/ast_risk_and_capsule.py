@@ -6,8 +6,9 @@ import ast
 import difflib
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
+from _internal.nk_common.lane_paths import LANE_CONTAINER_DIRNAME, strip_staging_rel_parts
 from _internal.vibe_sprint_router.prompt_linter import lint_nk_prompt
 
 
@@ -53,12 +54,36 @@ def diff_changed_lines_impl(prod_lines: List[str], staged_lines: List[str]) -> i
     return changed
 
 
+def _resolve_staged_and_prod_pair(
+    file_arg: str, ws_resolved: Path, stg_resolved: Path
+) -> Tuple[Optional[Path], Optional[Path], Optional[int]]:
+    """Risolve (staged_p, prod_p, direct_loc_if_external) gestendo .staging/lanes/<id>/."""
+    p = Path(file_arg)
+    if not p.is_absolute():
+        idx, rel_parts, raw_lane = strip_staging_rel_parts(p.parts)
+        rel_path = Path(*rel_parts) if rel_parts else p
+        eff_stg = (ws_resolved / ".staging" / LANE_CONTAINER_DIRNAME / raw_lane) if raw_lane else stg_resolved
+        return eff_stg / rel_path, ws_resolved / rel_path, None
+    p_res = p.resolve()
+    idx, rel_parts, _raw_lane = strip_staging_rel_parts(p_res.parts)
+    if idx >= 0:
+        prod_p = Path(*p_res.parts[:idx]).joinpath(*rel_parts) if rel_parts else None
+        return p_res, prod_p, None
+    try:
+        rel_to_ws = p_res.relative_to(ws_resolved)
+        return stg_resolved / rel_to_ws, p_res, None
+    except ValueError:
+        if p_res.exists() and p_res.is_file():
+            return None, None, len(p_res.read_text(encoding="utf-8", errors="replace").splitlines())
+        return None, None, 0
+
+
 def estimate_changed_loc_impl(
     self,
     files: Optional[List[str]] = None,
     changed_lines: Optional[int] = None,
 ) -> int:
-    """Stima le righe modificate dal parametro changed_lines o dal diff in staging."""
+    """Stima le righe modificate dal parametro changed_lines o dal diff in staging/lane."""
     if changed_lines is not None:
         return max(0, int(changed_lines))
     if not files:
@@ -67,45 +92,16 @@ def estimate_changed_loc_impl(
     ws_resolved = self.workspace_root.resolve()
     stg_resolved = self.staging_dir.resolve()
     for file_arg in files:
-        p = Path(file_arg)
-        staged_p: Optional[Path] = None
-        prod_p: Optional[Path] = None
-        if not p.is_absolute():
-            rel_parts = [pt for pt in p.parts if pt != ".staging"]
-            rel_path = Path(*rel_parts) if rel_parts else p
-            staged_p = self.staging_dir / rel_path
-            prod_p = self.workspace_root / rel_path
-        else:
-            p_res = p.resolve()
-            if ".staging" in p_res.parts:
-                idx = list(p_res.parts).index(".staging")
-                staged_p = p_res
-                if idx + 1 < len(p_res.parts):
-                    prod_p = Path(*p_res.parts[:idx]).joinpath(
-                        *p_res.parts[idx + 1 :]
-                    )
-            else:
-                try:
-                    rel_to_ws = p_res.relative_to(ws_resolved)
-                    staged_p = stg_resolved / rel_to_ws
-                    prod_p = p_res
-                except ValueError:
-                    if p_res.exists() and p_res.is_file():
-                        total_loc += len(
-                            p_res.read_text(
-                                encoding="utf-8", errors="replace"
-                            ).splitlines()
-                        )
-                    continue
-
+        staged_p, prod_p, direct_loc = _resolve_staged_and_prod_pair(
+            file_arg, ws_resolved, stg_resolved
+        )
+        if direct_loc is not None:
+            total_loc += direct_loc
+            continue
         if staged_p is not None and staged_p.exists() and staged_p.is_file():
-            s_lines = staged_p.read_text(
-                encoding="utf-8", errors="replace"
-            ).splitlines()
+            s_lines = staged_p.read_text(encoding="utf-8", errors="replace").splitlines()
             if prod_p is not None and prod_p.exists() and prod_p.is_file():
-                p_lines = prod_p.read_text(
-                    encoding="utf-8", errors="replace"
-                ).splitlines()
+                p_lines = prod_p.read_text(encoding="utf-8", errors="replace").splitlines()
                 total_loc += self._diff_changed_lines(p_lines, s_lines)
             else:
                 total_loc += len(s_lines)

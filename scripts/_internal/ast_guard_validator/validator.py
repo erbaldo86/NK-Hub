@@ -28,6 +28,7 @@ from _internal.ast_guard_validator.validator_helpers import (
     verify_classes_impl,
     verify_signatures_impl,
 )
+from _internal.nk_common.lane_paths import strip_staging_rel_parts
 
 
 def _compute_visited_set(target_file: str, prod_only: bool = False) -> Set[Path]:
@@ -35,12 +36,10 @@ def _compute_visited_set(target_file: str, prod_only: bool = False) -> Set[Path]
     if not target_file or target_file.startswith("<"):
         return set()
     res_t = _resolve_target_path(target_file)
-    if prod_only and ".staging" in res_t.parts:
-        parts = list(res_t.parts)
-        idx = parts.index(".staging")
-        rel = parts[idx + 1 :]
-        if rel:
-            prod_t = Path(*parts[:idx]).joinpath(*rel) if idx > 0 else Path(*rel)
+    if prod_only:
+        idx, rel, _lane = strip_staging_rel_parts(res_t.parts)
+        if idx >= 0 and rel:
+            prod_t = Path(*res_t.parts[:idx]).joinpath(*rel) if idx > 0 else Path(*rel)
             return {prod_t}
     return {res_t}
 

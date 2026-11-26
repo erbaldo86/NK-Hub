@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional, Sequence
 from pydantic import JsonValue
 
 from _internal.nk_common.constants import HIGH_CAPACITY_PROFILES
+from _internal.nk_common.io import atomic_write_text
 from _internal.memory_3tier_engine.models import (
     MEMORY_SCHEMA_VERSION,
     MemoryEpisode,
@@ -191,6 +192,33 @@ def read_shadow_cache_impl(
         return None
 
 
+def _write_shadow_cache_payload(
+    cache_dir: Path,
+    project_cache_id: str,
+    base_dir: Path,
+    domain: str,
+    episodes: Sequence[MemoryEpisode],
+) -> None:
+    src_file = base_dir / domain / "episodes.jsonl"
+    st = src_file.stat() if src_file.exists() else None
+    mtime = st.st_mtime if st is not None else time.time()
+    mtime_ns = st.st_mtime_ns if st is not None else time.time_ns()
+    size = st.st_size if st is not None else 0
+    meta_file = cache_dir / f"{project_cache_id}_{domain}_meta.json"
+    data_file = cache_dir / f"{project_cache_id}_{domain}_data.json"
+    ok_data, _ = atomic_write_text(
+        data_file, json.dumps([e.model_dump() for e in episodes]), encoding="utf-8", fsync_data=False
+    )
+    if not ok_data:
+        return
+    atomic_write_text(
+        meta_file,
+        json.dumps({"mtime": mtime, "mtime_ns": mtime_ns, "size": size, "domain": domain}),
+        encoding="utf-8",
+        fsync_data=False,
+    )
+
+
 def update_shadow_cache_impl(
     cache_dir: Path,
     project_cache_id: str,
@@ -198,24 +226,11 @@ def update_shadow_cache_impl(
     domain: str,
     episodes: Sequence[MemoryEpisode],
 ) -> None:
-    """Aggiorna la shadow cache JSON locale del Livello 2 ignorando errori I/O non critici."""
+    """Aggiorna atomicamente data poi meta per prevenire letture strappate in parallelo."""
     try:
-        src_file = base_dir / domain / "episodes.jsonl"
-        st = src_file.stat() if src_file.exists() else None
-        mtime = st.st_mtime if st is not None else time.time()
-        mtime_ns = st.st_mtime_ns if st is not None else time.time_ns()
-        size = st.st_size if st is not None else 0
-        meta_file = cache_dir / f"{project_cache_id}_{domain}_meta.json"
-        data_file = cache_dir / f"{project_cache_id}_{domain}_data.json"
-        meta_file.write_text(
-            json.dumps({"mtime": mtime, "mtime_ns": mtime_ns, "size": size, "domain": domain}),
-            encoding="utf-8",
-        )
-        data_file.write_text(
-            json.dumps([e.model_dump() for e in episodes]), encoding="utf-8"
-        )
+        _write_shadow_cache_payload(cache_dir, project_cache_id, base_dir, domain, episodes)
     except Exception:
-        pass
+        return
 
 
 def consolidate_episodes_impl(

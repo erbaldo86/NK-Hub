@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import math
-import os
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
@@ -161,7 +160,7 @@ def stmt_matches_hint(stmt: str, norm_hint: Optional[str]) -> bool:
     fpath, _ = split_stmt(stmt)
     fname = Path(fpath).name
     if norm_hint:
-        return os.path.normcase(fname) == os.path.normcase(norm_hint)
+        return fname.lower() == norm_hint.lower()
     low = fname.lower()
     return low != "conftest.py" and not low.startswith("test_") and not low.endswith("_test.py")
 

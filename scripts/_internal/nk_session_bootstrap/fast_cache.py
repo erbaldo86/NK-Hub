@@ -52,12 +52,13 @@ def is_cache_entry_valid(
 
 
 def load_fast_cache(self_obj: Any) -> Optional[Dict[str, Any]]:
-    """Carica la cache veloce restituendo sempre una copia immutabile da _MEMORY_CACHE o disco."""
+    """Carica la cache veloce isolata per conversazione da _MEMORY_CACHE o disco."""
     ws_key = str(self_obj.workspace_root)
+    mem_key = getattr(self_obj, "_cache_mem_key", ws_key)
     now_ts = time.time()
     lock = _consts._get_facade_attr("_BOOTSTRAP_LOCK", _consts._BOOTSTRAP_LOCK)
     with lock:
-        mem_entry = self_obj._MEMORY_CACHE.get(ws_key)
+        mem_entry = self_obj._MEMORY_CACHE.get(mem_key)
         if isinstance(mem_entry, dict):
             disk_newer = False
             try:
@@ -85,7 +86,7 @@ def load_fast_cache(self_obj: Any) -> Optional[Dict[str, Any]]:
                 ):
                     import copy
 
-                    self_obj._MEMORY_CACHE[ws_key] = copy.deepcopy(data)
+                    self_obj._MEMORY_CACHE[mem_key] = copy.deepcopy(data)
                     return copy.deepcopy(data)
             except Exception:
                 continue
@@ -279,8 +280,9 @@ def save_state(self_obj: Any, report: Dict[str, Any]) -> None:
 
         serialized = json.dumps(report_to_save, indent=2)
         lock = _consts._get_facade_attr("_BOOTSTRAP_LOCK", _consts._BOOTSTRAP_LOCK)
+        mem_key = getattr(self_obj, "_cache_mem_key", str(self_obj.workspace_root))
         with lock:
-            self_obj._MEMORY_CACHE[str(self_obj.workspace_root)] = copy.deepcopy(
+            self_obj._MEMORY_CACHE[mem_key] = copy.deepcopy(
                 report_to_save
             )
             self_obj._atomic_write_json(self_obj.fast_cache_file, serialized)

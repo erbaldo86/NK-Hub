@@ -50,7 +50,9 @@ from _internal.nk_hook_gate.shell_search_mask import _strip_readonly_search_patt
 _AUTH_SCRIPT_TOKEN_RE = re.compile(_AUTH_SCRIPT_TOK_RE, re.IGNORECASE)
 _GOV_ENV_VAR_PAT = (
     r"(?:NK_ALLOW_GOVERNANCE_OVERRIDE|NK_GOVERNANCE_[A-Z0-9_]*|"
-    r"NK_TENSOR_[A-Z0-9_]*|NK_HOLDOUT_DIR|(?:NK_)?PROGET_ROOT)"
+    r"NK_TENSOR_[A-Z0-9_]*|NK_COMMIT_TRAIN_[A-Z0-9_]*|NK_HOLDOUT_DIR|(?:NK_)?PROGET_ROOT|"
+    r"NK_HOOKS_TEMP_DIR|ANTIGRAVITY_CONVERSATION_ID|NK_CONVERSATION_ID|"
+    r"NK_LANE_ID|NK_LANE_SECRET)"
 )
 _GOV_ENV_TAMPER_RE = re.compile(
     rf"(?:"
@@ -59,8 +61,8 @@ _GOV_ENV_TAMPER_RE = re.compile(
     rf"|\[(?:System\.)?Environment\]::SetEnvironmentVariable\s*\([^\n)]*{_GOV_ENV_VAR_PAT}"
     rf"|os\.environ\s*\[[^\n\]]*{_GOV_ENV_VAR_PAT}[^\n\]]*\]\s*="
     rf"|(?:del\s+os\.environ\s*\[[^\n\]]*{_GOV_ENV_VAR_PAT})"
-    rf"|os\.environ\.(?:update|setdefault|pop)\s*\([^\n)]*{_GOV_ENV_VAR_PAT}"
-    rf"|os\.(?:putenv|unsetenv)\s*\([^\n)]*{_GOV_ENV_VAR_PAT}"
+    rf"|os\.environ\.(?:update|setdefault|pop)\s*\([^\n]*{_GOV_ENV_VAR_PAT}"
+    rf"|os\.(?:putenv|unsetenv)\s*\([^\n]*{_GOV_ENV_VAR_PAT}"
     rf")",
     re.IGNORECASE,
 )
@@ -128,7 +130,7 @@ def _has_cmd_write_indicator(
 
 
 def _is_allowed_script_parent(raw_script_tok: str, project_root: Path) -> bool:
-    """Verifica che il token script risieda sotto scripts/ o .staging/scripts/ di root."""
+    """Verifica che il token script risieda sotto scripts/ di produzione (blocco .staging/scripts SEC-F3)."""
     if not raw_script_tok or "scratch/" in raw_script_tok.lower():
         return False
     eff_root = _resolve_effective_hub_root(project_root)
@@ -136,9 +138,7 @@ def _is_allowed_script_parent(raw_script_tok: str, project_root: Path) -> bool:
     cand = _resolve_target_path(raw_script_tok, eff_root)
     allowed_roots = (
         eff_root / "scripts",
-        eff_root / ".staging" / "scripts",
         hub_canon / "scripts",
-        hub_canon / ".staging" / "scripts",
     )
     return any(cand.parent == _canonical_path(ar) for ar in allowed_roots)
 
@@ -178,6 +178,28 @@ def _extract_cli_flag_value(
     return ""
 
 
+def _resolve_override_staging_sha(
+    tokens: List[Tuple[str, str, bool]], project_root: Path
+) -> str:
+    """Calcola lo SHA-256 dello staging/lane bersaglio per verifica token governance v2 (SEC-F4)."""
+    from _internal.nk_common.lane_paths import resolve_staging_dir
+    from _internal.nk_common.staging_manifest import compute_staging_manifest_sha256
+
+    raw_root = _extract_cli_flag_value(tokens, "--repo-root") or _extract_cli_flag_value(tokens, "--root")
+    eff_root = (
+        _canonical_path(_resolve_target_path(raw_root, project_root))
+        if raw_root
+        else _resolve_effective_hub_root(project_root)
+    )
+    raw_lane = _extract_cli_flag_value(tokens, "--lane-id") or None
+    raw_stg = _extract_cli_flag_value(tokens, "--staging-dir") or None
+    if raw_lane is not None and raw_stg == ".staging":
+        raw_stg = None
+    eff_stg, norm_lane = resolve_staging_dir(eff_root, lane_id=raw_lane, staging_dir=raw_stg)
+    excl_lanes = norm_lane is None and eff_stg.name == ".staging"
+    return compute_staging_manifest_sha256(eff_stg, reject_symlinks=True, exclude_lanes=excl_lanes)
+
+
 def _is_authorized_governance_override_cmd(
     cmd_str: str, project_root: Path = _WORKSPACE_ROOT
 ) -> bool:
@@ -211,7 +233,8 @@ def _is_authorized_governance_override_cmd(
     try:
         from _internal.win32_2pc_engine.governance_auth import verify_governance_token
 
-        verify_governance_token(token, reason)
+        stg_sha = _resolve_override_staging_sha(tokens, project_root)
+        verify_governance_token(token, reason, staging_manifest_sha256=stg_sha)
         return True
     except (ImportError, RuntimeError, ValueError, OSError):
         return False

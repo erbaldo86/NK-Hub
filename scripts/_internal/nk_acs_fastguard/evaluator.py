@@ -32,15 +32,16 @@ from _internal.nk_acs_fastguard.state_rmw import (
     _resolve_eff_root,
     _resolve_explicit_conv_id,
     _resolve_transcript_path,
+    is_fastguard_mutex_acquired,
 )
 from _internal.nk_acs_fastguard.z2_and_l0 import (
     _check_l0_gate_one_shot,
-    _has_active_wal,
-    _is_batch_mutex_busy,
-    _is_l0_exempt_fast,
+    _has_active_wal,  # noqa: F401
+    _is_batch_mutex_busy,  # noqa: F401
+    _is_l0_exempt_fast,  # noqa: F401
     _maybe_spawn_z2,
-    _read_anchor_meta,
-    _strip_xml_wrapper_fast,
+    _read_anchor_meta,  # noqa: F401
+    _strip_xml_wrapper_fast,  # noqa: F401
 )
 
 
@@ -95,7 +96,6 @@ def _parse_fastguard_args(
 def _format_hook_output(
     sys_msg: str, user_markdown: Optional[str], native_contract: bool
 ) -> Dict[str, Any]:
-    """Costruisce il payload JSON nativo (injectSteps) oppure legacy compatibile."""
     meta = {"user_markdown": user_markdown} if user_markdown is not None else None
     if native_contract:
         msg_obj: Dict[str, Any] = {"systemMessage": sys_msg}
@@ -108,13 +108,16 @@ def _format_hook_output(
     return out
 
 
+def _safe_persist_state(state_path: Optional[str], state: Dict[str, Any], fg_mutex: Optional[int]) -> None:
+    if sys.platform == "win32" and fg_mutex is None and not is_fastguard_mutex_acquired():
+        _warn_stderr("fastguard_mutex_skip_persist", f"path={state_path}")
+        return
+    _persist_state_or_warn(state_path, state)
+
+
 def _evaluate_fallback_no_transcript(
-    roots: List[str],
-    explicit_conv_id: Optional[str],
-    event: str,
-    native_contract: bool,
+    roots: List[str], explicit_conv_id: Optional[str], event: str, native_contract: bool,
 ) -> int:
-    """Gestisce il caso tp_path is None usando contatore fallback per conversazione valida."""
     if explicit_conv_id is None or explicit_conv_id.startswith("default_"):
         print("{}")
         return 0
@@ -147,7 +150,7 @@ def _evaluate_fallback_no_transcript(
                         f"[ACS-Z1 SOFT-FOLDING] Fallback a {fb_steps} step senza transcript. Usa letture mirate, invoke_subagent e risposte compatte.",
                         None, native_contract,
                     )
-        _persist_state_or_warn(state_path, state)
+        _safe_persist_state(state_path, state, fg_mutex)
         print(json.dumps(out_fb, ensure_ascii=True))
     finally:
         _release_fastguard_mutex(fg_mutex)
@@ -192,7 +195,6 @@ def main(argv: Optional[List[str]] = None) -> int:
 
         if tp_path is None:
             return _evaluate_fallback_no_transcript(roots, explicit_conv_id, event, native_contract)
-
         if _is_subagent_transcript(tp_path):
             print("{}")
             return 0
@@ -210,17 +212,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         prev_actual = int(state.get("prev_actual_tokens", 0))
         old_epoch = int(state.get("compaction_epoch", 0))
         _advance_cursor(tp_path, state)
-        cur_tokens = int(state.get("last_actual_tokens", 0))
-        steps = int(state.get("steps", 0))
-        epoch = int(state.get("compaction_epoch", 0))
+        cur_tokens, steps, epoch = int(state.get("last_actual_tokens", 0)), int(state.get("steps", 0)), int(state.get("compaction_epoch", 0))
         if epoch != old_epoch or int(state.get("prev_actual_tokens", 0)) == 0:
             prev_actual = 0
 
-        velocity_trigger = (
-            prev_actual > 0
-            and (cur_tokens - prev_actual) >= int(cfg["vel_delta"])
-            and (cur_tokens >= int(cfg["vel_cur"]) or steps >= int(cfg["vel_steps"]))
-        )
+        velocity_trigger = prev_actual > 0 and (cur_tokens - prev_actual) >= int(cfg["vel_delta"]) and (cur_tokens >= int(cfg["vel_cur"]) or steps >= int(cfg["vel_steps"]))
         is_z3 = cur_tokens >= int(cfg["z3_tokens"]) or steps >= int(cfg["z3_steps"]) or velocity_trigger
         is_z2 = is_z3 or cur_tokens >= int(cfg["z2_tokens"]) or steps >= int(cfg["z2_steps"])
         is_z1 = cur_tokens >= int(cfg["z1_tokens"]) or steps >= int(cfg["z1_steps"])
@@ -229,8 +225,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         out: Dict[str, Any] = {}
         if event == "PreInvocation":
             msgs: List[str] = []
-            l0_msg = _check_l0_gate_one_shot(tp_path, conv_id, hooks_dir, state, epoch)
-            if l0_msg:
+            if l0_msg := _check_l0_gate_one_shot(tp_path, conv_id, hooks_dir, state, epoch):
                 msgs.append(l0_msg)
             cp_off = int(state.get("checkpoint_byte_offset", 0))
             if cp_off > 0 and cp_off != int(state.get("reanchor_emitted_offset", -1)):
@@ -239,8 +234,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             if is_z3:
                 spawn_fn(roots, tp_path, conv_id, payload, state, cooldown_s=float(cfg["cooldown_s"]))
                 if int(state.get("z3_pre_epoch", -1)) != epoch:
-                    state["z3_pre_epoch"] = epoch
-                    state["z1_epoch"] = epoch
+                    state["z3_pre_epoch"], state["z1_epoch"] = epoch, epoch
                     msgs.append(f"[ACS-Z3 CRITICO] Contesto critico ({cur_tokens} token, {steps} step). Concludi il turno senza avviare task multi-file.")
             elif is_z2:
                 spawn_fn(roots, tp_path, conv_id, payload, state, cooldown_s=float(cfg["cooldown_s"]))
@@ -253,10 +247,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             if is_z3:
                 if int(state.get("z3_post_epoch", -1)) != epoch:
                     state["z3_post_epoch"] = epoch
-                    user_md = (
-                        f"### [ACS-Z3] Saturazione Critica Contesto ({cur_tokens:,} token / {steps} step)\n\n"
-                        "Auto-checkpoint avviato in background. Concludi la fase corrente e riparti da `active_context.md`."
-                    )
+                    user_md = f"### [ACS-Z3] Saturazione Critica Contesto ({cur_tokens:,} token / {steps} step)\n\nAuto-checkpoint avviato in background. Concludi la fase corrente e riparti da `active_context.md`."
                     out = _format_hook_output("", user_md, native_contract)
                 spawn_fn(roots, tp_path, conv_id, payload, state, cooldown_s=float(cfg["cooldown_s"]))
             elif is_z2:
@@ -264,7 +255,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
         _update_velocity_delta(state, cur_tokens, prev_actual)
         if not state_exists or state_recovered or state != state_before:
-            _persist_state_or_warn(state_path, state)
+            _safe_persist_state(state_path, state, fg_mutex)
         print(json.dumps(out, ensure_ascii=True))
     except Exception as exc:
         _warn_stderr("main_unexpected_error", f"event={event} reason={exc}")

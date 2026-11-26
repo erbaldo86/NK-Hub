@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import ExitStack
 import hashlib
 import json
 import os
@@ -38,6 +39,7 @@ from _internal.nk_session_handoff.session_state import (
     _parse_optional_turn,
     _read_baseline_pass_rate,
     _read_baseline_tests_count,
+    get_handoff_state_mutex_name,
     prune_session_tracking_dirs,
     select_auto_checkpoint_template,
 )
@@ -63,6 +65,42 @@ except ImportError:
     )
 
 _FACADES = ("nk_session_handoff", "scripts.nk_session_handoff")
+
+
+def _persist_auto_checkpoint_locked(
+    args: argparse.Namespace, effective_root: Path, effective_milestone: str,
+    shared_state_sha256: Optional[str], staging_state_sha256: Optional[str],
+    eff_cid: Optional[str], fsm_cp_turn: Optional[int], latest_file: Path,
+    prompt_file: Path, active_ctx_path: Path, sess_dir: Optional[Path],
+    metadata: Dict[str, Any], compiled_prompt: Optional[str],
+) -> int:
+    repo_hash16 = hashlib.sha256(os.path.realpath(str(effective_root)).lower().replace("/", "\\").rstrip("\\").encode("utf-8")).hexdigest()[:16]
+    mutex_cls = resolve_facade_attr(_FACADES, "Win32NamedMutex", Win32NamedMutex)
+    try:
+        with ExitStack() as stack:
+            stack.enter_context(mutex_cls(f"Global\\NK_HandoffWorker_{repo_hash16}", timeout_ms=0, is_path=False))
+            stack.enter_context(mutex_cls(get_repo_batch_mutex_name(effective_root.resolve()), timeout_ms=2000, is_path=False))
+            stack.enter_context(mutex_cls(get_handoff_state_mutex_name(effective_root.resolve()), timeout_ms=2000, is_path=False))
+            gate_st = str(args.gate_status or "PASS")
+            anchor_res = (
+                record_fsm_checkpoint(turn=fsm_cp_turn, gate_status=gate_st, milestone_id=effective_milestone, root=effective_root, state_sha256_override=shared_state_sha256, staging_state_sha256=staging_state_sha256, conversation_id=eff_cid)
+                if fsm_cp_turn is not None
+                else record_idle_checkpoint_anchor(gate_status=gate_st, milestone_id=effective_milestone, root=effective_root, state_sha256_override=shared_state_sha256, staging_state_sha256=staging_state_sha256, conversation_id=eff_cid, handoff_template=metadata["handoff_template"])
+            )
+            _write_dual_files(effective_root, latest_file, sess_dir, "session_handoff_latest.json", json.dumps(metadata, indent=2, ensure_ascii=False).encode("utf-8"))
+            ctx_res = generate_active_context_view(root=effective_root, profile=str(args.profile or "generation"), dry_run=False, conversation_id=eff_cid, state_sha256_override=shared_state_sha256)
+            if compiled_prompt is not None:
+                _write_dual_files(effective_root, prompt_file, sess_dir, "next_session_prompt.md", compiled_prompt.encode("utf-8"))
+    except (Win32LockTimeoutError, Win32LockError) as lock_exc:
+        print(json.dumps({"status": "SKIPPED_LOCK_BUSY", "passed": True, "skipped": True, "reason": str(lock_exc), "project_root": str(effective_root)}, indent=2, ensure_ascii=False))
+        return 0
+    cp_receipt: Dict[str, Any] = {
+        "status": "CHECKPOINT_SAVED", "passed": bool(ctx_res.get("passed", True)), "project_root": str(effective_root),
+        "handoff_template": metadata["handoff_template"], "latest_path": str(latest_file), "prompt_path": str(prompt_file),
+        "active_context_path": str(ctx_res.get("output_path", active_ctx_path)), "anchor_recorded": anchor_res is not None, "metadata": metadata,
+    }
+    print(json.dumps(cp_receipt, indent=2, ensure_ascii=False))
+    return 0 if cp_receipt["passed"] else 1
 
 
 def _normalize_cli_conv_id(raw_cid: Optional[str]) -> Optional[str]:
@@ -145,17 +183,11 @@ def _run_serialize_mode(args: argparse.Namespace, hub_root: Path, project_root: 
         persist_intent_brief(brief_id=args.persist_brief_id, prompt_text=args.prompt_text, project_root=str(project_root))
 
     ser_res = serialize_handoff_v2(
-        hub_root=hub_root,
-        project_root=project_root,
-        mode=str(args.mode or "PASSIVE_STANDBY"),
-        ecosystem_scan=bool(args.ecosystem_scan),
-        conversation_id=cid,
-        transcript_path=Path(tp) if tp else None,
-        active_brief_id=args.persist_brief_id,
-        target_repo_ids=target_repos,
-        prompt_text=args.prompt_text or None,
-        milestone_id=cli_ms,
-        turn=cli_turn,
+        hub_root=hub_root, project_root=project_root, mode=str(args.mode or "PASSIVE_STANDBY"),
+        ecosystem_scan=bool(args.ecosystem_scan), conversation_id=cid,
+        transcript_path=Path(tp) if tp else None, active_brief_id=args.persist_brief_id,
+        target_repo_ids=target_repos, prompt_text=args.prompt_text or None,
+        milestone_id=cli_ms, turn=cli_turn,
     )
     lint_res = ser_res["lint_result"]
     if not bool(lint_res.get("passed", False)) or int(lint_res.get("return_code", 0)) != 0:
@@ -169,7 +201,7 @@ def _run_serialize_mode(args: argparse.Namespace, hub_root: Path, project_root: 
     if not is_dry_run:
         sess_dir = resolve_session_tracking_dir(project_root, cid) if not args.output_dir else None
         mutex_cls = resolve_facade_attr(_FACADES, "Win32NamedMutex", Win32NamedMutex)
-        with mutex_cls(get_repo_batch_mutex_name(project_root.resolve()), timeout_ms=2000, is_path=False):
+        with mutex_cls(get_handoff_state_mutex_name(project_root.resolve()), timeout_ms=2000, is_path=False):
             _write_dual_files(project_root, prompt_file, sess_dir, "next_session_prompt.md", ser_res["compiled_markdown"].encode("utf-8"))
             _write_dual_files(project_root, latest_file, sess_dir, "session_handoff_latest.json", json.dumps(ser_res["envelope"], indent=2, ensure_ascii=False).encode("utf-8"))
 
@@ -348,30 +380,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 0
 
     if is_auto_checkpoint:
-        repo_hash16 = hashlib.sha256(os.path.realpath(str(effective_root)).lower().replace("/", "\\").rstrip("\\").encode("utf-8")).hexdigest()[:16]
-        mutex_cls = resolve_facade_attr(_FACADES, "Win32NamedMutex", Win32NamedMutex)
-        try:
-            with mutex_cls(f"Global\\NK_HandoffWorker_{repo_hash16}", timeout_ms=0, is_path=False):
-                with mutex_cls(get_repo_batch_mutex_name(effective_root.resolve()), timeout_ms=2000, is_path=False):
-                    anchor_res = (
-                        record_fsm_checkpoint(turn=fsm_cp_turn, gate_status=str(args.gate_status or "PASS"), milestone_id=effective_milestone, root=effective_root, state_sha256_override=shared_state_sha256, staging_state_sha256=staging_state_sha256, conversation_id=eff_cid)
-                        if fsm_cp_turn is not None
-                        else record_idle_checkpoint_anchor(gate_status=str(args.gate_status or "PASS"), milestone_id=effective_milestone, root=effective_root, state_sha256_override=shared_state_sha256, staging_state_sha256=staging_state_sha256, conversation_id=eff_cid, handoff_template=metadata["handoff_template"])
-                    )
-                    _write_dual_files(effective_root, latest_file, sess_dir, "session_handoff_latest.json", json.dumps(metadata, indent=2, ensure_ascii=False).encode("utf-8"))
-                    ctx_res = generate_active_context_view(root=effective_root, profile=str(args.profile or "generation"), dry_run=False, conversation_id=eff_cid, state_sha256_override=shared_state_sha256)
-                    if compiled_prompt is not None:
-                        _write_dual_files(effective_root, prompt_file, sess_dir, "next_session_prompt.md", compiled_prompt.encode("utf-8"))
-        except (Win32LockTimeoutError, Win32LockError) as lock_exc:
-            print(json.dumps({"status": "SKIPPED_LOCK_BUSY", "passed": True, "skipped": True, "reason": str(lock_exc), "project_root": str(effective_root)}, indent=2, ensure_ascii=False))
-            return 0
-        cp_receipt: Dict[str, Any] = {
-            "status": "CHECKPOINT_SAVED", "passed": bool(ctx_res.get("passed", True)), "project_root": str(effective_root),
-            "handoff_template": metadata["handoff_template"], "latest_path": str(latest_file), "prompt_path": str(prompt_file),
-            "active_context_path": str(ctx_res.get("output_path", active_ctx_path)), "anchor_recorded": anchor_res is not None, "metadata": metadata,
-        }
-        print(json.dumps(cp_receipt, indent=2, ensure_ascii=False))
-        return 0 if cp_receipt["passed"] else 1
+        return _persist_auto_checkpoint_locked(
+            args, effective_root, effective_milestone, shared_state_sha256, staging_state_sha256,
+            eff_cid, fsm_cp_turn, latest_file, prompt_file, active_ctx_path, sess_dir, metadata, compiled_prompt,
+        )
 
     _write_dual_files(effective_root, latest_file, sess_dir, "session_handoff_latest.json", json.dumps(metadata, indent=2).encode("utf-8"))
     if want_prompt and compiled_prompt is not None:

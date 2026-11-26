@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
-"""Adapter Read-Only verso RSIConvergenceEngine (DOM-04) con diff_aware=True."""
+"""Adapter Read-Only verso RSIConvergenceEngine (DOM-04) con diff_aware=True e multi-lane."""
 
 from __future__ import annotations
 
-import ast, hashlib, inspect, math, re
+import ast, hashlib, inspect, re
 from pathlib import Path
-from typing import Any, Dict, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 from _internal.nk_common.epistemic_firewall_rules import strip_l3_persuasive_narrative
+from _internal.nk_common.lane_paths import is_lane_container_entry, resolve_staging_dir
 from _internal.nk_common.staging_manifest import safe_finite_float
 from _internal.tensor_rsi.pareto_gate import compute_secondary_vector
 from _internal.tensor_rsi.schemas import (
@@ -34,15 +35,27 @@ def _safe_duration_s(raw: Any) -> float:
     val = safe_finite_float(raw, default=-1.0)
     return val if val >= 0.0 else float("nan")
 
-def _derive_repo_counts(workspace_root: Path) -> Tuple[int, int, int]:
-    """Deriva deterministicamente (assert_count, doc_link_count, loc_delta) da .staging/ vs produzione."""
-    stg = workspace_root / ".staging"
-    if not stg.is_dir():
-        return 0, 0, 0
-    asserts, doc_links, loc_delta = 0, 0, 0
+def _iter_repo_count_files(stg: Path, excl_lanes: bool) -> List[Path]:
+    out: List[Path] = []
     for fp in sorted(stg.rglob("*")):
         if not fp.is_file() or "__pycache__" in fp.parts:
             continue
+        if excl_lanes and is_lane_container_entry(fp.relative_to(stg).parts):
+            continue
+        out.append(fp)
+    return out
+
+def _derive_repo_counts(workspace_root: Path, lane_id: Optional[str] = None, staging_dir: Optional[Path] = None) -> Tuple[int, int, int]:
+    """Deriva deterministicamente (assert_count, doc_link_count, loc_delta) da staging/lane vs produzione."""
+    if staging_dir is not None:
+        stg, excl_lanes = Path(staging_dir).resolve(), False
+    else:
+        stg, norm_lane = resolve_staging_dir(workspace_root, lane_id=lane_id)
+        excl_lanes = norm_lane is None and stg.name == ".staging"
+    if not stg.is_dir():
+        return 0, 0, 0
+    asserts, doc_links, loc_delta = 0, 0, 0
+    for fp in _iter_repo_count_files(stg, excl_lanes):
         suf = fp.suffix.lower()
         try:
             txt = fp.read_text(encoding="utf-8", errors="replace")
@@ -60,11 +73,27 @@ def _derive_repo_counts(workspace_root: Path) -> Tuple[int, int, int]:
             doc_links += len(_MD_LINK_COUNT_RE.findall(txt))
     return asserts, doc_links, loc_delta
 
+def _attach_opt_verify_kwargs(
+    kwargs: Dict[str, Any], params: Any, coverage_report: Optional[Any], lane_id: Optional[str], staging_dir: Optional[Path] = None,
+) -> None:
+    has_kw = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())
+    if has_kw or "diff_aware" in params:
+        kwargs["diff_aware"] = True
+    if has_kw or "strict_unmeasured_gate" in params:
+        kwargs["strict_unmeasured_gate"] = True
+    if coverage_report is not None and (has_kw or "coverage_report" in params):
+        kwargs["coverage_report"] = coverage_report
+    if lane_id is not None and (has_kw or "lane_id" in params):
+        kwargs["lane_id"] = lane_id
+    if staging_dir is not None and (has_kw or "staging_dir" in params):
+        kwargs["staging_dir"] = staging_dir
+
 def _invoke_verify_ecosystem_ro(
     engine: RSIConvergenceEngine, workspace_root: Path, *, profile: str, run_pytest: bool,
     strict_verify: bool, benchmark_suite: Optional[str], sast_report: Optional[Union[str, Path]],
     test_report: Optional[Dict[str, Any]], dast_report: Optional[Union[str, Path]],
     mutation_report: Optional[Any], coverage_report: Optional[Any], allowed_files: Optional[Union[str, Sequence[str]]],
+    lane_id: Optional[str] = None, staging_dir: Optional[Path] = None,
 ) -> Dict[str, Any]:
     """Chiama verify_ecosystem(..., diff_aware=True, strict_unmeasured_gate=True) in sola lettura."""
     kwargs: Dict[str, Any] = {
@@ -77,13 +106,7 @@ def _invoke_verify_ecosystem_ro(
         params = inspect.signature(engine.verify_ecosystem).parameters
     except (TypeError, ValueError):
         params = {}
-    has_kw = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())
-    if has_kw or "diff_aware" in params:
-        kwargs["diff_aware"] = True
-    if has_kw or "strict_unmeasured_gate" in params:
-        kwargs["strict_unmeasured_gate"] = True
-    if coverage_report is not None and (has_kw or "coverage_report" in params):
-        kwargs["coverage_report"] = coverage_report
+    _attach_opt_verify_kwargs(kwargs, params, coverage_report, lane_id, staging_dir)
     return engine.verify_ecosystem(**kwargs)
 
 def _as_dict(mapping: Dict[str, Any], key: str) -> Dict[str, Any]:
@@ -210,8 +233,10 @@ def snapshot_from_oracle_result(
     )
 
 
-def _resolve_eff_ro_counts(root: Path, loc_delta: int, assert_count: int, doc_link_count: int) -> Tuple[int, int, int]:
-    d_assert, d_doc, d_loc = _derive_repo_counts(root)
+def _resolve_eff_ro_counts(
+    root: Path, loc_delta: int, assert_count: int, doc_link_count: int, *, lane_id: Optional[str] = None, staging_dir: Optional[Path] = None,
+) -> Tuple[int, int, int]:
+    d_assert, d_doc, d_loc = _derive_repo_counts(root, lane_id=lane_id, staging_dir=staging_dir)
     return (d_loc if loc_delta < 0 else int(loc_delta), d_assert if assert_count < 0 else int(assert_count), d_doc if doc_link_count < 0 else int(doc_link_count))
 
 def evaluate_ecosystem_ro(
@@ -221,15 +246,17 @@ def evaluate_ecosystem_ro(
     dast_report: Optional[Union[str, Path]] = None, mutation_report: Optional[Any] = None,
     coverage_report: Optional[Any] = None, allowed_files: Optional[Union[str, Sequence[str]]] = None,
     loc_delta: int = -1, assert_count: int = -1, doc_link_count: int = -1,
+    lane_id: Optional[str] = None, staging_dir: Optional[Path] = None,
 ) -> Tuple[MetricSnapshot, Dict[str, Any]]:
     """Esegue la verifica DOM-04 RO sanitizzando l'output contro AP-01..AP-13."""
     root = Path(workspace_root).resolve()
-    eff_loc, eff_assert, eff_doc = _resolve_eff_ro_counts(root, loc_delta, assert_count, doc_link_count)
+    eff_loc, eff_assert, eff_doc = _resolve_eff_ro_counts(root, loc_delta, assert_count, doc_link_count, lane_id=lane_id, staging_dir=staging_dir)
     engine = RSIConvergenceEngine(workspace_root=root, root=root)
     raw_res = strip_l3_persuasive_narrative(_invoke_verify_ecosystem_ro(
         engine, root, profile=profile, run_pytest=run_pytest, strict_verify=strict_verify,
         benchmark_suite=benchmark_suite, sast_report=sast_report, test_report=test_report,
-        dast_report=dast_report, mutation_report=mutation_report, coverage_report=coverage_report, allowed_files=allowed_files,
+        dast_report=dast_report, mutation_report=mutation_report, coverage_report=coverage_report,
+        allowed_files=allowed_files, lane_id=lane_id, staging_dir=staging_dir,
     ))
     return snapshot_from_oracle_result(raw_res, intent_track, loc_delta=eff_loc, assert_count=eff_assert, doc_link_count=eff_doc, strict_verify=strict_verify), raw_res
 

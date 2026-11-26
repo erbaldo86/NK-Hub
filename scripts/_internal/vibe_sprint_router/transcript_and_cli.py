@@ -10,15 +10,15 @@ import re
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from _internal.nk_common.io import atomic_write_json
 from _internal.nk_common.paths import get_hooks_temp_dir_common
 from _internal.nk_common.transcript_io import normalize_prompt_for_hash
 from _internal.vibe_sprint_router.cli_handlers import (
-    _extract_user_text_from_record,
+    _extract_user_text_from_record,  # noqa: F401
     _facade_attr,
-    _read_latest_user_input_from_transcript,
+    _read_latest_user_input_from_transcript,  # noqa: F401
     _resolve_effective_cli_prompt,
 )
 from _internal.vibe_sprint_router.constants_core import _normalize_explicit_mode
@@ -97,6 +97,7 @@ def _persist_l0_gate_state(
             "bypassed": bool(envelope.get("bypassed", False)),
             "classified_track": str(envelope.get("classified_track") or ""),
             "rsi_profile": str(envelope.get("rsi_profile") or ""),
+            "lane_id": getattr(args, "lane_id", None),
             "ts": time.time(),
         }
         atomic_write_json(hooks_dir / f"l0_gate_{conv_id}.json", payload)
@@ -104,12 +105,19 @@ def _persist_l0_gate_state(
         pass
 
 
+def _build_router_for_cli(args: Any) -> Any:
+    """Istanzia VibeSprintRouter propagando --lane-id solo se specificato."""
+    router_cls = _facade_attr("VibeSprintRouter", VibeSprintRouter)
+    lane_id = getattr(args, "lane_id", None)
+    return router_cls(lane_id=lane_id) if lane_id else router_cls()
+
+
 def dispatch_router_cli(args: argparse.Namespace) -> int:
     """Esegue il comando CLI parsato da vibe_sprint_router.main."""
     if args.test:
         return _facade_attr("run_test", run_test)()
 
-    router = _facade_attr("VibeSprintRouter", VibeSprintRouter)()
+    router = _build_router_for_cli(args)
     try:
         effective_prompt = _facade_attr(
             "_resolve_effective_cli_prompt", _resolve_effective_cli_prompt

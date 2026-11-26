@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import traceback
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
@@ -312,9 +311,8 @@ def _score_matches_pref(score: SBFLScore, pref_file: str, pref_line: int) -> boo
     if s_line != pref_line:
         return False
     return (
-        os.path.normcase(s_file.replace("\\", "/"))
-        == os.path.normcase(pref_file.replace("\\", "/"))
-        or os.path.normcase(Path(s_file).name) == os.path.normcase(Path(pref_file).name)
+        s_file.replace("\\", "/").lower() == pref_file.replace("\\", "/").lower()
+        or Path(s_file).name.lower() == Path(pref_file).name.lower()
     )
 
 

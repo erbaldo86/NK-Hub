@@ -104,7 +104,7 @@ def test_overlay_errors_frontend_and_cli(tmp_path: Path) -> None:
     )
     assert None not in errs and ov_mod._iter_py_entries(None) == [] and ov_mod._iter_py_entries(ws / "no_dir") == []
 
-    fe = ov_mod.collect_overlay_frontend_files([ws, ws / "src_app", ws / ".staging" / "src_app", tmp_path / "missing_fe", ws / "src_app" / "App.tsx"], ws.resolve(), (ws / ".staging").resolve(), {"src_app/old.tsx"}, (".tsx",), ("node_modules",))
+    fe = ov_mod.collect_overlay_frontend_files([ws, ws / "src_app", ws / ".staging" / "src_app", tmp_path / "missing_fe", ws / "src_app" / "App.tsx"], ws.resolve(), (ws / ".staging").resolve(), {ov_mod._norm_rel("src_app/Old.tsx")}, (".tsx",), ("node_modules",))
     rc_ok, out_ok, _ = call_script_main_captured(_agv_mod, ["--stage-dir", str(ws / ".staging"), "--overlay-staging", "--quality-diff", "--json"])
     rc_bad, out_bad, _ = call_script_main_captured(_agv_mod, ["--overlay-staging", "--target", str(ws / "missing.py"), "--json"])
     (ws / ".staging" / ".deleted_files.json").write_text("{corrupt", encoding="utf-8")
@@ -120,10 +120,11 @@ def test_gt14_exec_digest_and_budget(tmp_path: Path) -> None:
     assert (v_ok["envelope_tier"], v_ok["certification_tier"], v_ok["findings_truncated"]) == ("gt14_exec_digest", "CERTIFIED_PASS", 1)
     assert (gt14.estimate_compact_tokens(v_ok) <= 300, gt14.build_gt14_exec_digest("STATIC_PASS", 0, {}, [], uri)["certification_tier"], gt14.build_gt14_exec_digest("FAIL", 0, {}, [], uri)["certification_tier"]) == (True, "STATIC_PASS", "FAIL")
 
+    trim_uri = "file:///tmp/nk_diagnostics/pack_a.json"
     mid_m = {"msg": "z" * 120, "arr": [1, 2], "a": 1}
-    v_mid = gt14.build_gt14_exec_digest("PASS", 1, mid_m, ["x"], uri, max_tokens=105)
+    v_mid = gt14.build_gt14_exec_digest("PASS", 1, mid_m, ["x"], trim_uri, max_tokens=105)
     big_metrics = {"msg": "z" * 120, "arr": [1] * 80, "sub": {"k": "v" * 200}, "long_scalar_key_alpha": 1, "long_scalar_key_beta": 2}
-    v_trim = gt14.build_gt14_exec_digest("CONVERGED_OPTIMAL", 1, big_metrics, ["X" * 115, "Y" * 115, "Z" * 115, "W"], uri, max_tokens=110, certification_tier="gold")
+    v_trim = gt14.build_gt14_exec_digest("CONVERGED_OPTIMAL", 1, big_metrics, ["X" * 115, "Y" * 115, "Z" * 115, "W"], trim_uri, max_tokens=110, certification_tier="gold")
     assert (v_mid["certification_tier"], v_trim["certification_tier"], v_trim.get("metrics_truncated"), gt14.estimate_compact_tokens(v_trim) <= 110) == ("CERTIFIED_PASS", "GOLD", True, True)
 
 

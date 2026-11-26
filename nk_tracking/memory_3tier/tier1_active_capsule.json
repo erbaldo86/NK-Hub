@@ -1,13 +1,19 @@
 {
   "schema_version": "1.0.0-Generation",
-  "updated_at": 1795536524.4977996,
+  "updated_at": 1795650846.326655,
   "profile": "generation",
   "token_cap": 1200,
   "domains": {
     "01_Bug_Diagnostics": {
-      "total_tokens": 129,
-      "context": "[EP-GEN-BUG-002] Eliminazione doppia esecuzione hook tramite plugin nk-gate: Centralizza hooks.json esclusivamente in .agents/plugins/nk-gate/hooks.json con python -S -B -u e usa scripts/sbfl_pytest_bridge.py per diagnosi Ochiai in .staging/.\n[EP-GEN-BUG-001] Runner Pytest isolato su NVMe %TEMP% anti-0xC000013A: Esegui pytest solo su mirror NVMe in %TEMP% tramite scripts/platform_runner.py --pytest-isolated --overlay-staging evitando crash 0xC000013A su Drive FS.",
+      "total_tokens": 207,
+      "context": "[ep_1795650845_64c8ee] Milestone 4 NK-GEN-4.0.4 Promossa: Promossa Milestone 4 NK-GEN-4.0.4 (NK-Parallel Sovereign v3): dag_wave_scheduler, preflight_conflict_predictor, sublane_consolidator, fe_shadow, 505/505 pytest, 45/48 mutation, 6/6 GT-14 CONVERGED_OPTIMAL, 4/4 oracle locks.\n[EP-GEN-BUG-002] Eliminazione doppia esecuzione hook tramite plugin nk-gate: Centralizza hooks.json esclusivamente in .agents/plugins/nk-gate/hooks.json con python -S -B -u e usa scripts/sbfl_pytest_bridge.py per diagnosi Ochiai in .staging/.\n[EP-GEN-BUG-001] Runner Pytest isolato su NVMe %TEMP% anti-0xC000013A: Esegui pytest solo su mirror NVMe in %TEMP% tramite scripts/platform_runner.py --pytest-isolated --overlay-staging evitando crash 0xC000013A su Drive FS.",
       "items": [
+        {
+          "key": "ep_1795650845_64c8ee",
+          "value": "Milestone 4 NK-GEN-4.0.4 Promossa: Promossa Milestone 4 NK-GEN-4.0.4 (NK-Parallel Sovereign v3): dag_wave_scheduler, preflight_conflict_predictor, sublane_consolidator, fe_shadow, 505/505 pytest, 45/48 mutation, 6/6 GT-14 CONVERGED_OPTIMAL, 4/4 oracle locks.",
+          "priority": 5,
+          "estimated_tokens": 78
+        },
         {
           "key": "EP-GEN-BUG-001",
           "value": "Runner Pytest isolato su NVMe %TEMP% anti-0xC000013A: Esegui pytest solo su mirror NVMe in %TEMP% tramite scripts/platform_runner.py --pytest-isolated --overlay-staging evitando crash 0xC000013A su Drive FS.",
@@ -23,38 +29,38 @@
       ]
     },
     "02_Development_Patterns": {
-      "total_tokens": 1080,
-      "context": "[ep_1795536523_e362f0] NK-GEN-3.0.2-FORENSIC-HARDENING-CLEAN: Hardening Forense, Pulizia 23 File e Baseline 380 Test: Chiusa milestone NK-GEN-3.0.2-FORENSIC-HARDENING-CLEAN: hardening forense Wave 0..3 su tensor_rsi, TTL/CAS, env tamper, AP-12 e --with-dast; isolamento PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 e wall-time JUnit XML; pulizia 23 file obsoleti. Telemetria certificata: suite 380/380 PASS (100.0%, 24.54s <= 28.0s), 225/225 fast, statement 91.2%, branch 83.29%, combined 88.9%, SAST 0, 4/4 lock SHA-256 VERIFIED e 0 drift su nk_registry_manifest.json.\n[ep_1795463722_09d6dd] NK-GEN-2.1.0-W6: Wave 5 Refactoring Modulare e Wave 6 Piramide Test: Promossa milestone unificata NK-GEN-2.1.0-W6 via Win32 2PC (36 promossi, 10 invariati, 0 rimossi, GOVERNANCE_OVERRIDE su 6 percorsi protetti). Wave 5 estrae 23 file Python in builder_mutation_gate, vibe_sprint_router, nk_session_handoff, nk_session_bootstrap e nk_acs_fastguard sotto 303 LOC con 0 cicli Tarjan SCC, modalita reale --audit-full-module e test_wave5_mutation_audit.py. Wave 6 aggiunge 4 suite zero-mock @pytest.mark.fast (test_wave6_vibe_router_fast.py, test_wave6_acs_fast.py, test_wave6_bootstrap_handoff_fast.py, test_wave6_mutation_gate_fast.py) con 33 suite in DOM-06.json e 298 file indicizzati. Telemetria certificata: 319/319 test (100.0%, 0 failed, 0 skipped), -m fast 243/243 in 7.983s, suite completa 20.14s (19.62s GT-14), copertura 91.21% stmt / 83.38% branch / 88.91% combined, mutation audit 21/21 moduli al 97.22% (245/252 killed, 0 sotto 0.85), DAST PASS 327 file, GT-14 6/6 CERTIFIED_PASS (Q_v2=100.0, delta_k=0) e doppio APPROVE DOM-04.\n[ep_1795412911_90e513] NK-GEN-2.0.0-W3-CERTIFIED: Wave 3 NK-GEN-2.0.0-W3 certificata in produzione: 286/286 test (100.0%), 21.27s, fast 7.679s (210/210), statement 90.94%, true_branch 82.98%, combined 88.58%, AST/SAST 0/311, triplo oracle-lock VERIFIED (376+2+280), doppio APPROVE Cold Quorum.\n[ep_1795398647_37fd31] NK-GEN-2.0.0-TAS-UNIFIED: Wave 0..3 TAS v6.0, Piramide Test e Gemini 4: Unificate Wave 0..3: W0 Win32 2PC, oracle_lock e tas_ssot_io (12 file); W1 RSI v2 Q_v2(S_k), 14 gate G_hard, gaming -10000, governance_auth HMAC, SBFL --hybrid-fl max 80 tok (110 file, 522 test); W2 piramide fast/integration/stress, FAST-GUARD, sharding NVMe LPT, holdout tasks_tas_v2.json (16 probe) e tas_behavioral_v2.json, triplo lock SHA-256, Schema v2 (274 test, 22.03s, 90.92% stmt, 82.94% true_branch, 88.55% combined); W3 in staging con 2 agenti DOM-04 RO patch_version 12 e 4 guardie Anti-Bias, 4 SKILL.md max 40 righe con 4 JIT mode_*.md max 25 righe, [8] L0/Producer retry_caps [0,0,0], 9 file ritirati, 5 fix nk_registry_indexer (DOM-04.json 4484 B, 5 domini e 7 shard), 4 test in test_nk_registry_indexer_w3.py ed eval W3 in test_skill_evals.py in attesa Step 4.\n[ep_1795349948_2c5aad] NK-GEN-1.3.1-P2-HARDENING: Indurimento 5 Moduli e Suite 470 Test: Promossa milestone NK-GEN-1.3.1-P2-HARDENING: induriti vibe_report_helpers.py (dry_run=True fail-closed), process_runner.py (_resolve_confined_sandbox_path), holdout_verify.py (protezione oracle_holdout e tests/evals), ab_benchmark.py (z3_tokens dinamico da saturation_thresholds.json, fallback 205000.0) ed engine.py (inoltro 1:1 verify_ecosystem ed emit_gt14_bundle). Suite Zero-Mock 470/470 PASS (+5 fast in test_dast_sandbox.py e test_rsi_convergence_engine.py, 61.64s, statement 88.83%, true_branch 79.35%, combined 86.03%), A/B v1 12/12 e v2 16/16, oracle_lock 376 file e doppio APPROVE GT-14 (0 P0, 0 P1).",
+      "total_tokens": 932,
+      "context": "[ep_1795641789_f01144] NK-GEN-4.0.3 M3 Commit Train 2PC: Promossi 51 file M3 in produzione via Win32 2PC, 4 lock congelati, baseline aggiornata a 461/461 test PASS e GT-14 6/6 CONVERGED_OPTIMAL.\n[ep_1795536523_e362f0] NK-GEN-3.0.2-FORENSIC-HARDENING-CLEAN: Hardening Forense, Pulizia 23 File e Baseline 380 Test: Chiusa milestone NK-GEN-3.0.2-FORENSIC-HARDENING-CLEAN: hardening forense Wave 0..3 su tensor_rsi, TTL/CAS, env tamper, AP-12 e --with-dast; isolamento PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 e wall-time JUnit XML; pulizia 23 file obsoleti. Telemetria certificata: suite 380/380 PASS (100.0%, 24.54s <= 28.0s), 225/225 fast, statement 91.2%, branch 83.29%, combined 88.9%, SAST 0, 4/4 lock SHA-256 VERIFIED e 0 drift su nk_registry_manifest.json.\n[ep_1795463722_09d6dd] NK-GEN-2.1.0-W6: Wave 5 Refactoring Modulare e Wave 6 Piramide Test: Promossa milestone unificata NK-GEN-2.1.0-W6 via Win32 2PC (36 promossi, 10 invariati, 0 rimossi, GOVERNANCE_OVERRIDE su 6 percorsi protetti). Wave 5 estrae 23 file Python in builder_mutation_gate, vibe_sprint_router, nk_session_handoff, nk_session_bootstrap e nk_acs_fastguard sotto 303 LOC con 0 cicli Tarjan SCC, modalita reale --audit-full-module e test_wave5_mutation_audit.py. Wave 6 aggiunge 4 suite zero-mock @pytest.mark.fast (test_wave6_vibe_router_fast.py, test_wave6_acs_fast.py, test_wave6_bootstrap_handoff_fast.py, test_wave6_mutation_gate_fast.py) con 33 suite in DOM-06.json e 298 file indicizzati. Telemetria certificata: 319/319 test (100.0%, 0 failed, 0 skipped), -m fast 243/243 in 7.983s, suite completa 20.14s (19.62s GT-14), copertura 91.21% stmt / 83.38% branch / 88.91% combined, mutation audit 21/21 moduli al 97.22% (245/252 killed, 0 sotto 0.85), DAST PASS 327 file, GT-14 6/6 CERTIFIED_PASS (Q_v2=100.0, delta_k=0) e doppio APPROVE DOM-04.\n[ep_1795412911_90e513] NK-GEN-2.0.0-W3-CERTIFIED: Wave 3 NK-GEN-2.0.0-W3 certificata in produzione: 286/286 test (100.0%), 21.27s, fast 7.679s (210/210), statement 90.94%, true_branch 82.98%, combined 88.58%, AST/SAST 0/311, triplo oracle-lock VERIFIED (376+2+280), doppio APPROVE Cold Quorum.\n[ep_1795398647_37fd31] NK-GEN-2.0.0-TAS-UNIFIED: Wave 0..3 TAS v6.0, Piramide Test e Gemini 4: Unificate Wave 0..3: W0 Win32 2PC, oracle_lock e tas_ssot_io (12 file); W1 RSI v2 Q_v2(S_k), 14 gate G_hard, gaming -10000, governance_auth HMAC, SBFL --hybrid-fl max 80 tok (110 file, 522 test); W2 piramide fast/integration/stress, FAST-GUARD, sharding NVMe LPT, holdout tasks_tas_v2.json (16 probe) e tas_behavioral_v2.json, triplo lock SHA-256, Schema v2 (274 test, 22.03s, 90.92% stmt, 82.94% true_branch, 88.55% combined); W3 in staging con 2 agenti DOM-04 RO patch_version 12 e 4 guardie Anti-Bias, 4 SKILL.md max 40 righe con 4 JIT mode_*.md max 25 righe, [8] L0/Producer retry_caps [0,0,0], 9 file ritirati, 5 fix nk_registry_indexer (DOM-04.json 4484 B, 5 domini e 7 shard), 4 test in test_nk_registry_indexer_w3.py ed eval W3 in test_skill_evals.py in attesa Step 4.",
       "items": [
-        {
-          "key": "ep_1795536523_e362f0",
-          "value": "NK-GEN-3.0.2-FORENSIC-HARDENING-CLEAN: Hardening Forense, Pulizia 23 File e Baseline 380 Test: Chiusa milestone NK-GEN-3.0.2-FORENSIC-HARDENING-CLEAN: hardening forense Wave 0..3 su tensor_rsi, TTL/CAS, env tamper, AP-12 e --with-dast; isolamento PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 e wall-time JUnit XML; pulizia 23 file obsoleti. Telemetria certificata: suite 380/380 PASS (100.0%, 24.54s <= 28.0s), 225/225 fast, statement 91.2%, branch 83.29%, combined 88.9%, SAST 0, 4/4 lock SHA-256 VERIFIED e 0 drift su nk_registry_manifest.json.",
-          "priority": 7,
-          "estimated_tokens": 180
-        },
-        {
-          "key": "ep_1795349948_2c5aad",
-          "value": "NK-GEN-1.3.1-P2-HARDENING: Indurimento 5 Moduli e Suite 470 Test: Promossa milestone NK-GEN-1.3.1-P2-HARDENING: induriti vibe_report_helpers.py (dry_run=True fail-closed), process_runner.py (_resolve_confined_sandbox_path), holdout_verify.py (protezione oracle_holdout e tests/evals), ab_benchmark.py (z3_tokens dinamico da saturation_thresholds.json, fallback 205000.0) ed engine.py (inoltro 1:1 verify_ecosystem ed emit_gt14_bundle). Suite Zero-Mock 470/470 PASS (+5 fast in test_dast_sandbox.py e test_rsi_convergence_engine.py, 61.64s, statement 88.83%, true_branch 79.35%, combined 86.03%), A/B v1 12/12 e v2 16/16, oracle_lock 376 file e doppio APPROVE GT-14 (0 P0, 0 P1).",
-          "priority": 3,
-          "estimated_tokens": 203
-        },
         {
           "key": "ep_1795398647_37fd31",
           "value": "NK-GEN-2.0.0-TAS-UNIFIED: Wave 0..3 TAS v6.0, Piramide Test e Gemini 4: Unificate Wave 0..3: W0 Win32 2PC, oracle_lock e tas_ssot_io (12 file); W1 RSI v2 Q_v2(S_k), 14 gate G_hard, gaming -10000, governance_auth HMAC, SBFL --hybrid-fl max 80 tok (110 file, 522 test); W2 piramide fast/integration/stress, FAST-GUARD, sharding NVMe LPT, holdout tasks_tas_v2.json (16 probe) e tas_behavioral_v2.json, triplo lock SHA-256, Schema v2 (274 test, 22.03s, 90.92% stmt, 82.94% true_branch, 88.55% combined); W3 in staging con 2 agenti DOM-04 RO patch_version 12 e 4 guardie Anti-Bias, 4 SKILL.md max 40 righe con 4 JIT mode_*.md max 25 righe, [8] L0/Producer retry_caps [0,0,0], 9 file ritirati, 5 fix nk_registry_indexer (DOM-04.json 4484 B, 5 domini e 7 shard), 4 test in test_nk_registry_indexer_w3.py ed eval W3 in test_skill_evals.py in attesa Step 4.",
-          "priority": 4,
+          "priority": 3,
           "estimated_tokens": 281
         },
         {
           "key": "ep_1795412911_90e513",
           "value": "NK-GEN-2.0.0-W3-CERTIFIED: Wave 3 NK-GEN-2.0.0-W3 certificata in produzione: 286/286 test (100.0%), 21.27s, fast 7.679s (210/210), statement 90.94%, true_branch 82.98%, combined 88.58%, AST/SAST 0/311, triplo oracle-lock VERIFIED (376+2+280), doppio APPROVE Cold Quorum.",
-          "priority": 5,
+          "priority": 4,
           "estimated_tokens": 117
         },
         {
           "key": "ep_1795463722_09d6dd",
           "value": "NK-GEN-2.1.0-W6: Wave 5 Refactoring Modulare e Wave 6 Piramide Test: Promossa milestone unificata NK-GEN-2.1.0-W6 via Win32 2PC (36 promossi, 10 invariati, 0 rimossi, GOVERNANCE_OVERRIDE su 6 percorsi protetti). Wave 5 estrae 23 file Python in builder_mutation_gate, vibe_sprint_router, nk_session_handoff, nk_session_bootstrap e nk_acs_fastguard sotto 303 LOC con 0 cicli Tarjan SCC, modalita reale --audit-full-module e test_wave5_mutation_audit.py. Wave 6 aggiunge 4 suite zero-mock @pytest.mark.fast (test_wave6_vibe_router_fast.py, test_wave6_acs_fast.py, test_wave6_bootstrap_handoff_fast.py, test_wave6_mutation_gate_fast.py) con 33 suite in DOM-06.json e 298 file indicizzati. Telemetria certificata: 319/319 test (100.0%, 0 failed, 0 skipped), -m fast 243/243 in 7.983s, suite completa 20.14s (19.62s GT-14), copertura 91.21% stmt / 83.38% branch / 88.91% combined, mutation audit 21/21 moduli al 97.22% (245/252 killed, 0 sotto 0.85), DAST PASS 327 file, GT-14 6/6 CERTIFIED_PASS (Q_v2=100.0, delta_k=0) e doppio APPROVE DOM-04.",
-          "priority": 6,
+          "priority": 5,
           "estimated_tokens": 299
+        },
+        {
+          "key": "ep_1795536523_e362f0",
+          "value": "NK-GEN-3.0.2-FORENSIC-HARDENING-CLEAN: Hardening Forense, Pulizia 23 File e Baseline 380 Test: Chiusa milestone NK-GEN-3.0.2-FORENSIC-HARDENING-CLEAN: hardening forense Wave 0..3 su tensor_rsi, TTL/CAS, env tamper, AP-12 e --with-dast; isolamento PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 e wall-time JUnit XML; pulizia 23 file obsoleti. Telemetria certificata: suite 380/380 PASS (100.0%, 24.54s <= 28.0s), 225/225 fast, statement 91.2%, branch 83.29%, combined 88.9%, SAST 0, 4/4 lock SHA-256 VERIFIED e 0 drift su nk_registry_manifest.json.",
+          "priority": 6,
+          "estimated_tokens": 180
+        },
+        {
+          "key": "ep_1795641789_f01144",
+          "value": "NK-GEN-4.0.3 M3 Commit Train 2PC: Promossi 51 file M3 in produzione via Win32 2PC, 4 lock congelati, baseline aggiornata a 461/461 test PASS e GT-14 6/6 CONVERGED_OPTIMAL.",
+          "priority": 7,
+          "estimated_tokens": 55
         }
       ]
     },
@@ -77,8 +83,8 @@
       ]
     },
     "04_Governance_and_Rules": {
-      "total_tokens": 113,
-      "context": "[EP-GEN-GOV-002] Standard sintattico ASD-STE100 Italiano e Genoma 3-Tier: Valida ogni documento della Pentad Sovrana 4+1 e PATCH_NOTES.md con frasi attive sotto 20 parole e zero trattini spaziati prima del commit 2PC.\n[EP-GEN-GOV-001] Sigillo oracle_lock.json e divieto assoluto di test-gaming: Proteggi tests/, scripts/ e .agents/ con scripts/nk_transcript_tools.py oracle-lock verify e segnala conflitti reali tramite report-conflict.",
+      "total_tokens": 194,
+      "context": "[ep_1795602063_31bc32] Hardening Hook Gate Round 9 e Certificazione Round 10: Promozione atomica Win32 2PC di ast_inline_guard.py, shell_redaction.py, constants.py e test_nk_proget_locale_online_governance.py. Verifica post-promozione Round 10 con 385/385 test, 79/79 hook-gate live, 4 lock SHA-256 (742 file) e doppio verdetto PASS DOM-04.\n[EP-GEN-GOV-002] Standard sintattico ASD-STE100 Italiano e Genoma 3-Tier: Valida ogni documento della Pentad Sovrana 4+1 e PATCH_NOTES.md con frasi attive sotto 20 parole e zero trattini spaziati prima del commit 2PC.\n[EP-GEN-GOV-001] Sigillo oracle_lock.json e divieto assoluto di test-gaming: Proteggi tests/, scripts/ e .agents/ con scripts/nk_transcript_tools.py oracle-lock verify e segnala conflitti reali tramite report-conflict.",
       "items": [
         {
           "key": "EP-GEN-GOV-001",
@@ -91,11 +97,24 @@
           "value": "Standard sintattico ASD-STE100 Italiano e Genoma 3-Tier: Valida ogni documento della Pentad Sovrana 4+1 e PATCH_NOTES.md con frasi attive sotto 20 parole e zero trattini spaziati prima del commit 2PC.",
           "priority": 4,
           "estimated_tokens": 56
+        },
+        {
+          "key": "ep_1795602063_31bc32",
+          "value": "Hardening Hook Gate Round 9 e Certificazione Round 10: Promozione atomica Win32 2PC di ast_inline_guard.py, shell_redaction.py, constants.py e test_nk_proget_locale_online_governance.py. Verifica post-promozione Round 10 con 385/385 test, 79/79 hook-gate live, 4 lock SHA-256 (742 file) e doppio verdetto PASS DOM-04.",
+          "priority": 5,
+          "estimated_tokens": 81
         }
       ]
     }
   },
   "lessons": [
+    {
+      "domain": "01_Bug_Diagnostics",
+      "key": "ep_1795650845_64c8ee",
+      "lesson": "[ep_1795650845_64c8ee] Milestone 4 NK-GEN-4.0.4 Promossa: Promossa Milestone 4 NK-GEN-4.0.4 (NK-Parallel Sovereign v3): dag_wave_scheduler, preflight_conflict_predictor, sublane_consolidator, fe_shadow, 505/505 pytest, 45/48 mutation, 6/6 GT-14 CONVERGED_OPTIMAL, 4/4 oracle locks.",
+      "priority": 5,
+      "estimated_tokens": 78
+    },
     {
       "domain": "01_Bug_Diagnostics",
       "key": "EP-GEN-BUG-001",
@@ -112,38 +131,38 @@
     },
     {
       "domain": "02_Development_Patterns",
-      "key": "ep_1795536523_e362f0",
-      "lesson": "[ep_1795536523_e362f0] NK-GEN-3.0.2-FORENSIC-HARDENING-CLEAN: Hardening Forense, Pulizia 23 File e Baseline 380 Test: Chiusa milestone NK-GEN-3.0.2-FORENSIC-HARDENING-CLEAN: hardening forense Wave 0..3 su tensor_rsi, TTL/CAS, env tamper, AP-12 e --with-dast; isolamento PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 e wall-time JUnit XML; pulizia 23 file obsoleti. Telemetria certificata: suite 380/380 PASS (100.0%, 24.54s <= 28.0s), 225/225 fast, statement 91.2%, branch 83.29%, combined 88.9%, SAST 0, 4/4 lock SHA-256 VERIFIED e 0 drift su nk_registry_manifest.json.",
-      "priority": 7,
-      "estimated_tokens": 180
-    },
-    {
-      "domain": "02_Development_Patterns",
-      "key": "ep_1795349948_2c5aad",
-      "lesson": "[ep_1795349948_2c5aad] NK-GEN-1.3.1-P2-HARDENING: Indurimento 5 Moduli e Suite 470 Test: Promossa milestone NK-GEN-1.3.1-P2-HARDENING: induriti vibe_report_helpers.py (dry_run=True fail-closed), process_runner.py (_resolve_confined_sandbox_path), holdout_verify.py (protezione oracle_holdout e tests/evals), ab_benchmark.py (z3_tokens dinamico da saturation_thresholds.json, fallback 205000.0) ed engine.py (inoltro 1:1 verify_ecosystem ed emit_gt14_bundle). Suite Zero-Mock 470/470 PASS (+5 fast in test_dast_sandbox.py e test_rsi_convergence_engine.py, 61.64s, statement 88.83%, true_branch 79.35%, combined 86.03%), A/B v1 12/12 e v2 16/16, oracle_lock 376 file e doppio APPROVE GT-14 (0 P0, 0 P1).",
-      "priority": 3,
-      "estimated_tokens": 203
-    },
-    {
-      "domain": "02_Development_Patterns",
       "key": "ep_1795398647_37fd31",
       "lesson": "[ep_1795398647_37fd31] NK-GEN-2.0.0-TAS-UNIFIED: Wave 0..3 TAS v6.0, Piramide Test e Gemini 4: Unificate Wave 0..3: W0 Win32 2PC, oracle_lock e tas_ssot_io (12 file); W1 RSI v2 Q_v2(S_k), 14 gate G_hard, gaming -10000, governance_auth HMAC, SBFL --hybrid-fl max 80 tok (110 file, 522 test); W2 piramide fast/integration/stress, FAST-GUARD, sharding NVMe LPT, holdout tasks_tas_v2.json (16 probe) e tas_behavioral_v2.json, triplo lock SHA-256, Schema v2 (274 test, 22.03s, 90.92% stmt, 82.94% true_branch, 88.55% combined); W3 in staging con 2 agenti DOM-04 RO patch_version 12 e 4 guardie Anti-Bias, 4 SKILL.md max 40 righe con 4 JIT mode_*.md max 25 righe, [8] L0/Producer retry_caps [0,0,0], 9 file ritirati, 5 fix nk_registry_indexer (DOM-04.json 4484 B, 5 domini e 7 shard), 4 test in test_nk_registry_indexer_w3.py ed eval W3 in test_skill_evals.py in attesa Step 4.",
-      "priority": 4,
+      "priority": 3,
       "estimated_tokens": 281
     },
     {
       "domain": "02_Development_Patterns",
       "key": "ep_1795412911_90e513",
       "lesson": "[ep_1795412911_90e513] NK-GEN-2.0.0-W3-CERTIFIED: Wave 3 NK-GEN-2.0.0-W3 certificata in produzione: 286/286 test (100.0%), 21.27s, fast 7.679s (210/210), statement 90.94%, true_branch 82.98%, combined 88.58%, AST/SAST 0/311, triplo oracle-lock VERIFIED (376+2+280), doppio APPROVE Cold Quorum.",
-      "priority": 5,
+      "priority": 4,
       "estimated_tokens": 117
     },
     {
       "domain": "02_Development_Patterns",
       "key": "ep_1795463722_09d6dd",
       "lesson": "[ep_1795463722_09d6dd] NK-GEN-2.1.0-W6: Wave 5 Refactoring Modulare e Wave 6 Piramide Test: Promossa milestone unificata NK-GEN-2.1.0-W6 via Win32 2PC (36 promossi, 10 invariati, 0 rimossi, GOVERNANCE_OVERRIDE su 6 percorsi protetti). Wave 5 estrae 23 file Python in builder_mutation_gate, vibe_sprint_router, nk_session_handoff, nk_session_bootstrap e nk_acs_fastguard sotto 303 LOC con 0 cicli Tarjan SCC, modalita reale --audit-full-module e test_wave5_mutation_audit.py. Wave 6 aggiunge 4 suite zero-mock @pytest.mark.fast (test_wave6_vibe_router_fast.py, test_wave6_acs_fast.py, test_wave6_bootstrap_handoff_fast.py, test_wave6_mutation_gate_fast.py) con 33 suite in DOM-06.json e 298 file indicizzati. Telemetria certificata: 319/319 test (100.0%, 0 failed, 0 skipped), -m fast 243/243 in 7.983s, suite completa 20.14s (19.62s GT-14), copertura 91.21% stmt / 83.38% branch / 88.91% combined, mutation audit 21/21 moduli al 97.22% (245/252 killed, 0 sotto 0.85), DAST PASS 327 file, GT-14 6/6 CERTIFIED_PASS (Q_v2=100.0, delta_k=0) e doppio APPROVE DOM-04.",
-      "priority": 6,
+      "priority": 5,
       "estimated_tokens": 299
+    },
+    {
+      "domain": "02_Development_Patterns",
+      "key": "ep_1795536523_e362f0",
+      "lesson": "[ep_1795536523_e362f0] NK-GEN-3.0.2-FORENSIC-HARDENING-CLEAN: Hardening Forense, Pulizia 23 File e Baseline 380 Test: Chiusa milestone NK-GEN-3.0.2-FORENSIC-HARDENING-CLEAN: hardening forense Wave 0..3 su tensor_rsi, TTL/CAS, env tamper, AP-12 e --with-dast; isolamento PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 e wall-time JUnit XML; pulizia 23 file obsoleti. Telemetria certificata: suite 380/380 PASS (100.0%, 24.54s <= 28.0s), 225/225 fast, statement 91.2%, branch 83.29%, combined 88.9%, SAST 0, 4/4 lock SHA-256 VERIFIED e 0 drift su nk_registry_manifest.json.",
+      "priority": 6,
+      "estimated_tokens": 180
+    },
+    {
+      "domain": "02_Development_Patterns",
+      "key": "ep_1795641789_f01144",
+      "lesson": "[ep_1795641789_f01144] NK-GEN-4.0.3 M3 Commit Train 2PC: Promossi 51 file M3 in produzione via Win32 2PC, 4 lock congelati, baseline aggiornata a 461/461 test PASS e GT-14 6/6 CONVERGED_OPTIMAL.",
+      "priority": 7,
+      "estimated_tokens": 55
     },
     {
       "domain": "03_Ideation_and_Decisions",
@@ -172,6 +191,13 @@
       "lesson": "[EP-GEN-GOV-002] Standard sintattico ASD-STE100 Italiano e Genoma 3-Tier: Valida ogni documento della Pentad Sovrana 4+1 e PATCH_NOTES.md con frasi attive sotto 20 parole e zero trattini spaziati prima del commit 2PC.",
       "priority": 4,
       "estimated_tokens": 56
+    },
+    {
+      "domain": "04_Governance_and_Rules",
+      "key": "ep_1795602063_31bc32",
+      "lesson": "[ep_1795602063_31bc32] Hardening Hook Gate Round 9 e Certificazione Round 10: Promozione atomica Win32 2PC di ast_inline_guard.py, shell_redaction.py, constants.py e test_nk_proget_locale_online_governance.py. Verifica post-promozione Round 10 con 385/385 test, 79/79 hook-gate live, 4 lock SHA-256 (742 file) e doppio verdetto PASS DOM-04.",
+      "priority": 5,
+      "estimated_tokens": 81
     }
   ]
 }

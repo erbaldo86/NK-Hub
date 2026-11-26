@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Co-esecutore FSM T0..T7, ledger Tensor-RSI, ACTIVE.json e proiezione rsi_telemetry.jsonl."""
+"""Co-esecutore FSM T0..T7, ledger Tensor-RSI, slot ACTIVE/lane e proiezione rsi_telemetry.jsonl."""
 
 from __future__ import annotations
 
@@ -9,12 +9,13 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, Optional, Sequence, Union
 
+from _internal.nk_common.lane_paths import validate_lane_id
 from _internal.nk_common.paths import reconfigure_streams, resolve_workspace_root
 from _internal.tensor_rsi.cold_warm_bandit import (
     NoveltyGate, check_conservation_invariants, select_operator_cold_warm, select_prior_signature,  # noqa: F401
 )
 from _internal.tensor_rsi.gate_mapper import (
-    append_tensor_ledger_entry, close_active_session, ensure_no_foreign_active_session,  # noqa: F401
+    append_tensor_ledger_entry, claim_active_session_slot, close_active_session, ensure_no_foreign_active_session,  # noqa: F401
     map_gates, read_tensor_ledger_entries, read_verified_active_session, write_active_session,  # noqa: F401
 )
 from _internal.tensor_rsi.materializer import (
@@ -42,14 +43,27 @@ _DEFAULT_WORKSPACE_ROOT = Path(resolve_workspace_root(__file__))
 _UNTRUSTED_SNAPSHOT_KEYS = ("baseline_snapshot", "candidate_snapshot")
 
 
+def _normalize_lane_opt(lane_id: Optional[str]) -> Optional[str]:
+    if lane_id is None or not str(lane_id).strip():
+        return None
+    return validate_lane_id(lane_id)
+
+
+def _merge_lane_input(inp: Dict[str, Any], lane_id: Optional[str]) -> Dict[str, Any]:
+    if lane_id is not None and "lane_id" not in inp:
+        return {**inp, "lane_id": lane_id}
+    return inp
+
+
 def _assert_no_untrusted_snapshots(inp: Dict[str, Any]) -> None:
     if any(k in inp for k in _UNTRUSTED_SNAPSHOT_KEYS):
         raise TicketAuthError("ORACLE_BYPASS_BLOCKED: baseline_snapshot/candidate_snapshot vietati nel payload JSON.")
 
 
 def _verify_decide_staging_toctou(root: Path, prev_tkt: TensorRSIStateTicket, state: Dict[str, Any]) -> str:
-    """Verifica integrita pre-decide di .staging/ anche in presenza di candidate_id."""
-    stg_sha = compute_staging_manifest_sha256(root)
+    """Verifica integrita pre-decide di staging/lane anche in presenza di candidate_id."""
+    lane_id = state.get("lane_id")
+    stg_sha = compute_staging_manifest_sha256(root, lane_id=lane_id)
     mat_info = state.get("materializer_info") if isinstance(state.get("materializer_info"), dict) else {}
     cand_id = str(state.get("candidate_id") or "").strip()
     if cand_id:
@@ -65,25 +79,27 @@ def _verify_decide_staging_toctou(root: Path, prev_tkt: TensorRSIStateTicket, st
 def _commit_candidate_fail_closed(
     root: Path, prev_tkt: TensorRSIStateTicket, state: Dict[str, Any], expected_pre_sha: str,
 ) -> str:
-    """Esegue commit candidato in .staging/ convertendo mismatch/errori I/O in TicketAuthError."""
+    """Esegue commit candidato in staging/lane convertendo mismatch/errori I/O in TicketAuthError."""
     cand_id = str(state.get("candidate_id") or "").strip()
     try:
         return commit_accepted_candidate(
-            root, prev_tkt.session_id, cand_id, str(prev_tkt.staging_manifest_sha256 or ""), pre_staging_sha256=expected_pre_sha,
+            root, prev_tkt.session_id, cand_id, str(prev_tkt.staging_manifest_sha256 or ""),
+            pre_staging_sha256=expected_pre_sha, lane_id=state.get("lane_id"),
         )
     except (ValueError, OSError, FileNotFoundError) as exc:
         raise TicketAuthError(f"TOCTOU_STAGING_MISMATCH: commit candidato bloccato ({exc}).") from exc
 
 
 def _handle_abort(root: Path, key_path: Optional[Any], prev_tkt: TensorRSIStateTicket, state: Dict[str, Any], cell: PolicyCell) -> TensorRSIStepOutput:
-    close_active_session(root, session_id=prev_tkt.session_id, key_path=key_path)
+    close_active_session(root, session_id=prev_tkt.session_id, key_path=key_path, lane_id=state.get("lane_id"))
     tkt = _next_ticket(prev_tkt, session_id=prev_tkt.session_id, step_seq=prev_tkt.step_seq + 1, iteration=prev_tkt.iteration, phase="ABORTED", cell=cell, baseline_sha=prev_tkt.baseline_state_sha256, prev_tkt_sha=str(state["active_ticket_sha256"]))
     raw_tkt, _ = commit_session_ticket(root, tkt, state, key_path=key_path, closed=True, expected_ticket_sha256=str(state["active_ticket_sha256"]))
     return TensorRSIStepOutput(status="HALT", step="abort", phase="ABORTED", session_id=tkt.session_id, step_seq=tkt.step_seq, iteration=tkt.iteration, ticket=raw_tkt, policy_cell=cell, summary=f"Sessione {tkt.session_id} interrotta e chiusa (--step abort).")
 
 
 def _handle_status_without_ticket(root: Path, key_path: Optional[Any], inp: Dict[str, Any]) -> TensorRSIStepOutput:
-    active = read_verified_active_session(root, key_path=key_path, allow_expired=True)
+    lane_id = _normalize_lane_opt(inp.get("lane_id"))
+    active = read_verified_active_session(root, key_path=key_path, allow_expired=True, lane_id=lane_id)
     sid = str((active or {}).get("session_id") or inp.get("session_id") or "").strip()
     if sid:
         st_path = resolve_tensor_state_path(root, sid)
@@ -100,9 +116,15 @@ def _handle_status_without_ticket(root: Path, key_path: Optional[Any], inp: Dict
 class TensorRSICoExecutor:
     """Orchestratore co-esecutivo DOM-01 per FSM T0..T7 con State-Ticket trsi1."""
 
-    def __init__(self, workspace_root: Optional[Union[str, Path]] = None, key_path: Optional[Union[str, Path]] = None) -> None:
+    def __init__(
+        self,
+        workspace_root: Optional[Union[str, Path]] = None,
+        key_path: Optional[Union[str, Path]] = None,
+        lane_id: Optional[str] = None,
+    ) -> None:
         self.workspace_root = Path(workspace_root).resolve() if workspace_root else _DEFAULT_WORKSPACE_ROOT
         self.key_path = key_path
+        self.lane_id = _normalize_lane_opt(lane_id)
 
     def _dispatch_simple_step(self, step: StepLiteral, t_obj: TensorRSIStateTicket, state: Dict[str, Any], cell: PolicyCell, inp: Dict[str, Any], candidate_snapshot: Optional[MetricSnapshot]) -> TensorRSIStepOutput:
         if step == "evaluate":
@@ -138,11 +160,11 @@ class TensorRSICoExecutor:
         self, step: StepLiteral, *, ticket: Optional[str] = None, input_data: Optional[Dict[str, Any]] = None,
         baseline_snapshot: Optional[MetricSnapshot] = None, candidate_snapshot: Optional[MetricSnapshot] = None,
     ) -> TensorRSIStepOutput:
-        inp = input_data or {}
-        _assert_no_untrusted_snapshots(inp)
+        eff_inp = _merge_lane_input(input_data or {}, self.lane_id)
+        _assert_no_untrusted_snapshots(eff_inp)
         if step == "intake":
-            return handle_intake(self.workspace_root, self.key_path, inp, baseline_snapshot=baseline_snapshot)
-        return self._execute_ticket_step(step, ticket, inp, candidate_snapshot)
+            return handle_intake(self.workspace_root, self.key_path, eff_inp, baseline_snapshot=baseline_snapshot)
+        return self._execute_ticket_step(step, ticket, eff_inp, candidate_snapshot)
 
 
 def _load_cli_input(raw_input: Optional[str]) -> Dict[str, Any]:
@@ -161,11 +183,20 @@ def run_tensor_cli(argv: Optional[Sequence[str]] = None, parser: Optional[argpar
     reconfigure_streams()
     if parser is None:
         parser = argparse.ArgumentParser(description="Tensor-RSI Control Plane DOM-01")
-        for opt, kw in (("--step", {"required": True, "choices": ("intake", "diagnose", "propose", "evaluate", "decide", "record", "status", "abort")}), ("--ticket", {"default": None}), ("--input", {"default": None}), ("--root", {"default": None}), ("--json", {"action": "store_true"})):
+        for opt, kw in (
+            ("--step", {"required": True, "choices": ("intake", "diagnose", "propose", "evaluate", "decide", "record", "status", "abort")}),
+            ("--ticket", {"default": None}),
+            ("--input", {"default": None}),
+            ("--root", {"default": None}),
+            ("--lane-id", {"default": None}),
+            ("--json", {"action": "store_true"}),
+        ):
             parser.add_argument(opt, **kw)
     args = parser.parse_args(argv)
     try:
-        out = TensorRSICoExecutor(workspace_root=args.root).execute_step(args.step, ticket=args.ticket, input_data=_load_cli_input(args.input))
+        out = TensorRSICoExecutor(workspace_root=args.root, lane_id=getattr(args, "lane_id", None)).execute_step(
+            args.step, ticket=args.ticket, input_data=_load_cli_input(args.input)
+        )
         print(out.model_dump_json(indent=2) if args.json else f"[{out.status}] step={out.step} phase={out.phase} seq={out.step_seq} | {out.summary}")
         return 0
     except (TicketAuthError, ValueError, OSError) as exc:

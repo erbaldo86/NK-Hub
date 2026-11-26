@@ -10,6 +10,8 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union
 
+from _internal.nk_common.lane_paths import is_lane_container_entry, strip_staging_rel_parts
+
 from . import constants as _consts
 from .constants import TwoPhaseCommitError
 from .io_and_paths import _assert_no_external_reparse, _is_reparse_point
@@ -82,16 +84,13 @@ def _extract_dual_schema_baseline(
 
 
 def _resolve_oracle_lock_candidate_paths(raw_path: Path) -> List[Path]:
-    """Risolve il percorso quality_baseline e l'eventuale equivalente fuori da .staging/."""
+    """Risolve il percorso quality_baseline e l'eventuale equivalente fuori da .staging/[lanes/<id>/]."""
     resolved = raw_path.resolve()
     candidates = [resolved]
-    parts = resolved.parts
-    for idx in range(len(parts) - 1, -1, -1):
-        if parts[idx] == ".staging":
-            rel_parts = parts[idx + 1 :]
-            if rel_parts:
-                candidates.append(Path(*parts[:idx], *rel_parts).resolve())
-            break
+    idx, rel_parts, _lane = strip_staging_rel_parts(resolved.parts)
+    if idx >= 0 and rel_parts:
+        base_root = Path(*resolved.parts[:idx]) if idx > 0 else Path(".")
+        candidates.append((base_root.joinpath(*rel_parts)).resolve())
     return candidates
 
 
@@ -235,87 +234,67 @@ def _verify_quality_baseline_ratchet(
     }
 
 
+def _validate_entry_name(name: str) -> None:
+    """Rifiuta caratteri ADS, NUL o spazi/punti finali Win32 su nomi entry staging."""
+    if "\x00" in name or ":" in name:
+        raise TwoPhaseCommitError(f"Alternate Data Stream (ADS) o ':' vietato in staging: {name!r}")
+    if name != name.rstrip(". "):
+        raise TwoPhaseCommitError(f"Componente percorso Win32 con punto o spazio finale vietato in staging: {name!r}")
+
+
+def _classify_dir_entry(entry: os.DirEntry[str], entry_path: Path, real_root: Path) -> Tuple[bool, bool]:
+    """Verifica reparse confinement e restituisce (is_dir, is_file) senza seguire symlink."""
+    is_rep = False
+    try:
+        if entry.is_symlink():
+            is_rep = True
+        else:
+            st_attrs = getattr(entry.stat(follow_symlinks=False), "st_file_attributes", 0)
+            is_rep = (st_attrs & _consts.FILE_ATTRIBUTE_REPARSE_POINT) != 0
+    except OSError:
+        is_rep = _is_reparse_point(entry_path)
+    if is_rep:
+        real_target = Path(os.path.realpath(str(entry_path)))
+        if real_target != real_root and real_root not in real_target.parents:
+            raise TwoPhaseCommitError(f"Junction o reparse point in staging punta fuori da root: {entry_path} -> {real_target}")
+    try:
+        return entry.is_dir(follow_symlinks=False), entry.is_file(follow_symlinks=False)
+    except OSError:
+        return entry_path.is_dir(), entry_path.is_file()
+
+
 def _scan_staging_canonical(
     staging_dir: Path,
     real_root: Path,
     subdirs: Optional[List[str]] = None,
 ) -> List[Path]:
-    """Scansiona .staging/ bloccando ADS, punti/spazi finali e junction esterne e ignorando artefatti effimeri."""
+    """Scansiona staging bloccando ADS, punti/spazi finali, junction esterne e ignorando lanes/ in legacy."""
     _assert_no_external_reparse(staging_dir, real_root)
     allowed_top_subdirs: Optional[Set[str]] = set(subdirs) if subdirs else None
+    excl_lanes = Path(staging_dir).name == ".staging"
     collected: List[Path] = []
 
     def _walk_dir(curr_dir: Path, depth: int) -> None:
         raw_dir = str(curr_dir)
-        scan_path = (
-            "\\\\?\\" + str(curr_dir.resolve())
-            if os.name == "nt" and not raw_dir.startswith("\\\\?\\")
-            else raw_dir
-        )
+        scan_path = ("\\\\?\\" + str(curr_dir.resolve())) if (os.name == "nt" and not raw_dir.startswith("\\\\?\\")) else raw_dir
         try:
             with os.scandir(scan_path) as it:
                 entries = sorted(list(it), key=lambda e: e.name)
         except OSError:
             with os.scandir(raw_dir) as it:
                 entries = sorted(list(it), key=lambda e: e.name)
-
         for entry in entries:
             name = entry.name
-            if name in (".", ".."):
+            if name in (".", "..", ".git", "__pycache__") or (depth == 0 and excl_lanes and is_lane_container_entry((name,))):
                 continue
-            if "\x00" in name or ":" in name:
-                raise TwoPhaseCommitError(
-                    f"Alternate Data Stream (ADS) o ':' vietato in staging: {name!r}"
-                )
-            if name != name.rstrip(". "):
-                raise TwoPhaseCommitError(
-                    f"Componente percorso Win32 con punto o spazio finale vietato in staging: {name!r}"
-                )
-
+            _validate_entry_name(name)
             entry_path = curr_dir / name
-            is_rep = False
-            try:
-                if entry.is_symlink():
-                    is_rep = True
-                else:
-                    st_attrs = getattr(
-                        entry.stat(follow_symlinks=False), "st_file_attributes", 0
-                    )
-                    if (st_attrs & _consts.FILE_ATTRIBUTE_REPARSE_POINT) != 0:
-                        is_rep = True
-            except OSError:
-                is_rep = _is_reparse_point(entry_path)
-
-            if is_rep:
-                real_target = Path(os.path.realpath(str(entry_path)))
-                if real_target != real_root and real_root not in real_target.parents:
-                    raise TwoPhaseCommitError(
-                        f"Junction o reparse point in staging punta fuori da root: {entry_path} -> {real_target}"
-                    )
-
-            if name in (".git", "__pycache__"):
-                continue
-
-            try:
-                is_dir = entry.is_dir(follow_symlinks=False)
-                is_file = entry.is_file(follow_symlinks=False)
-            except OSError:
-                is_dir = entry_path.is_dir()
-                is_file = entry_path.is_file()
-
+            is_dir, is_file = _classify_dir_entry(entry, entry_path, real_root)
             if is_dir:
-                if (
-                    depth == 0
-                    and allowed_top_subdirs is not None
-                    and name not in allowed_top_subdirs
-                ):
+                if depth == 0 and allowed_top_subdirs is not None and name not in allowed_top_subdirs:
                     continue
                 _walk_dir(entry_path, depth + 1)
-            elif is_file:
-                if _is_skipped_staging_marker(name, depth):
-                    continue
-                if Path(name).suffix.lower() in _consts.IGNORED_STAGING_SUFFIXES:
-                    continue
+            elif is_file and not _is_skipped_staging_marker(name, depth) and Path(name).suffix.lower() not in _consts.IGNORED_STAGING_SUFFIXES:
                 collected.append(entry_path)
 
     _walk_dir(staging_dir, 0)

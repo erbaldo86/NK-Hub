@@ -26,7 +26,7 @@ else:
 
 
 def _get_hooks_temp_dir_str() -> str:
-    """Restituisce e crea la directory temporanea per gli hook usando solo os.path."""
+    """Restituisce e crea la directory temporanea hook evitando nk_hooks/nk_hooks."""
     temp_base = (
         os.environ.get("NK_HOOKS_TEMP_DIR")
         or os.environ.get("TEMP")
@@ -37,7 +37,12 @@ def _get_hooks_temp_dir_str() -> str:
         import tempfile
 
         temp_base = tempfile.gettempdir()
-    base = os.path.join(temp_base, "nk_hooks")
+    norm_base = os.path.normpath(temp_base)
+    base = (
+        norm_base
+        if os.path.basename(norm_base).lower() == "nk_hooks"
+        else os.path.join(norm_base, "nk_hooks")
+    )
     os.makedirs(base, exist_ok=True)
     return base
 
@@ -189,7 +194,7 @@ def _write_json_atomic_str(path_str: str, data: Dict[str, Any]) -> None:
         try:
             if os.path.exists(tmp_str) and not _is_path_reparse_str(tmp_str):
                 os.unlink(tmp_str)
-        except Exception:
+        except OSError:
             pass
 
 

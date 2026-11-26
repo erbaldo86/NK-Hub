@@ -137,7 +137,7 @@ _HELP_CLI_STR_FLAGS: Tuple[Tuple[str, str], ...] = (
     ("--mutation-report", "Path report JSON mutation"), ("--dast-report", "Path report JSON DAST"),
     ("--test-report", "Path report JSON test suite"), ("--coverage-report", "Path report JSON coverage"),
     ("--allowed-files", "CSV file consentiti in .staging/"), ("--profile", "Profilo Tensor-RSI (P1..P6)"),
-    ("--root", "Directory radice"),
+    ("--lane-id", "ID lane di staging isolata"), ("--root", "Directory radice"),
 )
 
 

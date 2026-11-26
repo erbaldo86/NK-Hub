@@ -11,7 +11,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from _internal.nk_common.transcript_guards import is_verified_compaction
-from _internal.nk_common.transcript_io import wal_bucket_hash
+from _internal.nk_common.transcript_io import wal_bucket_hash  # noqa: F401
+from _internal.nk_common.wal_scope import has_scoped_active_wal
 from _internal.nk_hook_gate.constants import (
     _SAFE_CONV_ID_RE,
     _SCRIPT_DIR,
@@ -118,7 +119,7 @@ def _stop_read_tokens_and_epoch(
 
 
 def _stop_is_batch_mutex_or_wal_busy(roots: Sequence[Path]) -> bool:
-    """Verifica OpenMutexW Global\\ / Local\\ NK_RepoBatchLock e file .wal attivi."""
+    """Verifica OpenMutexW Global\\ / Local\\ NK_RepoBatchLock e file .wal scoped."""
     import hashlib
 
     if sys.platform == "win32":
@@ -145,27 +146,7 @@ def _stop_is_batch_mutex_or_wal_busy(roots: Sequence[Path]) -> bool:
                     return True
                 if err == 5:
                     return True
-    cutoff = time.time() - 120.0
-    import tempfile
-
-    temp_wal = Path(tempfile.gettempdir()) / "nk_2pc_wal"
-    wal_dirs: List[Path] = [temp_wal] if temp_wal.is_dir() else []
-    for root in roots:
-        wal_dirs.append(root / ".wal")
-        try:
-            wal_dirs.append(temp_wal / wal_bucket_hash(root))
-        except OSError:
-            pass
-    for wd in wal_dirs:
-        if not wd.is_dir() or _is_path_reparse_point(wd):
-            continue
-        try:
-            for wf in wd.glob("*.wal"):
-                if not _is_path_reparse_point(wf) and wf.stat().st_mtime >= cutoff:
-                    return True
-        except OSError:
-            continue
-    return False
+    return has_scoped_active_wal(roots, max_age_sec=120.0)
 
 
 def _stop_parse_iso_ns(rec: Dict[str, Any]) -> int:

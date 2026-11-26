@@ -10,7 +10,7 @@ import pytest
 
 _EXEC_NORM = os.path.normcase(os.path.abspath(__EXEC_ROOT__))
 _HINT_RAW = __HINT_RAW__
-_HINT_NAME = os.path.normcase(_HINT_RAW) if _HINT_RAW is not None else None
+_HINT_NAME = _HINT_RAW.lower() if _HINT_RAW is not None else None
 _OUT_JSON = __OUT_JSON__
 _RECORDS_JSON = __RECORDS_JSON__
 _SELECTED_FILTER = set(__SELECTED_NODEIDS__)
@@ -47,7 +47,7 @@ def _map_filename(co_filename: str) -> str | None:
         _FILE_CACHE[co_filename] = None
         return None
     if _HINT_NAME is not None:
-        if os.path.normcase(os.path.basename(rel)) != _HINT_NAME:
+        if os.path.basename(rel).lower() != _HINT_NAME:
             _FILE_CACHE[co_filename] = None
             return None
     elif _is_ignored_test_file(rel):

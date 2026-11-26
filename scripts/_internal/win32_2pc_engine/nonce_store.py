@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Store persistente anti-replay per nonce HMAC governance sotto Win32NamedMutex.
+Store persistente anti-replay per nonce HMAC governance sotto Win32NamedMutex (Goldilocks defer).
 Modulo: scripts/_internal/win32_2pc_engine/nonce_store.py.
 @domain_id: DOM-01
 """
@@ -15,8 +15,9 @@ import os
 import tempfile
 import time
 from pathlib import Path
-from typing import Dict, Iterator, Optional, Set, Union
+from typing import Any, Dict, Iterator, Optional, Set, Tuple, Union
 
+from _internal.nk_common.staging_manifest import is_reparse_entry
 from _internal.win32_2pc_engine.constants import TwoPhaseCommitError
 from _internal.win32_2pc_engine.io_and_paths import _replace_with_retry
 from _internal.win32_2pc_engine.mutex import Win32NamedMutex
@@ -24,45 +25,50 @@ from _internal.win32_2pc_engine.mutex import Win32NamedMutex
 _NONCE_CLOCK_SKEW_SEC = 60
 _ACTIVE_BATCH_NONCES: contextvars.ContextVar[Optional[Set[str]]] = contextvars.ContextVar("nk_gov_batch_nonces", default=None)
 _ACTIVE_NONCE_ENFORCE: contextvars.ContextVar[bool] = contextvars.ContextVar("nk_gov_nonce_enforce", default=False)
+_DEFER_BATCH_NONCE_COMMIT: contextvars.ContextVar[bool] = contextvars.ContextVar("nk_gov_defer_nonce", default=False)
+_PENDING_BATCH_NONCES: contextvars.ContextVar[Optional[Dict[str, Tuple[int, Path]]]] = contextvars.ContextVar("nk_gov_pending_nonces", default=None)
 
 
 def resolve_governance_nonce_store_path(store_path: Optional[Union[str, Path]] = None) -> Path:
-    """Risolve il percorso esterno del registro nonce anti-replay in LOCALAPPDATA o temp."""
     if store_path is not None:
-        return Path(store_path).resolve()
-    env_override = os.environ.get("NK_GOVERNANCE_NONCE_STORE_PATH", "").strip()
-    if env_override:
-        return Path(env_override).resolve()
-    base_dir = os.environ.get("LOCALAPPDATA", "").strip() or tempfile.gettempdir()
-    return (Path(base_dir) / "nk_hub" / "governance_nonces.json").resolve()
+        cand = Path(store_path)
+    elif (env_override := os.environ.get("NK_GOVERNANCE_NONCE_STORE_PATH", "").strip()):
+        cand = Path(env_override)
+    else:
+        base_dir = os.environ.get("LOCALAPPDATA", "").strip() or tempfile.gettempdir()
+        cand = Path(base_dir) / "nk_hub" / "governance_nonces.json"
+    if is_reparse_entry(cand) or is_reparse_entry(cand.parent):
+        raise TwoPhaseCommitError(f"Reparse point vietato su store nonce governance: {cand}")
+    return cand.resolve()
 
 
 def is_nonce_replay_enforced(*, token_version: str = "v1", consume_nonce: bool = False, active_session: bool = False) -> bool:
-    """True se anti-replay va attivato per versione v2, flag esplicito, sessione o env."""
     env_flag = os.environ.get("NK_GOVERNANCE_NONCE_ENFORCE", "").strip() == "1"
     ver = str(token_version or "v1").strip().lower()
     return bool(consume_nonce or ver == "v2" or active_session or _ACTIVE_NONCE_ENFORCE.get() or env_flag)
 
 
 @contextlib.contextmanager
-def governance_batch_nonce_scope(enforce: bool = False) -> Iterator[None]:
-    """Consente riutilizzo controllato dello stesso nonce solo entro un singolo batch 2PC."""
+def governance_batch_nonce_scope(enforce: bool = False, *, defer_commit: bool = False) -> Iterator[None]:
+    """Consente riutilizzo controllato nel batch 2PC con commit differito Goldilocks opzionale."""
     tok_nonces = _ACTIVE_BATCH_NONCES.set(set())
     tok_enforce = _ACTIVE_NONCE_ENFORCE.set(bool(enforce) or _ACTIVE_NONCE_ENFORCE.get())
+    tok_defer = _DEFER_BATCH_NONCE_COMMIT.set(bool(defer_commit))
+    tok_pending = _PENDING_BATCH_NONCES.set({})
     try:
         yield
     finally:
+        _PENDING_BATCH_NONCES.reset(tok_pending)
+        _DEFER_BATCH_NONCE_COMMIT.reset(tok_defer)
         _ACTIVE_NONCE_ENFORCE.reset(tok_enforce)
         _ACTIVE_BATCH_NONCES.reset(tok_nonces)
 
 
 def _reject_nonce_json_constant(raw_const: str) -> None:
-    """Rifiuta costanti JSON non standard (NaN, Infinity, -Infinity)."""
     raise TwoPhaseCommitError(f"Costante JSON non valida nello store nonce governance: {raw_const!r}")
 
 
 def _validate_nonce_expiry_entry(k: Any, exp: Any, resolved: Path) -> int:
-    """Convalida una singola coppia (nonce, expiry) rifiutando bool, stringhe e NaN/Inf."""
     if not isinstance(k, str) or isinstance(exp, bool) or not isinstance(exp, (int, float)):
         raise TwoPhaseCommitError(f"Voce nonce governance non valida o corrotta ({resolved}): key={k!r}")
     exp_f = float(exp)
@@ -72,7 +78,6 @@ def _validate_nonce_expiry_entry(k: Any, exp: Any, resolved: Path) -> int:
 
 
 def _load_active_nonces(resolved: Path, now_ts: int) -> Dict[str, int]:
-    """Carica i nonce non scaduti dal file JSON in fail-closed."""
     if not resolved.exists():
         return {}
     try:
@@ -89,7 +94,6 @@ def _load_active_nonces(resolved: Path, now_ts: int) -> Dict[str, int]:
 
 
 def _atomic_write_nonces(resolved: Path, records: Dict[str, int]) -> None:
-    """Scrive atomicamente i nonce attivi su file tramite swap sicuro nello stesso parent."""
     resolved.parent.mkdir(parents=True, exist_ok=True)
     payload = json.dumps(records, sort_keys=True, separators=(",", ":"), allow_nan=False)
     fd, tmp_name = tempfile.mkstemp(prefix=".nonce_", suffix=".tmp", dir=str(resolved.parent), text=True)
@@ -106,11 +110,44 @@ def _atomic_write_nonces(resolved: Path, records: Dict[str, int]) -> None:
         raise
 
 
+def flush_pending_batch_nonces() -> int:
+    """Consuma su disco i nonce differiti dello scope corrente subito prima dello swap FS."""
+    pending = _PENDING_BATCH_NONCES.get()
+    if not pending:
+        return 0
+    by_store: Dict[Path, Dict[str, int]] = {}
+    for nonce_hex, (expiry_ts, store_p) in pending.items():
+        by_store.setdefault(store_p, {})[nonce_hex] = int(expiry_ts)
+    now_ts, burned = int(time.time()), 0
+    for resolved, entries in by_store.items():
+        with Win32NamedMutex(resolved, timeout_ms=5000, is_path=True):
+            active = _load_active_nonces(resolved, now_ts)
+            for clean_nonce, exp_ts in entries.items():
+                if clean_nonce in active:
+                    raise TwoPhaseCommitError(f"Replay rilevato per token governance (nonce {clean_nonce[:8]} gia consumato).")
+                active[clean_nonce] = exp_ts
+                burned += 1
+            _atomic_write_nonces(resolved, active)
+    pending.clear()
+    return burned
+
+
+def _record_nonce_consumption(clean_nonce: str, expiry_ts: int, resolved: Path, active: Dict[str, int], batch_seen: Optional[Set[str]]) -> None:
+    pending = _PENDING_BATCH_NONCES.get()
+    if _DEFER_BATCH_NONCE_COMMIT.get() and pending is not None:
+        pending[clean_nonce] = (expiry_ts, resolved)
+    else:
+        active[clean_nonce] = expiry_ts
+        _atomic_write_nonces(resolved, active)
+    if batch_seen is not None:
+        batch_seen.add(clean_nonce)
+
+
 def verify_or_consume_governance_nonce(
     nonce_hex: str, ts_int: int, ttl_sec: int, *, check_replay: bool = False,
     consume: bool = False, store_path: Optional[Union[str, Path]] = None,
 ) -> bool:
-    """Verifica o consuma il nonce anti-replay in LOCALAPPDATA/nk_hub/governance_nonces.json."""
+    """Verifica o consuma (immediato o differito Goldilocks) il nonce anti-replay HMAC."""
     if not check_replay and not consume:
         return True
     clean_nonce = str(nonce_hex or "").strip().lower()
@@ -128,8 +165,5 @@ def verify_or_consume_governance_nonce(
         if clean_nonce in active:
             raise TwoPhaseCommitError(f"Replay rilevato per token governance (nonce {clean_nonce[:8]} gia consumato).")
         if consume:
-            active[clean_nonce] = expiry_ts
-            _atomic_write_nonces(resolved, active)
-            if batch_seen is not None:
-                batch_seen.add(clean_nonce)
+            _record_nonce_consumption(clean_nonce, expiry_ts, resolved, active, batch_seen)
     return True

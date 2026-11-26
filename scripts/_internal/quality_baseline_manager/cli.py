@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-"""Interfaccia CLI per check read-only, update e recalibrate Schema v2."""
+"""Interfaccia CLI per check read-only, update CAS e recalibrate Schema v2."""
 
 from __future__ import annotations
 
 import argparse
 import inspect
 import json
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 from _internal.quality_baseline_manager.benchmark_runner import measure_live_pytest_metrics
 from _internal.quality_baseline_manager.constants import (
@@ -35,12 +35,28 @@ def _build_cli_parser() -> argparse.ArgumentParser:
     parser.add_argument("--target-tests", dest="target_tests", type=int, default=None, help="Conteggio target opzionale per --recalibrate (>= 93)")
     parser.add_argument("--check-only", "--check", dest="check_only", action="store_true", help="Verifica read-only del baseline senza modificare il file")
     parser.add_argument("--live", dest="live_flag", action="store_true", help="Esegue pytest reale per misurare passed e total su check o update")
+    parser.add_argument("--lane-id", dest="lane_id", type=str, default=None, help="ID lane di staging isolata")
+    parser.add_argument("--expected-baseline-sha256", dest="expected_baseline_sha256", type=str, default=None, help="SHA-256 atteso di quality_baseline.json per CAS")
     parser.add_argument("--with-coverage", dest="with_coverage", action="store_true", help="Misura copertura statement/branch con pytest-cov durante --live")
     parser.add_argument("--allow-ratchet-down", dest="allow_ratchet_down", action="store_true", help="Consente riduzione controllata mantenendo floor costituzionali")
     parser.add_argument("--reason", dest="reason", type=str, default=None, help="Motivazione audit obbligatoria quando --allow-ratchet-down e attivo")
     parser.add_argument("--metrics", dest="metrics_json", default=None, help="Stringa JSON delle metriche da confrontare con il baseline")
     parser.add_argument("--json", action="store_true", help="Stampa il risultato in formato JSON")
     return parser
+
+
+def _call_measure_live(
+    measure_fn: Any, ws_root: Any, with_coverage: bool, lane_id: Optional[str] = None
+) -> Dict[str, Any]:
+    kw: Dict[str, Any] = {"with_coverage": with_coverage}
+    if lane_id is not None:
+        try:
+            params = inspect.signature(measure_fn).parameters
+            if "lane_id" in params or any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()):
+                kw["lane_id"] = lane_id
+        except (TypeError, ValueError):
+            pass
+    return measure_fn(ws_root, **kw)
 
 
 def _attach_recal_opt_kwargs(
@@ -59,7 +75,6 @@ def _invoke_recalibrate_fn(
     recal_fn: Any, baseline_path: str, target_cnt: int, allow_ratchet_down: bool,
     live_metrics: Optional[Dict[str, Any]], reason: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Invoca recalibrate_baseline propagando allow_ratchet_down, reason e metriche live."""
     try:
         params = inspect.signature(recal_fn).parameters
         accepts_kw = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())
@@ -73,7 +88,6 @@ def _invoke_recalibrate_fn(
 
 
 def _run_recalibrate_cli(args: argparse.Namespace, b_path: str) -> int:
-    """Gestisce il sottocomando CLI recalibrate in modalita fail-closed."""
     measure_fn = _facade_attr("measure_live_pytest_metrics", measure_live_pytest_metrics)
     resolve_ws_fn = _facade_attr("_resolve_workspace_root_from_baseline", _resolve_workspace_root_from_baseline)
     recal_fn = _facade_attr("recalibrate_baseline", recalibrate_baseline)
@@ -81,17 +95,9 @@ def _run_recalibrate_cli(args: argparse.Namespace, b_path: str) -> int:
     if args.target_tests is not None:
         target_cnt = args.target_tests
     elif args.live_flag:
-        live_metrics = measure_fn(resolve_ws_fn(b_path), with_coverage=bool(args.with_coverage))
-        if (
-            int(live_metrics.get("failed_tests", 0)) > 0
-            or float(live_metrics.get("pass_rate_pct", 0.0)) < 100.0
-            or (args.with_coverage and "true_branch_coverage_pct" not in live_metrics)
-        ):
-            res = {
-                "status": "REJECTED", "verdict": "FAIL",
-                "message": f"Ricalibrazione --live rifiutata: pytest ha fallito ({live_metrics.get('unit_tests_passed')}/{live_metrics.get('unit_tests_total')}).",
-                "live_metrics": live_metrics, "regressions": [],
-            }
+        live_metrics = _call_measure_live(measure_fn, resolve_ws_fn(b_path), bool(args.with_coverage), getattr(args, "lane_id", None))
+        if int(live_metrics.get("failed_tests", 0)) > 0 or float(live_metrics.get("pass_rate_pct", 0.0)) < 100.0 or (args.with_coverage and "true_branch_coverage_pct" not in live_metrics):
+            res = {"status": "REJECTED", "verdict": "FAIL", "message": f"Ricalibrazione --live rifiutata: pytest ha fallito ({live_metrics.get('unit_tests_passed')}/{live_metrics.get('unit_tests_total')}).", "live_metrics": live_metrics, "regressions": []}
             print(json.dumps(res, indent=2))
             return 1
         target_cnt = int(live_metrics["unit_tests_passed"])
@@ -107,7 +113,6 @@ def _run_recalibrate_cli(args: argparse.Namespace, b_path: str) -> int:
 
 
 def _resolve_metrics_for_cli(args: argparse.Namespace, cmd: str, b_path: str) -> Tuple[Optional[Dict[str, Any]], bool, int]:
-    """Risolve metriche JSON o live per check/update restituendo (metrics, use_live, err_code)."""
     measure_fn = _facade_attr("measure_live_pytest_metrics", measure_live_pytest_metrics)
     resolve_ws_fn = _facade_attr("_resolve_workspace_root_from_baseline", _resolve_workspace_root_from_baseline)
     explicit_upd = args.update_json if (args.update_json is not None and args.update_json != "__LIVE__") else None
@@ -120,9 +125,24 @@ def _resolve_metrics_for_cli(args: argparse.Namespace, cmd: str, b_path: str) ->
             print(json.dumps({"status": "ERROR", "verdict": "FAIL", "message": f"JSON metriche non valido: {exc}"}))
             return None, use_live, 1
     if use_live:
-        return measure_fn(resolve_ws_fn(b_path), with_coverage=bool(args.with_coverage)), True, 0
+        return _call_measure_live(measure_fn, resolve_ws_fn(b_path), bool(args.with_coverage), getattr(args, "lane_id", None)), True, 0
     print(json.dumps({"status": "ERROR", "verdict": "FAIL", "message": "Specificare --live oppure --metrics JSON: auto-confronto del baseline disabilitato."}))
     return None, False, 1
+
+
+def _run_update_cmd(args: argparse.Namespace, b_path: str, metrics: dict) -> dict:
+    upd_fn = _facade_attr("update_baseline_metrics", update_baseline_metrics)
+    try:
+        u_params = inspect.signature(upd_fn).parameters
+        has_var = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in u_params.values())
+    except (TypeError, ValueError):
+        u_params, has_var = {}, False
+    upd_kw: Dict[str, Any] = {"allow_ratchet_down": bool(args.allow_ratchet_down)}
+    if args.reason and (has_var or "reason" in u_params):
+        upd_kw["reason"] = str(args.reason).strip()
+    if getattr(args, "expected_baseline_sha256", None) and (has_var or "expected_baseline_sha256" in u_params):
+        upd_kw["expected_baseline_sha256"] = str(args.expected_baseline_sha256).strip()
+    return upd_fn(b_path, metrics, **upd_kw)
 
 
 def main() -> int:
@@ -149,23 +169,9 @@ def main() -> int:
         return 1
 
     if use_live and args.with_coverage and "true_branch_coverage_pct" not in metrics:
-        res: Dict[str, Any] = {
-            "status": "ERROR" if cmd == "check" else "REJECTED", "verdict": "FAIL",
-            "message": "Coverage JSON mancante o illeggibile in modalita --with-coverage.",
-            "regressions": [{"metric": "true_branch_coverage_pct", "message": "Coverage JSON mancante o illeggibile in modalita --with-coverage."}],
-            "details": "Coverage JSON mancante o illeggibile in modalita --with-coverage.", "live_metrics": metrics,
-        }
+        res: Dict[str, Any] = {"status": "ERROR" if cmd == "check" else "REJECTED", "verdict": "FAIL", "message": "Coverage JSON mancante o illeggibile in modalita --with-coverage.", "regressions": [{"metric": "true_branch_coverage_pct", "message": "Coverage JSON mancante o illeggibile in modalita --with-coverage."}], "details": "Coverage JSON mancante o illeggibile in modalita --with-coverage.", "live_metrics": metrics}
     elif cmd == "update":
-        upd_fn = _facade_attr("update_baseline_metrics", update_baseline_metrics)
-        try:
-            u_params = inspect.signature(upd_fn).parameters
-            has_reason = "reason" in u_params or any(p.kind == inspect.Parameter.VAR_KEYWORD for p in u_params.values())
-        except (TypeError, ValueError):
-            has_reason = False
-        upd_kw: Dict[str, Any] = {"allow_ratchet_down": bool(args.allow_ratchet_down)}
-        if has_reason and args.reason:
-            upd_kw["reason"] = str(args.reason).strip()
-        res = upd_fn(b_path, metrics, **upd_kw)
+        res = _run_update_cmd(args, b_path, metrics)
     else:
         res = _facade_attr("check_baseline_compliance", check_baseline_compliance)(b_path, metrics, allow_ratchet_down=bool(args.allow_ratchet_down))
         if use_live and res.get("verdict") == "PASS":

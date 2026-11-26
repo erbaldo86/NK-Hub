@@ -3,7 +3,7 @@
   "schema_version": 2,
   "project": "NK_Hub",
   "baseline_date": "2026-11-17T00:00:00.000000",
-  "last_updated": "2026-11-24T20:30:37.553815",
+  "last_updated": "2026-11-26T00:45:46.776325",
   "coverage_scope": "scripts_true_branch_coverage_pytest_cov",
   "metrics": {
     "skills_audited": {
@@ -15,16 +15,16 @@
       "direction": "higher_is_better"
     },
     "total_golden_tests": {
-      "value": 384,
+      "value": 505,
       "direction": "higher_is_better",
       "description": "Totale Golden Tests certificato NK-GEN-3.0.1-PROGET-MIGRATION"
     },
     "unit_tests_total": {
-      "value": 384,
+      "value": 505,
       "direction": "higher_is_better"
     },
     "unit_tests_passed": {
-      "value": 384,
+      "value": 505,
       "direction": "higher_is_better"
     },
     "unit_tests_pass_pct": {
@@ -44,23 +44,23 @@
       "direction": "lower_is_better"
     },
     "pytest_duration_s": {
-      "value": 20.0,
+      "value": 21.91,
       "threshold_max": 28.0,
       "direction": "lower_is_better",
       "description": "Tetto costituzionale Full Suite + Branch Coverage (NK-GEN-3.0.1-PROGET-MIGRATION)"
     },
     "statement_coverage_pct": {
-      "value": 91.25,
+      "value": 91.43,
       "threshold_min": 90.5,
       "direction": "higher_is_better"
     },
     "true_branch_coverage_pct": {
-      "value": 83.43,
+      "value": 83.89,
       "threshold_min": 82.0,
       "direction": "higher_is_better"
     },
     "combined_coverage_pct": {
-      "value": 88.98,
+      "value": 89.25,
       "threshold_min": 88.0,
       "direction": "higher_is_better"
     },
@@ -241,6 +241,116 @@
         "statement_coverage_pct": 91.25,
         "true_branch_coverage_pct": 83.43,
         "combined_coverage_pct": 88.98
+      }
+    },
+    {
+      "timestamp": "2026-11-25T11:20:54.481917",
+      "metrics": {
+        "total_golden_tests": 403,
+        "unit_tests_total": 403,
+        "unit_tests_passed": 403,
+        "unit_tests_pass_pct": 100.0,
+        "pass_rate_pct": 100.0,
+        "failed_tests": 0,
+        "tests_skipped": 0,
+        "pytest_duration_s": 23.76,
+        "skills_audited": 11,
+        "sast_critical_violations": 0,
+        "statement_coverage_pct": 91.24,
+        "true_branch_coverage_pct": 83.46,
+        "combined_coverage_pct": 88.98
+      },
+      "reason": "NK-GEN-3.0.2-HOOK-GATE-R9-R10"
+    },
+    {
+      "timestamp": "2026-11-25T11:24:51.914275",
+      "metrics": {
+        "total_golden_tests": 385,
+        "unit_tests_total": 385,
+        "unit_tests_passed": 385,
+        "unit_tests_pass_pct": 100.0,
+        "pass_rate_pct": 100.0,
+        "failed_tests": 0,
+        "tests_skipped": 0,
+        "pytest_duration_s": 19.35,
+        "skills_audited": 11,
+        "sast_critical_violations": 0,
+        "statement_coverage_pct": 91.28,
+        "true_branch_coverage_pct": 83.5,
+        "combined_coverage_pct": 89.01
+      },
+      "reason": "Ripristino baseline produzione Round 10 (385 test) escludendo 18 test M1 non promossi in .staging/"
+    },
+    {
+      "timestamp": "2026-11-25T12:51:27.993803",
+      "metrics": {
+        "total_golden_tests": 403,
+        "unit_tests_total": 403,
+        "unit_tests_passed": 403,
+        "unit_tests_pass_pct": 100.0,
+        "pass_rate_pct": 100.0,
+        "failed_tests": 0,
+        "tests_skipped": 0,
+        "pytest_duration_s": 18.64,
+        "skills_audited": 11,
+        "sast_critical_violations": 0,
+        "statement_coverage_pct": 91.2,
+        "true_branch_coverage_pct": 83.44,
+        "combined_coverage_pct": 88.95
+      }
+    },
+    {
+      "timestamp": "2026-11-25T16:20:44.170596",
+      "metrics": {
+        "total_golden_tests": 426,
+        "unit_tests_total": 426,
+        "unit_tests_passed": 426,
+        "unit_tests_pass_pct": 100.0,
+        "pass_rate_pct": 100.0,
+        "failed_tests": 0,
+        "tests_skipped": 0,
+        "pytest_duration_s": 20.28,
+        "skills_audited": 11,
+        "sast_critical_violations": 0,
+        "statement_coverage_pct": 91.22,
+        "true_branch_coverage_pct": 83.47,
+        "combined_coverage_pct": 88.98
+      }
+    },
+    {
+      "timestamp": "2026-11-25T22:18:17.344564",
+      "metrics": {
+        "total_golden_tests": 461,
+        "unit_tests_total": 461,
+        "unit_tests_passed": 461,
+        "unit_tests_pass_pct": 100.0,
+        "pass_rate_pct": 100.0,
+        "failed_tests": 0,
+        "tests_skipped": 0,
+        "pytest_duration_s": 26.04,
+        "skills_audited": 11,
+        "sast_critical_violations": 0,
+        "statement_coverage_pct": 91.36,
+        "true_branch_coverage_pct": 83.71,
+        "combined_coverage_pct": 89.16
+      }
+    },
+    {
+      "timestamp": "2026-11-26T00:45:46.776325",
+      "metrics": {
+        "total_golden_tests": 505,
+        "unit_tests_total": 505,
+        "unit_tests_passed": 505,
+        "unit_tests_pass_pct": 100.0,
+        "pass_rate_pct": 100.0,
+        "failed_tests": 0,
+        "tests_skipped": 0,
+        "pytest_duration_s": 21.91,
+        "skills_audited": 11,
+        "sast_critical_violations": 0,
+        "statement_coverage_pct": 91.43,
+        "true_branch_coverage_pct": 83.89,
+        "combined_coverage_pct": 89.25
       }
     }
   ]

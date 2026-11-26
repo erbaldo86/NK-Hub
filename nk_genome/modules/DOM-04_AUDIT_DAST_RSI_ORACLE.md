@@ -36,7 +36,7 @@ L'indicizzazione `O(1)` (`scripts/_internal/nk_registry_indexer/`) garantisce ig
 | :--- | :--- | :--- | :--- |
 | `M-01` | `scripts/ast_guard_validator.py` | `_internal/ast_guard_validator/` | SAST AST, `--quality-diff`, scope creep e `[RULE-NO-LITERAL-ENV-PATH]` |
 | `M-02` | `scripts/rsi_convergence_engine.py` | `_internal/rsi_convergence_engine/` | `Q_v2(S_k)`, `G_hard`, `FAIL` cap `49.9`, `MIN_KILL_RATE_FLOOR = 0.80`, `--with-dast` forwarding, sanitizer holdout annidati |
-| `M-03` | `scripts/dast_sandbox_runner.py` | `_internal/dast_sandbox_runner/` | `--overlay-staging`, `--verify-holdout` su `4` lock (`tensor_rsi_lock.json` incluso), case check Windows |
+| `M-03` | `scripts/dast_sandbox_runner.py` | `_internal/dast_sandbox_runner/` | `--overlay-staging`, `--verify-holdout` su `4` lock, `fe_shadow.py` con junction NTFS read-only, blocco mutazione `node_modules` e gate `e2e/` vuoto |
 | `M-04` | `scripts/oracle_evaluator_l3.py` | `_internal/oracle_evaluator_l3/` | Verifica `6` Gate CRV, floor CI `88.0%` combined / `82.0%` true branch, blocco UNC Win32 |
 | `M-05` | `scripts/sbfl_pytest_bridge.py` | `_internal/sbfl_pytest_bridge/` | Spettri Ochiai `--collect-pass-coverage` e `--hybrid-fl` sotto `80` token |
 | `M-06` | `scripts/nk_transcript_tools.py` | `_internal/nk_transcript_tools/` | `lint-ste100`, `report-conflict`, grounding, `4` lock `SHA-256` e `transcript_scan.py` |

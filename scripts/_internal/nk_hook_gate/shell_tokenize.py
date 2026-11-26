@@ -11,8 +11,8 @@ from _internal.nk_hook_gate.constants_patterns import extract_ps_command_payload
 
 
 def _norm_cmd_verb(tok: str) -> str:
-    """Normalizza il nome di un eseguibile shell eliminando &, percorso e suffisso .exe."""
-    cleaned = _strip_wrapping_quotes(tok).lstrip("&").strip("\"'").replace("\\", "/")
+    """Normalizza il nome di un eseguibile shell eliminando &, parentesi, percorso e .exe."""
+    cleaned = _strip_wrapping_quotes(tok).lstrip("&({").rstrip(")}").strip("\"'").replace("\\", "/")
     base = os.path.basename(cleaned).lower()
     return base[:-4] if base.endswith(".exe") else base
 

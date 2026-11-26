@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from _internal.nk_common.lane_paths import resolve_staging_dir
 from _internal.vibe_sprint_router.ast_risk_and_capsule import (
     compute_ast_risk_score_impl,
     diff_changed_lines_impl,
@@ -68,12 +69,16 @@ class VibeSprintRouter:
     MODE_C_MAX_PROMPT_CHARS: int = 400
     DISCOVERY_KEYWORDS: Tuple[str, ...] = MODE_D_KEYWORDS
 
-    def __init__(self, workspace_root: Optional[Path] = None) -> None:
+    def __init__(
+        self, workspace_root: Optional[Path] = None, lane_id: Optional[str] = None
+    ) -> None:
         if workspace_root is None:
             self.workspace_root = _facade_workspace_root()
         else:
             self.workspace_root = Path(workspace_root).resolve()
-        self.staging_dir = self.workspace_root / ".staging"
+        self.staging_dir, self.lane_id = resolve_staging_dir(
+            self.workspace_root, lane_id=lane_id
+        )
 
     def _load_registry_manifest(self) -> Dict[str, Any]:
         """Carica nk_registry_manifest.json da staging o root con cache statica O(1)."""

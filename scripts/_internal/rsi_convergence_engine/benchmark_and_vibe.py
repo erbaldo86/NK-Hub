@@ -8,8 +8,9 @@ import json
 import subprocess  # noqa: F401 - preservato per monkeypatch test su bv.subprocess
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set
 
+from _internal.nk_common.lane_paths import is_skipped_lane_root_entry, strip_staging_rel_parts
 from _internal.rsi_convergence_engine.constants import (
     EXCLUDED_SCAN_DIRS, RSIDefectVector, VIBE_SCAN_SUFFIXES,
     _workspace_root, get_ast_guard_validator, normalize_rel_for_root,
@@ -24,14 +25,19 @@ from _internal.rsi_convergence_engine.sast_scanner import audit_markdown_doc_ref
 from _internal.rsi_convergence_engine.vibe_report_helpers import audit_sast_report_payload, run_benchmark_suite_impl
 
 
+def _is_included_vibe_file(p: Path, base_dir: Path, excluded_dirs: Set[str]) -> bool:
+    """True se il file e nel perimetro Vibe Check escludendo lanes/ e directory ignorate."""
+    if not p.is_file() or p.suffix.lower() not in VIBE_SCAN_SUFFIXES:
+        return False
+    rel_parts = p.relative_to(base_dir).parts
+    return not is_skipped_lane_root_entry(base_dir, rel_parts) and not any(part in excluded_dirs for part in rel_parts)
+
+
 def _scan_dir_suffixes(base_dir: Path, excluded_dirs: Set[str]) -> List[Path]:
     """Raccoglie ricorsivamente i file supportati escludendo directory vietate."""
     if not base_dir.exists():
         return []
-    return [
-        p for p in base_dir.rglob("*")
-        if p.is_file() and p.suffix.lower() in VIBE_SCAN_SUFFIXES and not any(part in excluded_dirs for part in p.relative_to(base_dir).parts)
-    ]
+    return [p for p in base_dir.rglob("*") if _is_included_vibe_file(p, base_dir, excluded_dirs)]
 
 
 def collect_vibe_files(target: Path, engine_root: Path, default_workspace_root: Path, excluded_dirs: Set[str]) -> List[Path]:
@@ -56,30 +62,28 @@ def _resolve_staging_baseline_text(fpath: Path, fallback_root: Path) -> str:
     """Carica il file baseline di produzione quando fpath risiede dentro .staging/."""
     resolved_f = fpath.resolve()
     parts = resolved_f.parts
-    for idx in range(len(parts) - 1, -1, -1):
-        if parts[idx] == ".staging":
-            stg_base = Path(*parts[: idx + 1])
+    stg_idx, rel_after, _lane = strip_staging_rel_parts(parts)
+    if stg_idx < 0 or not rel_after:
+        return ""
+    stg_parent = Path(*parts[:stg_idx])
+    rel_after_path = Path(*rel_after)
+    for root_cand in (stg_parent, Path(fallback_root).resolve()):
+        prod_cand = root_root_join(root_cand, rel_after_path)
+        if prod_cand.is_file():
             try:
-                rel_after_stg = resolved_f.relative_to(stg_base)
-            except ValueError:
-                break
-            for root_cand in (stg_base.parent, Path(fallback_root).resolve()):
-                prod_cand = root_root_join(root_cand, rel_after_stg)
-                if prod_cand.is_file():
-                    try:
-                        return prod_cand.read_text(encoding="utf-8", errors="replace")
-                    except OSError:
-                        return ""
-            return ""
+                return prod_cand.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                return ""
     return ""
 
 
 def _resolve_vibe_root(target: Path, fallback_root: Path) -> Path:
     """Risolve la radice workspace per i controlli relativi su link e script."""
     parts = target.resolve().parts
+    stg_idx, _r, _l = strip_staging_rel_parts(parts)
+    if stg_idx >= 0:
+        return Path(*parts[:stg_idx])
     for idx in range(len(parts) - 1, -1, -1):
-        if parts[idx] == ".staging":
-            return Path(*parts[:idx])
         if parts[idx] in (".agents", "nk_genome", "scripts"):
             parent_d = Path(*parts[:idx])
             return parent_d.parent if parent_d.name == ".staging" else parent_d
@@ -90,7 +94,8 @@ def _rel_label_for_vibe(fpath: Path, vibe_root: Path) -> str:
     """Restituisce un label relativo POSIX per Quality-Diff preservando path tests/."""
     try:
         rel_p = fpath.resolve().relative_to(vibe_root.resolve()).as_posix()
-        return rel_p[len(".staging/") :] if rel_p.startswith(".staging/") else rel_p
+        stg_idx, rel_after, _lane = strip_staging_rel_parts(Path(rel_p).parts)
+        return "/".join(rel_after) if stg_idx == 0 else rel_p
     except ValueError:
         return fpath.as_posix()
 
@@ -114,7 +119,7 @@ def _inspect_py_vibe_file(fpath: Path, text: str, vibe_root: Path, agv_cls: Any,
 
     rel_label = _rel_label_for_vibe(fpath, vibe_root)
     qd_viols = inspect_python_quality_staged(fpath, baseline_text, text, rel_label, vibe_root)
-    if ".staging" in fpath.parts:
+    if strip_staging_rel_parts(fpath.parts)[0] >= 0:
         state["qd_ran"] = True
     if qd_viols:
         bucket = classify_quality_violations(qd_viols)

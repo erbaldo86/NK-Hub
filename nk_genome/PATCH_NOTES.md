@@ -12,6 +12,26 @@ rsi_profile: "ste100_rsi"
 
 ---
 
+## [NK-GEN-4.0.4-PARALLEL-SOVEREIGN] (2026-11-25)
+
+* **Scheduler Kahn e Pre-Flight AST:** Aggiunge `dag_wave_scheduler.py` con graph coloring su write set. Aggiunge `preflight_conflict_predictor.py` per prevedere conflitti in sola lettura.
+* **Sub-Lane Swarm Consolidator (`--consolidate-sublanes`):** Introduce `_internal/win32_2pc_engine/sublane_consolidator.py` ed espone `--consolidate-sublanes` e `--parent-lane` su `win32_2pc_engine.py`. Fonde le sub-lane disgiunte in `%TEMP%`, esegue il gate combinato e promuove via `Win32 2PC` o Commit Train.
+* **Frontend Shadow Sandbox (`fe_shadow.py`):** Isola le suite TS/JS con porte loopback dedicate, lease runtime e NTFS junction read-only. Blocca comandi mutanti `node_modules` e rileva directory `e2e/` vuote.
+* **Ledger, Hook Ownership e Fix Frontmatter:** Estende retrocompatibilmente `TaskDAGNode` (`lane_id`, `declared_write_set`, `target_repo_root`). Risolve il bug frontmatter in `post_commit_consolidator.py`, aggiunge ownership `nk_genome/plans/<lane_id>.md` in `nk_hook_gate` e `record_wave_dispatch_anchor` in `nk_session_handoff.py`.
+* **Suite Zero-Mock (`test_parallel_m4_fast.py`):** Valida i 9 scenari M4 con junction NTFS reali. Verifica purezza `-S` e allinea i documenti via `Win32 2PC`.
+
+## [NK-GEN-3.0.2-HOOK-GATE-R9-R10-SYNC] (2026-11-25)
+
+* **Riallineamento Baseline Produzione:** Allinea `quality_baseline.json` a `385/385` test reali di produzione (`19.35s`, statement `91.28%`, branch `83.5%`, combined `89.01%`).
+* **Isolamento Test `.staging/` (`M1`):** Esclude dal conteggio di produzione i `18` test non promossi in `.staging/` (`IB-20261125-4EF84F`).
+
+## [NK-GEN-3.0.2-HOOK-GATE-R9-R10] (2026-11-25)
+
+* **Hardening `nk_hook_gate` Round 9:** Rafforza `ast_inline_guard.py`, `shell_redaction.py` e `constants.py`. Blocca bypass `python -c`, `**kwargs`, `Path.open`, `os.environ` ed escape `\"` su `--prompt`.
+* **Estensione Suite Governance NVMe:** Estende `tests/test_nk_proget_locale_online_governance.py` con `79/79` casi live `nk_hook_gate`. Supera `403/403` test zero-mock `PASS` su NVMe con `0` violazioni AST su `358` file.
+* **Certificazione Post-Promozione Round 10:** Supera `DAST Shadow Sandbox` (`is_dry_run: false`, `f_holdout: 0`) e `SBFL Hybrid-FL`. Conferma `Canary` (`6/6`), `GT-14` (`6/6`) e `RSI` `CONVERGED_OPTIMAL` (`Q_v2 = 100.0`, `G_hard = 1`, `gaming_penalty = 0`).
+* **Doppio Audit Blind `DOM-04`:** `NK-Security-DAST-Auditor` e `NK-RSI-Auditor` emettono `VERDETTO: PASS` (`P0=0`, `P1=0`, `P2=0`, `Unmeasured=0`). Verifica `4` sigilli `SHA-256` su `742` file e aggiorna `quality_baseline.json` a `403` test.
+
 ## [NK-GEN-3.0.2-GITHUB-RELEASE] (2026-11-25)
 
 * **Vetrina GitHub `v3.0.2-Generation`:** Aggiorna `.github/README.md` in parità bilingue IT/EN con badge `NK-GEN-3.0.2-FORENSIC-HARDENING-CLEAN` e `Core ABI 1.0.0-Generation`.
@@ -157,14 +177,14 @@ rsi_profile: "ste100_rsi"
 * **Isolamento Sibling:** `isolated_test_runner.py` imposta `overlay_siblings: bool = False` per bloccare overlay `.staging/` di progetti fratelli.
 * **Suite Permanente:** la suite completa supera `527` test su `527` in stato `PASS` (`run_id: 51ba4f1f47`).
 
-## `[NK-GEN-1.0.2-RSI]` (2026-11-18)
+## [NK-GEN-1.0.2-RSI] (2026-11-18)
 
 * **Milestone:** `NK-GEN-1.0.2-RSI` consolida sicurezza mirror NVMe, scansione SAST esplicita e test di regressione tramite `Win32 2PC`.
 * **Mirror NVMe Isolato:** `isolated_test_runner.py` include `deploy/`, rileva sibling `NK_External_Projects` e blocca symlink, junction e tombstone root.
 * **Scanner SAST:** `sast_scanner.py` risolve i moduli tramite percorso esplicito `NK_Hub/scripts/...` senza ambiguità di directory.
 * **Suite Permanente:** la suite completa supera `527` test su `527` in stato `PASS` (`run_id: 174b8eb3ef`).
 
-## `[NK-GEN-1.0.1-RSI]` (2026-11-18)
+## [NK-GEN-1.0.1-RSI] (2026-11-18)
 
 * **Milestone:** `NK-GEN-1.0.1-RSI` consolida il Lotto 1 tramite promozione atomica `Win32 2PC`.
 * **Sicurezza `HookGateV2`:** il modulo `HookGateV2` rafforza i filtri anti-smuggling e anti-spoofing su shell e redazione.

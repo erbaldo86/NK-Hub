@@ -14,6 +14,7 @@ from _internal.ast_guard_validator.models import (
     _normalize_type_annotation,
 )
 from _internal.nk_common.io import atomic_write_json
+from _internal.nk_common.lane_paths import strip_staging_rel_parts
 
 try:
     from _internal.nk_common.repo_snapshot_cache import get_repo_snapshot_cache
@@ -247,24 +248,21 @@ def verify_signatures_impl(
 def _resolve_production_counterpart(
     py_file: Path, workspace_root: Path
 ) -> Optional[Path]:
-    """Individua il file di produzione corrispondente se py_file si trova in .staging/."""
+    """Individua il file di produzione corrispondente se py_file risiede in .staging/[lanes/<id>/]."""
     resolved = py_file.resolve()
-    parts = list(resolved.parts)
-    if ".staging" in parts:
-        idx = parts.index(".staging")
-        rel_parts = parts[idx + 1 :]
-        if rel_parts:
-            effective_root = Path(*parts[:idx]) if idx > 0 else workspace_root
-            prod_cand = effective_root.joinpath(*rel_parts)
-            if prod_cand.exists() and prod_cand.is_file() and prod_cand != resolved:
-                return prod_cand
-            fallback_cand = workspace_root.joinpath(*rel_parts)
-            if (
-                fallback_cand.exists()
-                and fallback_cand.is_file()
-                and fallback_cand != resolved
-            ):
-                return fallback_cand
+    idx, rel_parts, _lane = strip_staging_rel_parts(resolved.parts)
+    if idx >= 0 and rel_parts:
+        effective_root = Path(*resolved.parts[:idx]) if idx > 0 else workspace_root
+        prod_cand = effective_root.joinpath(*rel_parts)
+        if prod_cand.exists() and prod_cand.is_file() and prod_cand != resolved:
+            return prod_cand
+        fallback_cand = workspace_root.joinpath(*rel_parts)
+        if (
+            fallback_cand.exists()
+            and fallback_cand.is_file()
+            and fallback_cand != resolved
+        ):
+            return fallback_cand
     return None
 
 

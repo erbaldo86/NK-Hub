@@ -15,10 +15,13 @@ from typing import Any, List, Sequence, Tuple
 
 from _internal.memory_3tier_engine.models import (
     MemoryEpisode,
+    _acquire_memory_file_mutex,
     _facade_attr,
     _resolve_external_backup_dir,
 )
 from _internal.memory_3tier_engine.search_bm25_dense import _light_stem_token
+from _internal.nk_common.nvme_storage_guards import FailClosedNamedMutex
+from _internal.nk_common.win32_mutex import repo_path_hash12
 
 
 def read_cold_archive_impl(cold_file: Path) -> List[MemoryEpisode]:
@@ -88,7 +91,10 @@ def read_cold_archive_impl(cold_file: Path) -> List[MemoryEpisode]:
 
 
 def init_cold_fts_schema_impl(conn: sqlite3.Connection) -> None:
-    """Inizializza le tabelle metadati e FTS5 per la cache cold SQLite."""
+    """Inizializza WAL, pragma anti-lock, metadati e tabelle FTS5 per cache cold."""
+    conn.execute("PRAGMA busy_timeout=5000")
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA synchronous=NORMAL")
     conn.execute(
         "CREATE TABLE IF NOT EXISTS cold_archive_meta ("
         "gz_path TEXT PRIMARY KEY, mtime_ns INTEGER NOT NULL, "
@@ -149,6 +155,10 @@ def sync_cold_fts5_index_impl(
         )
 
 
+def _cold_fts_mutex(db_path: Any) -> FailClosedNamedMutex:
+    return FailClosedNamedMutex(f"Local\\NK_ColdFTS5_{repo_path_hash12(db_path)}", wait_ms=5000)
+
+
 def get_cached_cold_episodes_impl(
     engine: Any, cold_file: Path
 ) -> List[MemoryEpisode]:
@@ -158,7 +168,7 @@ def get_cached_cold_episodes_impl(
     gz_key = os.path.realpath(str(cold_file)).lower()
     sql_mod = _facade_attr("sqlite3", sqlite3)
     try:
-        with engine._lock, contextlib.closing(
+        with engine._lock, _cold_fts_mutex(engine._cold_fts_db_path), contextlib.closing(
             sql_mod.connect(str(engine._cold_fts_db_path), timeout=5.0)
         ) as conn:
             engine._sync_cold_fts5_index(cold_file, conn)
@@ -173,7 +183,7 @@ def get_cached_cold_episodes_impl(
             except (json.JSONDecodeError, ValueError, Exception):
                 continue
         return out
-    except (sqlite3.Error, OSError):
+    except (sqlite3.Error, OSError, TimeoutError):
         return engine._read_cold_archive(cold_file)
 
 
@@ -199,7 +209,7 @@ def search_cold_fts5_impl(
     gz_key = os.path.realpath(str(cold_file)).lower()
     sql_mod = _facade_attr("sqlite3", sqlite3)
     try:
-        with engine._lock, contextlib.closing(
+        with engine._lock, _cold_fts_mutex(engine._cold_fts_db_path), contextlib.closing(
             sql_mod.connect(str(engine._cold_fts_db_path), timeout=5.0)
         ) as conn:
             engine._sync_cold_fts5_index(cold_file, conn)
@@ -214,20 +224,20 @@ def search_cold_fts5_impl(
             except (json.JSONDecodeError, ValueError, Exception):
                 continue
         return hits
-    except (sqlite3.Error, OSError):
+    except (sqlite3.Error, OSError, TimeoutError):
         return engine._read_cold_archive(cold_file)
 
 
 def archive_to_tier3_impl(
     base_dir: Path, domain: str, surplus: Sequence[MemoryEpisode]
 ) -> None:
-    """Appende in formato gzip gli episodi eccedenti la finestra mobile del Livello 2."""
+    """Appende in gzip gli episodi eccedenti sotto Named Mutex cross-processo."""
     if not surplus:
         return
     cold_file = base_dir / domain / "archive.cold.jsonl.gz"
     cold_file.parent.mkdir(parents=True, exist_ok=True)
     payload = "".join(ep.model_dump_json() + "\n" for ep in surplus).encode("utf-8")
-    with gzip.open(cold_file, "ab") as f:
+    with _acquire_memory_file_mutex(cold_file), gzip.open(cold_file, "ab") as f:
         f.write(payload)
 
 

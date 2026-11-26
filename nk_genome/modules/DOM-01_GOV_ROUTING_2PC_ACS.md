@@ -10,13 +10,13 @@ Tutti i moduli operano come facciate CLI sotto `500` LOC appoggiate su `scripts/
 | `G-01` | `NK-Orchestrator` | Skill (`Hub`) | Orchestrazione `2-Tier` (`11` skill, `6` foglie, `10` nodi), `Single-Gate` e `ACS` |
 | `G-02` | `scripts/vibe_sprint_router.py` | Facciata CLI | `_internal/vibe_sprint_router/`: Gate, `16` shortcut, `EXECUTE_HANDOFF_SERIALIZE`, `IntentTrackClassifier` |
 | `G-03` | `scripts/nk_registry_indexer.py` | Facciata CLI | `_internal/nk_registry_indexer/`: `--sync`, `--verify` e `7` shard `DOM-00..06` |
-| `G-04` | `scripts/nk_hook_gate.py` | Facciata CLI | `_internal/nk_hook_gate/`: Write-Gate, blocco `NK Proget/Online/`, blocco tamper env, prompt `ask` su `oracle-lock freeze`, `ACTIVE.json` |
-| `G-05` | `scripts/win32_2pc_engine.py` | Facciata CLI | `_internal/win32_2pc_engine/`: `Win32NamedMutex`, `nonce_store` `v2`, `tensor_session_guard`, `guards_ratchet`, blocco `Online/` |
+| `G-04` | `scripts/nk_hook_gate.py` | Facciata CLI | `_internal/nk_hook_gate/`: Write-Gate, ownership `plans/<lane_id>.md`, blocco `Online/`, prompt `ask` `oracle-lock freeze`, `ACTIVE.json` |
+| `G-05` | `scripts/win32_2pc_engine.py` | Facciata CLI | `_internal/win32_2pc_engine/`: `Win32NamedMutex`, `--consolidate-sublanes --parent-lane`, `sublane_consolidator`, `nonce_store` `v2` |
 | `G-06` | `scripts/nk_session_bootstrap.py` | Facciata CLI | `_internal/nk_session_bootstrap/`: Fast-Stat `TTL 900s`, `--handoff-verify`, WAL |
 | `G-07` | `scripts/nk_acs_fastguard.py` | Facciata CLI | Soglie `160k/185k/205k` e `last_velocity_delta` Z3 su `generation`, `carbon`, `neon`, `pro`, `flash`, `argon`, `standard` |
 | `G-08` | `scripts/preflight_health_check.py` | Modulo Core | Igiene preflight baseline Schema `v2`, `4` lock e sanitizzazione WAL |
-| `G-09` | `scripts/schemas/` (`dual_ledgers.py`, `dual_ledgers_models.py`, `handoff_contracts.py`, `nk_catalog_contracts.py`, `nk_ipc_contracts.py`) | `5` Foglie `L0` | Contratti `strict=True`, `NKHandoffManifestV1`, `NKHandoffEnvelopeV2`, `TaskLedger` |
-| `G-10` | `scripts/_internal/nk_common/` (`isolated_test_runner`, `ledger_lock_io`, `catalog`, `epistemic_firewall_rules`) | Runtime | Mirror NVMe pytest, Firewall `AP-12..16` su `ACTIVE_CONTINUATION` e `strip_l3_persuasive_narrative` |
+| `G-09` | `scripts/schemas/` (`dual_ledgers.py`, `dual_ledgers_models.py`, `handoff_contracts.py`, `nk_catalog_contracts.py`, `nk_ipc_contracts.py`) | `5` Foglie `L0` | Contratti `strict=True`, `TaskDAGNode` M4 (`lane_id`, `declared_write_set`, `target_repo_root`), `TaskLedger` |
+| `G-10` | `scripts/_internal/nk_common/` (`isolated_test_runner`, `dag_wave_scheduler`, `preflight_conflict_predictor`, `epistemic_firewall_rules`) | Runtime | Mirror NVMe pytest, onde Kahn disgiunte, pre-flight AST, Firewall `AP-12..16` |
 | `G-11` | `scripts/tensor_rsi.py` | Facciata CLI | `_internal/tensor_rsi/`: `5` flag CLI, `8` step (`status`/`abort`), ticket `trsi1` HMAC, `TTL <= 1800s`, CAS, clamp `NaN/Inf` |
 
 ## 2. Shortcut Onboarding (`16` Trigger) e Runner Isolato NVMe

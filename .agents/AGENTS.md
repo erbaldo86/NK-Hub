@@ -40,12 +40,13 @@
 * Valida i prompt generati con `python -u NK_Hub/scripts/nk_transcript_tools.py lint-prompt --file <path>` prima della consegna.
 * Esenzioni anti-loop: conferme brevi (`ok`, `procedi`, `Proceed`), `[0]..[9]`, `<env_capsule>`, `!diretto` e trigger d'avvio.
 * **Fast-Bypass `Mode D` e `Mode C`:** `Mode D` opera in sola lettura immediata senza overhead 2PC. `Mode C` (`<= 150` LOC, `max_depth <= 1`) applica modifiche snelle in `.staging/` con `--vibe-check`.
-* `HANDOFF_V2` (`PASSIVE_STANDBY` o `ACTIVE_CONTINUATION`) e `Template 12` applicano `STATE_HANDOFF_STANDBY` in sola lettura con firewall `AP-12..AP-16`.
+* `HANDOFF_V2` (`PASSIVE_STANDBY` o `ACTIVE_CONTINUATION`) e `Template 12` applicano `STATE_HANDOFF_STANDBY` in sola lettura con firewall `AP-12..16`.
 
 ### [RULE-00] / [RULE-00.1] / [RULE-00.2] / [RULE-00.3] STAGING_AND_2PC_MANDATE
 * Ogni modifica al codice avviene esclusivamente in `.staging/` o `nk_sandbox_*` nella directory temporanea di sistema con `PYTHONDONTWRITEBYTECODE=1`.
+* Ogni lane parallela scrive in `.staging/lanes/<lane_id>/`. `nk_genome/plans/<lane_id>.md` appartiene esclusivamente all'owner verificato (`verify_lane_access`).
 * Usa solo i tool nativi (`read_file`, `write_file`, `edit_file`, `run_command`) con burst controllato (< 4 scritture simultanee).
-* Il commit finale usa `python -u NK_Hub/scripts/win32_2pc_engine.py --promote-staging --repo-root "<root>" --milestone "<id>"`, seguito da `NK-Scribe-Memory`.
+* Il commit finale usa `win32_2pc_engine.py --promote-staging` o `--consolidate-sublanes --parent-lane <id>`, seguito da `NK-Scribe-Memory`.
 * Se esiste `nk_tracking/tensor_sessions/ACTIVE.json`, `win32_2pc_engine` e `nk_hook_gate` bloccano `--promote-staging` senza `accepted == True` e `staging_manifest_sha256` corrente.
 * I token `v2:` e il CLI `--promote-staging` applicano controllo anti-replay persistente in `nonce_store.py` sotto `Win32NamedMutex`.
 
@@ -63,7 +64,7 @@
 * Oltre `60` secondi emetti l'heartbeat ogni `45` secondi con `python -u NK_Hub/scripts/async_heartbeat_signaler.py --task-id <id>`.
 
 ### [RULE-01] / [RULE-01.7] TOPOLOGIA_2TIER_AND_DUAL_EXECUTION (`GT-14`)
-* `NK-Orchestrator` governa il DAG di Kahn, l'FSM a 5 turni e il commit 2PC in topologia piatta 2-Tier.
+* `NK-Orchestrator` governa il DAG di Kahn (`dag_wave_scheduler.py`, `preflight_conflict_predictor.py`), l'FSM e il commit 2PC in topologia piatta 2-Tier.
 * Registra i `6` sub-agenti foglia (`NK-Arch-Specifier`, `NK-Specifier-Agent`, `NK-Builder-Agent`, `NK-Security-DAST-Auditor`, `NK-RSI-Auditor`, `NK-Scribe-Agent`) con `enable_subagent_tools=false` e `enable_mcp_tools=false`.
 * Solo `DOM-01 Orchestrator-Direct` invoca i built-in `browser`, `research` e `image-generator`, vietando `python -c` multilinea.
 * **Protocollo `Dual-Execution` (`GT-14`):** Gli Auditor read-only usano `read_file` e `send_message`. La ricerca locale RO (`grep_search`, `find_by_name`, `list_dir`) resta ammessa solo se il runtime la espone. Restano vietati `run_command`, `write_file`, `edit_file`, `search_web` e i tool MCP. L'Orchestratore esegue le sonde CLI salvando i JSON in `nk_diagnostics/` nella directory temporanea di sistema.
@@ -121,5 +122,5 @@
 * Risolvi sempre la directory temporanea di sistema tramite `tempfile.gettempdir()` o `os.environ.get()`.
 
 ### [RULE-WIN32-ISOLATED-PYTEST] NVME_ISOLATED_PYTEST_MANDATE
-* Esegui `pytest` solo su NVMe locale tramite `NK_Hub/scripts/platform_runner.py --pytest-isolated --overlay-staging`.
+* Esegui `pytest` solo su NVMe locale tramite `NK_Hub/scripts/platform_runner.py --pytest-isolated --overlay-staging` (`fe_shadow.py` con junction NTFS per suite TS/JS).
 * Non avviare mai `pytest` diretto su Drive FS (`G:\`) per evitare crash `0xC000013A` su `conhost.exe`.

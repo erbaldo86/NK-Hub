@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from _internal.nk_acs_fastguard.constants import (
-    _ERROR_ACCESS_DENIED, _FILE_ATTRIBUTE_REPARSE_POINT, _SCRIPT_DIR, _SUBPROCESS_DETACHED, _SYNCHRONIZE,
+    _ERROR_ACCESS_DENIED, _SCRIPT_DIR, _SUBPROCESS_DETACHED, _SYNCHRONIZE,
     _WAL_ACTIVE_AGE_SEC, _WORKSPACE_ROOT, _Z2_COOLDOWN_SEC, _fg_attr, _get_k32, _is_safe_dir,
     _is_safe_file, _stat_safe_file, _warn_stderr,
 )
@@ -30,6 +30,8 @@ from _internal.nk_common.epistemic_firewall_rules import (  # noqa: F401
     detect_outbound_handoff_intent_fast, evaluate_epistemic_firewall_rules, extract_t12_scan_lines,
     has_unprohibited_pattern, has_unprohibited_smuggle, strip_zero_width_chars,
 )
+from _internal.nk_common.paths import iter_hooks_temp_dir_candidates
+from _internal.nk_common.wal_scope import has_scoped_active_wal
 
 _PLACEHOLDER_MILESTONES = frozenset((DEFAULT_MILESTONE_ID, "Auto-Saved Milestone", "NK-ACS-AUTO", "2PC_PROMOTE"))
 
@@ -55,40 +57,9 @@ def _is_batch_mutex_busy(roots: List[str]) -> bool:
     return False
 
 
-def _wal_dir_has_recent(w_dir: str, cutoff: float) -> bool:
-    """Controlla in sicurezza se una directory contiene almeno un file .wal recente."""
-    if not _is_safe_dir(w_dir):
-        return False
-    try:
-        with os.scandir(w_dir) as it:
-            entries = [e for e in it if e.name.endswith(".wal") and not e.is_symlink()]
-        for entry in entries:
-            st = entry.stat(follow_symlinks=False)
-            if (getattr(st, "st_file_attributes", 0) & _FILE_ATTRIBUTE_REPARSE_POINT) == 0 and st.st_mtime >= cutoff:
-                return True
-    except OSError:
-        return False
-    return False
-
-
 def _has_active_wal(roots: List[str]) -> bool:
-    """Verifica la presenza di file .wal 2PC attivi recenti via os.scandir."""
-    cutoff = time.time() - _WAL_ACTIVE_AGE_SEC
-    if not (base_tmp := os.environ.get("TEMP") or os.environ.get("TMP")):
-        import tempfile
-
-        base_tmp = tempfile.gettempdir()
-    temp_wal_root = os.path.join(base_tmp, "nk_2pc_wal")
-    wal_dirs: List[str] = []
-    for root in roots:
-        wal_dirs.append(os.path.join(root, ".wal"))
-        try:
-            wal_dirs.append(os.path.join(temp_wal_root, hashlib.sha256(os.path.realpath(root).encode("utf-8")).hexdigest()[:12]))
-        except OSError:
-            continue
-    if _is_safe_dir(temp_wal_root):
-        wal_dirs.append(temp_wal_root)
-    return any(_wal_dir_has_recent(w_dir, cutoff) for w_dir in wal_dirs)
+    """Verifica i soli file .wal 2PC attivi appartenenti alle root indicate (scoped)."""
+    return has_scoped_active_wal(roots, max_age_sec=_WAL_ACTIVE_AGE_SEC)
 
 
 def _parse_anchor_iso_ts(rec: Dict[str, Any]) -> Optional[datetime]:
@@ -269,12 +240,21 @@ def _gate_file_matches(gate_file: str, prompt_sha: str) -> bool:
         return False
 
 
+def _any_l0_gate_matches(hooks_dir: Optional[str], conv_id: str, prompt_sha: str) -> bool:
+    """Verifica l0_gate_<cid>.json tra hooks_dir primario e fallback TEMP/LOCALAPPDATA (BS-03)."""
+    fname = f"l0_gate_{conv_id}.json"
+    return any(
+        _gate_file_matches(os.path.join(str(cand_dir), fname), prompt_sha)
+        for cand_dir in iter_hooks_temp_dir_candidates(hooks_dir)
+    )
+
+
 def _check_l0_gate_one_shot(tp_path: str, conv_id: str, hooks_dir: Optional[str], state: Dict[str, Any], epoch: int) -> Optional[str]:
-    """Inietta avviso L0 one-shot se l'ultimo USER_INPUT non ha gate L0 registrato per il turno."""
+    """Inietta avviso L0 one-shot se l'ultimo USER_INPUT non ha gate L0 verificato per il turno."""
     if not hooks_dir or not tp_path or not (last_prompt := _read_last_user_prompt(tp_path)) or _is_l0_exempt_fast(last_prompt):
         return None
     prompt_sha = hashlib.sha256(" ".join(last_prompt.split()).encode("utf-8")).hexdigest()
-    if _gate_file_matches(os.path.join(hooks_dir, f"l0_gate_{conv_id}.json"), prompt_sha):
+    if _any_l0_gate_matches(hooks_dir, conv_id, prompt_sha):
         return None
     if str(state.get("enforced_prompt_sha256") or "") == prompt_sha and int(state.get("enforced_epoch", -1)) == epoch:
         return None

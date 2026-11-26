@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import inspect
 import json
 import re
 from pathlib import Path
@@ -11,21 +12,16 @@ from typing import Any, List, Optional, Sequence, Tuple
 
 from _internal.nk_common.paths import reconfigure_streams
 
-_PYTEST_CMD_RE = re.compile(
-    r"(?:^|\s)(?:[\"']?[^\s\"']*[/\\])?pytest(?:\.exe)?(?=$|\s)|(?:^|\s)-m\s+pytest(?=$|\s)",
-    re.IGNORECASE,
-)
+_PYTEST_CMD_RE = re.compile(r"(?:^|\s)(?:[\"']?[^\s\"']*[/\\])?pytest(?:\.exe)?(?=$|\s)|(?:^|\s)-m\s+pytest(?=$|\s)", re.IGNORECASE)
 _QUIET_FLAG_RE = re.compile(r"^-q+$|^--quiet$")
 _VERBOSE_FLAG_RE = re.compile(r"^-v+$|^--verbose$")
 
 
 def _is_pytest_command(cmd_str: str) -> bool:
-    """Verifica se la stringa comando invoca pytest."""
     return bool(_PYTEST_CMD_RE.search(cmd_str or ""))
 
 
 def _split_tokens_keep_quotes(cmd_str: str) -> List[str]:
-    """Divide una stringa comando preservando le virgolette sui percorsi."""
     tokens: List[str] = []
     buf: List[str] = []
     quote: Optional[str] = None
@@ -49,25 +45,18 @@ def _split_tokens_keep_quotes(cmd_str: str) -> List[str]:
 
 
 def _strip_quiet_and_add_verbose(cmd: Sequence[str] | str) -> Sequence[str] | str:
-    """Rimuove -q/--quiet dagli argomenti pytest prima di aggiungere -v."""
     if isinstance(cmd, str):
-        tokens = [
-            tok for tok in _split_tokens_keep_quotes(cmd)
-            if not _QUIET_FLAG_RE.fullmatch(tok)
-        ]
+        tokens = [tok for tok in _split_tokens_keep_quotes(cmd) if not _QUIET_FLAG_RE.fullmatch(tok)]
         if not any(_VERBOSE_FLAG_RE.fullmatch(tok) for tok in tokens):
             tokens.append("-v")
         return " ".join(tokens)
-    tokens_seq = [
-        str(part) for part in cmd if not _QUIET_FLAG_RE.fullmatch(str(part))
-    ]
+    tokens_seq = [str(part) for part in cmd if not _QUIET_FLAG_RE.fullmatch(str(part))]
     if not any(_VERBOSE_FLAG_RE.fullmatch(tok) for tok in tokens_seq):
         tokens_seq.append("-v")
     return tokens_seq
 
 
 def _append_pytest_iso_flags(cmd: Sequence[str] | str, basetemp_dir: Path) -> Sequence[str] | str:
-    """Inietta i flag no:cacheprovider e --basetemp nel comando pytest."""
     bt_flag = f"--basetemp={basetemp_dir.as_posix()}"
     if isinstance(cmd, str):
         parts = [cmd]
@@ -86,7 +75,6 @@ def _append_pytest_iso_flags(cmd: Sequence[str] | str, basetemp_dir: Path) -> Se
 
 
 def _rewrite_cmd_for_mirror(cmd: Sequence[str] | str, src_root: Path, mirror_dir: Path) -> Sequence[str] | str:
-    """Sostituisce eventuali path assoluti di src_root con mirror_dir nel comando."""
     variants = tuple(dict.fromkeys((str(src_root), src_root.as_posix(), str(src_root).replace("/", "\\"))))
     mirror_posix = mirror_dir.as_posix()
     if isinstance(cmd, str):
@@ -106,7 +94,6 @@ def _rewrite_cmd_for_mirror(cmd: Sequence[str] | str, src_root: Path, mirror_dir
 
 
 def _normalize_mirror_output(text: str, mirror_dir: Path) -> str:
-    """Rimuove il prefisso del mirror temporaneo dai path nei traceback."""
     if not text:
         return text
     out = text
@@ -117,52 +104,20 @@ def _normalize_mirror_output(text: str, mirror_dir: Path) -> str:
 
 
 def _build_cli_parser() -> argparse.ArgumentParser:
-    """Costruisce il parser CLI senza importare pydantic su --help."""
-    parser = argparse.ArgumentParser(
-        description="NK Hub Generation 1.0.0-Generation SSOT Pytest-SBFL Ochiai Bridge & Engine"
-    )
-    parser.add_argument(
-        "--test-cmd",
-        type=str,
-        default=None,
-        help="Comando pytest da eseguire in modalita bridge",
-    )
-    parser.add_argument(
-        "--target-file",
-        type=str,
-        default=None,
-        help="File sorgente target da localizzare",
-    )
-    parser.add_argument(
-        "--cwd", type=str, default=None, help="Directory di lavoro"
-    )
-    parser.add_argument(
-        "--collect-pass-coverage",
-        action=argparse.BooleanOptionalAction,
-        default=True,
-        help="Raccoglie copertura pass/fail per calibrare n_ep/n_ef/n_np/n_nf (default: attivo)",
-    )
-    parser.add_argument(
-        "--records-file",
-        type=str,
-        default=None,
-        help="File JSON contenente una lista di CoverageRecord (compatibilita sbfl_engine)",
-    )
-    parser.add_argument(
-        "--hybrid-fl",
-        action="store_true",
-        help="Emette al massimo 3 slice AST/sorgente compatte (<= 80 token/slice)",
-    )
-    parser.add_argument(
-        "--json",
-        action="store_true",
-        help="Stampa il payload JSON compatto (< 80 token / < 320 caratteri)",
-    )
+    parser = argparse.ArgumentParser(description="NK Hub Generation 1.0.0-Generation SSOT Pytest-SBFL Ochiai Bridge & Engine")
+    parser.add_argument("--test-cmd", type=str, default=None, help="Comando pytest da eseguire in modalita bridge")
+    parser.add_argument("--target-file", type=str, default=None, help="File sorgente target da localizzare")
+    parser.add_argument("--cwd", type=str, default=None, help="Directory di lavoro")
+    parser.add_argument("--stage-dir", type=str, default=None, help="Cartella staging opzionale")
+    parser.add_argument("--lane-id", type=str, default=None, help="ID lane isolata in .staging/lanes/<id>/")
+    parser.add_argument("--collect-pass-coverage", action=argparse.BooleanOptionalAction, default=True, help="Raccoglie copertura pass/fail per calibrare spettro")
+    parser.add_argument("--records-file", type=str, default=None, help="File JSON contenente una lista di CoverageRecord")
+    parser.add_argument("--hybrid-fl", action="store_true", help="Emette al massimo 3 slice AST/sorgente compatte")
+    parser.add_argument("--json", action="store_true", help="Stampa il payload JSON compatto")
     return parser
 
 
 def _compute_matrix_payload(records_file: Optional[str]) -> Tuple[Any, List[Any]]:
-    """Esegue l'analisi matriciale SBFL restituendo payload e ranked scores."""
     from _internal.sbfl_pytest_bridge.matrix_engine import CoverageMatrix, SBFLEngine
     from _internal.sbfl_pytest_bridge.models import CoverageRecord
 
@@ -170,33 +125,25 @@ def _compute_matrix_payload(records_file: Optional[str]) -> Tuple[Any, List[Any]
         raw_data = json.loads(Path(records_file).read_text(encoding="utf-8-sig"))
         records = [CoverageRecord.model_validate(item) for item in raw_data]
     else:
-        records = [
-            CoverageRecord(test_id="T1", passed=False, executed_statements=["module.py:10"]),
-            CoverageRecord(test_id="T2", passed=True, executed_statements=["module.py:20"]),
-        ]
-
-    matrix = CoverageMatrix.from_records(records)
+        records = [CoverageRecord(test_id="T1", passed=False, executed_statements=["module.py:10"]), CoverageRecord(test_id="T2", passed=True, executed_statements=["module.py:20"])]
     engine = SBFLEngine()
-    ranked = engine.analyze(matrix)
+    ranked = engine.analyze(CoverageMatrix.from_records(records))
     return engine.generate_diagnostic_payload(ranked), ranked
 
 
 def _run_matrix_cli(records_file: Optional[str]) -> int:
-    """Esegue la modalita matriciale SBFL compatibile con sbfl_engine CLI."""
     payload, _ = _compute_matrix_payload(records_file)
     print(payload.to_compact_json())
     return 0
 
 
 def _emit_hybrid_matrix_cli(records_file: Optional[str], cwd: Optional[str]) -> int:
-    """Esegue la modalita matriciale includendo fino a 3 slice compatte --hybrid-fl."""
     from _internal.sbfl_pytest_bridge.frame_extractor import build_hybrid_fl_slices
     from _internal.sbfl_pytest_bridge.scoring_helpers import split_stmt
 
     payload, ranked = _compute_matrix_payload(records_file)
     cands = [(*split_stmt(item.statement), float(item.ochiai)) for item in ranked[:3]]
-    base_dir = Path(cwd).resolve() if cwd else Path.cwd()
-    slices = build_hybrid_fl_slices(cands, [base_dir], max_blocks=3, max_tokens=80)
+    slices = build_hybrid_fl_slices(cands, [Path(cwd).resolve() if cwd else Path.cwd()], max_blocks=3, max_tokens=80)
     out = json.loads(payload.to_compact_json())
     out["hybrid_slices"] = slices
     print(json.dumps(out, separators=(",", ":"), ensure_ascii=False))
@@ -204,96 +151,66 @@ def _emit_hybrid_matrix_cli(records_file: Optional[str], cwd: Optional[str]) -> 
 
 
 def _emit_bridge_result(summary: Any, loc: Any, as_json: bool) -> int:
-    """Stampa l'esito del bridge Pytest-SBFL e restituisce il codice di uscita."""
     if as_json:
-        if loc:
-            print(loc.render_payload_json())
-        else:
-            print(
-                json.dumps(
-                    {"status": "PASSED", "total_tests": summary.total_tests},
-                    separators=(",", ":"),
-                    ensure_ascii=False,
-                )
-            )
+        print(loc.render_payload_json() if loc else json.dumps({"status": "PASSED", "total_tests": summary.total_tests}, separators=(",", ":"), ensure_ascii=False))
+    elif loc:
+        tar, dst = float(getattr(loc, "tarantula", 0.0)), float(getattr(loc, "dstar", 0.0))
+        print(f"🔴 [SBFL-OCHIAI] Fault detected at {loc.file_path}:{loc.line_number} (Score: {loc.suspiciousness})")
+        print(f"   SBFL: Ochiai={loc.suspiciousness:.4f} Tarantula={tar:.4f} DStar={dst:.4f} Spectrum=(ef={int(getattr(loc, 'n_ef', 0))}, ep={int(getattr(loc, 'n_ep', 0))}, nf={int(getattr(loc, 'n_nf', 0))}, np={int(getattr(loc, 'n_np', 0))})")
+        print(f"   Error: {loc.error_type}: {loc.error_message}")
+        if loc.failing_line_content:
+            print(f"   Code:  {loc.failing_line_content}")
+        print(f"   Compact Payload: {loc.render_payload_json()}")
     else:
-        if loc:
-            tar = float(getattr(loc, "tarantula", 0.0))
-            dst = float(getattr(loc, "dstar", 0.0))
-            n_ef = int(getattr(loc, "n_ef", 0))
-            n_ep = int(getattr(loc, "n_ep", 0))
-            n_nf = int(getattr(loc, "n_nf", 0))
-            n_np = int(getattr(loc, "n_np", 0))
-            print(
-                f"🔴 [SBFL-OCHIAI] Fault detected at {loc.file_path}:{loc.line_number} (Score: {loc.suspiciousness})"
-            )
-            print(
-                f"   SBFL: Ochiai={loc.suspiciousness:.4f} Tarantula={tar:.4f} DStar={dst:.4f} Spectrum=(ef={n_ef}, ep={n_ep}, nf={n_nf}, np={n_np})"
-            )
-            print(f"   Error: {loc.error_type}: {loc.error_message}")
-            if loc.failing_line_content:
-                print(f"   Code:  {loc.failing_line_content}")
-            print(f"   Compact Payload: {loc.render_payload_json()}")
-        else:
-            print(f"🟢 [SBFL-OCHIAI] All {summary.total_tests} tests PASSED.")
+        print(f"🟢 [SBFL-OCHIAI] All {summary.total_tests} tests PASSED.")
     return int(summary.exit_code)
 
 
-def _emit_hybrid_bridge_result(
-    summary: Any, loc: Any, bridge: Any, as_json: bool
-) -> int:
-    """Stampa l'esito bridge arricchendolo con al massimo 3 slice compatte --hybrid-fl."""
+def _emit_hybrid_bridge_result(summary: Any, loc: Any, bridge: Any, as_json: bool) -> int:
     from _internal.sbfl_pytest_bridge.frame_extractor import build_hybrid_fl_slices
     from _internal.sbfl_pytest_bridge.scoring_helpers import split_stmt
 
     ranked = getattr(bridge, "last_ranked_scores", []) or []
-    cands: List[Tuple[str, int, float]] = [
-        (*split_stmt(item.statement), float(item.ochiai)) for item in ranked[:3]
-    ]
+    cands: List[Tuple[str, int, float]] = [(*split_stmt(item.statement), float(item.ochiai)) for item in ranked[:3]]
     if not cands and loc is not None:
         cands = [(str(loc.file_path), int(loc.line_number), float(loc.suspiciousness))]
-    slices = build_hybrid_fl_slices(
-        cands, [getattr(bridge, "_active_mirror_dir", None), getattr(bridge, "cwd", Path.cwd())],
-        max_blocks=3, max_tokens=80,
-    )
+    slices = build_hybrid_fl_slices(cands, [getattr(bridge, "_active_mirror_dir", None), getattr(bridge, "cwd", Path.cwd())], max_blocks=3, max_tokens=80)
     if as_json:
-        base_obj = (
-            json.loads(loc.render_payload_json())
-            if loc
-            else {"status": "PASSED", "total_tests": summary.total_tests}
-        )
+        base_obj = json.loads(loc.render_payload_json()) if loc else {"status": "PASSED", "total_tests": summary.total_tests}
         base_obj["hybrid_slices"] = slices
         print(json.dumps(base_obj, separators=(",", ":"), ensure_ascii=False))
         return int(summary.exit_code)
-
     rc = _emit_bridge_result(summary, loc, False)
     for idx, sl in enumerate(slices, start=1):
         print(f"   [HYBRID-FL #{idx} {sl['loc']} | {sl['tokens']} tok]\n{sl['slice']}")
     return rc
 
 
-def _dispatch_cli_args(args: Any) -> int:
-    """Instrada l'esecuzione CLI tra modalita matriciale, bridge e --hybrid-fl."""
-    if not args.test_cmd:
-        if getattr(args, "hybrid_fl", False):
-            return _emit_hybrid_matrix_cli(args.records_file, args.cwd)
-        return _run_matrix_cli(args.records_file)
+def _instantiate_sbfl_bridge(bridge_cls: Any, args: Any) -> Any:
+    kw: dict[str, Any] = {"cwd": Path(args.cwd) if args.cwd else None}
+    try:
+        params = inspect.signature(bridge_cls).parameters
+        has_var = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())
+        for k, v in (("lane_id", getattr(args, "lane_id", None)), ("stage_dir", Path(args.stage_dir) if getattr(args, "stage_dir", None) else None)):
+            if v is not None and (has_var or k in params):
+                kw[k] = v
+    except (TypeError, ValueError):
+        pass
+    return bridge_cls(**kw)
 
+
+def _dispatch_cli_args(args: Any) -> int:
+    if not args.test_cmd:
+        return _emit_hybrid_matrix_cli(args.records_file, args.cwd) if getattr(args, "hybrid_fl", False) else _run_matrix_cli(args.records_file)
     bridge_cls = importlib.import_module("_internal.sbfl_pytest_bridge.bridge_core").SBFLPytestBridge
-    bridge = bridge_cls(cwd=Path(args.cwd) if args.cwd else None)
-    summary, loc = bridge.run_and_diagnose(
-        test_cmd=args.test_cmd,
-        target_file_hint=args.target_file,
-        collect_pass_coverage=bool(args.collect_pass_coverage),
-    )
+    bridge = _instantiate_sbfl_bridge(bridge_cls, args)
+    summary, loc = bridge.run_and_diagnose(test_cmd=args.test_cmd, target_file_hint=args.target_file, collect_pass_coverage=bool(args.collect_pass_coverage))
     if getattr(args, "hybrid_fl", False):
         return _emit_hybrid_bridge_result(summary, loc, bridge, bool(args.json))
     return _emit_bridge_result(summary, loc, bool(args.json))
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    """Punto di ingresso CLI SSOT per il bridge Pytest-SBFL e matrice Ochiai/Tarantula/DStar."""
     reconfigure_streams()
-    parser = _build_cli_parser()
-    args = parser.parse_args(argv)
+    args = _build_cli_parser().parse_args(argv)
     return _dispatch_cli_args(args)

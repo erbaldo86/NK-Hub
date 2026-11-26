@@ -4,14 +4,12 @@
 Gestore canonico di snapshot binari di staging e rollback transazionale in NK Hub Generation 1.0.0-Generation.
 Modulo: scripts/healing_snapshot_rollback.py.
 @domain_id: DOM-03
-Ospita le primitive canoniche di snapshot binario, Strict Monotonic Fitness Gate e rollback atomico.
 """
 
 from __future__ import annotations
 
 import argparse
 import importlib
-import os
 import pkgutil
 import sys
 from pathlib import Path
@@ -28,9 +26,11 @@ for _p in (_PROD_SCRIPTS, _SCRIPT_DIR):
         sys.path.insert(0, str(_p))
 if _SCRIPT_DIR != _PROD_SCRIPTS and (_SCRIPT_DIR / "_internal" / "nk_common").is_dir():
     import _internal as _stg_int, _internal.nk_common as _stg_nkc
+
     _stg_int.__path__ = pkgutil.extend_path(_stg_int.__path__, "_internal")
     _stg_nkc.__path__ = pkgutil.extend_path(_stg_nkc.__path__, "_internal.nk_common")
 from _internal.nk_common.facade_boot import init_nk_facade  # noqa: E402
+
 init_nk_facade(__file__, pkg="healing_snapshot_rollback")
 
 
@@ -39,7 +39,9 @@ def _build_cli_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="NK Hub Generation Staging Snapshot & Rollback Engine")
     parser.add_argument("--create", nargs="+", help="Crea lo snapshot dei file specificati")
     parser.add_argument("--rollback", type=str, help="Ripristina lo snapshot con l'ID specificato")
-    parser.add_argument("--cleanup", action="store_true", help="Rimuove tutti gli snapshot temporanei")
+    parser.add_argument("--cleanup", action="store_true", help="Rimuove gli snapshot della lane o snapshot_id")
+    parser.add_argument("--lane-id", type=str, default=None, help="ID lane isolata in TEMP/nk_heal_snapshots/lanes/<id>")
+    parser.add_argument("--snapshot-id", type=str, default=None, help="Singolo snapshot ID da rimuovere con --cleanup")
     return parser
 
 
@@ -60,20 +62,12 @@ _LAZY_EXPORT_MAP: Dict[str, Tuple[str, str]] = {
 }
 
 __all__ = [
-    "_MANIFEST_LOCK",
-    "FitnessVerdict",
-    "FitnessReport",
-    "FileSnapshot",
-    "SnapshotBundle",
-    "HealingSnapshotManager",
-    "_atomic_write_bytes",
-    "_atomic_write_text",
-    "main",
+    "_MANIFEST_LOCK", "FitnessVerdict", "FitnessReport", "FileSnapshot", "SnapshotBundle",
+    "HealingSnapshotManager", "_atomic_write_bytes", "_atomic_write_text", "main",
 ]
 
 
 def __getattr__(name: str) -> Any:
-    """Risolve pigramente i simboli esportati da _internal.healing_snapshot_rollback."""
     target = _LAZY_EXPORT_MAP.get(name)
     if target is None:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
@@ -84,21 +78,17 @@ def __getattr__(name: str) -> Any:
 
 
 def __dir__() -> List[str]:
-    """Elenca i simboli pubblici ed esportati pigramente dalla facciata."""
     return sorted(set(globals()) | set(_LAZY_EXPORT_MAP))
 
 
 def main() -> int:
-    """Punto di ingresso CLI per il gestore snapshot e rollback di NK Hub Generation."""
     parser = _build_cli_parser()
     args = parser.parse_args()
     if not (args.create or args.rollback or args.cleanup):
         parser.print_help()
         return 0
     init_nk_facade(__file__, pkg="healing_snapshot_rollback")
-    return importlib.import_module(
-        "_internal.healing_snapshot_rollback.manager_and_cli"
-    )._run_cli_args(args)
+    return importlib.import_module("_internal.healing_snapshot_rollback.manager_and_cli")._run_cli_args(args)
 
 
 if __name__ == "__main__":

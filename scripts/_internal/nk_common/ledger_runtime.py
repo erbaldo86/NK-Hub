@@ -79,6 +79,9 @@ class TaskLedger:
         target_agent: str,
         parent_ids: Sequence[str] = (),
         payload: Optional[Dict[str, Any]] = None,
+        lane_id: Optional[str] = None,
+        declared_write_set: Sequence[str] = (),
+        target_repo_root: Optional[str] = None,
     ) -> TaskDAGNode:
         """Aggiunge un nuovo task al DAG con reload atomico, verifica e fsync sotto PID lock."""
         lock = PIDFileLock(self.ledger_path.with_suffix(".lock"))
@@ -101,6 +104,9 @@ class TaskLedger:
                 payload=payload,
                 prev_hash=self._last_hash,
                 status="PENDING",
+                lane_id=lane_id,
+                declared_write_set=declared_write_set,
+                target_repo_root=target_repo_root,
             )
 
             with open(self.ledger_path, "a", encoding="utf-8") as f:

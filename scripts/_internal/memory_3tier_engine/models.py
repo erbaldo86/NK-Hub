@@ -12,6 +12,7 @@ import sys
 import tempfile
 import threading
 import time
+import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -19,6 +20,7 @@ from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
 from _internal.nk_common.constants import VERSION
 from _internal.nk_common.facade_boot import resolve_facade_attr
+from _internal.nk_common.nvme_storage_guards import resolve_local_appdata_dir
 from _internal.nk_common.transcript_guards import (
     estimate_tokens as _shared_estimate_tokens,
 )
@@ -254,7 +256,7 @@ def _resolve_external_backup_dir(target_path: Path) -> Optional[Path]:
     env_bkp = os.environ.get("NK_MEMORY_BACKUP_DIR", "").strip()
     if env_bkp:
         return Path(env_bkp) / resolved.parent.name
-    base_root = Path(os.environ.get("LOCALAPPDATA") or tempfile.gettempdir()) / "nk_backups" / "memory_3tier"
+    base_root = resolve_local_appdata_dir() / "nk_backups" / "memory_3tier"
     ws_root = Path(_facade_attr("_workspace_root", _workspace_root))
     prod_tracking = (ws_root / "nk_tracking").resolve()
     if prod_tracking == resolved or prod_tracking in resolved.parents:
@@ -268,7 +270,7 @@ def rotate_circular_backups(
     depth: int = MAX_BACKUP_DEPTH,
     backup_dir: Optional[Path] = None,
 ) -> None:
-    """Ruota i file di backup circolari (.bak_1, .bak_2) con copia streaming."""
+    """Ruota i file di backup circolari (.bak_1, .bak_2) con sostituzione atomica."""
     target_file = Path(target_file)
     if not target_file.exists() or target_file.stat().st_size == 0:
         return
@@ -291,14 +293,16 @@ def rotate_circular_backups(
     for i in range(depth, 1, -1):
         prev_bak, curr_bak = _bak_file(i - 1), _bak_file(i)
         if prev_bak.exists():
-            if curr_bak.exists():
-                curr_bak.unlink()
-            prev_bak.rename(curr_bak)
+            os.replace(prev_bak, curr_bak)
 
     first_bak = _bak_file(1)
-    if first_bak.exists():
-        first_bak.unlink()
-    shutil.copy2(target_file, first_bak)
+    tmp_bak = first_bak.parent / f".{first_bak.name}.{os.getpid()}.{uuid.uuid4().hex[:6]}.tmp"
+    try:
+        shutil.copy2(target_file, tmp_bak)
+        os.replace(tmp_bak, first_bak)
+    finally:
+        if tmp_bak.exists():
+            tmp_bak.unlink(missing_ok=True)
 
 
 def estimate_tokens(text: str) -> int:

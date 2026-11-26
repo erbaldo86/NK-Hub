@@ -25,6 +25,7 @@ _CLI_FLAGS: Tuple[str, ...] = (
     "--check-only",
     "--file",
     "--json",
+    "--lane-id",
     "--live",
     "--metrics",
     "--reason",

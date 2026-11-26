@@ -143,14 +143,14 @@ _LOCK_DENY_ENTRIES: Tuple[str, ...] = tuple(
     for item in (f"nk_tracking/{name.lower()}", name.lower())
 )
 _LOCK_BASES: Tuple[str, ...] = tuple(name.lower() for name in NK_LOCK_FILENAMES)
-PROTECTED_GOVERNANCE_DENYLIST: Tuple[str, ...] = _LOCK_DENY_ENTRIES + (
+_COMMON_GOV_DENYLIST: Tuple[str, ...] = _LOCK_DENY_ENTRIES + (
     "nk_tracking/quality_baseline.json",
     "quality_baseline.json",
     "nk_tracking/tensor_sessions/active.json",
     "nk_tracking/tensor_sessions",
+    "nk_tracking/commit_train",
     "active.json",
     ".deleted_files.json",
-    "tests",
     "tests/evals/skill_golden_eval_set.json",
     "scripts/win32_2pc_engine.py",
     "scripts/nk_hook_gate.py",
@@ -158,11 +158,13 @@ PROTECTED_GOVERNANCE_DENYLIST: Tuple[str, ...] = _LOCK_DENY_ENTRIES + (
     "scripts/rsi_convergence_engine.py",
     "scripts/tensor_rsi.py",
 )
-PROTECTED_GOVERNANCE_PREFIXES: Tuple[str, ...] = (
+PROTECTED_GOVERNANCE_DENYLIST: Tuple[str, ...] = _COMMON_GOV_DENYLIST + ("tests",)
+_COMMON_GOV_PREFIXES: Tuple[str, ...] = (
     "nk_tracking/oracle_holdout/",
     "nk_tracking/benchmark_suite/",
     "nk_tracking/tensor_sessions/",
-    "tests/",
+    "nk_tracking/commit_train/",
+    "tests/evals/",
     "scripts/_internal/win32_2pc_engine/",
     "scripts/_internal/nk_hook_gate/",
     "scripts/_internal/ast_guard_validator/",
@@ -170,6 +172,28 @@ PROTECTED_GOVERNANCE_PREFIXES: Tuple[str, ...] = (
     "scripts/_internal/tensor_rsi/",
     "nk_genome/configs/tensor_rsi/",
 )
+PROTECTED_GOVERNANCE_PREFIXES: Tuple[str, ...] = _COMMON_GOV_PREFIXES + ("tests/",)
+
+
+def is_hub_repository_root(repo_root: Optional[Path]) -> bool:
+    """True per NK_Hub sovrano o repo non-app; False solo per repo app esterne (src_app/src/app/Proget)."""
+    if repo_root is None:
+        return True
+    rp = Path(repo_root)
+    has_hub_marker = (
+        (rp / ".agents" / "skills").is_dir()
+        or (rp / "nk_tracking" / "oracle_lock.json").is_file()
+        or (rp / "tests" / "evals").is_dir()
+        or (rp / "nk_tracking" / "oracle_holdout").is_dir()
+    )
+    if has_hub_marker:
+        return True
+    parts_low = [p.lower() for p in rp.parts]
+    is_proget_path = "nk_external_projects" in parts_low or (
+        "nk proget" in parts_low and "locale" in parts_low
+    )
+    has_app_dir = any((rp / d).is_dir() for d in ("src_app", "src", "app"))
+    return not (is_proget_path or has_app_dir)
 
 
 def _normalize_rel_gov_path(rel_norm: str) -> str:
@@ -180,13 +204,18 @@ def _normalize_rel_gov_path(rel_norm: str) -> str:
     return norm.lstrip("/")
 
 
-def is_protected_governance_path(rel_norm: str) -> bool:
-    """Verifica se un percorso relativo appartiene a file o directory di governance protetti."""
+def is_protected_governance_path(
+    rel_norm: str, repo_root: Optional[Path] = None
+) -> bool:
+    """Verifica se rel_norm appartiene a percorsi protetti distinguendo Hub vs app esterne."""
     norm = _normalize_rel_gov_path(rel_norm)
     base = Path(norm).name
+    hub_strict = is_hub_repository_root(repo_root)
+    denylist = PROTECTED_GOVERNANCE_DENYLIST if hub_strict else _COMMON_GOV_DENYLIST
+    prefixes = PROTECTED_GOVERNANCE_PREFIXES if hub_strict else _COMMON_GOV_PREFIXES
     return (
-        norm in PROTECTED_GOVERNANCE_DENYLIST
-        or norm.startswith(PROTECTED_GOVERNANCE_PREFIXES)
+        norm in denylist
+        or norm.startswith(prefixes)
         or base in (*_LOCK_BASES, "active.json", ".deleted_files.json")
     )
 
@@ -252,7 +281,7 @@ def _get_win32_last_error() -> int:
     k32 = _get_active_kernel32()
     if k32 is None:
         return 0
-    err = ctypes.get_last_error()
+    err = ctypes.get_last_error() if hasattr(ctypes, "get_last_error") else 0
     if err:
         return int(err) & 0xFFFFFFFF
     return int(k32.GetLastError()) & 0xFFFFFFFF

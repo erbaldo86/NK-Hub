@@ -12,7 +12,7 @@ from _internal.nk_hook_gate.classifier_redirections import (
 )
 from _internal.nk_hook_gate.constants import (
     _DESTRUCTIVE_GIT_RE, _DYNAMIC_PS_EXEC_RE, _ENCODED_CMD_RE, _FS_PATH_PREFIX_RE, _PROTECTED_DIR_CMD_RE, _PS_COMMAND_WRAPPER_RE,
-    _PYTEST_CLOUD_DRIVE_MARKERS, _PYTEST_ISOLATED_SAFE_RUNNERS, _PYTEST_TEMP_SAFE_MARKERS, _SHELL_CMD_START_RE, _WORKSPACE_ROOT, _strip_wrapping_quotes,
+    _PYTEST_CLOUD_DRIVE_MARKERS, _PYTEST_ISOLATED_SAFE_RUNNERS, _PYTEST_TEMP_SAFE_MARKERS, _SHELL_CMD_START_RE, _WORKSPACE_ROOT, _strip_wrapping_quotes, extract_cd_target,
 )
 from _internal.nk_hook_gate.constants_patterns import _CD_SHELL_VERBS, has_stdin_shell_exec
 from _internal.nk_hook_gate.path_safety import (
@@ -183,15 +183,14 @@ def _extract_cd_dir_arg(tokens: List[Tuple[str, str, bool]]) -> str:
 
 
 def _segments_cd_into_online(cand: str, project_root: Path) -> bool:
-    """Traccia cd/Set-Location nei segmenti per rilevare ingressi relativi in NK Proget/Online/."""
+    """Traccia cd/cd/d/Set-Location nei segmenti per rilevare ingressi relativi in NK Proget/Online/."""
     from _internal.nk_hook_gate.shell_parser import _norm_cmd_verb, _split_shell_segments, _tokenize_shell_tokens
     cwd = project_root
     for seg in _split_shell_segments(cand) or [cand]:
         toks = _tokenize_shell_tokens(seg)
         if not toks:
             continue
-        idx = 1 if len(toks) > 1 and toks[0][1] == "&" else 0
-        if _norm_cmd_verb(toks[idx][1]) in _CD_SHELL_VERBS and (cd_arg := _extract_cd_dir_arg(toks)):
+        if cd_arg := extract_cd_target(toks, _norm_cmd_verb, _CD_SHELL_VERBS, _CD_SKIP_FLAGS, _CD_INLINE_PREFIXES):
             cwd = _resolve_target_path(cd_arg, cwd)
             if _is_nk_proget_online_target(cwd):
                 return True
@@ -224,7 +223,7 @@ def _check_cmd_online_mutation(cmd_str: str, cmd_deobf: str, project_root: Path)
     return None
 
 
-def _check_cmd_early_blocks(cmd_str: str, cmd_deobf: str, project_root: Path) -> Tuple[Optional[Dict[str, Any]], bool]:
+def _check_cmd_early_blocks(cmd_str: str, cmd_deobf: str, project_root: Path, conv_id: str = "") -> Tuple[Optional[Dict[str, Any]], bool]:
     """Esegue i controlli prioritari Online lock, stdin shell, AST inline e pytest isolato su cmd_str."""
     from _internal.nk_hook_gate.shell_parser import _norm_cmd_verb, _split_shell_segments, _tokenize_shell_tokens, _unwrap_shell_subcommands
     online_denial = _check_cmd_online_mutation(cmd_str, cmd_deobf, project_root)
@@ -232,18 +231,20 @@ def _check_cmd_early_blocks(cmd_str: str, cmd_deobf: str, project_root: Path) ->
         return online_denial, False
     if any(has_stdin_shell_exec(c, _split_shell_segments, _tokenize_shell_tokens, _norm_cmd_verb) for c in (cmd_str, cmd_deobf, *_unwrap_shell_subcommands(cmd_str))):
         return {"decision": "deny", "reason": "Piped or stdin shell execution (| powershell / | pwsh / | cmd / -Command -) is forbidden in run_command."}, False
-    inline_py_denial, saw_python_c = _check_inline_python_ast_blocks(cmd_str, cmd_deobf, project_root)
+    inline_py_denial, saw_python_c = _check_inline_python_ast_blocks(cmd_str, cmd_deobf, project_root, conv_id=conv_id)
     if inline_py_denial is not None:
         return inline_py_denial, saw_python_c
     return _classify_isolated_pytest_violation(cmd_str, cmd_deobf, project_root), saw_python_c
 
 
 def _classify_gov_target_artifact(cand: Path, cand_parts_low: List[str], cand_name_low: str) -> Optional[Dict[str, Any]]:
-    """Blocca scritture dirette fuori .staging/ verso lock, tensor_sessions, baseline e checkpoint."""
+    """Blocca scritture dirette fuori .staging/ verso lock, tensor_sessions, commit_train, baseline e checkpoint."""
     if cand_name_low in _LOCK_NAMES:
         return {"decision": "deny", "reason": f"Direct write to {cand.name} outside .staging/ is forbidden ([RULE-ORACLE-LOCK])."}
     if "nk_tracking" in cand_parts_low and ("tensor_sessions" in cand_parts_low or cand_name_low == "active.json"):
         return {"decision": "deny", "reason": "Direct write to nk_tracking/tensor_sessions/ or ACTIVE.json outside .staging/ is forbidden."}
+    if "nk_tracking" in cand_parts_low and "commit_train" in cand_parts_low:
+        return {"decision": "deny", "reason": "Direct write to nk_tracking/commit_train/ outside .staging/ is forbidden."}
     if cand_name_low == "quality_baseline.json":
         return {"decision": "deny", "reason": "Direct write to quality_baseline.json outside .staging/ is forbidden."}
     if cand_name_low.startswith("checkpoint_") and cand_name_low.endswith(".json"):
@@ -283,11 +284,13 @@ def _classify_oracle_lock_cli_cmd(cmd_low: str, has_write_ind: bool) -> Optional
 
 
 def _classify_shell_gov_artifact_write(sanitized_cmd: str) -> Optional[Dict[str, Any]]:
-    """Blocca scritture shell dirette su lock, tensor_sessions, quality_baseline e PATCH_NOTES."""
+    """Blocca scritture shell dirette su lock, tensor_sessions, commit_train, quality_baseline e PATCH_NOTES."""
     if any(lf in sanitized_cmd for lf in _LOCK_NAMES):
         return {"decision": "deny", "reason": "Direct write to oracle_lock.json outside .staging/ is forbidden ([RULE-ORACLE-LOCK])."}
     if "tensor_sessions" in sanitized_cmd or ("nk_tracking" in sanitized_cmd and "active.json" in sanitized_cmd):
         return {"decision": "deny", "reason": "Direct write to nk_tracking/tensor_sessions/ or ACTIVE.json outside .staging/ is forbidden."}
+    if "commit_train" in sanitized_cmd:
+        return {"decision": "deny", "reason": "Direct write to nk_tracking/commit_train/ outside .staging/ is forbidden."}
     if "quality_baseline.json" in sanitized_cmd:
         return {"decision": "deny", "reason": "Direct shell write to quality_baseline.json outside .staging/ is forbidden."}
     if "patch_notes.md" in sanitized_cmd:
@@ -306,7 +309,7 @@ def _classify_cmd_lock_and_gov_write(
     return _classify_shell_gov_artifact_write(sanitized_cmd)
 
 
-def _classify_protected_target(target: str, cmd: str = "", project_root: Path = _WORKSPACE_ROOT, strict_external: bool = False) -> Dict[str, Any]:
+def _classify_protected_target(target: str, cmd: str = "", project_root: Path = _WORKSPACE_ROOT, strict_external: bool = False, conv_id: str = "") -> Dict[str, Any]:
     """Classifica i target protetti, i flag di override e i comandi shell malevoli."""
     target_str = str(target or "").strip()
     if not cmd and target_str:
@@ -346,7 +349,7 @@ def _classify_protected_target(target: str, cmd: str = "", project_root: Path = 
             if _DESTRUCTIVE_GIT_RE.search(candidate_cmd):
                 return {"decision": "deny", "reason": "Destructive git command (checkout/restore/reset --hard/clean -f) is forbidden."}
 
-        early_denial, saw_python_c = _check_cmd_early_blocks(cmd_str, cmd_deobf, project_root)
+        early_denial, saw_python_c = _check_cmd_early_blocks(cmd_str, cmd_deobf, project_root, conv_id=conv_id)
         if early_denial is not None:
             return early_denial
     else:

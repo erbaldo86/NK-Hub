@@ -21,7 +21,7 @@ _DYN_IMPORT_REFLECT_RE = re.compile(
 )
 
 _CMD_WORD_WRITE_RE = re.compile(
-    r"(?:^|[\s;|&,({])(?:(?<![>&])&(?!&)\s*)?[\"']?(?:del|rm|erase|cp|mv|ren|rename|rmdir|rd|sc|ac|ni|ri|si|copy|move)[\"']?(?=\s)"
+    r"(?:^|[\s;|&,({])(?:(?<![>&])&(?!&)\s*)?[\"']?(?:del|rm|erase|cp|mv|ren|rename|rmdir|rd|sc|ac|ni|ri|si|cpi|mi|rni|clc|tee|mkdir|md|copy|move)[\"']?(?=\s)"
     r"|(?:^|[\s;|&,({\"'\\/:])(?:cmd(?:\.exe)?|%comspec%)[\"']?(?:\s+|(?=/))(?:/[a-z](?::[a-z0-9]+)?\s*)*/[ckr]\s*[\"']?(?:copy|move|ren|rename|del|erase|mkdir|md|rmdir|rd|mklink)\b"
     r"|\btar(?:\.exe)?\b(?:\s+x[vzfjc]*(?=\s)|[^\n;|&]*?(?:\s-[a-z]*x|\s--extract\b))"
     r"|\bexpand-archive\b"
@@ -88,7 +88,7 @@ _PS_CALL_WRITE_RE = re.compile(
     r"(?:^|[\s;|({])(?<![>&])&(?!&)\s*[\"']?"
     r"(?:set-content|add-content|out-file|set-item|remove-item|copy-item|move-item|"
     r"new-item|clear-content|rename-item|tee-object|start-process|robocopy|xcopy|mklink|"
-    r"del|rm|erase|cp|mv|ren|rename|rmdir|rd|sc|ac|ni|ri|si|copy|move)[\"']?(?=$|[\s\"';|&)])",
+    r"del|rm|erase|cp|mv|ren|rename|rmdir|rd|sc|ac|ni|ri|si|cpi|mi|rni|clc|tee|mkdir|md|copy|move)[\"']?(?=$|[\s\"';|&)])",
     re.IGNORECASE,
 )
 _DESTRUCTIVE_GIT_RE = re.compile(
@@ -193,8 +193,12 @@ _MCP_MUTATING_TOOL_RE = re.compile(
 )
 _WIN32_2PC_CMD_RE = re.compile(r"(?:^|[/\\.])win32_2pc_engine(?:\.py)?$", re.IGNORECASE)
 _PROMOTE_VALUE_FLAGS = frozenset((
-    "--milestone", "--repo-root", "--staging-dir", "--override-reason", "--governance-token", "--sandbox-report", "--root",
+    "--milestone", "--repo-root", "--staging-dir", "--override-reason", "--governance-token",
+    "--sandbox-report", "--root", "--lane-id", "--parent-lane", "--base-seq",
 ))
+_PROMOTE_VALUE_EQ = tuple(f + "=" for f in _PROMOTE_VALUE_FLAGS)
+_PROMOTE_ACTION_FLAGS = frozenset(("--promote-staging", "--commit-train", "--consolidate-sublanes"))
+_PROMOTE_ACTION_EQ = ("--promote-staging=", "--commit-train=", "--consolidate-sublanes=")
 _PROMOTE_IGNORED_VERBS = frozenset((
     "rg", "ripgrep", "grep", "egrep", "fgrep", "select-string", "echo", "write-output", "printf",
 ))
@@ -208,6 +212,7 @@ _PS_VALUE_FLAGS = frozenset((
 _PS_CMD_FLAG_RE = re.compile(r"^[-/]c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?$", re.IGNORECASE)
 _PS_CMD_STDIN_RE = re.compile(r"^[-/](?:c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?|f(?:i(?:l(?:e)?)?)?)[:=]-$", re.IGNORECASE)
 _PS_FILE_FLAG_RE = re.compile(r"^[-/]f(?:i(?:l(?:e)?)?)?$", re.IGNORECASE)
+_PS_COLON_CMD_RE = re.compile(r"^[-/]c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?:", re.IGNORECASE)
 _STDIN_SHELL_VERBS = frozenset(("powershell", "pwsh", "cmd", "%comspec%"))
 _CD_SHELL_VERBS = frozenset(("cd", "chdir", "pushd", "push-location", "set-location", "sl"))
 _SHELL_SEP_TOKENS = frozenset(("&&", "||", "|", ";", "&"))
@@ -215,7 +220,7 @@ _PS_COLON_CMD_PREFIXES = ("-c:", "-command:", "/c:", "/command:")
 
 
 def has_win32_2pc_promote_tokens(words: list[str]) -> bool:
-    """Riconosce invocazioni reali di win32_2pc_engine con --promote-staging su confini token."""
+    """Riconosce invocazioni reali di win32_2pc_engine con --promote-staging, --commit-train o --consolidate-sublanes."""
     idx = 1 if len(words) > 1 and words[0] == "&" else 0
     if idx >= len(words) or words[idx].replace("\\", "/").rsplit("/", 1)[-1].lower() in _PROMOTE_IGNORED_VERBS:
         return False
@@ -228,20 +233,20 @@ def has_win32_2pc_promote_tokens(words: list[str]) -> bool:
         if low in _PROMOTE_VALUE_FLAGS:
             skip_next = True
             continue
-        if not any(low.startswith(f + "=") for f in _PROMOTE_VALUE_FLAGS):
+        if not low.startswith(_PROMOTE_VALUE_EQ):
             saw_eng = saw_eng or bool(_WIN32_2PC_CMD_RE.search(low))
-            saw_prom = saw_prom or low == "--promote-staging" or low.startswith("--promote-staging=")
+            saw_prom = saw_prom or low in _PROMOTE_ACTION_FLAGS or low.startswith(_PROMOTE_ACTION_EQ)
     return saw_eng and saw_prom
 
 
 def _shell_verb_from_tokens(tokens: list[tuple[str, str, bool]], norm_verb_fn) -> tuple[int, str]:
-    """Restituisce indice e nome normalizzato del comando (gestendo &, &"cmd" e %comspec%)."""
-    idx = 1 if len(tokens) > 1 and tokens[0][1] == "&" else 0
+    """Restituisce indice e nome normalizzato del comando (gestendo &, (, {, &"cmd" e %comspec%)."""
+    idx = 0
+    while idx < len(tokens) and tokens[idx][1] in ("&", "(", "{", "$(", "@("):
+        idx += 1
     if idx >= len(tokens):
         return -1, ""
-    raw_verb = tokens[idx][1].strip("\"'")
-    if raw_verb.startswith("&") and len(raw_verb) > 1:
-        raw_verb = raw_verb[1:].strip("\"'")
+    raw_verb = tokens[idx][1].lstrip("&({").rstrip(")}").strip("\"'")
     if raw_verb.lower() == "%comspec%":
         return idx, "%comspec%"
     return idx, norm_verb_fn(raw_verb)
@@ -283,15 +288,15 @@ def _advance_ps_payload_start(tokens: list[tuple[str, str, bool]], start_idx: in
     """Avanza oltre i flag powershell/pwsh e restituisce (indice_arg, prefix_col, ok)."""
     i = start_idx
     while i < len(tokens):
-        _, unq_t, was_q = tokens[i]
-        low_t = unq_t.lower()
+        raw_t, unq_t, was_q = tokens[i]
+        low_t = unq_t.rstrip(")}").lower()
+        if not raw_t.startswith(('"', "'")) and _PS_COLON_CMD_RE.match(low_t):
+            val = unq_t.split(":", 1)[1].strip()
+            return (0, "", False) if val == "-" else (i + 1, val.strip("\"'"), True)
         if was_q or not low_t.startswith(("-", "/")):
             return i, "", True
         if low_t == "--" or _PS_CMD_FLAG_RE.match(low_t):
             return i + 1, "", True
-        if any(low_t.startswith(p) for p in _PS_COLON_CMD_PREFIXES):
-            val = unq_t.split(":", 1)[1].strip()
-            return (0, "", False) if val == "-" else (i + 1, val.strip("\"'"), True)
         if _is_explicit_ps_cmd_or_file(low_t):
             return 0, "", False
         i += 2 if low_t in _PS_VALUE_FLAGS else 1
@@ -325,11 +330,11 @@ def has_ps_stdin_flag_tokens(tokens: list[tuple[str, str, bool]], norm_verb_fn) 
     i = idx + 1
     while i < len(tokens):
         _, unq_t, was_q = tokens[i]
-        low_t = unq_t.lower()
+        low_t = unq_t.rstrip(")}").lower()
         if (not was_q and low_t == "-") or _PS_CMD_STDIN_RE.match(low_t):
             return True
         if _PS_CMD_FLAG_RE.match(low_t) or _PS_FILE_FLAG_RE.match(low_t):
-            return i + 1 < len(tokens) and tokens[i + 1][1] == "-"
+            return i + 1 < len(tokens) and tokens[i + 1][1].rstrip(")}") == "-"
         if was_q or not low_t.startswith(("-", "/")) or low_t == "--":
             return False
         i += 2 if low_t in _PS_VALUE_FLAGS else 1

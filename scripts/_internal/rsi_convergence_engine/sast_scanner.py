@@ -3,33 +3,23 @@
 
 from __future__ import annotations
 
-import ast
-import json
-import posixpath
-import re
+import ast, json, posixpath, re
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 from _internal.nk_common.constants import HALLUCINATED_SCRIPT_DENYLIST
+from _internal.nk_common.lane_paths import is_lane_container_entry, resolve_staging_dir, strip_staging_rel_parts  # noqa: F401
 from _internal.rsi_convergence_engine.constants import (
-    EXCLUDED_SCAN_DIRS,
-    _collect_overlay_md_files,
-    _get_cached_file_and_ast,
-    _is_excluded_rel_path,
-    _workspace_root,
-    get_ast_guard_validator,
-    get_report_grounding_validator,
-    normalize_rel_for_root,
+    EXCLUDED_SCAN_DIRS, _collect_overlay_md_files, _get_cached_file_and_ast, _is_excluded_rel_path,
+    _workspace_root, get_ast_guard_validator, get_report_grounding_validator, load_staging_deleted_set_impl,
+    normalize_rel_for_root, resolve_effective_staging,
 )
 from _internal.rsi_convergence_engine.report_sanitizers import audit_sast_report_payload
 
 _MD_LINK_RE = re.compile(r"\]\(([^\)\r\n]+)\)")
-_MD_SCRIPT_RE = re.compile(
-    r"scripts[/\\]((?:_internal[/\\](?:[a-zA-Z0-9_]+[/\\])*|schemas[/\\])?[a-zA-Z0-9_]+\.py)"
-)
+_MD_SCRIPT_RE = re.compile(r"scripts[/\\]((?:_internal[/\\](?:[a-zA-Z0-9_]+[/\\])*|schemas[/\\])?[a-zA-Z0-9_]+\.py)")
 _MD_NEGATION_RE = re.compile(
-    r"\b(?:inesistent\w*|allucinat\w*|non\s+esist\w*|denylist\w*|vietat\w*|proibit\w*|rimoss\w*|mai\s+usar\w*)\b",
-    re.IGNORECASE,
+    r"\b(?:inesistent\w*|allucinat\w*|non\s+esist\w*|denylist\w*|vietat\w*|proibit\w*|rimoss\w*|mai\s+usar\w*)\b", re.IGNORECASE,
 )
 _SKIP_LINK_PREFIXES = ("http://", "https://", "file://", "#", "conversation://", "mailto:")
 _SPECIAL_LINK_CHARS = frozenset("*?{}^$[]\\<>")
@@ -132,7 +122,8 @@ def audit_markdown_doc_references(
         rel_md = resolved_md.relative_to(resolved_root).as_posix()
     except ValueError:
         rel_md = resolved_md.name
-    logical_rel = rel_md[len(".staging/") :] if rel_md.startswith(".staging/") else rel_md
+    stg_idx, rel_after, _lane = strip_staging_rel_parts(Path(rel_md).parts)
+    logical_rel = "/".join(rel_after) if stg_idx == 0 else rel_md
     logical_dir = posixpath.dirname(logical_rel)
     broken_links = _check_markdown_links(
         _strip_fenced_code(content), resolved_md, resolved_root, logical_rel, logical_dir, resolve_candidate_fn, del_set
@@ -168,38 +159,43 @@ def _collect_prod_overlay_files(
                 overlay_map[rel_k] = p
 
 
-def _collect_overlay_scan_files(root: Path, deleted_rel: Set[str]) -> List[Path]:
-    """Raccoglie i file .py, .md e .json attivi in overlay .staging/ > produzione."""
-    staging_excluded = EXCLUDED_SCAN_DIRS - {".staging"}
-    overlay_map: Dict[str, Path] = {}
-    _collect_prod_overlay_files(root, deleted_rel, staging_excluded, overlay_map)
-    stg_root = root / ".staging"
-    if stg_root.is_dir():
-        for p in stg_root.rglob("*"):
-            if p.is_file() and p.suffix in (".py", ".md", ".json") and not any(part in staging_excluded for part in p.relative_to(stg_root).parts):
-                overlay_map[p.relative_to(stg_root).as_posix()] = p
-    return sorted({p.resolve() for p in overlay_map.values()})
+def _collect_stg_overlay_entries(stg_root: Path, staging_excluded: Set[str], overlay_map: Dict[str, Path], exclude_lanes: Optional[bool] = None) -> None:
+    """Raccoglie i file .py/.md/.json da staging_dir o lane escludendo lanes/ in legacy."""
+    if not stg_root.is_dir():
+        return
+    is_base_stg = (stg_root.name == ".staging") if exclude_lanes is None else bool(exclude_lanes)
+    for p in stg_root.rglob("*"):
+        if not p.is_file() or p.suffix not in (".py", ".md", ".json"):
+            continue
+        rel_parts = p.relative_to(stg_root).parts
+        if (is_base_stg and rel_parts and is_lane_container_entry(rel_parts)) or any(part in staging_excluded for part in rel_parts):
+            continue
+        overlay_map[p.relative_to(stg_root).as_posix()] = p
 
+def _collect_overlay_scan_files(root: Path, deleted_rel: Set[str], lane_id: Optional[str] = None, staging_dir: Optional[Path] = None) -> List[Path]:
+    """Raccoglie i file .py, .md e .json attivi in overlay .staging/ > produzione."""
+    staging_excluded, overlay_map = EXCLUDED_SCAN_DIRS - {".staging"}, {}
+    _collect_prod_overlay_files(root, deleted_rel, staging_excluded, overlay_map)
+    stg_root = resolve_effective_staging(root, lane_id=lane_id, staging_dir=staging_dir)
+    _collect_stg_overlay_entries(stg_root, staging_excluded, overlay_map, exclude_lanes=(lane_id is None and staging_dir is None and stg_root.name == ".staging"))
+    return sorted({p.resolve() for p in overlay_map.values()})
 
 def _audit_external_sast_report(sast_report: Optional[Path | str]) -> Tuple[int, List[str]]:
     if sast_report is None:
         return 0, []
     rep_chk = audit_sast_report_payload(sast_report)
     sast_count = int(rep_chk.get("sast_critical", 0)) + int(rep_chk.get("sast_taint", 0))
-    if not rep_chk.get("passed", False):
-        return max(1, sast_count), list(rep_chk.get("violations", []))
-    return sast_count, []
+    return (max(1, sast_count), list(rep_chk.get("violations", []))) if not rep_chk.get("passed", False) else (sast_count, [])
 
+def _collect_deleted_and_overlay_files(engine: Any, root: Path, lane_id: Optional[str], staging_dir: Optional[Path]) -> List[Path]:
+    raw_del = load_staging_deleted_set_impl(root, lane_id=lane_id, staging_dir=staging_dir) if (lane_id is not None or staging_dir is not None) else engine._load_staging_deleted_set(root)
+    return _collect_overlay_scan_files(root, _normalize_deleted_rel_set(raw_del), lane_id=lane_id, staging_dir=staging_dir)
 
-def scan_sast_and_mojibake_impl(
-    engine: Any, root: Path, sast_report: Optional[Path | str] = None
-) -> Dict[str, Any]:
+def scan_sast_and_mojibake_impl(engine: Any, root: Path, sast_report: Optional[Path | str] = None, lane_id: Optional[str] = None, staging_dir: Optional[Path] = None) -> Dict[str, Any]:
     """Scansiona .staging/ e produzione (codice, JSON e doc) per SAST, syntax e U+FFFD."""
     sast_count, sast_issues = _audit_external_sast_report(sast_report)
-    mojibake_files: List[str] = []
-    invalid_json_files: List[str] = []
-    deleted_rel = _normalize_deleted_rel_set(engine._load_staging_deleted_set(root))
-    unique_files = _collect_overlay_scan_files(root, deleted_rel)
+    mojibake_files, invalid_json_files = [], []
+    unique_files = _collect_deleted_and_overlay_files(engine, root, lane_id, staging_dir)
     agv_cls: Any = None
     for fpath in unique_files:
         try:
@@ -292,8 +288,9 @@ def _collect_internal_subpkg_files(script_path: Path) -> List[Path]:
     if script_path.parent.name != "scripts":
         return []
     sub_map: Dict[str, Path] = {}
-    if script_path.parent.parent.name == ".staging":
-        prod_sub = script_path.parent.parent.parent / "scripts" / "_internal" / script_path.stem
+    stg_idx, _r, _l = strip_staging_rel_parts(script_path.parts)
+    if stg_idx >= 0:
+        prod_sub = Path(*script_path.parts[:stg_idx]) / "scripts" / "_internal" / script_path.stem
         if prod_sub.is_dir():
             for pf in sorted(prod_sub.glob("*.py")):
                 sub_map[pf.name] = pf
@@ -378,15 +375,10 @@ def _inspect_md_cli_flags(
 def verify_cli_flags_cove_impl(engine: Any, root_dir: Optional[Path] = None) -> Dict[str, Any]:
     """Verifica i flag CLI su skill, agent e workflow inclusi moduli _internal e schemas."""
     root = Path(root_dir).resolve() if root_dir else engine.workspace_root
-    invalid_flags: List[str] = []
-    checked_invocations = 0
+    invalid_flags, checked_invocations, flag_cache = [], 0, {}
     has_agents_tree = (root / ".agents").is_dir() or (root / ".staging" / ".agents").is_dir()
     md_files = _collect_overlay_md_files(root, ".agents" if has_agents_tree else "", recursive=True)
-    flag_cache: Dict[str, Tuple[bool, Set[str]]] = {}
     pattern = re.compile(r"scripts[/\\]((?:_internal[/\\](?:[a-zA-Z0-9_]+[/\\])*|schemas[/\\])?[a-zA-Z0-9_]+\.py)")
     for md_file in md_files:
         checked_invocations += _inspect_md_cli_flags(md_file, engine, root, pattern, flag_cache, invalid_flags)
-    return {
-        "passed": not invalid_flags, "checked_flags_count": checked_invocations,
-        "files_checked": len(md_files), "invalid_flags": invalid_flags,
-    }
+    return {"passed": not invalid_flags, "checked_flags_count": checked_invocations, "files_checked": len(md_files), "invalid_flags": invalid_flags}

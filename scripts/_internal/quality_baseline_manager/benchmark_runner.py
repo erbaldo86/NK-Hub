@@ -21,6 +21,7 @@ from _internal.nk_common.isolated_test_runner import (
     safe_rmtree,
     win32_detached_flags,
 )
+from _internal.nk_common.lane_paths import resolve_staging_dir
 from _internal.nk_common.pytest_parallel import resolve_coverage_source, run_parallel_pytest_shards, should_use_parallel_shards
 from _internal.nk_common.tas_ssot_io import parse_deleted_files_manifest, parse_pytest_summary
 from _internal.quality_baseline_manager.constants import _facade_attr, _scripts_dir
@@ -29,15 +30,16 @@ _ORIG_SUBPROCESS_RUN = subprocess.run
 _TESTSUITES_TIME_RE = re.compile(r'<testsuites\b[^>]*\btime="([0-9]+(?:\.[0-9]+)?)"')
 
 
-def _count_live_skills_overlay(ws_root: Path, deleted_rel: set[str]) -> int:
-    """Conta le skill canoniche con SKILL.md applicando overlay .staging e tombstone."""
+def _count_live_skills_overlay(ws_root: Path, deleted_rel: set[str], stg_dir: Optional[Path] = None) -> int:
+    """Conta le skill canoniche con SKILL.md applicando overlay .staging/lane e tombstone."""
+    eff_stg = stg_dir or (ws_root / ".staging")
     skill_dirs: set[str] = set()
     prod_skills = ws_root / ".agents" / "skills"
     if prod_skills.is_dir():
         for sk_md in prod_skills.glob("*/SKILL.md"):
             if f".agents/skills/{sk_md.parent.name}/SKILL.md" not in deleted_rel:
                 skill_dirs.add(sk_md.parent.name)
-    stg_skills = ws_root / ".staging" / ".agents" / "skills"
+    stg_skills = eff_stg / ".agents" / "skills"
     if stg_skills.is_dir():
         for sk_md in stg_skills.glob("*/SKILL.md"):
             skill_dirs.add(sk_md.parent.name)
@@ -82,10 +84,10 @@ def _load_deleted_rel(del_manifest: Path) -> set[str]:
     return {str(item).replace("\\", "/").lstrip("/") for item in items if str(item).strip()}
 
 
-def _collect_overlay_tests(ws_root: Path, deleted_rel: set[str]) -> Dict[str, Path]:
-    """Raccoglie i file test_*.py attivi in overlay .staging/ > produzione."""
+def _collect_overlay_tests(ws_root: Path, deleted_rel: set[str], stg_dir: Optional[Path] = None) -> Dict[str, Path]:
+    """Raccoglie i file test_*.py attivi in overlay staging/lane > produzione."""
     prod_tests = ws_root / "tests"
-    stg_tests = ws_root / ".staging" / "tests"
+    stg_tests = (stg_dir or (ws_root / ".staging")) / "tests"
     overlay_tests: Dict[str, Path] = {}
     if prod_tests.is_dir():
         for tf in sorted(prod_tests.rglob("test_*.py")):
@@ -100,19 +102,9 @@ def _collect_overlay_tests(ws_root: Path, deleted_rel: set[str]) -> Dict[str, Pa
     return overlay_tests
 
 
-def _measure_live_sast_violations(ws_root: Path, deleted_rel: set[str]) -> Optional[int]:
-    """Conta in sola lettura le violazioni SAST live nei file Python attivi se scripts/ esiste."""
-    prod_scripts = ws_root / "scripts"
-    stg_scripts = ws_root / ".staging" / "scripts"
-    if not prod_scripts.is_dir() and not stg_scripts.is_dir():
-        return None
-    try:
-        from ast_guard_validator import ASTGuardValidator
-    except ImportError:
-        try:
-            from scripts.ast_guard_validator import ASTGuardValidator
-        except ImportError:
-            return 1
+def _collect_overlay_py_scripts(ws_root: Path, eff_stg: Path, deleted_rel: set[str]) -> Dict[str, Path]:
+    """Raccoglie i file Python attivi in scripts/ combinando produzione e staging/lane."""
+    prod_scripts, stg_scripts = ws_root / "scripts", eff_stg / "scripts"
     py_map: Dict[str, Path] = {}
     if prod_scripts.is_dir():
         for pf in sorted(prod_scripts.rglob("*.py")):
@@ -121,10 +113,25 @@ def _measure_live_sast_violations(ws_root: Path, deleted_rel: set[str]) -> Optio
                 if rel_k not in deleted_rel:
                     py_map[rel_k] = pf
     if stg_scripts.is_dir():
-        stg_base = ws_root / ".staging"
         for pf in sorted(stg_scripts.rglob("*.py")):
             if "__pycache__" not in pf.parts:
-                py_map[pf.relative_to(stg_base).as_posix()] = pf
+                py_map[pf.relative_to(eff_stg).as_posix()] = pf
+    return py_map
+
+
+def _measure_live_sast_violations(ws_root: Path, deleted_rel: set[str], stg_dir: Optional[Path] = None) -> Optional[int]:
+    """Conta in sola lettura le violazioni SAST live nei file Python attivi se scripts/ esiste."""
+    eff_stg = stg_dir or (ws_root / ".staging")
+    if not (ws_root / "scripts").is_dir() and not (eff_stg / "scripts").is_dir():
+        return None
+    try:
+        from ast_guard_validator import ASTGuardValidator
+    except ImportError:
+        try:
+            from scripts.ast_guard_validator import ASTGuardValidator
+        except ImportError:
+            return 1
+    py_map = _collect_overlay_py_scripts(ws_root, eff_stg, deleted_rel)
     sast_cnt = 0
     for pf in py_map.values():
         try:
@@ -158,17 +165,18 @@ def _extract_junit_wall_s(junit_xml: Path, fallback_s: float) -> float:
 
 
 def _prepare_qbm_targets(
-    ws_root: Path, mirror_dir: Optional[Path], overlay_tests: Dict[str, Path], env: Dict[str, str],
+    ws_root: Path, mirror_dir: Optional[Path], overlay_tests: Dict[str, Path], env: Dict[str, str], stg_dir: Optional[Path] = None,
 ) -> Tuple[Path, List[str]]:
     """Configura PYTHONPATH e target pytest per mirror NVMe o workspace temporaneo."""
     if mirror_dir is not None:
         env["PYTHONPATH"] = str(mirror_dir)
         return mirror_dir, [str(mirror_dir / "tests")]
-    py_paths = ([str(ws_root / ".staging")] if (ws_root / ".staging").is_dir() else []) + [str(ws_root)]
+    eff_stg = stg_dir or (ws_root / ".staging")
+    py_paths = ([str(eff_stg)] if eff_stg.is_dir() else []) + [str(ws_root)]
     if existing_pp := env.get("PYTHONPATH", ""):
         py_paths.append(existing_pp)
     env["PYTHONPATH"] = os.pathsep.join(py_paths)
-    stg_tests_dir = ws_root / ".staging" / "tests"
+    stg_tests_dir = eff_stg / "tests"
     tgts = [str(overlay_tests[k]) for k in sorted(overlay_tests)] if stg_tests_dir.is_dir() else [str(ws_root / "tests")]
     return ws_root, tgts
 
@@ -264,27 +272,34 @@ def _format_qbm_live_result(parsed: Dict[str, Any], cov_metrics: Dict[str, float
     return result
 
 
-def measure_live_pytest_metrics(workspace_root: Optional[Path] = None, with_coverage: bool = False) -> dict:
-    """Esegue pytest reale NVMe con overlay .staging e separa tests_skipped da failed_tests."""
+def measure_live_pytest_metrics(
+    workspace_root: Optional[Path] = None,
+    with_coverage: bool = False,
+    *,
+    lane_id: Optional[str] = None,
+    staging_dir: Optional[Path] = None,
+) -> dict:
+    """Esegue pytest reale NVMe con overlay .staging/[lanes/<id>/] e separa skipped da failed."""
     if workspace_root is None:
         s_dir = Path(_facade_attr("_scripts_dir", _scripts_dir)).resolve()
         ws_root = s_dir.parent.parent if s_dir.parent.name == ".staging" else s_dir.parent
     else:
         ws_root = Path(workspace_root).resolve()
 
-    deleted_rel = _load_deleted_rel(ws_root / ".staging" / ".deleted_files.json")
-    overlay_tests = _collect_overlay_tests(ws_root, deleted_rel)
+    stg_dir, norm_lane = resolve_staging_dir(ws_root, lane_id=lane_id, staging_dir=staging_dir)
+    deleted_rel = _load_deleted_rel(stg_dir / ".deleted_files.json")
+    overlay_tests = _collect_overlay_tests(ws_root, deleted_rel, stg_dir=stg_dir)
     skills_cnt = _facade_attr("_count_live_skills_overlay", _count_live_skills_overlay)(ws_root, deleted_rel)
-    sast_cnt = _measure_live_sast_violations(ws_root, deleted_rel)
+    sast_cnt = _measure_live_sast_violations(ws_root, deleted_rel, stg_dir=stg_dir)
     if not overlay_tests:
         return _format_qbm_live_result({}, {}, 0.0, 0, skills_cnt, sast_cnt)
 
     env = _build_qbm_env()
     sub_mod = _facade_attr("subprocess", subprocess)
     is_real_ws = not is_temp_workspace(ws_root)
-    mirror_dir = mirror_workspace_to_nvme(ws_root, prefix="nk_qbm_iso_", apply_overlay=True) if is_real_ws else None
+    mirror_dir = mirror_workspace_to_nvme(ws_root, staging_dir=stg_dir, prefix="nk_qbm_iso_", apply_overlay=True, lane_id=norm_lane) if is_real_ws else None
     try:
-        run_cwd, pytest_targets = _prepare_qbm_targets(ws_root, mirror_dir, overlay_tests, env)
+        run_cwd, pytest_targets = _prepare_qbm_targets(ws_root, mirror_dir, overlay_tests, env, stg_dir=stg_dir)
         can_par = _can_use_qbm_parallel(is_real_ws, len(overlay_tests), sub_mod)
         par_out = _run_qbm_parallel_nvme(mirror_dir, env, with_coverage) if (can_par and mirror_dir is not None) else None
         if par_out is None:

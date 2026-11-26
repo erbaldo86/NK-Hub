@@ -25,14 +25,16 @@ from _internal.ast_repo_mapper.polyglot_and_cache import (
     AtomicCacheManager,
     PolyglotExtractor,
 )
+from _internal.nk_common.io import atomic_write_text
 
 
 def export_markdown_snapshot(root_dir: Path, output_path: Path, max_tokens: int = 1100) -> RepoMapResult:
-    """Genera e scrive autonomamente lo snapshot canonico repo_map.md."""
+    """Genera e scrive atomicamente lo snapshot canonico repo_map.md."""
     cfg = RepoMapConfig(max_tokens=max_tokens, polyglot=True)
     res = RepoMapGenerator.generate(root_dir=root_dir, config=cfg)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(res.content, encoding="utf-8")
+    ok, err = atomic_write_text(output_path, res.content, encoding="utf-8", fsync_data=False)
+    if not ok:
+        raise OSError(err or f"Scrittura atomica snapshot repo_map fallita: {output_path}")
     return res
 
 

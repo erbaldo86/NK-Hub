@@ -7,7 +7,10 @@ import concurrent.futures, json, os, re, subprocess, sys, tempfile, time, xml.et
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
 
+from _internal.nk_common.nvme_storage_guards import FailClosedNamedMutex
 from _internal.nk_common.staging_manifest import file_has_async_marker, filter_fast_marker_files
+from _internal.nk_common.win32_mutex import repo_path_hash12
+from _internal.nk_common.worker_budget import WorkerBudgetSlot
 
 _SINGLE_PROC_FLAGS = frozenset({"--collect-only", "--lf", "--last-failed", "--ff", "--failed-first", "--pdb", "-x", "--exitfirst", "-s"})
 _COV_SOURCE_CANDIDATES = ("scripts", "src_app", "app", "src")
@@ -105,9 +108,11 @@ def _read_timing_store() -> Dict[str, Any]:
         return {}
     return raw if isinstance(raw, dict) else {}
 
-def _load_timing_weights(profile: str = "default") -> Dict[str, int]:
-    """Carica i tempi storici in millisecondi isolati per profilo."""
+def _load_timing_weights(profile: str = "default", repo_key: Optional[str] = None) -> Dict[str, int]:
+    """Carica i tempi storici in millisecondi isolati per repository e profilo."""
     raw = _read_timing_store()
+    if repo_key and isinstance(scoped_repo := raw.get(f"{repo_key}:{profile}"), dict):
+        return _normalize_timing_entries(scoped_repo)
     scoped = raw.get(profile)
     if isinstance(scoped, dict):
         return _normalize_timing_entries(scoped)
@@ -138,19 +143,27 @@ def _collect_suite_timings_ms(suites: Sequence[ET.Element]) -> Dict[str, int]:
                 totals_s[rel] = totals_s.get(rel, 0.0) + _testcase_seconds(tc)
     return {rel: max(1, int(round(sec * 1000.0))) for rel, sec in totals_s.items()}
 
-def _save_timing_weights(suites: Sequence[ET.Element], profile: str = "default") -> None:
-    """Aggiorna atomicamente il profilo timing in pytest_shard_timings.json."""
-    if not (measured := _collect_suite_timings_ms(suites)):
-        return
-    cache_p, store = _timings_cache_path(), _read_timing_store()
-    prev = store.get(profile)
-    store[profile] = {**(prev if isinstance(prev, dict) else {}), **measured}
+def _update_timing_store_locked(store_key: str, measured: Dict[str, int]) -> None:
+    """Aggiorna il file JSON dei tempi shard sotto Named Mutex."""
+    cache_p = _timings_cache_path()
     tmp_p = cache_p.parent / f".timings_{os.getpid()}_{time.monotonic_ns()}.tmp"
-    try:
+    with FailClosedNamedMutex("Local\\NK_PytestShardTimings", wait_ms=2000):
+        store = _read_timing_store()
+        prev = store.get(store_key)
+        store[store_key] = {**(prev if isinstance(prev, dict) else {}), **measured}
         cache_p.parent.mkdir(parents=True, exist_ok=True)
         tmp_p.write_text(json.dumps(store, sort_keys=True), encoding="utf-8")
         os.replace(tmp_p, cache_p)
-    except OSError:
+
+
+def _save_timing_weights(suites: Sequence[ET.Element], profile: str = "default", repo_key: Optional[str] = None) -> None:
+    """Aggiorna atomicamente il profilo timing in pytest_shard_timings.json sotto Named Mutex."""
+    if not (measured := _collect_suite_timings_ms(suites)):
+        return
+    store_key = f"{repo_key}:{profile}" if repo_key else profile
+    try:
+        _update_timing_store_locked(store_key, measured)
+    except (OSError, TimeoutError):
         return
 
 def _file_weight(mirror_dir: Path, rel_path: str) -> int:
@@ -160,11 +173,11 @@ def _file_weight(mirror_dir: Path, rel_path: str) -> int:
     except OSError:
         return 1
 
-def partition_files_lpt(test_files: Sequence[str], mirror_dir: Path, workers: int, profile: str = "default") -> List[List[str]]:
+def partition_files_lpt(test_files: Sequence[str], mirror_dir: Path, workers: int, profile: str = "default", repo_key: Optional[str] = None) -> List[List[str]]:
     """Partiziona i file test con LPT pesato su timing storici per profilo o fallback st_size//10."""
     if not test_files:
         return []
-    w_cnt, timings = max(1, int(workers)), _load_timing_weights(profile)
+    w_cnt, timings = max(1, int(workers)), _load_timing_weights(profile, repo_key=repo_key)
     ordered = sorted((((timings.get(str(f)) or (max(1, _file_weight(mirror_dir, str(f)) // 10) if timings else _file_weight(mirror_dir, str(f)))), str(f)) for f in test_files), key=lambda item: (item[0], item[1]), reverse=True)
     loads, shards = [0] * w_cnt, [[] for _ in range(w_cnt)]
     for weight, rel_path in ordered:
@@ -207,7 +220,7 @@ def _suite_int_attr(elem: ET.Element, attr: str) -> int:
     except ValueError:
         return 0
 
-def merge_junit_xml_files(worker_xmls: Sequence[Path], dest_xml: Path, wall_duration_s: float, record_timings: bool = False, profile: str = "default") -> Optional[Path]:
+def merge_junit_xml_files(worker_xmls: Sequence[Path], dest_xml: Path, wall_duration_s: float, record_timings: bool = False, profile: str = "default", repo_key: Optional[str] = None) -> Optional[Path]:
     """Unisce i report JUnit XML dei worker in dest_xml registrando opzionalmente i tempi."""
     suites = [s for xml_p in worker_xmls if xml_p.is_file() for s in _extract_suites_from_xml(xml_p)]
     if not suites:
@@ -218,7 +231,7 @@ def merge_junit_xml_files(worker_xmls: Sequence[Path], dest_xml: Path, wall_dura
     dest_xml.parent.mkdir(parents=True, exist_ok=True)
     dest_xml.write_text('<?xml version="1.0" encoding="utf-8"?>\n' + ET.tostring(merged, encoding="unicode"), encoding="utf-8")
     if record_timings:
-        _save_timing_weights(suites, profile)
+        _save_timing_weights(suites, profile, repo_key=repo_key)
     return dest_xml
 
 def combine_worker_coverage(cov_parts_dir: Path, mirror_dir: Path, cov_json: Path, cov_source: Optional[str] = None) -> bool:
@@ -309,12 +322,12 @@ def _write_combined_log(outcomes: Sequence[Dict[str, Any]], log_file: Optional[P
 def _finalize_parallel_artifacts(
     outcomes: Sequence[Dict[str, Any]], wall_s: float, coverage: bool, timed_out: bool,
     cov_parts_dir: Optional[Path], mirror_dir: Path, cov_json: Optional[Path], junit_xml_path: Optional[Path], log_file: Optional[Path],
-    profile: str = "default", cov_source: Optional[str] = None,
+    profile: str = "default", cov_source: Optional[str] = None, repo_key: Optional[str] = None,
 ) -> str:
     """Consolida log combinato, JUnit XML unificato e coverage JSON."""
     combined_log = _write_combined_log(outcomes, log_file)
     if junit_xml_path is not None:
-        merge_junit_xml_files([o["xml"] for o in outcomes], junit_xml_path, wall_s, record_timings=True, profile=profile)
+        merge_junit_xml_files([o["xml"] for o in outcomes], junit_xml_path, wall_s, record_timings=True, profile=profile, repo_key=repo_key)
     if coverage and not timed_out and cov_json is not None and cov_parts_dir is not None:
         combine_worker_coverage(cov_parts_dir, mirror_dir, cov_json, cov_source=cov_source)
     return combined_log
@@ -322,28 +335,53 @@ def _finalize_parallel_artifacts(
 def _resolve_parallel_env(base_env: Mapping[str, str], disable_async: bool) -> Mapping[str, str]:
     return base_env if (not disable_async or "PYTEST_DISABLE_PLUGIN_AUTOLOAD" in base_env) else {**base_env, "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1"}
 
+def _execute_shards_with_budget(
+    mirror_dir: Path, mirror_root: Path, test_files: Sequence[str], eff_env: Mapping[str, str], clean_extra: Sequence[str],
+    deadline: float, coverage: bool, cov_parts_dir: Optional[Path], workers: Optional[int], req_w: int,
+    prof: str, repo_key: str, cov_src: Optional[str], disable_async: bool,
+    kill_tree_fn: Optional[Callable[[int], None]], detached_flags: int,
+) -> Tuple[List[Dict[str, Any]], int]:
+    """Acquisisce lo slot di budget globale ed esegue gli shard pytest in parallelo."""
+    outcomes: List[Dict[str, Any]] = []
+    shards: List[List[str]] = []
+    with WorkerBudgetSlot(req_w) as budget:
+        allocated = budget.workers if workers is None else req_w
+        shards = partition_files_lpt(test_files, mirror_dir, allocated, profile=prof, repo_key=repo_key)
+        if not shards:
+            return outcomes, 0
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(shards)) as pool:
+            futs = [
+                pool.submit(
+                    _run_single_worker, idx, sf, mirror_dir, mirror_root, eff_env, clean_extra,
+                    deadline, coverage, cov_parts_dir, kill_tree_fn, detached_flags,
+                    cov_source=cov_src, disable_async_plugins=disable_async,
+                )
+                for idx, sf in enumerate(shards)
+            ]
+            outcomes = [fut.result() for fut in futs]
+    return outcomes, len(shards)
+
+
 def run_parallel_pytest_shards(
     mirror_dir: Path, mirror_root: Path, test_files: Sequence[str], base_env: Mapping[str, str], extra_args: Sequence[str], timeout_sec: float,
     coverage: bool, cov_json: Optional[Path] = None, junit_xml_path: Optional[Path] = None, log_file: Optional[Path] = None,
     workers: Optional[int] = None, kill_tree_fn: Optional[Callable[[int], None]] = None, detached_flags: int = 0,
 ) -> Dict[str, Any]:
-    """Esegue gli shard pytest in parallelo su NVMe unendo log, XML e coverage."""
+    """Esegue gli shard pytest in parallelo su NVMe sotto budget globale <= 12 worker."""
     t0, deadline = time.perf_counter(), time.perf_counter() + max(0.05, float(timeout_sec))
-    w_cnt = workers if (workers is not None and workers >= 1) else resolve_worker_count(len(test_files), base_env)
+    req_w = workers if (workers is not None and workers >= 1) else resolve_worker_count(len(test_files), base_env)
     clean_extra = strip_junitxml_args(extra_args)
-    prof = _timing_profile_key(clean_extra, coverage)
-    shards = partition_files_lpt(test_files, mirror_dir, w_cnt, profile=prof)
+    prof, repo_key = _timing_profile_key(clean_extra, coverage), mirror_dir.name or repo_path_hash12(mirror_dir)
     cov_src, disable_async = resolve_coverage_source(mirror_dir), not detect_async_pytest_needed(mirror_dir, test_files)
     eff_env = _resolve_parallel_env(base_env, disable_async)
     cov_parts_dir = (mirror_root / "cov_parts") if coverage else None
     if cov_parts_dir is not None:
         cov_parts_dir.mkdir(parents=True, exist_ok=True)
-    outcomes: List[Dict[str, Any]] = []
-    if shards:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=len(shards)) as pool:
-            futs = [pool.submit(_run_single_worker, idx, sf, mirror_dir, mirror_root, eff_env, clean_extra, deadline, coverage, cov_parts_dir, kill_tree_fn, detached_flags, cov_source=cov_src, disable_async_plugins=disable_async) for idx, sf in enumerate(shards)]
-            outcomes = [fut.result() for fut in futs]
+    outcomes, workers_used = _execute_shards_with_budget(
+        mirror_dir, mirror_root, test_files, eff_env, clean_extra, deadline, coverage, cov_parts_dir,
+        workers, req_w, prof, repo_key, cov_src, disable_async, kill_tree_fn, detached_flags,
+    )
     wall_s = round(time.perf_counter() - t0, 3)
     rc, timed_out = _aggregate_worker_outcomes(outcomes)
-    combined_log = _finalize_parallel_artifacts(outcomes, wall_s, coverage, timed_out, cov_parts_dir, mirror_dir, cov_json, junit_xml_path, log_file, profile=prof, cov_source=cov_src)
-    return {"rc": rc, "timed_out": timed_out, "duration_s": round(time.perf_counter() - t0, 3), "log_text": combined_log, "workers_used": len(shards), "junit_xml": junit_xml_path}
+    combined_log = _finalize_parallel_artifacts(outcomes, wall_s, coverage, timed_out, cov_parts_dir, mirror_dir, cov_json, junit_xml_path, log_file, profile=prof, cov_source=cov_src, repo_key=repo_key)
+    return {"rc": rc, "timed_out": timed_out, "duration_s": round(time.perf_counter() - t0, 3), "log_text": combined_log, "workers_used": workers_used, "junit_xml": junit_xml_path}

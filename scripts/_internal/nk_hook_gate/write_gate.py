@@ -19,6 +19,12 @@ from _internal.nk_hook_gate.json_io import (
     _extract_tool_identity,
     _has_unsafe_readonly_args,
 )
+from _internal.nk_hook_gate.lane_write_guard import (
+    check_lane_plan_write_authorization,
+    check_lane_write_authorization,
+    check_shell_lane_write_authorization,
+    verify_promote_targets_with_lanes,
+)
 from _internal.nk_hook_gate.path_safety import (
     _canonical_path,
     _cmd_mentions_external_project,
@@ -70,42 +76,45 @@ def _first_present_arg(args: Dict[str, Any], keys: Tuple[str, ...], fallback: An
     return fallback
 
 
+_PROMOTE_VALUE_FLAGS = (
+    "--milestone",
+    "--staging-dir",
+    "--override-reason",
+    "--governance-token",
+    "--sandbox-report",
+    "--lane-id",
+    "--parent-lane",
+    "--base-seq",
+)
+
+
 def _extract_promote_root_candidates(words: List[str], project_root: Path) -> List[_RuntimePath]:
-    """Estrae le root candidate da CLI --root/--repo-root, eff_root e project_root."""
-    roots: List[_RuntimePath] = [_resolve_effective_hub_root(project_root), _canonical_path(project_root)]
-    for idx, clean_tok in enumerate(words):
+    """Estrae le root candidate da CLI --root/--repo-root evitando spoofing di valori di flag."""
+    explicit_roots: List[_RuntimePath] = []
+    idx = 0
+    while idx < len(words):
+        clean_tok = words[idx]
+        if clean_tok in _PROMOTE_VALUE_FLAGS:
+            idx += 2
+            continue
         if clean_tok in ("--root", "--repo-root") and idx + 1 < len(words):
-            roots.append(_canonical_path(_resolve_target_path(words[idx + 1], project_root)))
-        elif clean_tok.startswith(("--root=", "--repo-root=")):
-            roots.append(_canonical_path(_resolve_target_path(clean_tok.split("=", 1)[1], project_root)))
-    return list(dict.fromkeys(roots))
+            explicit_roots.append(_canonical_path(_resolve_target_path(words[idx + 1], project_root)))
+            idx += 2
+            continue
+        if clean_tok.startswith(("--root=", "--repo-root=")):
+            explicit_roots.append(_canonical_path(_resolve_target_path(clean_tok.split("=", 1)[1], project_root)))
+        idx += 1
+    if explicit_roots:
+        return list(dict.fromkeys(explicit_roots))
+    return list(dict.fromkeys([_resolve_effective_hub_root(project_root), _canonical_path(project_root)]))
 
 
-def _check_tensor_session_promote_gate(cmd_deobf: str, cmd_low: str, project_root: Path) -> Dict[str, Any]:
-    """Blocca --promote-staging o promote inline se ACTIVE.json manca firma/TTL, non e approvato o ha hash diverso."""
-    from _internal.nk_hook_gate.constants_patterns import has_win32_2pc_promote_tokens
-    from _internal.nk_hook_gate.shell_parser import _split_shell_segments, _tokenize_shell_tokens, _unwrap_shell_subcommands
-    from _internal.nk_hook_gate.shell_redaction import _mask_balanced_prompt_payloads
-
-    masked_low = _mask_balanced_prompt_payloads(cmd_deobf, cmd_deobf).replace("\\", "/").lower()
-    has_cli = "win32_2pc_engine" in cmd_low and "--promote-staging" in cmd_low
-    has_inline = "promote_staging_to_production" in masked_low
-    if not has_cli and not has_inline:
-        return {}
-
-    matched_words: List[str] = []
-    for cand in (cmd_deobf, *_unwrap_shell_subcommands(cmd_deobf)):
-        for seg in _split_shell_segments(cand) or [cand]:
-            words = [u for _, u, _ in _tokenize_shell_tokens(seg)]
-            if has_win32_2pc_promote_tokens(words):
-                matched_words.extend(words)
-    if not matched_words and not has_inline:
-        return {}
-
+def _verify_promote_roots(roots: List[_RuntimePath]) -> Dict[str, Any]:
+    """Verifica verify_active_tensor_session su tutte le root candidate e blocca fail-closed."""
     from _internal.win32_2pc_engine.constants import TwoPhaseCommitError
     from _internal.win32_2pc_engine.tensor_session_guard import verify_active_tensor_session
 
-    for root_cand in _extract_promote_root_candidates(matched_words, project_root):
+    for root_cand in roots:
         try:
             verify_active_tensor_session(root_cand, root_cand / ".staging")
         except TwoPhaseCommitError as exc:
@@ -115,6 +124,53 @@ def _check_tensor_session_promote_gate(cmd_deobf: str, cmd_low: str, project_roo
                 "reason": f"Promozione staging bloccata: {exc}",
             }
     return {}
+
+
+def _collect_promote_segment_roots(
+    cmd_deobf: str, project_root: Path, has_inline: bool
+) -> List[_RuntimePath]:
+    """Estrae le root candidate per ogni segmento shell di --promote-staging."""
+    from _internal.nk_hook_gate.constants_patterns import has_win32_2pc_promote_tokens
+    from _internal.nk_hook_gate.shell_parser import (
+        _split_shell_segments,
+        _tokenize_shell_tokens,
+        _unwrap_shell_subcommands,
+    )
+
+    seen_roots: Dict[_RuntimePath, None] = {}
+    for cand in (cmd_deobf, *_unwrap_shell_subcommands(cmd_deobf)):
+        for seg in _split_shell_segments(cand) or [cand]:
+            words = [u for _, u, _ in _tokenize_shell_tokens(seg)]
+            if has_win32_2pc_promote_tokens(words):
+                for rc in _extract_promote_root_candidates(words, project_root):
+                    seen_roots[rc] = None
+    if has_inline:
+        for rc in _extract_promote_root_candidates([], project_root):
+            seen_roots[rc] = None
+    return list(seen_roots.keys())
+
+
+def _check_tensor_session_promote_gate(cmd_deobf: str, cmd_low: str, project_root: Path) -> Dict[str, Any]:
+    """Blocca --promote-staging, --commit-train, --consolidate-sublanes o promote inline valutando ogni segmento."""
+    from _internal.nk_hook_gate.shell_redaction import _mask_balanced_prompt_payloads
+
+    masked_low = _mask_balanced_prompt_payloads(cmd_deobf, cmd_deobf).replace("\\", "/").lower()
+    has_cli = "win32_2pc_engine" in cmd_low and any(
+        fl in cmd_low for fl in ("--promote-staging", "--commit-train", "--consolidate-sublanes")
+    )
+    has_inline = any(
+        fn in masked_low
+        for fn in (
+            "promote_staging_to_production", "run_commit_train_promote", "consolidate_sublanes_and_promote",
+            "append_commit_train_entry", "consolidate_post_commit", "close_active_tensor_session_post_commit",
+            "materialize_changelog_fragments", "release_lane", "update_baseline_metrics",
+        )
+    )
+    if not has_cli and not has_inline:
+        return {}
+    return verify_promote_targets_with_lanes(
+        cmd_deobf, project_root, has_inline, _extract_promote_root_candidates
+    )
 
 
 def _evaluate_pre_command_gates(cmd_deobf: str, cmd_low: str, project_root: Path) -> Dict[str, Any]:
@@ -201,6 +257,46 @@ def _extract_write_inputs(
     return target, cmd, chunks, new_content
 
 
+def _has_unauthorized_shell_write(cmd: str, project_root: Path) -> bool:
+    """Valuta ogni segmento shell isolatamente per bloccare concatenazioni post-script."""
+    from _internal.nk_hook_gate.shell_parser import _split_shell_segments
+    from _internal.nk_hook_gate.shell_write_detector import (
+        _has_cmd_write_indicator,
+        _has_unstaged_temp_script_targeting_protected,
+        _is_authorized_script_invocation,
+    )
+
+    for seg in _split_shell_segments(cmd) or [cmd]:
+        seg_low = seg.replace("\\", "/").lower()
+        is_temp_writer = _has_unstaged_temp_script_targeting_protected(seg, project_root)
+        sanitized_seg = _sanitize_staged_tokens_in_cmd(seg_low)
+        has_write_ind = is_temp_writer or _has_cmd_write_indicator(seg, project_root)
+        is_pure_pytest = ("pytest" in seg_low) and not has_write_ind
+        is_auth_script = _is_authorized_script_invocation(seg, project_root)
+        ext_cmd_unstage = (
+            _cmd_mentions_external_project(sanitized_seg)
+            and not is_auth_script
+            and not is_pure_pytest
+            and (has_write_ind or bool(_UNSTAGE_CODE_DIR_CMD_RE.search(sanitized_seg)))
+        )
+        local_cmd_unstage = not is_auth_script and bool(_UNSTAGE_CODE_DIR_CMD_RE.search(sanitized_seg)) and has_write_ind
+        if ext_cmd_unstage or local_cmd_unstage or (is_temp_writer and not is_auth_script):
+            return True
+    return False
+
+
+def _check_shell_write_and_lane_gate(
+    cmd: str, project_root: Path, conv_id: str, cmd_deobf: str = ""
+) -> Dict[str, Any]:
+    """Verifica scritture shell non autorizzate e isolamento cross-lane verso .staging/lanes/."""
+    if _has_unauthorized_shell_write(cmd, project_root):
+        return {
+            "decision": "deny",
+            "reason": "Direct write to src_app/, app/, or tests/ outside .staging/ is blocked; stage and promote via win32_2pc_engine.py.",
+        }
+    return check_shell_lane_write_authorization(cmd_deobf or cmd, project_root, conv_id)
+
+
 def _handle_write_gate(
     payload: Dict[str, Any],
     project_root: Path,
@@ -208,6 +304,7 @@ def _handle_write_gate(
     cli_target: str,
     cli_cmd: str,
     cli_content: str,
+    conv_id: str = "",
 ) -> Dict[str, Any]:
     """Valuta la sicurezza delle scritture su file o dei comandi prima dell'esecuzione."""
     tool_call, tool_name = _extract_tool_identity(payload)
@@ -246,9 +343,9 @@ def _handle_write_gate(
         if pre_res:
             return pre_res
     else:
-        cmd_low = ""
+        cmd_deobf, cmd_low = "", ""
 
-    protected_res = _classify_protected_target(target, cmd, project_root, strict_external=strict_external)
+    protected_res = _classify_protected_target(target, cmd, project_root, strict_external=strict_external, conv_id=conv_id)
     if protected_res:
         return protected_res
 
@@ -260,11 +357,11 @@ def _handle_write_gate(
         if _is_nk_proget_online_target(cand):
             return _deny_online_readonly()
         if _is_valid_staging_path(cand, project_root):
-            return {}
+            return check_lane_write_authorization(cand, project_root, conv_id)
         if cand_name_low == "patch_notes.md":
             return _check_patch_notes_prepend(cand, args, chunks, new_content)
         if _is_whitelisted_outside_staging(cand, project_root):
-            return {}
+            return check_lane_plan_write_authorization(cand, project_root, conv_id)
         if _is_protected_unstaged_direct_target(cand, cand_parts_low):
             return {
                 "decision": "deny",
@@ -275,28 +372,6 @@ def _handle_write_gate(
             return {"decision": "deny", "reason": "Default-deny: direct write inside project root outside .staging/ is forbidden ([RULE-00])."}
 
     if cmd_low:
-        from _internal.nk_hook_gate.shell_write_detector import (
-            _has_cmd_write_indicator,
-            _has_unstaged_temp_script_targeting_protected,
-            _is_authorized_script_invocation,
-        )
-
-        is_temp_writer = _has_unstaged_temp_script_targeting_protected(cmd, project_root)
-        sanitized_cmd = _sanitize_staged_tokens_in_cmd(cmd_low)
-        has_write_ind = is_temp_writer or _has_cmd_write_indicator(cmd, project_root)
-        is_pure_pytest = ("pytest" in cmd_low) and not has_write_ind
-        is_auth_script = _is_authorized_script_invocation(cmd, project_root)
-        ext_cmd_unstage = (
-            _cmd_mentions_external_project(sanitized_cmd)
-            and not is_auth_script
-            and not is_pure_pytest
-            and (has_write_ind or bool(_UNSTAGE_CODE_DIR_CMD_RE.search(sanitized_cmd)))
-        )
-        local_cmd_unstage = not is_auth_script and bool(_UNSTAGE_CODE_DIR_CMD_RE.search(sanitized_cmd)) and has_write_ind
-        if ext_cmd_unstage or local_cmd_unstage or (is_temp_writer and not is_auth_script):
-            return {
-                "decision": "deny",
-                "reason": "Direct write to src_app/, app/, or tests/ outside .staging/ is blocked; stage and promote via win32_2pc_engine.py.",
-            }
+        return _check_shell_write_and_lane_gate(cmd, project_root, conv_id, cmd_deobf=cmd_deobf)
 
     return {}

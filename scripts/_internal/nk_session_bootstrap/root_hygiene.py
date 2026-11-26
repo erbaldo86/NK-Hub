@@ -10,6 +10,8 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from _internal.nk_common.staging_manifest import is_lane_container_entry
+
 from . import constants as _consts
 
 
@@ -25,10 +27,38 @@ def get_staging_mtime(self_obj: Any) -> float:
     return self_obj._cached_staging_mtime
 
 
+def _scan_dir_entry_has_payload(cur_dir: str, stg_str: str, stack: List[str]) -> bool:
+    """Ispeziona una directory in .staging/ e accoda sottodirectory saltando lanes/ top-level."""
+    is_top = cur_dir == stg_str
+    try:
+        with os.scandir(cur_dir) as it:
+            entries = list(it)
+    except OSError:
+        return False
+    for entry in entries:
+        if is_top and is_lane_container_entry((entry.name,)):
+            continue
+        if entry.is_file(follow_symlinks=False) and entry.name != ".gitkeep":
+            return True
+        if entry.is_dir(follow_symlinks=False):
+            stack.append(entry.path)
+    return False
+
+
+def _dir_has_non_gitkeep_files(staging_dir: Path) -> bool:
+    """Scansiona .staging/ saltando .gitkeep e il contenitore lanes/ top-level."""
+    stg_str = str(staging_dir)
+    stack: List[str] = [stg_str]
+    while stack:
+        if _scan_dir_entry_has_payload(stack.pop(), stg_str, stack):
+            return True
+    return False
+
+
 def is_staging_dirty(
     self_obj: Any, cached: Optional[Dict[str, Any]] = None
 ) -> bool:
-    """Restituisce True se .staging/ contiene almeno un file oltre a .gitkeep."""
+    """Restituisce True se .staging/ contiene almeno un file oltre a .gitkeep e lanes/."""
     curr_stg_mtime = self_obj._get_staging_mtime()
     if curr_stg_mtime <= 0.0:
         return False
@@ -39,22 +69,7 @@ def is_staging_dirty(
         and "staging_dirty_warning" in cached
     ):
         return bool(cached["staging_dirty_warning"])
-
-    staging_dir = self_obj.workspace_root / ".staging"
-    stack: List[str] = [str(staging_dir)]
-    while stack:
-        cur_dir = stack.pop()
-        try:
-            with os.scandir(cur_dir) as it:
-                for entry in it:
-                    if entry.is_file(follow_symlinks=False):
-                        if entry.name != ".gitkeep":
-                            return True
-                    elif entry.is_dir(follow_symlinks=False):
-                        stack.append(entry.path)
-        except OSError:
-            continue
-    return False
+    return _dir_has_non_gitkeep_files(self_obj.workspace_root / ".staging")
 
 
 def get_root_mtime(self_obj: Any) -> float:

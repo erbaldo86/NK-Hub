@@ -46,6 +46,22 @@ def sha256_hex(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def _attach_optional_dag_fields(
+    core_dict: Dict[str, Any],
+    lane_id: Optional[str],
+    declared_write_set: List[str],
+    target_repo_root: Optional[str],
+) -> Dict[str, Any]:
+    """Allega i campi opzionali M4 in core_dict solo se valorizzati per retrocompatibilita hash."""
+    if lane_id is not None:
+        core_dict["lane_id"] = lane_id
+    if declared_write_set:
+        core_dict["declared_write_set"] = declared_write_set
+    if target_repo_root is not None:
+        core_dict["target_repo_root"] = target_repo_root
+    return core_dict
+
+
 class TaskDAGNode(BaseModel):
     """Nodo immutabile del grafo aciclico diretto dei task."""
 
@@ -70,6 +86,12 @@ class TaskDAGNode(BaseModel):
     payload_hash: str = Field(description="Hash SHA-256 del payload JSON canonico")
     prev_hash: str = Field(description="Hash SHA-256 della voce precedente nel DAG")
     node_hash: str = Field(description="Hash SHA-256 dell'intero contenuto del nodo")
+    lane_id: Optional[str] = Field(default=None, description="ID lane parallela assegnata")
+    declared_write_set: List[str] = Field(
+        default_factory=list,
+        description="Percorsi relativi in scrittura dichiarati",
+    )
+    target_repo_root: Optional[str] = Field(default=None, description="Root repository target multi-progetto")
 
     @classmethod
     def create(
@@ -81,23 +103,32 @@ class TaskDAGNode(BaseModel):
         payload: Optional[Dict[str, Any]] = None,
         prev_hash: str = "0" * 64,
         status: TaskStatus = "PENDING",
+        lane_id: Optional[str] = None,
+        declared_write_set: Sequence[str] = (),
+        target_repo_root: Optional[str] = None,
     ) -> TaskDAGNode:
         """Crea un nuovo nodo DAG e calcola gli hash crittografici."""
         p_dict = payload or {}
         p_bytes = canonical_json_bytes(p_dict)
         p_hash = sha256_hex(p_bytes)
+        write_list = list(map(str, declared_write_set))
 
         now = time.time()
-        core_dict: Dict[str, Any] = {
-            "task_id": task_id,
-            "parent_ids": list(parent_ids),
-            "action": action,
-            "target_agent": target_agent,
-            "status": status,
-            "payload_hash": p_hash,
-            "prev_hash": prev_hash,
-            "created_at": now,
-        }
+        core_dict: Dict[str, Any] = _attach_optional_dag_fields(
+            {
+                "task_id": task_id,
+                "parent_ids": list(parent_ids),
+                "action": action,
+                "target_agent": target_agent,
+                "status": status,
+                "payload_hash": p_hash,
+                "prev_hash": prev_hash,
+                "created_at": now,
+            },
+            lane_id,
+            write_list,
+            target_repo_root,
+        )
         n_hash = sha256_hex(canonical_json_bytes(core_dict))
 
         return cls(
@@ -111,6 +142,9 @@ class TaskDAGNode(BaseModel):
             payload_hash=p_hash,
             prev_hash=prev_hash,
             node_hash=n_hash,
+            lane_id=lane_id,
+            declared_write_set=write_list,
+            target_repo_root=target_repo_root,
         )
 
     def verify_integrity(self, expected_prev_hash: str) -> bool:
@@ -119,16 +153,21 @@ class TaskDAGNode(BaseModel):
             return False
         if sha256_hex(canonical_json_bytes(self.payload)) != self.payload_hash:
             return False
-        core_dict: Dict[str, Any] = {
-            "task_id": self.task_id,
-            "parent_ids": self.parent_ids,
-            "action": self.action,
-            "target_agent": self.target_agent,
-            "status": self.status,
-            "payload_hash": self.payload_hash,
-            "prev_hash": self.prev_hash,
-            "created_at": self.created_at,
-        }
+        core_dict: Dict[str, Any] = _attach_optional_dag_fields(
+            {
+                "task_id": self.task_id,
+                "parent_ids": self.parent_ids,
+                "action": self.action,
+                "target_agent": self.target_agent,
+                "status": self.status,
+                "payload_hash": self.payload_hash,
+                "prev_hash": self.prev_hash,
+                "created_at": self.created_at,
+            },
+            self.lane_id,
+            self.declared_write_set,
+            self.target_repo_root,
+        )
         return sha256_hex(canonical_json_bytes(core_dict)) == self.node_hash
 
 

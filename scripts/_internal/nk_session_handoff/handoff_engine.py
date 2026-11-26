@@ -17,7 +17,7 @@ from _internal.nk_session_handoff.anchor_store import (  # noqa: F401
     _eff_ws_root, _extract_2pc_promo_candidate, _is_consecutive_idle_duplicate, _parse_checkpoint_turn, _read_latest_2pc_promotion_milestone,
     _resolve_anchor_file_path, _resolve_own_anchor_milestone, _resolve_own_anchor_milestone_with_ts, _scan_last_fsm_checkpoint,
     _write_anchor_line_with_rotation, _write_single_anchor_target, get_repo_batch_mutex_name, prune_session_tracking_dirs,
-    record_fsm_checkpoint, record_idle_checkpoint_anchor, resume_from_anchor, write_bytes_via_2pc_locked,
+    record_fsm_checkpoint, record_idle_checkpoint_anchor, record_wave_dispatch_anchor, resume_from_anchor, write_bytes_via_2pc_locked,
 )
 from _internal.nk_session_handoff.constants import (  # noqa: F401
     DEFAULT_MILESTONE_ID, HANDOFF_VERSION, _PLACEHOLDER_MILESTONES, _drift_response, _extract_patch_notes_milestone, _idle_anchor_state_key,

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Valutazione conformita Ratchet Schema v2, check read-only e ricalibrazione."""
+"""Valutazione conformita Ratchet Schema v2, CAS baseline mutex, check read-only e ricalibrazione."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ import operator
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
+from _internal.quality_baseline_manager.cas_guard import baseline_mutex, check_baseline_cas
 from _internal.quality_baseline_manager.constants import (
     CONSTITUTIONAL_GOLDEN_FLOOR,
     DEFAULT_BASELINE_VERSION,
@@ -37,7 +38,6 @@ _DIRECTION_SPECS = {"lower_is_better": ("threshold_max", operator.gt, "peggiorat
 
 
 def _metric_bound(base_info: Any, bound_key: str, fallback: Any) -> Any:
-    """Restituisce la soglia esplicita dal record baseline o il valore fallback."""
     return base_info.get(bound_key, fallback) if isinstance(base_info, dict) else fallback
 
 
@@ -49,7 +49,6 @@ def _mirror_pass_rate_aliases(clean: Dict[str, Any]) -> None:
 
 
 def _sanitize_and_expand_metrics(current_metrics: Any) -> Dict[str, Any]:
-    """Rimuove flag di ricalibrazione legacy ed espande eventuali record annidati."""
     clean: Dict[str, Any] = {
         k: v
         for k, v in (current_metrics.items() if isinstance(current_metrics, dict) else [])
@@ -84,10 +83,7 @@ def _is_key_applicable(req_key: str, baseline_metrics: Dict[str, Any], effective
     return req_key == "diff_mutation_kill_rate" and effective_metrics.get("mutation_active") is True
 
 
-def _collect_missing_required_metrics(
-    baseline_metrics: Dict[str, Any], effective_metrics: Dict[str, Any]
-) -> List[Dict[str, Any]]:
-    """Segnala MISSING_REQUIRED_METRIC per le 12 chiavi REQUIRED_RATCHET_KEYS e mutazione se attiva."""
+def _collect_missing_required_metrics(baseline_metrics: Dict[str, Any], effective_metrics: Dict[str, Any]) -> List[Dict[str, Any]]:
     missing: List[Dict[str, Any]] = []
     for req_key in _required_keys_for_eval(baseline_metrics, effective_metrics):
         if _is_key_applicable(req_key, baseline_metrics, effective_metrics) and _extract_numeric_metric(effective_metrics, req_key) is None:
@@ -121,10 +117,7 @@ def _eval_single_regression(
     return {"metric": metric_key, "baseline_value": bound, "current_value": current_val, "direction": direction, "message": f"Metrica {metric_key} {spec[2]}: {bound} -> {current_val} (atteso {spec[3]} {bound})"}
 
 
-def _compare_metric_regressions(
-    baseline_metrics: Dict[str, Any], effective_metrics: Dict[str, Any], allow_ratchet_down: bool
-) -> List[Dict[str, Any]]:
-    """Confronta le metriche correnti con quelle del baseline rilevando eventuali regressioni."""
+def _compare_metric_regressions(baseline_metrics: Dict[str, Any], effective_metrics: Dict[str, Any], allow_ratchet_down: bool) -> List[Dict[str, Any]]:
     regressions = _collect_missing_required_metrics(baseline_metrics, effective_metrics)
     for metric_key, raw_curr in effective_metrics.items():
         if (reg := _eval_single_regression(metric_key, raw_curr, baseline_metrics, effective_metrics, allow_ratchet_down)) is not None:
@@ -136,7 +129,6 @@ def _evaluate_baseline_compliance(
     baseline_path: str, current_metrics: dict, project_name: str = "NK_Project",
     preloaded_baseline: Optional[dict] = None, allow_ratchet_down: bool = False, read_only: bool = False,
 ) -> Tuple[dict, Optional[dict]]:
-    """Valuta la conformita al baseline (Schema v2 + v1 fallback) senza scrivere se read_only=True."""
     load_fn = _facade_attr("load_baseline", load_baseline)
     write_fn = _facade_attr("_atomic_write_baseline", _atomic_write_baseline)
     lock_fn = _facade_attr("_verify_oracle_lock_coherence", _verify_oracle_lock_coherence)
@@ -147,18 +139,12 @@ def _evaluate_baseline_compliance(
         try:
             baseline = load_fn(baseline_path)
         except (json.JSONDecodeError, ValueError, OSError) as exc:
-            return (
-                {"status": "ERROR", "verdict": "FAIL", "message": f"Errore lettura baseline in {baseline_path}: {exc}", "regressions": [{"metric": "__corrupted_baseline__", "message": f"Baseline JSON corrotto: {exc}"}]},
-                None,
-            )
+            return ({"status": "ERROR", "verdict": "FAIL", "message": f"Errore lettura baseline in {baseline_path}: {exc}", "regressions": [{"metric": "__corrupted_baseline__", "message": f"Baseline JSON corrotto: {exc}"}]}, None)
 
     effective_metrics = _sanitize_and_expand_metrics(current_metrics)
     if baseline is None:
         if read_only:
-            return (
-                {"status": "MISSING", "verdict": "FAIL", "message": f"Baseline assente in {baseline_path} (modalita check read-only).", "regressions": [{"metric": "__missing_baseline__", "message": f"Baseline non trovato: {baseline_path}"}]},
-                None,
-            )
+            return ({"status": "MISSING", "verdict": "FAIL", "message": f"Baseline assente in {baseline_path} (modalita check read-only).", "regressions": [{"metric": "__missing_baseline__", "message": f"Baseline non trovato: {baseline_path}"}]}, None)
         new_baseline = create_default_baseline(project_name, effective_metrics)
         write_fn(baseline_path, new_baseline)
         return ({"status": "INITIALIZED", "verdict": "PASS", "message": f"Nuovo baseline di qualita inizializzato in {baseline_path}", "regressions": []}, new_baseline)
@@ -171,19 +157,10 @@ def _evaluate_baseline_compliance(
     regressions.extend(lock_fn(baseline_path))
     verdict = "FAIL" if regressions else "PASS"
     details_str = "; ".join(r.get("message", "") for r in regressions) if regressions else "Baseline e oracle_lock coerenti."
-    return (
-        {
-            "status": "SUCCESS", "verdict": verdict, "baseline_date": baseline.get("baseline_date"),
-            "metrics_checked": len([k for k in effective_metrics if k in baseline_metrics]),
-            "regressions": regressions, "details": details_str,
-        },
-        baseline,
-    )
+    return ({"status": "SUCCESS", "verdict": verdict, "baseline_date": baseline.get("baseline_date"), "metrics_checked": len([k for k in effective_metrics if k in baseline_metrics]), "regressions": regressions, "details": details_str}, baseline)
 
 
-def _check_baseline_compliance_ro(
-    baseline_path: str, current_metrics: dict, project_name: str, allow_ratchet_down: bool
-) -> dict:
+def _check_baseline_compliance_ro(baseline_path: str, current_metrics: dict, project_name: str, allow_ratchet_down: bool) -> dict:
     eval_fn = _facade_attr("_evaluate_baseline_compliance", _evaluate_baseline_compliance)
     try:
         params = inspect.signature(eval_fn).parameters
@@ -197,18 +174,13 @@ def _check_baseline_compliance_ro(
     return compliance
 
 
-def check_baseline_compliance(
-    baseline_path: str, current_metrics: dict, project_name: str = "NK_Project", allow_ratchet_down: bool = False
-) -> dict:
+def check_baseline_compliance(baseline_path: str, current_metrics: dict, project_name: str = "NK_Project", allow_ratchet_down: bool = False) -> dict:
     """Verifica rigorosamente read-only che nessuna metrica corrente sia regredita."""
     return _check_baseline_compliance_ro(baseline_path, current_metrics, project_name, allow_ratchet_down)
 
 
 def _gate_fail(metric: str, base_val: Any, curr_val: Any, direction: str, msg: str, summary: str) -> dict:
-    return {
-        "status": "REJECTED", "verdict": "FAIL", "message": summary,
-        "regressions": [{"metric": metric, "baseline_value": base_val, "current_value": curr_val, "direction": direction, "message": msg}],
-    }
+    return {"status": "REJECTED", "verdict": "FAIL", "message": summary, "regressions": [{"metric": metric, "baseline_value": base_val, "current_value": curr_val, "direction": direction, "message": msg}]}
 
 
 def _check_test_floor_and_rate(tot_val: Optional[float], pass_val: Optional[float], rate_val: Optional[float]) -> Optional[dict]:
@@ -231,7 +203,6 @@ def _check_zero_fail_and_skip(fail_val: Optional[float], skip_val: Optional[floa
 
 
 def _validate_legitimate_update_gate(metrics: dict) -> Optional[dict]:
-    """Verifica il pavimento MIN_GOLDEN_TESTS_FLOOR, pass_rate == 100.0, 0 failed e 0 skipped."""
     if not isinstance(metrics, dict):
         return {"status": "REJECTED", "verdict": "FAIL", "message": "Metriche di aggiornamento non valide.", "regressions": []}
     tot_val = _extract_numeric_metric(metrics, "total_golden_tests", "unit_tests_total")
@@ -242,9 +213,7 @@ def _validate_legitimate_update_gate(metrics: dict) -> Optional[dict]:
     return _check_test_floor_and_rate(tot_val, pass_val, rate_val) or _check_zero_fail_and_skip(fail_val, skip_val)
 
 
-def _apply_v2_baseline_write(
-    baseline_path: str, baseline: dict, new_metrics: dict, reason: Optional[str], write_fn: Any
-) -> dict:
+def _apply_v2_baseline_write(baseline_path: str, baseline: dict, new_metrics: dict, reason: Optional[str], write_fn: Any) -> dict:
     clean_metrics = {
         k: v for k, v in new_metrics.items()
         if k not in ("__recalibrate_authorized__", "_recalibrated", "mutation_active") and k not in PHANTOM_V1_METRIC_KEYS
@@ -274,10 +243,29 @@ def _apply_v2_baseline_write(
     return {"status": "UPDATED", "verdict": "PASS", "message": f"Quality Baseline Schema v2 aggiornato in {baseline_path}", "regressions": []}
 
 
-def update_baseline_metrics(
-    baseline_path: str, new_metrics: dict, allow_ratchet_down: bool = False, reason: Optional[str] = None
+def _run_locked_baseline_update(
+    baseline_path: str, new_metrics: dict, allow_ratchet_down: bool, reason: Optional[str],
+    expected_baseline_sha256: Optional[str], write_fn: Any, eval_fn: Any,
 ) -> dict:
-    """Verifica pavimento >= 93, pass_rate == 100.0 e Ratchet prima di aggiornare Schema v2."""
+    with baseline_mutex(baseline_path):
+        cas_ok, _cur_sha, cas_err = check_baseline_cas(baseline_path, expected_baseline_sha256)
+        if not cas_ok and cas_err is not None:
+            return cas_err
+        compliance, baseline = eval_fn(baseline_path, new_metrics, allow_ratchet_down=allow_ratchet_down)
+        if compliance.get("status") == "INITIALIZED":
+            return compliance
+        if compliance.get("verdict") == "FAIL" or compliance.get("status") == "ERROR":
+            return {"status": "REJECTED", "verdict": "FAIL", "message": compliance.get("message", "Aggiornamento rifiutato per violazione Ratchet."), "regressions": compliance.get("regressions", [])}
+        if baseline is None:
+            return compliance
+        return _apply_v2_baseline_write(baseline_path, baseline, new_metrics, reason, write_fn)
+
+
+def update_baseline_metrics(
+    baseline_path: str, new_metrics: dict, allow_ratchet_down: bool = False, reason: Optional[str] = None,
+    *, expected_baseline_sha256: Optional[str] = None,
+) -> dict:
+    """Verifica pavimento >= 93, CAS SHA-256 sotto Win32NamedMutex, pass_rate == 100.0 e Ratchet."""
     load_fn = _facade_attr("load_baseline", load_baseline)
     write_fn = _facade_attr("_atomic_write_baseline", _atomic_write_baseline)
     eval_fn = _facade_attr("_evaluate_baseline_compliance", _evaluate_baseline_compliance)
@@ -290,14 +278,9 @@ def update_baseline_metrics(
             return {"status": "REJECTED", "verdict": "FAIL", "message": f"Errore lettura baseline in {baseline_path}: {exc}", "regressions": [{"metric": "__corrupted_baseline__", "message": f"Baseline JSON corrotto: {exc}"}]}
         return gate_err
 
-    compliance, baseline = eval_fn(baseline_path, new_metrics, allow_ratchet_down=allow_ratchet_down)
-    if compliance.get("status") == "INITIALIZED":
-        return compliance
-    if compliance.get("verdict") == "FAIL" or compliance.get("status") == "ERROR":
-        return {"status": "REJECTED", "verdict": "FAIL", "message": compliance.get("message", "Aggiornamento rifiutato per violazione Ratchet."), "regressions": compliance.get("regressions", [])}
-    if baseline is None:
-        return compliance
-    return _apply_v2_baseline_write(baseline_path, baseline, new_metrics, reason, write_fn)
+    return _run_locked_baseline_update(
+        baseline_path, new_metrics, allow_ratchet_down, reason, expected_baseline_sha256, write_fn, eval_fn,
+    )
 
 
 def recalibrate_baseline(

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import inspect
 import os
 import subprocess
 import sys
@@ -14,7 +15,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from _internal.nk_common.isolated_test_runner import _kill_detached_tree, is_temp_workspace, mirror_workspace_to_nvme, safe_rmtree, win32_detached_flags
 from _internal.nk_common.pytest_parallel import run_parallel_pytest_shards, should_use_parallel_shards
 from _internal.nk_common.tas_ssot_io import parse_pytest_summary
-from _internal.rsi_convergence_engine.constants import load_staging_deleted_set_impl, normalize_rel_for_root
+from _internal.rsi_convergence_engine.constants import load_staging_deleted_set_impl, normalize_rel_for_root, resolve_effective_staging
 from _internal.rsi_convergence_engine.report_sanitizers import (
     _BENCH_COV_KEYS,
     audit_coverage_report_payload,
@@ -30,30 +31,33 @@ _STDLIB_DEVNULL = subprocess.DEVNULL
 _ORIG_SUBPROCESS_RUN = subprocess.run
 
 
-def _has_auto_test_files(root: Path) -> bool:
-    return any(cand.is_dir() and any(cand.rglob("test_*.py")) for cand in (root / "tests", root / ".staging" / "tests"))
+def _has_auto_test_files(root: Path, lane_id: Optional[str] = None, staging_dir: Optional[Path] = None) -> bool:
+    stg_root = resolve_effective_staging(root, lane_id=lane_id, staging_dir=staging_dir)
+    return any(cand.is_dir() and any(cand.rglob("test_*.py")) for cand in (root / "tests", stg_root / "tests"))
 
 
-def _resolve_benchmark_suite_path(base_root: Path, engine: Any, benchmark_suite: Path | str) -> Path:
+def _resolve_benchmark_suite_path(base_root: Path, engine: Any, benchmark_suite: Path | str, lane_id: Optional[str] = None, staging_dir: Optional[Path] = None) -> Path:
     raw_p = Path(benchmark_suite)
     if raw_p.is_absolute():
         return raw_p
     norm_rel = normalize_rel_for_root(base_root, str(benchmark_suite))
-    for cand in (base_root / ".staging" / norm_rel, base_root / norm_rel, engine.workspace_root / ".staging" / norm_rel):
+    stg_root = resolve_effective_staging(base_root, lane_id=lane_id, staging_dir=staging_dir)
+    for cand in (stg_root / norm_rel, base_root / norm_rel, engine.workspace_root / ".staging" / norm_rel):
         if cand.exists():
             return cand.resolve()
     return (base_root / norm_rel).resolve()
 
 
-def _collect_pytest_targets(suite_path: Path, base_root: Path) -> List[str]:
+def _collect_pytest_targets(suite_path: Path, base_root: Path, lane_id: Optional[str] = None, staging_dir: Optional[Path] = None) -> List[str]:
     if suite_path.is_file() and suite_path.suffix == ".py":
         return [str(suite_path.resolve())]
     if not suite_path.is_dir():
         return []
-    stg_tests, prod_tests = base_root / ".staging" / "tests", base_root / "tests"
+    stg_root = resolve_effective_staging(base_root, lane_id=lane_id, staging_dir=staging_dir)
+    stg_tests, prod_tests = stg_root / "tests", base_root / "tests"
     if suite_path.resolve() not in (prod_tests.resolve(), stg_tests.resolve()) or not stg_tests.is_dir():
         return [str(suite_path.resolve())] if any(suite_path.rglob("test_*.py")) else []
-    deleted_rel, overlay = load_staging_deleted_set_impl(base_root), {}
+    deleted_rel, overlay = load_staging_deleted_set_impl(base_root, lane_id=lane_id, staging_dir=staging_dir), {}
     if prod_tests.is_dir():
         for tf in sorted(prod_tests.rglob("test_*.py")):
             if "__pycache__" not in tf.parts and f"tests/{tf.relative_to(prod_tests).as_posix()}" not in deleted_rel:
@@ -64,24 +68,34 @@ def _collect_pytest_targets(suite_path: Path, base_root: Path) -> List[str]:
     return [str(overlay[k]) for k in sorted(overlay.keys())]
 
 
-def _map_mirror_target(t_str: str, base_root: Path, mirror_dir: Path) -> str:
-    tp, stg_root = Path(t_str).resolve(), (base_root / ".staging").resolve()
-    if tp.is_relative_to(stg_root):
-        return str(mirror_dir / tp.relative_to(stg_root))
+def _map_mirror_target(t_str: str, base_root: Path, mirror_dir: Path, stg_root: Optional[Path] = None) -> str:
+    tp, stg_res = Path(t_str).resolve(), (stg_root if stg_root is not None else (base_root / ".staging")).resolve()
+    if tp.is_relative_to(stg_res):
+        return str(mirror_dir / tp.relative_to(stg_res))
     return str(mirror_dir / tp.relative_to(base_root.resolve())) if tp.is_relative_to(base_root.resolve()) else t_str
 
 
-def _prepare_pytest_execution(base_root: Path, suite_path: Path, pytest_targets: List[str], env: Dict[str, str]) -> Tuple[Path, List[str], Path, Optional[Path], Optional[Path]]:
-    stg_tests, prod_tests = base_root / ".staging" / "tests", base_root / "tests"
+def _build_nvme_mirror_kwargs(stg_root: Path, lane_id: Optional[str], staging_dir: Optional[Path]) -> Dict[str, Any]:
+    m_kw: Dict[str, Any] = {"prefix": "nk_rsi_iso_", "apply_overlay": True}
+    if staging_dir is not None:
+        m_kw["staging_dir"] = stg_root
+    elif lane_id is not None:
+        m_kw["lane_id"] = lane_id
+    return m_kw
+
+
+def _prepare_pytest_execution(base_root: Path, suite_path: Path, pytest_targets: List[str], env: Dict[str, str], lane_id: Optional[str] = None, staging_dir: Optional[Path] = None) -> Tuple[Path, List[str], Path, Optional[Path], Optional[Path]]:
+    stg_root = resolve_effective_staging(base_root, lane_id=lane_id, staging_dir=staging_dir)
+    stg_tests, prod_tests = stg_root / "tests", base_root / "tests"
     if not is_temp_workspace(base_root):
-        mirror_dir = mirror_workspace_to_nvme(base_root, prefix="nk_rsi_iso_", apply_overlay=True)
+        mirror_dir = mirror_workspace_to_nvme(base_root, **_build_nvme_mirror_kwargs(stg_root, lane_id, staging_dir))
         is_tests_dir = suite_path.is_dir() and suite_path.resolve() in (prod_tests.resolve(), stg_tests.resolve())
-        targets = [str(mirror_dir / "tests")] if is_tests_dir else [_map_mirror_target(t, base_root, mirror_dir) for t in pytest_targets]
+        targets = [str(mirror_dir / "tests")] if is_tests_dir else [_map_mirror_target(t, base_root, mirror_dir, stg_root=stg_root) for t in pytest_targets]
         env["PYTHONPATH"] = str(mirror_dir)
         basetemp = mirror_dir.parent / "bt"
         basetemp.mkdir(parents=True, exist_ok=True)
         return mirror_dir, targets, basetemp, mirror_dir, None
-    py_paths = ([str(base_root / ".staging")] if (base_root / ".staging").is_dir() else []) + [str(base_root)]
+    py_paths = ([str(stg_root)] if stg_root.is_dir() else []) + [str(base_root)]
     if existing_pp := env.get("PYTHONPATH", ""):
         py_paths.append(existing_pp)
     env["PYTHONPATH"] = os.pathsep.join(py_paths)
@@ -177,18 +191,18 @@ def _execute_prepared_benchmark(
     return _build_pytest_outcome(proc, suite_path, round(time.perf_counter() - t0, 2))
 
 
-def run_benchmark_suite_impl(engine: Any, benchmark_suite: Path | str, root_dir: Optional[Path] = None) -> Dict[str, Any]:
+def run_benchmark_suite_impl(engine: Any, benchmark_suite: Path | str, root_dir: Optional[Path] = None, lane_id: Optional[str] = None, staging_dir: Optional[Path] = None) -> Dict[str, Any]:
     """Esegue pytest reale isolato (-B, NVMe) mantenendo tests_skipped separato da tests_failed."""
     base_root = Path(root_dir).resolve() if root_dir else engine.workspace_root
-    suite_path = _resolve_benchmark_suite_path(base_root, engine, benchmark_suite)
-    pytest_targets = _collect_pytest_targets(suite_path, base_root)
+    suite_path = _resolve_benchmark_suite_path(base_root, engine, benchmark_suite, lane_id=lane_id, staging_dir=staging_dir)
+    pytest_targets = _collect_pytest_targets(suite_path, base_root, lane_id=lane_id, staging_dir=staging_dir)
     if not pytest_targets:
         return {"executed": False, "executed_pytest": False, "passed": False, "pass_rate_pct": 0.0, "total": 0, "passed_count": 0, "failed_count": 0, "skipped_count": 0, "tests_skipped": 0, "tests_failed": 0, "tests_passed": 0, "tests_total": 0, "duration_s": None, "suite_path": str(suite_path), "details": f"Suite pytest non valida o assente: {suite_path}"}
     env = _build_rsi_pytest_env()
     sp_mod = _pick_subprocess_mod()
     mirror_dir, bt_tmp_dir = None, None
     try:
-        run_cwd, run_targets, basetemp, mirror_dir, bt_tmp_dir = _prepare_pytest_execution(base_root, suite_path, pytest_targets, env)
+        run_cwd, run_targets, basetemp, mirror_dir, bt_tmp_dir = _prepare_pytest_execution(base_root, suite_path, pytest_targets, env, lane_id=lane_id, staging_dir=staging_dir)
         return _execute_prepared_benchmark(run_cwd, run_targets, basetemp, mirror_dir, sp_mod, env, suite_path)
     except Exception as exc:
         return {"executed": False, "executed_pytest": False, "passed": False, "tests_failed": 1, "tests_passed": 0, "tests_total": 1, "tests_skipped": 0, "duration_s": None, "suite_path": str(suite_path), "details": f"Errore esecuzione benchmark suite: {exc}"}
@@ -234,13 +248,28 @@ def _eval_injected_or_block_strict(
     return _evaluate_injected_test_report(test_report, measured_components, checks, violations)
 
 
-def _run_suite_with_strict_fallback(engine: Any, root: Path, benchmark_suite: Optional[str], strict_verify: bool, has_tests: bool, violations: List[str]) -> Dict[str, Any]:
+def _call_bench_suite(engine: Any, target: str, root: Path, lane_id: Optional[str], staging_dir: Optional[Path]) -> Dict[str, Any]:
+    kw: Dict[str, Any] = {"root_dir": root}
+    try:
+        params = inspect.signature(engine.run_benchmark_suite).parameters
+    except (TypeError, ValueError):
+        params = {}
+    has_kw = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())
+    if lane_id is not None and (has_kw or "lane_id" in params):
+        kw["lane_id"] = lane_id
+    if staging_dir is not None and (has_kw or "staging_dir" in params):
+        kw["staging_dir"] = staging_dir
+    return engine.run_benchmark_suite(target, **kw)
+
+
+def _run_suite_with_strict_fallback(engine: Any, root: Path, benchmark_suite: Optional[str], strict_verify: bool, has_tests: bool, violations: List[str], lane_id: Optional[str] = None, staging_dir: Optional[Path] = None) -> Dict[str, Any]:
+    stg_root = resolve_effective_staging(root, lane_id=lane_id, staging_dir=staging_dir)
     prod_tests = root / "tests"
-    default_dir = prod_tests if prod_tests.is_dir() else (root / ".staging" / "tests")
-    bench_res = engine.run_benchmark_suite(benchmark_suite or str(default_dir), root_dir=root)
+    default_dir = prod_tests if prod_tests.is_dir() else (stg_root / "tests")
+    bench_res = _call_bench_suite(engine, benchmark_suite or str(default_dir), root, lane_id, staging_dir)
     if strict_verify and benchmark_suite and not bench_res.get("executed_pytest", False) and has_tests:
         violations.append(bench_res.get("details", "Benchmark suite priva di pytest reale."))
-        bench_res = engine.run_benchmark_suite(str(default_dir), root_dir=root)
+        bench_res = _call_bench_suite(engine, str(default_dir), root, lane_id, staging_dir)
         bench_res["strict_fallback_pytest"] = True
     return bench_res
 
@@ -249,17 +278,18 @@ def evaluate_benchmark_suite_gate(
     engine: Any, root: Path, test_report: Optional[Dict[str, Any]], benchmark_suite: Optional[str],
     should_run_pytest: bool, strict_verify: bool, measured_components: List[str], unmeasured_components: List[str],
     checks: Dict[str, Any], violations: List[str], allow_injected_in_strict: bool = True,
+    lane_id: Optional[str] = None, staging_dir: Optional[Path] = None,
 ) -> Tuple[int, int, int]:
     """Valuta test_report o suite pytest (CLI strict blocca test_report iniettato)."""
     if isinstance(test_report, dict):
         return _eval_injected_or_block_strict(test_report, strict_verify, allow_injected_in_strict, measured_components, unmeasured_components, checks, violations)
-    has_tests = _has_auto_test_files(root)
+    has_tests = _has_auto_test_files(root, lane_id=lane_id, staging_dir=staging_dir)
     if not (benchmark_suite or should_run_pytest or (strict_verify and has_tests)):
         unmeasured_components.append("benchmark_suite")
         if strict_verify:
             violations.append(f"Nessuna suite di test misurata in modalita --strict-verify per '{root}'.")
         return 0, 0, 0
-    bench_res = _run_suite_with_strict_fallback(engine, root, benchmark_suite, strict_verify, has_tests, violations)
+    bench_res = _run_suite_with_strict_fallback(engine, root, benchmark_suite, strict_verify, has_tests, violations, lane_id=lane_id, staging_dir=staging_dir)
     checks["benchmark_suite"] = bench_res
     target_bucket = measured_components if (bench_res.get("executed_pytest", False) or bench_res.get("executed", False)) else unmeasured_components
     target_bucket.append("benchmark_suite")

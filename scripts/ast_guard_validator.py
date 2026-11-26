@@ -41,6 +41,7 @@ from _internal.ast_guard_validator.cli_helpers import (  # noqa: E402
     _run_quality_and_scope_checks,
     format_compact_violation,
 )
+from _internal.nk_common.lane_paths import resolve_staging_dir  # noqa: E402
 
 _EXPORTS_LOADED = False
 
@@ -178,6 +179,28 @@ def _collect_direct_targets_and_files(
     return _expand_py_files_from_targets(targets_to_scan), targets_to_scan, None
 
 
+def _collect_cli_raw_targets(
+    args: argparse.Namespace, scan_root: Path, lane_id_arg: Optional[str]
+) -> List[tuple[str, bool]]:
+    """Costruisce la lista normalizzata di target CLI per ast_guard_validator."""
+    raw_targets: List[tuple[str, bool]] = []
+    if args.stage_dir is not None or (
+        lane_id_arg is not None and not getattr(args, "overlay_staging", False)
+    ):
+        resolved_stg, _ = resolve_staging_dir(
+            scan_root, staging_dir=args.stage_dir, lane_id=lane_id_arg
+        )
+        raw_targets.append((str(resolved_stg), True))
+    if args.target is not None:
+        raw_targets.append((str(args.target), False))
+    if args.target_path:
+        if isinstance(args.target_path, list):
+            raw_targets.extend((str(x), False) for x in args.target_path if str(x).strip())
+        elif str(args.target_path).strip():
+            raw_targets.append((str(args.target_path).strip(), False))
+    return raw_targets or [("all", False)]
+
+
 def main() -> int:
     parser = _build_cli_parser()
     args = parser.parse_args()
@@ -188,33 +211,13 @@ def main() -> int:
         _write_json_atomic,
     )
 
-    raw_targets: List[tuple[str, bool]] = []
-    if args.stage_dir is not None:
-        raw_targets.append((str(args.stage_dir), True))
-    if args.target is not None:
-        raw_targets.append((str(args.target), False))
-    if args.target_path:
-        if isinstance(args.target_path, list):
-            raw_targets.extend(
-                (str(x), False) for x in args.target_path if str(x).strip()
-            )
-        elif str(args.target_path).strip():
-            raw_targets.append((str(args.target_path).strip(), False))
-
-    if not raw_targets:
-        raw_targets = [("all", False)]
-
-    allowed_set = {
-        s.strip() for s in args.allowed_mutations.split(",") if s.strip()
-    }
-    validator = ASTGuardValidator(allowed_mutations=allowed_set)
-
     script_dir = Path(__file__).resolve().parent
     workspace_root = (
         script_dir.parent.parent
         if script_dir.parent.name == ".staging"
         else script_dir.parent
     )
+    lane_id_arg = getattr(args, "lane_id", None)
 
     def _fail_closed_missing(msg: str) -> int:
         err_payload = {
@@ -243,6 +246,16 @@ def main() -> int:
         and any((cwd_resolved / d).is_dir() for d in ("scripts", "src_app", "tests"))
     ):
         scan_root = cwd_resolved
+
+    try:
+        raw_targets = _collect_cli_raw_targets(args, scan_root, lane_id_arg)
+    except ValueError as exc:
+        return _fail_closed_missing(str(exc))
+
+    allowed_set = {
+        s.strip() for s in args.allowed_mutations.split(",") if s.strip()
+    }
+    validator = ASTGuardValidator(allowed_mutations=allowed_set)
 
     overlay_ctx: Optional[Tuple[Path, Path, Set[str]]] = None
     effective_ws = workspace_root

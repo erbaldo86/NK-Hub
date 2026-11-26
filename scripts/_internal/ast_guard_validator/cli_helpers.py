@@ -7,6 +7,12 @@ import argparse
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from _internal.nk_common.lane_paths import (
+    is_lane_container_entry,
+    resolve_staging_dir,
+    strip_staging_rel_parts,
+)
+
 
 def _scan_overlay_frontend(
     targets_to_scan: List[Path],
@@ -86,10 +92,15 @@ def _collect_quality_diff_violations(
     return violations
 
 
+def _is_active_staged_file(f: Path, stage_base: Path, excl_lanes: bool) -> bool:
+    """True se il file e regolare e non appartiene a lanes/ in modalita legacy."""
+    return f.is_file() and not (excl_lanes and is_lane_container_entry(f.relative_to(stage_base).parts))
+
+
 def _collect_allowed_file_violations(
     args: Any, workspace_root: Path
 ) -> List[Any]:
-    """Verifica che i file in .staging/ rispettino --allowed-files."""
+    """Verifica che i file nello staging attivo rispettino --allowed-files."""
     raw_allowed = getattr(args, "allowed_files", "") or ""
     allowed_patterns = [p.strip() for p in raw_allowed.split(",") if p.strip()]
     if not allowed_patterns:
@@ -98,14 +109,17 @@ def _collect_allowed_file_violations(
         check_allowed_files,
     )
 
-    stage_base = (
-        Path(args.stage_dir).resolve()
-        if getattr(args, "stage_dir", None)
-        else (workspace_root / ".staging").resolve()
+    stage_base, norm_lane = resolve_staging_dir(
+        workspace_root,
+        lane_id=getattr(args, "lane_id", None),
+        staging_dir=getattr(args, "stage_dir", None),
     )
     if not stage_base.is_dir():
         return []
-    staged_files = sorted(f for f in stage_base.rglob("*") if f.is_file())
+    excl_lanes = norm_lane is None and stage_base.name == ".staging"
+    staged_files = sorted(
+        f for f in stage_base.rglob("*") if _is_active_staged_file(f, stage_base, excl_lanes)
+    )
     return check_allowed_files(staged_files, stage_base, allowed_patterns)
 
 
@@ -146,7 +160,7 @@ def _resolve_pre_codes(
             pre_code = prod_file.read_text(encoding="utf-8")
         except OSError:
             pre_code = code
-    in_staging = ".staging" in py_file.resolve().parts
+    in_staging = strip_staging_rel_parts(py_file.resolve().parts)[0] >= 0
     qd_pre = pre_code if (prod_file is not None or not in_staging) else ""
     return pre_code, qd_pre
 
@@ -202,6 +216,12 @@ def _build_cli_parser() -> argparse.ArgumentParser:
         dest="stage_dir",
         default=None,
         help="Directory di staging da scansionare (fail-closed rc=2 se inesistente)",
+    )
+    parser.add_argument(
+        "--lane-id",
+        dest="lane_id",
+        default=None,
+        help="Lane ID opzionale per staging isolato (.staging/lanes/<id>)",
     )
     parser.add_argument(
         "--overlay-staging",
