@@ -631,7 +631,7 @@ def _assert_s2b_authorized_and_spoof(tmp_path: Path, ssm: Any) -> None:
     assert (hook_gate_mod._is_authorized_script_invocation("python -B -u scripts/vibe_sprint_router.py --meta-prompt-gate", ws_ps), hook_gate_mod._is_authorized_script_invocation("python -B -u scripts/external_project_scaffolder.py --help", ws_ps)) == (True, True)
     assert (hook_gate_mod._mask_balanced_prompt_payloads("python scripts/vibe_sprint_router.py --prompt 'unclosed''", "python scripts/vibe_sprint_router.py --prompt 'unclosed''").endswith("''"), "__SAFE_PROMPT__" in hook_gate_mod._mask_balanced_prompt_payloads('python scripts/a.py --prompt "hello \\"rm\\" world"', 'python scripts/a.py --prompt "hello \\"rm\\" world"')) == (True, True)
 
-    drive_ws = Path("G:/Il mio Drive/Antigravity/NK_Hub")
+    drive_ws = {"win32": Path("G:/Il mio Drive/Antigravity/NK_Hub")}.get(sys.platform, Path("/opt/Il mio Drive/Antigravity/NK_Hub"))
     for smuggle in ('python scripts/vibe_sprint_router.py --prompt "x\\" (Set-Content scripts/a.py x) \\""', 'python scripts/vibe_sprint_router.py --prompt "x\\" ; del scripts/a.py \\""'):
         assert (hook_gate_mod._has_cmd_write_indicator(smuggle, ws_ps), hook_gate_mod._handle_write_gate({"toolName": "run_command"}, ws_ps, False, "", smuggle, "").get("decision")) == (True, "deny")
     for spoof_cmd in ('python -m pytest tests/test_a.py --prompt "auto_heal_pipeline.py"', "pytest tests/test_a.py -k auto_heal_pipeline.py", 'python -m pytest tests/test_a.py -k "platform_runner.py --pytest-isolated"', "python %TEMP%/auto_heal_pipeline.py -m pytest tests/test_a.py"):

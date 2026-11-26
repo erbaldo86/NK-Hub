@@ -15,9 +15,9 @@
     "test_forensic_hardening_fast.py": "830d85a0816861eb44faa15eb987ca34bcb6b1869017d9643fc45eef6a205ef6",
     "test_forensic_mutation_killers_fast.py": "635bc2012bb92bd2f88e29b5ca62233e88b00002460294f9fdd9432f740133e2",
     "test_gt14_and_dsm.py": "42bdefbab93b096cb536381a185666b36b9e038cfdac323ccfff45388e456b6f",
-    "test_isolated_pytest_runner.py": "58491904e3831f0c0234713250ac3024c8817e328aa5b189802a5b924c0c8a0e",
+    "test_isolated_pytest_runner.py": "0a5783a31355613a6b25138b1eeba5d3956aa650a80b687e2db82035bddf960a",
     "test_memory_3tier.py": "a58b769e96d75fb02b724b82af8a8b3af2264ddff40daca4047eb01947062124",
-    "test_nk_hook_and_transcript_governance.py": "32c8e2608b5f5030dadda3e805f1b8d814674947bf425258c9153348b8b95029",
+    "test_nk_hook_and_transcript_governance.py": "cb252cc16e0c198708183f6bbf17ffaf4a265c3a27b2cbd5620f044ef687fbda",
     "test_nk_proget_locale_online_governance.py": "a40b6732de58625f1d3a1de4578ef7d9ff21b067e22b1ac336b7911bce95905e",
     "test_nk_registry_indexer.py": "a881656dd3094ae222a0bcbd53b9ee68c273b5b08757a5a256f573863d9b9170",
     "test_nk_registry_indexer_w3.py": "0ba8b91264b7ed0c1451f0c2325de7192ef20b7ae9c6e3077c14d754d331f630",
@@ -461,5 +461,5 @@
     "../nk_genome/modules/SYSTEM_GRAPHS_DAG_DSM_RTM_HEATMAP.md": "02b350571ca440013be4e1cca764ff3904e7f35db4e069ac2fe7a08de4335136",
     "../nk_genome/structural_tree.md": "685fe4dc0cda0a4f214960c56aca33bc18871601a78b59f9703d07b8745c914a"
   },
-  "combined_sha256": "8f93ae05fedf170014d2bfc45829593aaed8bfb91d82e7ac83acf5b004a0d16e"
+  "combined_sha256": "dad56ca0fea547585bda276bb551fee83cf324bbf4761d71e9b2ea8a12d40b6d"
 }

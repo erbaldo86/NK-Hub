@@ -131,7 +131,7 @@ def test_run_detached_pytest_and_platform_runner_cli(tmp_path: Path, monkeypatch
 def _assert_hook_gate_win32_rules(tmp_path: Path) -> None:
     """Verifica blocco pytest su Drive FS vs esenzione runner isolati e %TEMP%."""
     temp_tok = "%" + "TEMP%"
-    drive_ws = Path("G:/Il mio Drive/Antigravity/NK_Hub")
+    drive_ws = {"win32": Path("G:/Il mio Drive/Antigravity/NK_Hub")}.get(sys.platform, Path("/opt/Il mio Drive/Antigravity/NK_Hub"))
     for blocked_cmd in (
         "pytest tests/test_platform_locks_and_utils.py",
         "python -m pytest -q",
@@ -182,7 +182,7 @@ def _assert_target_classifier_edges(tmp_path: Path, monkeypatch: pytest.MonkeyPa
         for k in ("TEMP", "TMP", "LOCALAPPDATA"):
             mp.setenv(k, "")
         mp.setenv("TMPDIR", str(custom_td))
-        assert (tc_mod._is_temp_root_path(custom_td / "sub"), tc_mod._is_temp_root_path(Path("C:/outside_non_temp_proj"))) == (True, False)
+        assert (tc_mod._is_temp_root_path(custom_td / "sub"), tc_mod._is_temp_root_path({"win32": Path("C:/outside_non_temp_proj")}.get(sys.platform, Path("/opt/outside_non_temp_proj")))) == (True, False)
 
 
 @pytest.mark.integration
